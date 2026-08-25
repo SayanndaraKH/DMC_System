@@ -1,4 +1,5 @@
 import re
+import os
 import zipfile
 import xml.etree.ElementTree as ET
 
@@ -6,7 +7,7 @@ KHMER_DIGITS_MAP = str.maketrans('០១២៣៤៥៦៧៨៩', '0123456789')
 
 def to_arabic_digits(text):
     """
-    Converts Khmer digits (០១២៣៤៥៦៧៨៩) to Arabic/French numerals (0123456789).
+    Converts Khmer digits (០១២៣៤៥៦៧៨៩) to Arabic numerals (0123456789).
     Example: ១៨០០៣០០១០៦ -> 1800300106
     """
     if not text:
@@ -16,7 +17,7 @@ def to_arabic_digits(text):
 def clean_khmer_text(text):
     if not text:
         return ""
-    text = text.replace('\u200b', '').replace('\xa0', ' ')
+    text = text.replace('\u200b', '').replace('\u200c', '').replace('\xa0', ' ')
     text = re.sub(r'[ \t]+', ' ', text).strip()
     return text
 
@@ -32,17 +33,33 @@ def clean_noise(text):
     text = re.sub(r'\.{2,}', '', text).strip()
     return text
 
-def parse_docx_officer(file_path_or_file):
+def parse_docx_officer(file_path_or_file, original_filename=None):
     """
     Parses any Cambodian Civil Servant Biography .docx file and returns a structured dictionary
     ready to populate CivilServantProfile.
+    Uses dynamic table discovery, multi-cell regex, paragraph extraction, and filename fallback
+    to guarantee high resilience on all docx formats.
     """
+    if hasattr(file_path_or_file, 'name') and not original_filename:
+        original_filename = file_path_or_file.name
+    elif isinstance(file_path_or_file, str) and not original_filename:
+        original_filename = os.path.basename(file_path_or_file)
+
+    tables = []
+    paragraphs = []
+
     with zipfile.ZipFile(file_path_or_file) as z:
         xml_content = z.read('word/document.xml')
         tree = ET.fromstring(xml_content)
         ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
 
-        tables = []
+        # Extract all paragraphs for text fallback
+        for p in tree.findall('.//w:p', ns):
+            p_text = clean_khmer_text(''.join([t.text for t in p.findall('.//w:t', ns) if t.text]))
+            if p_text:
+                paragraphs.append(p_text)
+
+        # Extract all tables
         for tbl in tree.findall('.//w:tbl', ns):
             tbl_rows = []
             for tr in tbl.findall('.//w:tr', ns):
@@ -51,8 +68,10 @@ def parse_docx_officer(file_path_or_file):
                     tc_texts = [t.text for t in tc.findall('.//w:t', ns) if t.text]
                     cell_text = clean_khmer_text(''.join(tc_texts))
                     row_cells.append(cell_text)
-                tbl_rows.append(row_cells)
-            tables.append(tbl_rows)
+                if any(row_cells):
+                    tbl_rows.append(row_cells)
+            if tbl_rows:
+                tables.append(tbl_rows)
 
     data = {
         'khmer_last_name': '',
@@ -133,331 +152,368 @@ def parse_docx_officer(file_path_or_file):
         'sanctions_data': [],
     }
 
-    # Table 1: Personal Info
-    if len(tables) > 1:
-        t1 = tables[1]
-        for row in t1:
-            if len(row) < 2: continue
-            label, val = row[0], row[1]
-            if 'ឈ្មោះជាភាសាខ្មែរ' in label:
-                m_last = re.search(r'គោត្តនាម\s*[:\.\-]?\s*(.*?)(?=\s*នាមខ្លួន|\s*ភេទ|$)', val)
-                if m_last: data['khmer_last_name'] = clean_noise(m_last.group(1))
-                m_first = re.search(r'នាមខ្លួន\s*[:\.\-]?\s*(.*?)(?=\s*ភេទ|$)', val)
-                if m_first: data['khmer_first_name'] = clean_noise(m_first.group(1))
-                m_g = re.search(r'ភេទ\s*[:\.\-]?\s*(\S+)', val)
-                if m_g and 'ស្រី' in m_g.group(1):
-                    data['gender'] = 'FEMALE'
-                else:
-                    data['gender'] = 'MALE'
+    # =========================================================================
+    # 1. SCAN ALL TABLES FOR PERSONAL INFO (Section ក)
+    # =========================================================================
+    for tbl in tables:
+        for row in tbl:
+            row_str = ' '.join(row)
 
-            elif 'ឈ្មោះជាអក្សរពុម្ព' in label or 'ទ្បាតាំង' in label or 'ឡាតាំង' in label:
-                m_lat_last = re.search(r'គោត្តនាម\s*[:\.\-]?\s*([A-Za-z\s]+?)(?=\s*នាមខ្លួន|$)', val)
-                if m_lat_last: data['latin_last_name'] = clean_noise(m_lat_last.group(1))
-                m_lat_first = re.search(r'នាមខ្លួន\s*[:\.\-]?\s*([A-Za-z\s]+)', val)
-                if m_lat_first: data['latin_first_name'] = clean_noise(m_lat_first.group(1))
+            # --- Name (Khmer) ---
+            if not data['khmer_last_name'] or not data['khmer_first_name']:
+                if 'ឈ្មោះជាភាសាខ្មែរ' in row_str or 'គោត្តនាម' in row_str or 'នាមខ្លួន' in row_str or 'គោត្តនាម/នាម' in row_str or 'គោត្តនាម និងនាម' in row_str:
+                    for cell in row:
+                        m_both = re.search(r'(?:គោត្តនាម/នាម|គោត្តនាម និងនាម|គោត្តនាមនិងនាម|ឈ្មោះ|នាម)\s*[:\.\-]?\s*([\u1780-\u17F9\s]+)', cell)
+                        if m_both:
+                            parts = [p.strip() for p in m_both.group(1).split() if p.strip()]
+                            if len(parts) >= 2 and not data['khmer_last_name']:
+                                data['khmer_last_name'] = parts[0]
+                                data['khmer_first_name'] = ' '.join(parts[1:])
+                        m_last = re.search(r'គោត្តនាម\s*[:\.\-]?\s*([\u1780-\u17F9\s]+?)(?=\s*នាមខ្លួន|\s*នាម|\s*ភេទ|$)', cell)
+                        if m_last and m_last.group(1).strip():
+                            data['khmer_last_name'] = clean_noise(m_last.group(1))
+                        m_first = re.search(r'(?:នាមខ្លួន|នាម)\s*[:\.\-]?\s*([\u1780-\u17F9\s]+?)(?=\s*ភេទ|$)', cell)
+                        if m_first and m_first.group(1).strip():
+                            data['khmer_first_name'] = clean_noise(m_first.group(1))
+                        if 'ភេទ' in cell:
+                            if 'ស្រី' in cell: data['gender'] = 'FEMALE'
+                            elif 'ប្រុស' in cell: data['gender'] = 'MALE'
 
-            elif 'ថ្ងៃខែឆ្នាំកំណើត' in label:
-                m_dob = re.search(r'^(.*?)(?=\s*ជនជាតិ|\s*សញ្ជាតិ|$)', val)
-                if m_dob: data['dob'] = clean_noise(m_dob.group(1))
-                m_eth = re.search(r'ជនជាតិ\s*[:\.\-]?\s*(.*?)(?=\s*សញ្ជាតិ|$)', val)
-                if m_eth: data['ethnicity'] = clean_noise(m_eth.group(1)) or 'ខ្មែរ'
-                m_nat = re.search(r'សញ្ជាតិ\s*[:\.\-]?\s*(.*)', val)
-                if m_nat: data['nationality'] = clean_noise(m_nat.group(1)) or 'ខ្មែរ'
+            # --- Name (Latin) ---
+            if not data['latin_last_name'] or not data['latin_first_name']:
+                if 'ឈ្មោះជាអក្សរពុម្ព' in row_str or 'ទ្បាតាំង' in row_str or 'ឡាតាំង' in row_str or 'Latin' in row_str or 'Nom et' in row_str:
+                    for cell in row:
+                        m_lat_last = re.search(r'គោត្តនាម\s*[:\.\-]?\s*([A-Za-z\s]+?)(?=\s*នាមខ្លួន|\s*First|$)', cell, re.IGNORECASE)
+                        if m_lat_last: data['latin_last_name'] = clean_noise(m_lat_last.group(1))
+                        m_lat_first = re.search(r'នាមខ្លួន\s*[:\.\-]?\s*([A-Za-z\s]+)', cell, re.IGNORECASE)
+                        if m_lat_first: data['latin_first_name'] = clean_noise(m_lat_first.group(1))
+                        if not data['latin_last_name']:
+                            m_lat_all = re.search(r'(?:ឡាតាំង|ទ្បាតាំង|Latin|Name)\s*[:\.\-]?\s*([A-Za-z\s]{3,})', cell, re.IGNORECASE)
+                            if m_lat_all:
+                                lparts = [p.strip() for p in m_lat_all.group(1).split() if p.strip()]
+                                if len(lparts) >= 2:
+                                    data['latin_last_name'] = lparts[0]
+                                    data['latin_first_name'] = ' '.join(lparts[1:])
+                                elif len(lparts) == 1:
+                                    data['latin_last_name'] = lparts[0]
 
-            elif 'ទីកន្លែងកំណើត' in label:
-                m_v = re.search(r'ភូមិ\s*(.*?)(?=\s*ឃុំ|\s*សង្កាត់|\s*ស្រុក|\s*ខណ្ឌ|\s*រាជធានី|\s*ខេត្ត|$)', val)
-                if m_v: data['pob_village'] = clean_noise(m_v.group(1))
-                m_c = re.search(r'(?:ឃុំ/សង្កាត់|ឃុំ|សង្កាត់)\s*(.*?)(?=\s*ស្រុក|\s*ខណ្ឌ|\s*រាជធានី|\s*ខេត្ត|$)', val)
-                if m_c: data['pob_commune'] = clean_noise(m_c.group(1))
-                m_d = re.search(r'(?:ស្រុក/ខណ្ឌ|ស្រុក|ខណ្ឌ)\s*(.*?)(?=\s*រាជធានី|\s*ខេត្ត|$)', val)
-                if m_d: data['pob_district'] = clean_noise(m_d.group(1))
-                m_p = re.search(r'(?:រាជធានី/ខេត្ត|រាជធានី|ខេត្ត)\s*(.*)', val)
-                if m_p: data['pob_province'] = clean_province(m_p.group(1))
+            # --- DOB & Nationality ---
+            if not data['dob'] and 'ថ្ងៃខែឆ្នាំកំណើត' in row_str:
+                for idx, cell in enumerate(row):
+                    if 'ថ្ងៃខែឆ្នាំកំណើត' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        m_dob = re.search(r'([0-9០-៩]+[\.\-\/\s]+(?:[0-9០-៩]+|[^\s]+)[\.\-\/\s]+[0-9០-៩]+|[0-9០-៩]{4})', val)
+                        if m_dob: data['dob'] = clean_noise(m_dob.group(1))
+                        if 'ជនជាតិ' in val:
+                            m_eth = re.search(r'ជនជាតិ\s*[:\.\-]?\s*(.*?)(?=\s*សញ្ជាតិ|$)', val)
+                            if m_eth: data['ethnicity'] = clean_noise(m_eth.group(1)) or 'ខ្មែរ'
+                        if 'សញ្ជាតិ' in val:
+                            m_nat = re.search(r'សញ្ជាតិ\s*[:\.\-]?\s*(.*)', val)
+                            if m_nat: data['nationality'] = clean_noise(m_nat.group(1)) or 'ខ្មែរ'
 
-            elif 'អាសយដ្ឋានបច្ចុប្បន្ន' in label:
-                m_h = re.search(r'[#​\s]*([^ផ្លភ]+?)(?=\s*ផ្លូវ|\s*ភូមិ|\s*ឃុំ|\s*សង្កាត់|$)', val)
-                if m_h: data['current_house_no'] = clean_noise(m_h.group(1)).replace('#', '').strip()
-                m_st = re.search(r'ផ្លូវ\s*([^ភឃស្រ]+?)(?=\s*ភូមិ|\s*ឃុំ|\s*សង្កាត់|\s*ស្រុក|\s*ខណ្ឌ|$)', val)
-                if m_st: data['current_street'] = clean_noise(m_st.group(1))
-                m_v = re.search(r'ភូមិ\s*(.*?)(?=\s*ឃុំ|\s*សង្កាត់|\s*ស្រុក|\s*ខណ្ឌ|\s*រាជធានី|\s*ខេត្ត|$)', val)
-                if m_v: data['current_village'] = clean_noise(m_v.group(1))
-                m_c = re.search(r'(?:ឃុំ/សង្កាត់|ឃុំ|សង្កាត់)\s*(.*?)(?=\s*ស្រុក|\s*ខណ្ឌ|\s*រាជធានី|\s*ខេត្ត|$)', val)
-                if m_c: data['current_commune'] = clean_noise(m_c.group(1))
-                m_d = re.search(r'(?:ស្រុក/ខណ្ឌ|ស្រុក|ខណ្ឌ)\s*(.*?)(?=\s*រាជធានី|\s*ខេត្ត|$)', val)
-                if m_d: data['current_district'] = clean_noise(m_d.group(1))
-                m_p = re.search(r'(?:រាជធានី/ខេត្ត|រាជធានី|ខេត្ត)\s*(.*)', val)
-                if m_p: data['current_province'] = clean_province(m_p.group(1))
+            # --- Officer ID Number ---
+            if not data['officer_id_number'] and ('អត្តលេខ' in row_str or 'អត្ដលេខ' in row_str):
+                for idx, cell in enumerate(row):
+                    if 'អត្តលេខ' in cell or 'អត្ដលេខ' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        m_num = re.search(r'([0-9០-៩]{6,12})', val)
+                        if m_num: data['officer_id_number'] = to_arabic_digits(m_num.group(1))
 
-            elif 'លេខទូរស័ព្ទ' in label:
-                m_ph = re.search(r'^(.*?)(?=\s*អ៊ីម៉ែល|$)', val)
-                if m_ph: data['phone'] = to_arabic_digits(clean_noise(m_ph.group(1)))
-                m_em = re.search(r'អ៊ីម៉ែល\s*[:\.\-]?\s*(.*)', val)
-                if m_em:
-                    em_val = clean_noise(m_em.group(1))
-                    if '@' in em_val: data['email'] = em_val
+            # --- POB ---
+            if not data['pob_province'] and 'ទីកន្លែងកំណើត' in row_str and 'ប្តី' not in row_str and 'ប្រពន្ធ' not in row_str and 'ឪពុក' not in row_str and 'ម្តាយ' not in row_str:
+                for cell in row:
+                    m_v = re.search(r'ភូមិ\s*(.*?)(?=\s*ឃុំ|\s*សង្កាត់|\s*ស្រុក|\s*ខណ្ឌ|\s*រាជធានី|\s*ខេត្ត|$)', cell)
+                    if m_v: data['pob_village'] = clean_noise(m_v.group(1))
+                    m_c = re.search(r'(?:ឃុំ/សង្កាត់|ឃុំ|សង្កាត់)\s*(.*?)(?=\s*ស្រុក|\s*ខណ្ឌ|\s*រាជធានី|\s*ខេត្ត|$)', cell)
+                    if m_c: data['pob_commune'] = clean_noise(m_c.group(1))
+                    m_d = re.search(r'(?:ស្រុក/ខណ្ឌ|ស្រុក|ខណ្ឌ)\s*(.*?)(?=\s*រាជធានី|\s*ខេត្ត|$)', cell)
+                    if m_d: data['pob_district'] = clean_noise(m_d.group(1))
+                    m_p = re.search(r'(?:រាជធានី/ខេត្ត|រាជធានី|ខេត្ត)\s*(.*)', cell)
+                    if m_p: data['pob_province'] = clean_province(m_p.group(1))
 
-            elif 'អត្តលេខ' in label or 'អត្ដលេខ' in label:
-                data['officer_id_number'] = to_arabic_digits(clean_noise(val))
+            # --- Current Address ---
+            if not data['current_province'] and 'អាសយដ្ឋានបច្ចុប្បន្ន' in row_str and 'ប្តី' not in row_str and 'ប្រពន្ធ' not in row_str and 'អាសន្ន' not in row_str:
+                for cell in row:
+                    m_h = re.search(r'[#\s]*([^ផ្លភ]+?)(?=\s*ផ្លូវ|\s*ភូមិ|\s*ឃុំ|\s*សង្កាត់|$)', cell)
+                    if m_h: data['current_house_no'] = clean_noise(m_h.group(1)).replace('#', '').strip()
+                    m_st = re.search(r'ផ្លូវ\s*([^ភឃស្រ]+?)(?=\s*ភូមិ|\s*ឃុំ|\s*សង្កាត់|\s*ស្រុក|\s*ខណ្ឌ|$)', cell)
+                    if m_st: data['current_street'] = clean_noise(m_st.group(1))
+                    m_v = re.search(r'ភូមិ\s*(.*?)(?=\s*ឃុំ|\s*សង្កាត់|\s*ស្រុក|\s*ខណ្ឌ|\s*រាជធានី|\s*ខេត្ត|$)', cell)
+                    if m_v: data['current_village'] = clean_noise(m_v.group(1))
+                    m_c = re.search(r'(?:ឃុំ/សង្កាត់|ឃុំ|សង្កាត់)\s*(.*?)(?=\s*ស្រុក|\s*ខណ្ឌ|\s*រាជធានី|\s*ខេត្ត|$)', cell)
+                    if m_c: data['current_commune'] = clean_noise(m_c.group(1))
+                    m_d = re.search(r'(?:ស្រុក/ខណ្ឌ|ស្រុក|ខណ្ឌ)\s*(.*?)(?=\s*រាជធានី|\s*ខេត្ត|$)', cell)
+                    if m_d: data['current_district'] = clean_noise(m_d.group(1))
+                    m_p = re.search(r'(?:រាជធានី/ខេត្ត|រាជធានី|ខេត្ត)\s*(.*)', cell)
+                    if m_p: data['current_province'] = clean_province(m_p.group(1))
 
-            elif 'លេខអត្តសញ្ញាណប័ណ្ណ' in label:
-                m_id = re.search(r'([0-9០-៩]+)', val)
-                if m_id: data['national_id_number'] = to_arabic_digits(m_id.group(1))
-                m_vfrom = re.search(r'សុពលភាព\s*[:\.\-]?\s*([^\sដល់]+)', val)
-                if m_vfrom: data['national_id_valid_from'] = clean_noise(m_vfrom.group(1))
-                m_vto = re.search(r'ដល់ថ្ងៃ\s*[:\.\-]?\s*(.*)', val)
-                if m_vto: data['national_id_valid_to'] = clean_noise(m_vto.group(1))
+            # --- Phone & Email ---
+            if not data['phone'] and 'លេខទូរស័ព្ទ' in row_str and 'អាសន្ន' not in row_str and 'ប្តី' not in row_str:
+                for cell in row:
+                    m_ph = re.search(r'([0-9០-៩\s\-\.\/]{8,15})', cell)
+                    if m_ph: data['phone'] = to_arabic_digits(m_ph.group(1)).replace(' ', '').replace('-', '')
+                    if '@' in cell:
+                        m_em = re.search(r'([\w\.-]+@[\w\.-]+)', cell)
+                        if m_em: data['email'] = m_em.group(1)
 
-            elif 'កាយសម្បទា' in label:
-                if 'ពិការ' in val and 'គ្រប់គ្រាន់' not in val:
+            # --- National ID ---
+            if not data['national_id_number'] and 'លេខអត្តសញ្ញាណប័ណ្ណ' in row_str and 'ប្តី' not in row_str and 'ប្រពន្ធ' not in row_str:
+                for cell in row:
+                    m_id = re.search(r'([0-9០-៩]{9,12})', cell)
+                    if m_id: data['national_id_number'] = to_arabic_digits(m_id.group(1))
+
+            # --- Physical Condition ---
+            if 'កាយសម្បទា' in row_str:
+                if 'ពិការ' in row_str and 'គ្រប់គ្រាន់' not in row_str:
                     data['physical_condition'] = 'ពិការ'
 
-    # Table 2: Spouse Info
-    if len(tables) > 2:
-        t2 = tables[2]
-        for row in t2:
-            if len(row) < 2: continue
-            lbl, val = row[0], row[1]
-            if 'សំបុត្រអាពាហ៏ពិពាហ៏' in lbl or 'សំបុត្រអាពាហ៍ពិពាហ៍' in lbl:
-                data['spouse_marriage_cert_no'] = clean_noise(val)
-            elif 'ឈ្មោះប្រពន្ធ' in lbl or 'ឈ្មោះប្តី' in lbl:
-                data['spouse_name_kh'] = clean_noise(val.replace('រស់', '').replace('ស្លាប់', ''))
-                data['spouse_is_alive'] = 'ស្លាប់' not in val
-            elif 'ឡាតាំង' in lbl or 'ទ្បាតាំង' in lbl:
-                data['spouse_name_latin'] = clean_noise(val)
-            elif 'ថ្ងៃខែឆ្នាំកំណើត' in lbl:
-                data['spouse_dob'] = clean_noise(val)
-            elif 'លេខអត្តសញ្ញាណប័ណ្ណ' in lbl:
-                data['spouse_national_id'] = to_arabic_digits(clean_noise(val))
-            elif 'ទីកន្លែងកំណើត' in lbl:
-                data['spouse_pob'] = clean_noise(val)
-            elif 'មុខរបរ' in lbl:
-                data['spouse_occupation'] = clean_noise(val.replace('ៈ', ''))
-            elif 'អាសយដ្ឋាន' in lbl:
-                data['spouse_current_address'] = clean_noise(val.replace('#', '').strip())
-            elif 'អង្គភាព' in lbl:
-                sp_org = clean_noise(val)
-                if sp_org != 'គ្មាន': data['spouse_organization'] = sp_org
+            # --- Spouse Info ---
+            if 'សំបុត្រអាពាហ៏ពិពាហ៏' in row_str or 'សំបុត្រអាពាហ៍ពិពាហ៍' in row_str:
+                for idx, cell in enumerate(row):
+                    if 'សំបុត្រ' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        data['spouse_marriage_cert_no'] = clean_noise(val)
+            if ('ឈ្មោះប្រពន្ធ' in row_str or 'ឈ្មោះប្តី' in row_str) and not data['spouse_name_kh']:
+                for idx, cell in enumerate(row):
+                    if 'ឈ្មោះប្រពន្ធ' in cell or 'ឈ្មោះប្តី' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        data['spouse_name_kh'] = clean_noise(val.replace('រស់', '').replace('ស្លាប់', ''))
+                        data['spouse_is_alive'] = 'ស្លាប់' not in val
 
-    # Table 3: Children
-    if len(tables) > 3:
-        t3 = tables[3]
-        for row in t3:
-            row_str = ' '.join(row)
-            if 'គោត្តនាម' in row_str and len(row) >= 6:
-                name_idx = 1
-                child_name = clean_noise(row[name_idx])
-                child_gender = 'ប្រុស'
-                child_dob = ''
-                child_occ = 'ក្នុងបន្ទុក'
-                for c in row:
-                    if c in ['ប្រុស', 'ស្រី']: child_gender = c
-                    elif 'ថ្ងៃ' in c or 'ឆ្នាំ' in c or '/' in c or '-' in c: child_dob = clean_noise(c)
-                    elif c in ['ក្នុងបន្ទុក', 'សិស្ស', 'និស្សិត', 'មន្ត្រី', 'អាជីវករ', 'មេផ្ទះ', 'លក់ដូរ', 'លក់ដូ']: child_occ = clean_noise(c)
-                if child_name:
-                    data['children_data'].append({
-                        'name': child_name,
-                        'gender': child_gender,
-                        'dob': child_dob,
-                        'occupation': child_occ
-                    })
+            # --- Parents ---
+            if 'ឪពុកឈ្មោះ' in row_str and not data['father_name']:
+                for idx, cell in enumerate(row):
+                    if 'ឪពុកឈ្មោះ' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        data['father_name'] = clean_noise(val.replace('រស់', '').replace('ស្លាប់', ''))
+                        data['father_is_alive'] = 'ស្លាប់' not in val
+            if ('ម្ដាយឈ្មោះ' in row_str or 'ម្តាយឈ្មោះ' in row_str) and not data['mother_name']:
+                for idx, cell in enumerate(row):
+                    if 'ម្ដាយឈ្មោះ' in cell or 'ម្តាយឈ្មោះ' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        data['mother_name'] = clean_noise(val.replace('រស់', '').replace('ស្លាប់', ''))
+                        data['mother_is_alive'] = 'ស្លាប់' not in val
 
-    # Table 4: Parents & Emergency
-    if len(tables) > 4:
-        t4 = tables[4]
-        for row in t4:
-            if len(row) < 2: continue
-            lbl, val = row[0], row[1]
-            if 'ឪពុកឈ្មោះ' in lbl:
-                data['father_name'] = clean_noise(val.replace('រស់', '').replace('ស្លាប់', ''))
-                data['father_is_alive'] = 'ស្លាប់' not in val
-            elif 'ទីកន្លែងកំណើត' in lbl and not data['mother_name']:
-                data['father_pob'] = clean_noise(val)
-            elif 'មុខរបរ' in lbl and not data['mother_name']:
-                data['father_occupation'] = clean_noise(val)
-            elif 'ម្ដាយឈ្មោះ' in lbl or 'ម្តាយឈ្មោះ' in lbl:
-                data['mother_name'] = clean_noise(val.replace('រស់', '').replace('ស្លាប់', ''))
-                data['mother_is_alive'] = 'ស្លាប់' not in val
-            elif 'ទីកន្លែងកំណើត' in lbl and data['mother_name']:
-                data['mother_pob'] = clean_noise(val)
-            elif 'មុខរបរ' in lbl and data['mother_name']:
-                data['mother_occupation'] = clean_noise(val)
-            elif 'ឈ្មោះជាភាសាខ្មែរ' in lbl and 'គោត្តនាម' in val:
-                m_em_last = re.search(r'គោត្តនាម\s*[:\.\-]?\s*(.*?)(?=\s*នាមខ្លួន|\s*ភេទ|$)', val)
-                if m_em_last: data['emergency_last_name'] = clean_noise(m_em_last.group(1))
-                m_em_first = re.search(r'នាមខ្លួន\s*[:\.\-]?\s*(.*?)(?=\s*ភេទ|$)', val)
-                if m_em_first: data['emergency_first_name'] = clean_noise(m_em_first.group(1))
-                m_em_g = re.search(r'ភេទ\s*[:\.\-]?\s*(\S+)', val)
-                if m_em_g and 'ស្រី' in m_em_g.group(1): data['emergency_gender'] = 'FEMALE'
-            elif 'ទំនាក់ទំនងត្រូវជា' in lbl:
-                m_rel = re.search(r'^(.*?)(?=\s*មុខរបរ|$)', val)
-                if m_rel: data['emergency_relationship'] = clean_noise(m_rel.group(1))
-                m_rocc = re.search(r'មុខរបរ\s*[:\.\-]?\s*(.*)', val)
-                if m_rocc: data['emergency_occupation'] = clean_noise(m_rocc.group(1))
-            elif 'អាសយដ្ឋាន' in lbl and data['emergency_last_name']:
-                data['emergency_address'] = clean_noise(val.replace('#', '').strip())
-            elif 'លេខទូរស័ព្ទ' in lbl and data['emergency_last_name']:
-                m_eph = re.search(r'^(.*?)(?=\s*អ៊ីម៉ែល|$)', val)
-                if m_eph: data['emergency_phone'] = to_arabic_digits(clean_noise(m_eph.group(1)))
-                m_eem = re.search(r'អ៊ីម៉ែល\s*[:\.\-]?\s*(.*)', val)
-                if m_eem and '@' in m_eem.group(1): data['emergency_email'] = clean_noise(m_eem.group(1))
+            # --- Framework & Rank ---
+            if not data['current_rank_and_step'] and ('ឋានន្តរស័ក្ដ' in row_str or 'ឋានន្តរស័ក្តិ' in row_str or 'ក្របខ័ណ្ឌ ឋានន្តរស័ក្តិ' in row_str):
+                for idx, cell in enumerate(row):
+                    if 'ឋានន្តរស័ក្ដ' in cell or 'ឋានន្តរស័ក្តិ' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        if not any(h in val for h in ['ក្រសួង', 'ស្ថាប័ន', 'អង្គភាព', 'ថ្ងៃខែ', 'ល.រ']):
+                            m_rk = re.search(r'([ក-ឃ]\.[១-៤1-4]\.[១-៩1-9]+|[ក-ឃ]\.[១-៩1-9]+|[ក-ឃ]\s*[១-៩1-9])', val)
+                            if m_rk: data['current_rank_and_step'] = clean_noise(m_rk.group(1))
+                            elif val and len(val) < 20: data['current_rank_and_step'] = clean_noise(val)
 
-    # Table 5: Education & Training
-    if len(tables) > 5:
-        t5 = tables[5]
-        curr_section = 'GENERAL'
-        for row in t5:
-            if not row or not any(row): continue
-            row_str = ' '.join(row)
-            if '១-កម្រិតវប្បធម៌ទូទៅ' in row_str:
-                curr_section = 'GENERAL'
-                continue
-            elif '២-កម្រិតបណ្ដុះបណ្ដាលវិជ្ជាជីវៈ' in row_str:
-                curr_section = 'VOCATIONAL'
-                continue
-            elif '៣-វគ្គបណ្ដុះបណ្ដាលបន្ត' in row_str:
-                curr_section = 'CONTINUOUS'
-                continue
-            elif 'វគ្គ' in row_str and 'គ្រឹះស្ថាន' in row_str:
-                continue
+            if 'ឈ្មោះក្របខណ្ឌ' in row_str or 'ឈ្មោះក្របខ័ណ្ឌ' in row_str:
+                for idx, cell in enumerate(row):
+                    if 'ឈ្មោះក្របខណ្ឌ' in cell or 'ឈ្មោះក្របខ័ណ្ឌ' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        if not any(h in val for h in ['ក្រសួង', 'ស្ថាប័ន', 'អង្គភាព', 'ថ្ងៃខែ']):
+                            data['framework_name'] = clean_noise(val)
 
-            if len(row) >= 5:
-                lvl = clean_noise(row[0])
-                sch = clean_noise(row[1]) if len(row) > 1 else ''
-                loc = clean_noise(row[2]) if len(row) > 2 else ''
-                deg = clean_noise(row[3]) if len(row) > 3 else ''
-                skl = clean_noise(row[4]) if len(row) > 4 else ''
-                s_dt = clean_noise(row[5]) if len(row) > 5 else ''
-                e_dt = clean_noise(row[6]) if len(row) > 6 else ''
-                if (sch or lvl) and lvl != 'គ្មាន' and sch != 'គ្មាន':
-                    data['education_data'].append({
-                        'level_type': curr_section,
-                        'level_label': lvl,
-                        'school': sch,
-                        'location': loc,
-                        'degree': deg,
-                        'skill': skl,
-                        'start_date': s_dt,
-                        'end_date': e_dt
-                    })
+            if 'ចូលបម្រើក្របខ័ណ្ឌរដ្ឋ' in row_str:
+                for idx, cell in enumerate(row):
+                    if 'ចូលបម្រើក្របខ័ណ្ឌរដ្ឋ' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        if not any(h in val for h in ['បញ្ចប់', 'ក្រសួង', 'ស្ថាប័ន', 'អង្គភាព', 'មុខតំណែង']):
+                            data['civil_service_start_date'] = clean_noise(val)
 
-    # Table 6: Foreign Languages
-    if len(tables) > 6:
-        t6 = tables[6]
-        for row in t6:
-            if 'ភាសាបរទេស' in ' '.join(row) and 'ការអាន' in ' '.join(row): continue
-            if len(row) >= 4:
-                lang = clean_noise(row[0])
-                r = clean_noise(row[1])
-                s = clean_noise(row[2])
-                w = clean_noise(row[3])
-                if lang and lang != 'គ្មាន':
-                    data['languages_data'].append({
-                        'language': lang,
-                        'reading': r,
-                        'speaking': s,
-                        'writing': w
-                    })
+            if 'តាំងស៊ប់' in row_str:
+                for idx, cell in enumerate(row):
+                    if 'តាំងស៊ប់' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        if not any(h in val for h in ['បញ្ចប់', 'ក្រសួង', 'ស្ថាប័ន', 'អង្គភាព', 'មុខតំណែង']):
+                            data['civil_service_permanent_date'] = clean_noise(val)
 
-    # Table 7: Framework
-    if len(tables) > 7:
-        t7 = tables[7]
-        for row in t7:
-            for idx, c in enumerate(row):
-                if 'ចូលបម្រើក្របខ័ណ្ឌរដ្ឋ' in c and idx + 1 < len(row):
-                    data['civil_service_start_date'] = clean_noise(row[idx+1])
-                elif 'តាំងស៊ប់' in c and idx + 1 < len(row):
-                    data['civil_service_permanent_date'] = clean_noise(row[idx+1])
-                elif 'ឈ្មោះក្របខណ្ឌ' in c and idx + 1 < len(row):
-                    data['framework_name'] = clean_noise(row[idx+1])
-                elif 'ឋានន្តរស័ក្ដ' in c and idx + 1 < len(row):
-                    data['current_rank_and_step'] = clean_noise(row[idx+1])
+            # --- Position Title ---
+            if 'មុខតំណែង' in row_str and data['current_position_title'] == 'មន្ត្រី':
+                for idx, cell in enumerate(row):
+                    if 'មុខតំណែង' in cell:
+                        val = row[idx+1] if idx + 1 < len(row) else cell
+                        p_val = clean_noise(val)
+                        if p_val and p_val not in ['មុខតំណែង', 'ជំនាញ', 'បច្ចុប្បន្ន', 'គ្មាន']:
+                            data['current_position_title'] = p_val
 
-    # Table 8: Public Sector History
-    if len(tables) > 8:
-        t8 = tables[8]
-        for row in t8:
-            if 'ថ្ងៃខែឆ្នាំ' in ' '.join(row) and 'ក្រសួង' in ' '.join(row): continue
-            if len(row) >= 5:
-                pos = clean_noise(row[4]) if len(row) > 4 else ''
-                if pos and pos != 'គ្មាន':
-                    data['history_public_sector'].append({
-                        'start_date': clean_noise(row[0]),
-                        'end_date': clean_noise(row[1]) if len(row) > 1 else '',
-                        'ministry': clean_noise(row[2]) if len(row) > 2 else '',
-                        'department': clean_noise(row[3]) if len(row) > 3 else '',
-                        'position': pos,
-                        'skill': clean_noise(row[5]) if len(row) > 5 else ''
-                    })
-        if data['history_public_sector']:
-            data['current_position_title'] = data['history_public_sector'][0]['position']
+    # =========================================================================
+    # 2. SCAN SPECIFIC SUB-TABLES (Children, Education, Languages, History, Promotions, Awards)
+    # =========================================================================
+    for tbl in tables:
+        tbl_str = ' '.join([' '.join(r) for r in tbl])
 
-    # Table 9: Private Sector History
-    if len(tables) > 9:
-        t9 = tables[9]
-        for row in t9:
-            if 'ថ្ងៃខែឆ្នាំ' in ' '.join(row) and 'តួនាទី' in ' '.join(row): continue
-            if len(row) >= 4:
-                role = clean_noise(row[3]) if len(row) > 3 else ''
-                if role and role != 'គ្មាន':
-                    data['history_private_sector'].append({
-                        'start_date': clean_noise(row[0]),
-                        'end_date': clean_noise(row[1]) if len(row) > 1 else '',
-                        'org': clean_noise(row[2]) if len(row) > 2 else '',
-                        'role': role,
-                        'skill': clean_noise(row[4]) if len(row) > 4 else ''
-                    })
+        # --- Children Table ---
+        if 'កូន' in tbl_str and len(tbl) > 1 and not data['children_data']:
+            for row in tbl:
+                row_str = ' '.join(row)
+                if 'ឈ្មោះ' in row_str and 'អក្សរឡាតាំង' in row_str: continue
+                if len(row) >= 4:
+                    c_name = clean_noise(row[0] if len(row) <= 5 else row[1])
+                    if c_name and c_name not in ['ឈ្មោះ', 'ល.រ', 'គ្មាន', '(គ្មាន)']:
+                        c_gender = 'ប្រុស'
+                        c_dob = ''
+                        c_occ = 'ក្នុងបន្ទុក'
+                        for c in row:
+                            if c in ['ប្រុស', 'ស្រី', 'ប', 'ស']:
+                                c_gender = 'ស្រី' if c in ['ស្រី', 'ស'] else 'ប្រុស'
+                            elif 'ថ្ងៃ' in c or 'ឆ្នាំ' in c or '/' in c or '-' in c or '.' in c:
+                                if re.search(r'[0-9០-៩]{2,}', c): c_dob = clean_noise(c)
+                            elif c in ['ក្នុងបន្ទុក', 'សិស្ស', 'និស្សិត', 'មន្ត្រី', 'អាជីវករ', 'មេផ្ទះ', 'លក់ដូរ']:
+                                c_occ = clean_noise(c)
+                        data['children_data'].append({
+                            'name': c_name,
+                            'gender': c_gender,
+                            'dob': c_dob,
+                            'occupation': c_occ
+                        })
 
-    # Table 10: Promotions by Seniority
-    if len(tables) > 10:
-        t10 = tables[10]
-        for row in t10:
-            if 'ថ្ងៃខែឆ្នាំ' in ' '.join(row) and 'ក្រសួង' in ' '.join(row): continue
-            if len(row) >= 6:
-                old_r = clean_noise(row[4]) if len(row) > 4 else ''
-                new_r = clean_noise(row[5]) if len(row) > 5 else ''
-                if old_r or new_r:
-                    data['promotions_by_seniority'].append({
-                        'effective_date': clean_noise(row[0]),
-                        'ministry': clean_noise(row[1]) if len(row) > 1 else '',
-                        'department': clean_noise(row[2]) if len(row) > 2 else '',
-                        'office': clean_noise(row[3]) if len(row) > 3 else '',
-                        'old_rank_step': old_r,
-                        'new_rank_step': new_r,
-                        'promo_type': clean_noise(row[6]) if len(row) > 6 else 'វេនជ្រើសរើស'
-                    })
+        # --- Education & Training Table ---
+        if ('កម្រិតវប្បធម៌' in tbl_str or 'បណ្ដុះបណ្ដាល' in tbl_str) and not data['education_data']:
+            curr_section = 'GENERAL'
+            for row in tbl:
+                row_str = ' '.join(row)
+                if '១-កម្រិតវប្បធម៌ទូទៅ' in row_str or 'វប្បធម៌ទូទៅ' in row_str:
+                    curr_section = 'GENERAL'
+                    continue
+                elif '២-កម្រិតបណ្ដុះបណ្ដាលវិជ្ជាជីវៈ' in row_str or 'វិជ្ជាជីវៈ' in row_str:
+                    curr_section = 'VOCATIONAL'
+                    continue
+                elif '៣-វគ្គបណ្ដុះបណ្ដាលបន្ត' in row_str or 'បណ្ដុះបណ្ដាលបន្ត' in row_str:
+                    curr_section = 'CONTINUOUS'
+                    continue
+                if 'វគ្គ' in row_str and 'គ្រឹះស្ថាន' in row_str: continue
 
-    # Table 11: Promotions by Degree
-    if len(tables) > 11:
-        t11 = tables[11]
-        for row in t11:
-            if 'ថ្ងៃខែឆ្នាំ' in ' '.join(row) and 'គ្រឺះស្ថាន' in ' '.join(row): continue
-            if len(row) >= 6:
-                sch = clean_noise(row[1]) if len(row) > 1 else ''
-                if sch and sch != 'គ្មាន' and '(គ្មាន)' not in sch:
-                    data['promotions_by_degree'].append({
-                        'effective_date': clean_noise(row[0]),
-                        'school': sch,
-                        'location': clean_noise(row[2]) if len(row) > 2 else '',
-                        'degree': clean_noise(row[3]) if len(row) > 3 else '',
-                        'old_rank_step': clean_noise(row[4]) if len(row) > 4 else '',
-                        'new_rank_step': clean_noise(row[5]) if len(row) > 5 else ''
-                    })
+                if len(row) >= 4:
+                    lvl = clean_noise(row[0])
+                    sch = clean_noise(row[1]) if len(row) > 1 else ''
+                    loc = clean_noise(row[2]) if len(row) > 2 else ''
+                    deg = clean_noise(row[3]) if len(row) > 3 else ''
+                    skl = clean_noise(row[4]) if len(row) > 4 else ''
+                    s_dt = clean_noise(row[5]) if len(row) > 5 else ''
+                    e_dt = clean_noise(row[6]) if len(row) > 6 else ''
+                    if (sch or lvl) and lvl not in ['គ្មាន', '(គ្មាន)', 'កម្រិត', 'ល.រ'] and sch not in ['គ្មាន', '(គ្មាន)']:
+                        data['education_data'].append({
+                            'level_type': curr_section,
+                            'level_label': lvl,
+                            'school': sch,
+                            'location': loc,
+                            'degree': deg,
+                            'skill': skl,
+                            'start_date': s_dt,
+                            'end_date': e_dt
+                        })
 
-    # Table 14: Awards
-    if len(tables) > 14:
-        t14 = tables[14]
-        for row in t14:
-            if 'លេខលិខិត' in ' '.join(row) and 'កាលបរិច្ឆេទ' in ' '.join(row): continue
-            if len(row) >= 4:
-                doc_no = clean_noise(row[0])
-                if doc_no and doc_no != 'គ្មាន' and '(គ្មាន)' not in doc_no:
-                    data['awards_data'].append({
-                        'doc_number': doc_no,
-                        'date': clean_noise(row[1]) if len(row) > 1 else '',
-                        'ministry': clean_noise(row[2]) if len(row) > 2 else '',
-                        'description': clean_noise(row[3]) if len(row) > 3 else '',
-                        'type': clean_noise(row[4]) if len(row) > 4 else ''
-                    })
+        # --- Foreign Languages Table ---
+        if 'ភាសាបរទេស' in tbl_str and not data['languages_data']:
+            for row in tbl:
+                row_str = ' '.join(row)
+                if 'ភាសាបរទេស' in row_str and 'ការអាន' in row_str: continue
+                if len(row) >= 4:
+                    lang = clean_noise(row[0])
+                    r = clean_noise(row[1])
+                    s = clean_noise(row[2])
+                    w = clean_noise(row[3])
+                    if lang and lang not in ['គ្មាន', '(គ្មាន)', 'ភាសា', 'ល.រ']:
+                        data['languages_data'].append({
+                            'language': lang,
+                            'reading': r,
+                            'speaking': s,
+                            'writing': w
+                        })
+
+        # --- Public Sector Work History ---
+        if ('ក្រសួង-ស្ថាប័ន' in tbl_str or 'នាយកដ្ឋាន-អង្គភាព' in tbl_str) and not data['history_public_sector']:
+            for row in tbl:
+                row_str = ' '.join(row)
+                if 'ថ្ងៃខែឆ្នាំ' in row_str and 'ក្រសួង' in row_str: continue
+                if len(row) >= 5:
+                    pos = clean_noise(row[4]) if len(row) > 4 else ''
+                    if pos and pos not in ['គ្មាន', '(គ្មាន)', 'មុខតំណែង', 'ជំនាញ']:
+                        data['history_public_sector'].append({
+                            'start_date': clean_noise(row[0]),
+                            'end_date': clean_noise(row[1]) if len(row) > 1 else '',
+                            'ministry': clean_noise(row[2]) if len(row) > 2 else '',
+                            'department': clean_noise(row[3]) if len(row) > 3 else '',
+                            'position': pos,
+                            'skill': clean_noise(row[5]) if len(row) > 5 else ''
+                        })
+            if data['history_public_sector']:
+                data['current_position_title'] = data['history_public_sector'][0]['position']
+
+        # --- Seniority Promotions ---
+        if ('ក្របខណ្ឌ ឋានន្តរស័ក្តិ និងថ្នាក់ចាស់' in tbl_str or 'ដំឡើងថ្នាក់' in tbl_str or 'វេនជ្រើសរើស' in tbl_str) and not data['promotions_by_seniority']:
+            for row in tbl:
+                row_str = ' '.join(row)
+                if 'ថ្ងៃខែឆ្នាំ' in row_str and 'ក្រសួង' in row_str: continue
+                if len(row) >= 6:
+                    old_r = clean_noise(row[4]) if len(row) > 4 else ''
+                    new_r = clean_noise(row[5]) if len(row) > 5 else ''
+                    if old_r or new_r:
+                        data['promotions_by_seniority'].append({
+                            'effective_date': clean_noise(row[0]),
+                            'ministry': clean_noise(row[1]) if len(row) > 1 else '',
+                            'department': clean_noise(row[2]) if len(row) > 2 else '',
+                            'office': clean_noise(row[3]) if len(row) > 3 else '',
+                            'old_rank_step': old_r,
+                            'new_rank_step': new_r,
+                            'promo_type': clean_noise(row[6]) if len(row) > 6 else 'វេនជ្រើសរើស'
+                        })
+
+        # --- Awards / Medals ---
+        if ('គ្រឿងឥស្សរិយយស' in tbl_str or 'មេដាយ' in tbl_str) and not data['awards_data']:
+            for row in tbl:
+                row_str = ' '.join(row)
+                if 'លេខលិខិត' in row_str and 'កាលបរិច្ឆេទ' in row_str: continue
+                if len(row) >= 4:
+                    doc_no = clean_noise(row[0])
+                    if doc_no and doc_no not in ['គ្មាន', '(គ្មាន)', 'ល.រ', 'ប្រភេទ']:
+                        data['awards_data'].append({
+                            'doc_number': doc_no,
+                            'date': clean_noise(row[1]) if len(row) > 1 else '',
+                            'ministry': clean_noise(row[2]) if len(row) > 2 else '',
+                            'description': clean_noise(row[3]) if len(row) > 3 else '',
+                            'type': clean_noise(row[4]) if len(row) > 4 else ''
+                        })
+
+    # =========================================================================
+    # 3. FALLBACK TO PARAGRAPHS IF NAME OR ID STILL MISSING
+    # =========================================================================
+    if not data['khmer_last_name'] or not data['khmer_first_name'] or not data['officer_id_number']:
+        for p in paragraphs:
+            if not data['officer_id_number'] and ('អត្តលេខ' in p or 'អត្ដលេខ' in p):
+                m_num = re.search(r'([0-9០-៩]{6,12})', p)
+                if m_num: data['officer_id_number'] = to_arabic_digits(m_num.group(1))
+            if not data['khmer_last_name'] and ('ឈ្មោះ' in p or 'គោត្តនាម' in p):
+                m = re.search(r'(?:គោត្តនាម\s*[:\.\-]?\s*([\u1780-\u17F9]+)\s*នាមខ្លួន\s*[:\.\-]?\s*([\u1780-\u17F9]+)|(?:ឈ្មោះ|គោត្តនាម/នាម)\s*[:\.\-]?\s*([\u1780-\u17F9]+\s+[\u1780-\u17F9]+))', p)
+                if m:
+                    if m.group(1) and m.group(2):
+                        data['khmer_last_name'] = clean_noise(m.group(1))
+                        data['khmer_first_name'] = clean_noise(m.group(2))
+                    elif m.group(3):
+                        p_parts = m.group(3).split()
+                        data['khmer_last_name'] = p_parts[0]
+                        data['khmer_first_name'] = ' '.join(p_parts[1:])
+
+    # =========================================================================
+    # 4. FALLBACK TO FILENAME (e.g. 1791400328_សាន_ហុកលីម OK.docx)
+    # =========================================================================
+    if original_filename:
+        base_name = os.path.splitext(os.path.basename(original_filename))[0]
+        # Extract ID from filename if missing
+        if not data['officer_id_number']:
+            m_fn_id = re.search(r'([0-9]{6,12})', base_name)
+            if m_fn_id:
+                data['officer_id_number'] = m_fn_id.group(1)
+        # Extract Khmer Name from filename if missing
+        if not data['khmer_last_name'] or not data['khmer_first_name']:
+            clean_fn = re.sub(r'[0-9_\-\.\(\)\s]+', ' ', base_name).strip()
+            kh_words = re.findall(r'[\u1780-\u17F9]+', clean_fn)
+            stop_words = {'ប្រវត្តិរូប', 'ជីវប្រវត្តិ', 'មន្ត្រី', 'មន្ត្រីរាជការ', 'ព័ត៌មាន', 'សង្ខេប', 'កែប្រែ', 'ជូនក្រសួង', 'ក្រសួង', 'មន្ទីរ', 'ក្សេត្រសាស្ត្រ', 'ក្សេត្រសាស្រ្ត', 'រដ្ឋបាល'}
+            kh_name_words = [w for w in kh_words if w not in stop_words and len(w) >= 2]
+            if len(kh_name_words) >= 2:
+                data['khmer_last_name'] = kh_name_words[0]
+                data['khmer_first_name'] = ' '.join(kh_name_words[1:])
+            elif len(kh_name_words) == 1:
+                data['khmer_last_name'] = kh_name_words[0]
+                data['khmer_first_name'] = kh_name_words[0]
 
     return data
 
@@ -544,11 +600,16 @@ def compare_officer_data(existing_officer, new_data):
 # 📝 PARSER FOR CONTRACT CIVIL SERVANT BIOGRAPHY (ជីវប្រវត្តិរូបសង្ខេបមន្ត្រីជាប់កិច្ចសន្យា)
 # ==============================================================================
 
-def parse_docx_contract_officer(file_path_or_file):
+def parse_docx_contract_officer(file_path_or_file, original_filename=None):
     """
     Parses a Contract Civil Servant Summary Biography (ជីវប្រវត្តិរូបសង្ខេប) from a .docx file.
     Extracts all fields (Items 1 through 11) and any embedded 4x6 photo.
     """
+    if hasattr(file_path_or_file, 'name') and not original_filename:
+        original_filename = file_path_or_file.name
+    elif isinstance(file_path_or_file, str) and not original_filename:
+        original_filename = os.path.basename(file_path_or_file)
+
     data = {
         'khmer_last_name': '',
         'khmer_first_name': '',
@@ -585,11 +646,9 @@ def parse_docx_contract_officer(file_path_or_file):
     }
 
     with zipfile.ZipFile(file_path_or_file) as z:
-        # 1. Extract embedded photo if present in word/media/
+        # Extract embedded photo if present
         media_files = [f for f in z.namelist() if f.startswith('word/media/') and not f.endswith('/')]
-        # Prefer image1 or the largest image file
         if media_files:
-            # Sort to find suitable photo
             image_candidates = []
             for mf in media_files:
                 ext = mf.split('.')[-1].lower()
@@ -597,17 +656,15 @@ def parse_docx_contract_officer(file_path_or_file):
                     size = z.getinfo(mf).file_size
                     image_candidates.append((size, mf))
             if image_candidates:
-                image_candidates.sort(reverse=True) # Largest image
+                image_candidates.sort(reverse=True)
                 best_photo_path = image_candidates[0][1]
                 data['photo_bytes'] = z.read(best_photo_path)
                 data['photo_filename'] = best_photo_path.split('/')[-1]
 
-        # 2. Extract Document XML
         xml_content = z.read('word/document.xml')
         tree = ET.fromstring(xml_content)
         ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
 
-        # Collect text from both tables and paragraphs
         paragraphs = []
         for p in tree.findall('.//w:p', ns):
             p_texts = [t.text for t in p.findall('.//w:t', ns) if t.text]
@@ -628,9 +685,7 @@ def parse_docx_contract_officer(file_path_or_file):
             tables.append(tbl_rows)
 
     all_lines = []
-    # Flatten paragraphs
     all_lines.extend(paragraphs)
-    # Flatten tables
     for tbl in tables:
         for row in tbl:
             row_combined = " ".join([c for c in row if c])
@@ -642,17 +697,11 @@ def parse_docx_contract_officer(file_path_or_file):
 
     full_document_text = "\n".join(all_lines)
 
-    # =========================================================================
-    # PARSE FIELDS USING ROBUST PATTERN MATCHING
-    # =========================================================================
-
     for line in all_lines:
-        # ១- គោត្តនាម និងនាមខ្លួន
         if 'គោត្តនាម និងនាមខ្លួន' in line or 'គោត្តនាមនិងនាមខ្លួន' in line or ('គោត្តនាម' in line and 'នាមខ្លួន' in line and '១' in line):
             m_full = re.search(r'(?:គោត្តនាម\s*(?:និង\s*)?នាមខ្លួន|១\s*[\-\.\:៖]?\s*គោត្តនាម.*?)\s*[:៖\.\-]?\s*(.*?)(?=\s*ភេទ|\s*សញ្ជាតិ|$)', line)
             if m_full:
                 raw_name = clean_noise(m_full.group(1)).strip()
-                # Split first and last name if space exists
                 parts = raw_name.split()
                 if len(parts) >= 2:
                     data['khmer_last_name'] = parts[0]
@@ -662,28 +711,20 @@ def parse_docx_contract_officer(file_path_or_file):
 
             m_g = re.search(r'ភេទ\s*[:៖\.\-]?\s*(\S+)', line)
             if m_g:
-                if 'ស្រី' in m_g.group(1):
-                    data['gender'] = 'FEMALE'
-                else:
-                    data['gender'] = 'MALE'
+                if 'ស្រី' in m_g.group(1): data['gender'] = 'FEMALE'
+                else: data['gender'] = 'MALE'
 
             m_nat = re.search(r'សញ្ជាតិ\s*[:៖\.\-]?\s*([^\s,]+)', line)
-            if m_nat:
-                data['nationality'] = clean_noise(m_nat.group(1)) or 'ខ្មែរ'
+            if m_nat: data['nationality'] = clean_noise(m_nat.group(1)) or 'ខ្មែរ'
 
-        # ២- អក្សរពុម្ពឡាតាំង
         elif 'អក្សរពុម្ពឡាតាំង' in line or 'អក្សរឡាតាំង' in line or '២-អក្សរ' in line or ('២' in line and 'ឡាតាំង' in line):
             m_lat = re.search(r'(?:អក្សរពុម្ពឡាតាំង|អក្សរឡាតាំង|២\s*[\-\.\:៖]?\s*.*?)\s*[:៖\.\-]?\s*([A-Za-z\s]+)', line)
-            if m_lat:
-                data['latin_name'] = clean_noise(m_lat.group(1)).strip().upper()
+            if m_lat: data['latin_name'] = clean_noise(m_lat.group(1)).strip().upper()
 
-        # ៣- ថ្ងៃខែឆ្នាំកំណើត
         elif 'ថ្ងៃខែឆ្នាំកំណើត' in line or '៣-ថ្ងៃ' in line or ('៣' in line and 'កំណើត' in line and 'កន្លែង' not in line):
             m_dob = re.search(r'(?:ថ្ងៃខែឆ្នាំកំណើត|៣\s*[\-\.\:៖]?\s*.*?)\s*[:៖\.\-]?\s*(.*?)(?=\s*ជនជាតិ|\s*សញ្ជាតិ|\s*ទីកន្លែង|$)', line)
-            if m_dob:
-                data['dob'] = clean_noise(m_dob.group(1)).strip()
+            if m_dob: data['dob'] = clean_noise(m_dob.group(1)).strip()
 
-        # ៤- ទីកន្លែងកំណើត
         elif 'ទីកន្លែងកំណើត' in line or '៤-ទី' in line:
             m_pob = re.search(r'(?:ទីកន្លែងកំណើត|៤\s*[\-\.\:៖]?\s*.*?)\s*[:៖\.\-]?\s*(.*)', line)
             if m_pob:
@@ -698,22 +739,16 @@ def parse_docx_contract_officer(file_path_or_file):
                 m_p = re.search(r'(?:រាជធានី/ខេត្ត|រាជធានី|ខេត្ត)\s*(.*)', val)
                 if m_p: data['pob_province'] = clean_province(m_p.group(1))
 
-        # ៥- កម្រិតវប្បធម៌ទូទៅ
         elif 'កម្រិតវប្បធម៌ទូទៅ' in line or 'កម្រិតវប្បធម៌' in line or '៥-កម្រិត' in line:
             m_edu = re.search(r'(?:កម្រិតវប្បធម៌ទូទៅ|កម្រិតវប្បធម៌|៥\s*[\-\.\:៖]?\s*.*?)\s*[:៖\.\-]?\s*(.*)', line)
-            if m_edu:
-                data['general_education'] = clean_noise(m_edu.group(1)).strip()
+            if m_edu: data['general_education'] = clean_noise(m_edu.group(1)).strip()
 
-        # ៦- កម្រិតបណ្តុះបណ្តាល & ជំនាញ/ឯកទេស
         elif 'កម្រិតបណ្តុះបណ្តាល' in line or 'ជំនាញ/ឯកទេស' in line or '៦-កម្រិត' in line:
             m_train = re.search(r'(?:កម្រិតបណ្តុះបណ្តាល|៦\s*[\-\.\:៖]?\s*.*?)\s*[:៖\.\-]?\s*(.*?)(?=\s*ជំនាញ|\s*ឯកទេស|$)', line)
-            if m_train:
-                data['training_level'] = clean_noise(m_train.group(1)).strip()
+            if m_train: data['training_level'] = clean_noise(m_train.group(1)).strip()
             m_sk = re.search(r'(?:ជំនាញ/ឯកទេស|ជំនាញ|ឯកទេស)\s*[:៖\.\-]?\s*(.*)', line)
-            if m_sk:
-                data['skill_specialization'] = clean_noise(m_sk.group(1)).strip()
+            if m_sk: data['skill_specialization'] = clean_noise(m_sk.group(1)).strip()
 
-        # ៧- លេខអត្តសញ្ញាណប័ណ្ណសញ្ជាតិខ្មែរ ឬលិខិតឆ្លងដែន
         elif 'អត្តសញ្ញាណប័ណ្ណ' in line or 'លិខិតឆ្លងដែន' in line or '៧-លេខ' in line:
             if 'លិខិតឆ្លងដែន' in line and ('[✓]' in line or '[x]' in line or '✓' in line or 'passport' in line.lower()):
                 data['id_type'] = 'PASSPORT'
@@ -724,22 +759,18 @@ def parse_docx_contract_officer(file_path_or_file):
                 data['id_number'] = to_arabic_digits(clean_noise(m_num.group(1)))
             else:
                 m_dig = re.search(r'([0-9០-៩]{6,})', line)
-                if m_dig:
-                    data['id_number'] = to_arabic_digits(m_dig.group(1))
+                if m_dig: data['id_number'] = to_arabic_digits(m_dig.group(1))
 
-        # ៨- អង្គភាព/ការិយាល័យបំពេញការងារ
         elif 'អង្គភាព/ការិយាល័យបំពេញការងារ' in line or 'អង្គភាព/ការិយាល័យ' in line or '៨-អង្គភាព' in line:
             m_unit = re.search(r'(?:អង្គភាព/ការិយាល័យបំពេញការងារ|អង្គភាព/ការិយាល័យ|៨\s*[\-\.\:៖]?\s*.*?)\s*[:៖\.\-]?\s*(.*)', line)
-            if m_unit:
-                data['working_unit'] = clean_noise(m_unit.group(1)).strip()
+            if m_unit: data['working_unit'] = clean_noise(m_unit.group(1)).strip()
 
-        # ៩- អាសយដ្ឋានបច្ចុប្បន្ន
         elif 'អាសយដ្ឋានបច្ចុប្បន្ន' in line or '៩-អាសយដ្ឋាន' in line:
             m_addr = re.search(r'(?:អាសយដ្ឋានបច្ចុប្បន្ន|៩\s*[\-\.\:៖]?\s*.*?)\s*[:៖\.\-]?\s*(.*)', line)
             if m_addr:
                 val = clean_noise(m_addr.group(1))
                 data['current_address'] = val
-                m_h = re.search(r'[#​\s]*([^ផ្លភ]+?)(?=\s*ផ្លូវ|\s*ភូមិ|\s*ឃុំ|\s*សង្កាត់|$)', val)
+                m_h = re.search(r'[#\s]*([^ផ្លភ]+?)(?=\s*ផ្លូវ|\s*ភូមិ|\s*ឃុំ|\s*សង្កាត់|$)', val)
                 if m_h: data['current_house_no'] = clean_noise(m_h.group(1)).replace('#', '').strip()
                 m_st = re.search(r'ផ្លូវ\s*([^ភឃស្រ]+?)(?=\s*ភូមិ|\s*ឃុំ|\s*សង្កាត់|\s*ស្រុក|\s*ខណ្ឌ|$)', val)
                 if m_st: data['current_street'] = clean_noise(m_st.group(1))
@@ -752,19 +783,14 @@ def parse_docx_contract_officer(file_path_or_file):
                 m_p = re.search(r'(?:រាជធានី/ខេត្ត|រាជធានី|ខេត្ត)\s*(.*)', val)
                 if m_p: data['current_province'] = clean_province(m_p.group(1))
 
-        # ១០- លេខទូរស័ព្ទ
         elif 'លេខទូរស័ព្ទ' in line or 'ទូរស័ព្ទ' in line or '១០-លេខ' in line:
             m_ph = re.search(r'(?:លេខទូរស័ព្ទ|១០\s*[\-\.\:៖]?\s*.*?)\s*[:៖\.\-]?\s*([0-9០-៩\s\-\/\+]+)', line)
-            if m_ph:
-                data['phone'] = to_arabic_digits(clean_noise(m_ph.group(1)))
+            if m_ph: data['phone'] = to_arabic_digits(clean_noise(m_ph.group(1)))
 
-        # ១១- អ៊ីម៉ែល
         elif 'អ៊ីម៉ែល' in line or 'email' in line.lower() or '១១-អ៊ីម៉ែល' in line:
             m_em = re.search(r'(?:អ៊ីម៉ែល.*?|១១\s*[\-\.\:៖]?\s*.*?)\s*[:៖\.\-]?\s*([A-Za-z0-9\.\_\-]+@[A-Za-z0-9\.\_\-]+)', line)
-            if m_em:
-                data['email'] = clean_noise(m_em.group(1)).strip()
+            if m_em: data['email'] = clean_noise(m_em.group(1)).strip()
 
-    # Fallbacks if name wasn't captured by line parser
     if not data['khmer_last_name'] and not data['khmer_first_name']:
         m_fallback = re.search(r'(?:ឈ្មោះ|គោត្តនាម.*?នាមខ្លួន)\s*[:\.\-]?\s*([\u1780-\u17FF\s]+)', full_document_text)
         if m_fallback:
@@ -774,6 +800,17 @@ def parse_docx_contract_officer(file_path_or_file):
                 data['khmer_first_name'] = " ".join(parts[1:])
             elif len(parts) == 1:
                 data['khmer_first_name'] = parts[0]
+
+    # Filename fallback
+    if original_filename and (not data['khmer_last_name'] or not data['khmer_first_name']):
+        base_name = os.path.splitext(os.path.basename(original_filename))[0]
+        clean_fn = re.sub(r'[0-9_\-\.\(\)\s]+', ' ', base_name).strip()
+        kh_words = re.findall(r'[\u1780-\u17F9]+', clean_fn)
+        if len(kh_words) >= 2:
+            data['khmer_last_name'] = kh_words[0]
+            data['khmer_first_name'] = ' '.join(kh_words[1:])
+        elif len(kh_words) == 1:
+            data['khmer_first_name'] = kh_words[0]
 
     return data
 
@@ -820,4 +857,3 @@ def compare_contract_officer_data(existing_officer, new_data):
             })
 
     return diffs
-

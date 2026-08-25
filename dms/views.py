@@ -2856,13 +2856,44 @@ def officer_import_docx(request):
 
         try:
             from .docx_parser import parse_docx_officer
-            data = parse_docx_officer(docx_file)
+            data = parse_docx_officer(docx_file, original_filename=docx_file.name)
 
             if not data.get('khmer_last_name') and not data.get('khmer_first_name'):
                 if is_ajax:
                     return JsonResponse({'success': False, 'error': 'មិនអាចស្វែងរកឈ្មោះមន្ត្រីក្នុងឯកសារ Word នេះបានឡើយ។'})
                 messages.error(request, "⚠️ មិនអាចស្វែងរកឈ្មោះមន្ត្រីក្នុងឯកសារ Word នេះបានឡើយ។ សូមពិនិត្យមើលទម្រង់ឯកសារម្តងទៀត។")
                 return redirect('officer_list')
+
+            # Auto-detect framework_category if not set
+            rk = data.get('current_rank_and_step', '') or ''
+            if rk.startswith('ក'):
+                data['framework_category'] = 'FRAMEWORK_A'
+            elif rk.startswith('ខ'):
+                data['framework_category'] = 'FRAMEWORK_B'
+            elif rk.startswith('គ'):
+                data['framework_category'] = 'FRAMEWORK_C'
+            elif rk.startswith('ឃ'):
+                data['framework_category'] = 'FRAMEWORK_D'
+
+            # Auto-detect highest degree
+            edu_list = data.get('education_data', [])
+            for edu in edu_list:
+                deg = edu.get('degree', '') + ' ' + edu.get('level_label', '')
+                if any(kw in deg for kw in ['បណ្ឌិត', 'PhD', 'Doctor', 'បណ្ឌិតវិទ្យាសាស្ត្រ']):
+                    data['highest_degree'] = 'DOCTORATE'
+                    break
+                elif any(kw in deg for kw in ['អនុបណ្ឌិត', 'Master', 'MA', 'MS']):
+                    if data.get('highest_degree') != 'DOCTORATE':
+                        data['highest_degree'] = 'MASTER'
+                elif any(kw in deg for kw in ['បរិញ្ញាបត្រ', 'Bachelor', 'BA', 'BS', 'វិស្វករ', 'វេជ្ជបណ្ឌិត']):
+                    if data.get('highest_degree') not in ['DOCTORATE', 'MASTER']:
+                        data['highest_degree'] = 'BACHELOR'
+                elif any(kw in deg for kw in ['បរិញ្ញាបត្ររង', 'Associate', 'ជាន់ខ្ពស់']):
+                    if data.get('highest_degree') not in ['DOCTORATE', 'MASTER', 'BACHELOR']:
+                        data['highest_degree'] = 'ASSOCIATE'
+                elif any(kw in deg for kw in ['មធ្យមសិក្សាទុតិយភូមិ', 'បាក់ឌុប', 'ទុតិយភូមិ', 'High School']):
+                    if not data.get('highest_degree'):
+                        data['highest_degree'] = 'HIGH_SCHOOL'
 
             target_dept_id = request.POST.get('department')
             target_dept = None
@@ -9380,7 +9411,7 @@ def contract_officer_import_docx(request):
 
         try:
             from .docx_parser import parse_docx_contract_officer, compare_contract_officer_data
-            data = parse_docx_contract_officer(docx_file)
+            data = parse_docx_contract_officer(docx_file, original_filename=docx_file.name)
 
             if not data.get('khmer_last_name') and not data.get('khmer_first_name'):
                 if is_ajax:

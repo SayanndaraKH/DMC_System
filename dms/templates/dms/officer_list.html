@@ -1183,8 +1183,19 @@ async function startBatchProcessing() {
                 body: formData
             });
 
-            const data = await response.json();
-            if (data.success) {
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = { 
+                    success: false, 
+                    error: response.status === 403 ? '🔒 គ្មានសិទ្ធិ ឬប្រព័ន្ធត្រូវបានចាក់សោ' : 
+                           response.status === 413 ? '⚠️ File ធំពេក (Request Entity Too Large)' :
+                           `កំហុស Server (HTTP ${response.status})` 
+                };
+            }
+
+            if (data && data.success) {
                 item.result = data;
                 item.status = data.status || 'SUCCESS_NEW';
                 if (item.status === 'SUCCESS_NEW') batchNewCount++;
@@ -1194,12 +1205,12 @@ async function startBatchProcessing() {
                 else if (item.status === 'EXISTING_SKIPPED') batchIdenticalCount++;
             } else {
                 item.status = 'ERROR';
-                item.errorMsg = data.error || 'កំហុសមិនស្គាល់';
+                item.errorMsg = (data && data.error) ? data.error : `កំហុសក្នុងការស្រង់ (HTTP ${response.status})`;
                 batchErrorCount++;
             }
         } catch (err) {
             item.status = 'ERROR';
-            item.errorMsg = 'បាត់បង់ការតភ្ជាប់ Server';
+            item.errorMsg = err.message ? `កំហុសបច្ចេកទេស៖ ${err.message}` : 'បាត់បង់ការតភ្ជាប់ Server';
             batchErrorCount++;
         }
 
