@@ -2564,27 +2564,31 @@ def officer_sync_initial_data_view(request):
     dump_path = Path(settings.BASE_DIR) / 'initial_data.json'
     geo_file = Path(settings.BASE_DIR) / 'Cambodia All List2025.xlsx'
 
-    # 1. Load Geo if empty
-    try:
-        if CambodiaProvince.objects.count() == 0 and geo_file.exists():
-            call_command('import_cambodia_geo', file=str(geo_file))
-    except Exception as e:
-        messages.warning(request, f"Geo import note: {e}")
-
-    # 2. Load Initial Data
+    # 1. Try loading complete fixture
     if dump_path.exists():
         try:
             call_command('loaddata', str(dump_path))
-            officers_count = CivilServantProfile.objects.count()
-            contract_count = ContractOfficer.objects.count()
-            messages.success(
-                request,
-                f"🎉 បានទាញ និងនាំចូលទិន្នន័យដើមជោគជ័យ! បច្ចុប្បន្នមាន៖ មន្ត្រីរាជការ {officers_count} នាក់ និងមន្ត្រីជាប់កិច្ចសន្យា {contract_count} នាក់។"
-            )
         except Exception as e:
-            messages.error(request, f"មានបញ្ហាក្នុងការទាញទិន្នន័យ៖ {e}")
-    else:
-        messages.warning(request, "រកមិនឃើញឯកសារទិន្នន័យដើម initial_data.json ឡើយ!")
+            messages.warning(request, f"Fixture load note: {e}")
+
+    # 2. If geo is still empty, import from Excel
+    if CambodiaProvince.objects.count() == 0 and geo_file.exists():
+        try:
+            call_command('import_cambodia_geo', file=str(geo_file))
+        except Exception as e:
+            messages.warning(request, f"Excel geo import note: {e}")
+
+    provinces_count = CambodiaProvince.objects.count()
+    districts_count = CambodiaDistrict.objects.count()
+    communes_count = CambodiaCommune.objects.count()
+    villages_count = CambodiaVillage.objects.count()
+    officers_count = CivilServantProfile.objects.count()
+    contract_count = ContractOfficer.objects.count()
+
+    messages.success(
+        request,
+        f"🎉 បានទាញ និងផ្ទុកទិន្នន័យជោគជ័យ! បច្ចុប្បន្នមាន៖ រាជធានី-ខេត្ត ({provinces_count}), ក្រុង-ស្រុក-ខណ្ឌ ({districts_count}), ឃុំ-សង្កាត់ ({communes_count}), ភូមិ ({villages_count}), មន្ត្រីរាជការ ({officers_count} នាក់) និងមន្ត្រីកិច្ចសន្យា ({contract_count} នាក់)។"
+    )
 
     return redirect('officer_list')
 

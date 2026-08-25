@@ -37,27 +37,28 @@ class Command(BaseCommand):
             }
         )
 
-        # 2. Check and auto-import Cambodia Geography if count is 0
+        # 2. Check and auto-load all data (provinces, districts, communes, villages, officers, departments)
         try:
-            if CambodiaProvince.objects.count() == 0:
-                geo_file = Path(settings.BASE_DIR) / 'Cambodia All List2025.xlsx'
-                if geo_file.exists():
-                    self.stdout.write("Database has 0 provinces. Importing Cambodia geography from Excel...")
-                    call_command('import_cambodia_geo', file=str(geo_file))
-                    self.stdout.write(self.style.SUCCESS("Successfully imported 25 provinces, 210 districts, 1662 communes, 14576 villages!"))
-        except Exception as e:
-            self.stdout.write(self.style.WARNING(f"Geography import note: {e}"))
-
-        # 3. Check and auto-load initial officers data if officers count is 0
-        try:
-            if CivilServantProfile.objects.count() == 0:
+            if CivilServantProfile.objects.count() == 0 or CambodiaProvince.objects.count() == 0:
                 dump_path = Path(settings.BASE_DIR) / 'initial_data.json'
                 if dump_path.exists():
-                    self.stdout.write("Database has 0 officers. Auto-loading initial_data.json...")
+                    self.stdout.write("Auto-loading initial_data.json...")
                     call_command('loaddata', str(dump_path))
-                    self.stdout.write(self.style.SUCCESS("Successfully imported initial officers data!"))
+                    self.stdout.write(self.style.SUCCESS("Successfully imported all initial data (geo + officers)!"))
+                elif CambodiaProvince.objects.count() == 0:
+                    geo_file = Path(settings.BASE_DIR) / 'Cambodia All List2025.xlsx'
+                    if geo_file.exists():
+                        call_command('import_cambodia_geo', file=str(geo_file))
         except Exception as e:
             self.stdout.write(self.style.WARNING(f"Initial data load note: {e}"))
+            # Fallback to geo Excel if provinces still empty
+            if CambodiaProvince.objects.count() == 0:
+                try:
+                    geo_file = Path(settings.BASE_DIR) / 'Cambodia All List2025.xlsx'
+                    if geo_file.exists():
+                        call_command('import_cambodia_geo', file=str(geo_file))
+                except Exception as ex:
+                    self.stdout.write(self.style.WARNING(f"Fallback geo error: {ex}"))
 
         # 4. Create or update ADMIN account (both uppercase ADMIN and lowercase admin)
         for uname in [admin_username, 'admin']:
