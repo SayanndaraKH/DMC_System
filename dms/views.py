@@ -2867,13 +2867,13 @@ def officer_import_docx(request):
             # Auto-detect framework_category if not set
             rk = data.get('current_rank_and_step', '') or ''
             if rk.startswith('ក'):
-                data['framework_category'] = 'FRAMEWORK_A'
+                data['framework_category'] = 'A'
             elif rk.startswith('ខ'):
-                data['framework_category'] = 'FRAMEWORK_B'
+                data['framework_category'] = 'B'
             elif rk.startswith('គ'):
-                data['framework_category'] = 'FRAMEWORK_C'
+                data['framework_category'] = 'C'
             elif rk.startswith('ឃ'):
-                data['framework_category'] = 'FRAMEWORK_D'
+                data['framework_category'] = 'D'
 
             # Auto-detect highest degree
             edu_list = data.get('education_data', [])
@@ -2893,7 +2893,7 @@ def officer_import_docx(request):
                         data['highest_degree'] = 'ASSOCIATE'
                 elif any(kw in deg for kw in ['មធ្យមសិក្សាទុតិយភូមិ', 'បាក់ឌុប', 'ទុតិយភូមិ', 'High School']):
                     if not data.get('highest_degree'):
-                        data['highest_degree'] = 'HIGH_SCHOOL'
+                        data['highest_degree'] = 'HIGHSCHOOL'
 
             target_dept_id = request.POST.get('department')
             target_dept = None
