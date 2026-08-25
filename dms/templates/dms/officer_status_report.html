@@ -1,0 +1,770 @@
+{% extends 'dms/base.html' %}
+{% load static %}
+
+{% block title %}ស្ថានភាពមន្ត្រីរាជការ - Cadre Status & Overview{% endblock %}
+
+{% block extra_css %}
+<style>
+    .officer-table-scroll {
+        max-height: 68vh;
+        overflow-y: auto;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+    }
+    .officer-table-scroll::-webkit-scrollbar {
+        width: 7px;
+        height: 7px;
+    }
+    .officer-table-scroll::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    .officer-table-scroll::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    .officer-table-scroll::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    .officer-table-scroll thead th {
+        position: sticky !important;
+        top: 0 !important;
+        background-color: #f8fafc !important;
+        z-index: 10 !important;
+        box-shadow: inset 0 -2px 0 #e2e8f0, 0 2px 4px rgba(0,0,0,0.03);
+    }
+
+    .status-dashboard-card {
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        background: #ffffff;
+    }
+    .status-dashboard-card:hover {
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    }
+    .sec-card-header {
+        border-bottom: 1px solid #f0f2f5;
+        padding: 10px 14px;
+        background: #fdfdfd;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+    .stat-pill-item {
+        background: #f8fafc;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 7px 10px;
+        transition: all 0.15s ease;
+    }
+    .stat-pill-item:hover {
+        background: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        transform: translateY(-1px);
+    }
+    .badge-status-active { background-color: #10b981; color: #fff; }
+    .badge-status-unpaid { background-color: #f59e0b; color: #111; }
+    .badge-status-outside { background-color: #06b6d4; color: #111; }
+    .badge-status-dismissed { background-color: #ef4444; color: #fff; }
+    .badge-status-retired { background-color: #6b7280; color: #fff; }
+    .badge-status-trainee { background-color: #3b82f6; color: #fff; }
+    .badge-status-transferred { background-color: #4b5563; color: #fff; }
+
+    .badge-fw-a { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; }
+    .badge-fw-b { background: linear-gradient(135deg, #0284c7, #38bdf8); color: #fff; }
+    .badge-fw-c { background: linear-gradient(135deg, #059669, #10b981); color: #fff; }
+    .badge-fw-d { background: linear-gradient(135deg, #64748b, #94a3b8); color: #fff; }
+
+    .degree-badge {
+        font-size: 0.76rem;
+        padding: 3px 7px;
+        border-radius: 6px;
+        background-color: #f1f5f9;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+    }
+
+    .table-officer-row:hover {
+        background-color: #f8fafc !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-2 border-bottom">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary px-2.5 py-1.5 fs-6"><i class="fa-solid fa-users-gear me-1"></i> ស្ថានភាពមន្ត្រី</span>
+                <span class="text-muted small">|</span>
+                <span class="text-secondary fw-semibold">{% if selected_dept_obj %}{{ selected_dept_obj.name_kh }}{% else %}{{ user_dept.name_kh|default:"មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន" }}{% endif %}</span>
+            </div>
+            <h3 class="fw-bold mb-0 text-dark" style="font-family: 'Khmer OS Muol Light', sans-serif;">
+                ផ្ទាំងគ្រប់គ្រង និងរបាយការណ៍ស្ថានភាពមន្ត្រីរាជការ
+            </h3>
+            <p class="text-muted small mb-0 mt-1">
+                <i class="fa-regular fa-calendar-check me-1 text-primary"></i> គិតត្រឹម {{ date_info.solar_date_str }}
+                {% if total_officers %}&nbsp;•&nbsp; សរុបចំនួន <strong>{{ total_officers_kh }}</strong> នាក់ (ស្រី <strong>{{ female_count_kh }}</strong> នាក់, ប្រុស <strong>{{ male_count_kh }}</strong> នាក់){% endif %}
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <!-- Print Official Report Button -->
+            <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#printReportModal">
+                <i class="fa-solid fa-print"></i>
+                <span>បោះពុម្ពទម្រង់ផ្លូវការ</span>
+            </button>
+
+            <!-- Export to Excel Button -->
+            <a href="{% url 'officer_status_export_excel' %}?{% if selected_dept %}department={{ selected_dept }}{% endif %}" class="btn btn-success d-flex align-items-center gap-2 shadow-sm px-3">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>ទាញយកជា Excel</span>
+            </a>
+
+            <!-- Back to Officer List -->
+            <a href="{% url 'officer_list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+                <i class="fa-solid fa-list-ul"></i>
+                <span>បញ្ជីមន្ត្រី</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter & Search Section -->
+    <div class="card shadow-sm border-0 rounded-3 mb-4">
+        <div class="card-body p-3">
+            <form method="GET" action="{% url 'officer_status_report' %}" class="row g-2 align-items-end">
+                {% if has_global_access %}
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-semibold text-secondary mb-1">🏢 ការិយាល័យ / អង្គភាព</label>
+                    <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">-- ការិយាល័យទាំងអស់ --</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}" {% if selected_dept == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name_kh }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold text-secondary mb-1">🏷️ ក្របខ័ណ្ឌ</label>
+                    <select name="framework" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">-- ក្របខ័ណ្ឌទាំងអស់ --</option>
+                        <option value="A" {% if fw_filter == 'A' %}selected{% endif %}>ក្របខ័ណ្ឌ (ក)</option>
+                        <option value="B" {% if fw_filter == 'B' %}selected{% endif %}>ក្របខ័ណ្ឌ (ខ)</option>
+                        <option value="C" {% if fw_filter == 'C' %}selected{% endif %}>ក្របខ័ណ្ឌ (គ)</option>
+                        <option value="D" {% if fw_filter == 'D' %}selected{% endif %}>ក្របខ័ណ្ឌ (ឃ)</option>
+                    </select>
+                </div>
+
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold text-secondary mb-1">🎓 សញ្ញាប័ត្រ</label>
+                    <select name="degree" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">-- សញ្ញាប័ត្រទាំងអស់ --</option>
+                        <option value="DOCTORATE" {% if degree_filter == 'DOCTORATE' %}selected{% endif %}>(១). បណ្ឌិត</option>
+                        <option value="MASTER" {% if degree_filter == 'MASTER' %}selected{% endif %}>(២). បរិញ្ញាបត្រជាន់ខ្ពស់</option>
+                        <option value="BACHELOR" {% if degree_filter == 'BACHELOR' %}selected{% endif %}>(៣). បរិញ្ញាប័ត្រ</option>
+                        <option value="ASSOCIATE" {% if degree_filter == 'ASSOCIATE' %}selected{% endif %}>(៤). បរិញ្ញាប័ត្ររង</option>
+                        <option value="HIGHSCHOOL" {% if degree_filter == 'HIGHSCHOOL' %}selected{% endif %}>(៥). មធ្យមសិក្សាទុតិយភូមិ</option>
+                        <option value="OTHER" {% if degree_filter == 'OTHER' %}selected{% endif %}>(៦). ផ្សេងៗ</option>
+                    </select>
+                </div>
+
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold text-secondary mb-1">📌 ស្ថានភាពមន្ត្រី</label>
+                    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">-- ស្ថានភាពទាំងអស់ --</option>
+                        <option value="ACTIVE" {% if status_filter == 'ACTIVE' %}selected{% endif %}>១. មន្ត្រីសកម្ម</option>
+                        <option value="UNPAID_LEAVE" {% if status_filter == 'UNPAID_LEAVE' %}selected{% endif %}>២. ទំនេរគ្មានបៀវត្ស</option>
+                        <option value="OUTSIDE_FRAMEWORK" {% if status_filter == 'OUTSIDE_FRAMEWORK' %}selected{% endif %}>៣. ក្រៅក្របខណ្ឌដើម</option>
+                        <option value="DISMISSED" {% if status_filter == 'DISMISSED' %}selected{% endif %}>៤. ត្រូវបានលុបឈ្មោះ</option>
+                        <option value="RETIRED" {% if status_filter == 'RETIRED' %}selected{% endif %}>៥. ចូលនិវត្តន៍</option>
+                        <option value="TRAINEE" {% if status_filter == 'TRAINEE' %}selected{% endif %}>៦. មន្ត្រីកម្មសិក្សា</option>
+                        <option value="TRANSFERRED_OUT" {% if status_filter == 'TRANSFERRED_OUT' %}selected{% endif %}>៧. មន្ត្រីផ្ទេរចេញ</option>
+                    </select>
+                </div>
+
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold text-secondary mb-1">🔍 ស្វែងរក</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" name="q" value="{{ search_q }}" class="form-control" placeholder="ឈ្មោះ ឬអត្តលេខ...">
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-search"></i></button>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-1">
+                    <a href="{% url 'officer_status_report' %}" class="btn btn-outline-secondary btn-sm w-100" title="Reset Filters">
+                        <i class="fa-solid fa-rotate-left"></i> សម្អាត
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3 Executive Statistics Breakdown Cards (ក, ខ, គ) -->
+    <div class="row g-3 mb-4">
+        <!-- ផ្នែក ក. ព័ត៌មានមន្ត្រីតាមក្របខ័ណ្ឌ -->
+        <div class="col-12 col-lg-4">
+            <div class="status-dashboard-card h-100">
+                <div class="sec-card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-indigo text-white fw-bold px-2 py-1" style="background: #4f46e5;">ក</span>
+                        <h6 class="fw-bold mb-0 text-dark" style="font-family: 'Khmer OS Battambang', sans-serif;">
+                            ព័ត៌មានមន្ត្រីតាមក្របខ័ណ្ឌ
+                        </h6>
+                    </div>
+                    <span class="badge bg-light text-dark border">សរុប <strong>{{ total_officers_kh }}</strong> នាក់</span>
+                </div>
+                <div class="card-body p-3">
+                    <!-- Total Gender Stats -->
+                    <div class="p-2.5 rounded-3 mb-3" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-secondary"><i class="fa-solid fa-users text-primary me-1"></i> ចំនួនសរុប៖</span>
+                            <span class="fw-bold text-dark fs-6">{{ total_officers_kh }} នាក់</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-danger"><i class="fa-solid fa-venus me-1"></i> ស្រី៖ <strong>{{ female_count_kh }}</strong> នាក់</span>
+                            <span class="small text-primary"><i class="fa-solid fa-mars me-1"></i> ប្រុស៖ <strong>{{ male_count_kh }}</strong> នាក់</span>
+                        </div>
+                    </div>
+
+                    <!-- Framework Breakdown -->
+                    <div class="small fw-bold text-dark mb-2">ចំនួនមន្ត្រីរាជការតាមក្របខណ្ឌ៖</div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="?framework=A{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
+                                    <span class="badge" style="background-color: #3730a3; color: #ffffff; font-weight: 700; font-size: 0.76rem;">ក្របខណ្ឌ (ក)</span>
+                                    <span class="fw-bold text-dark">{{ cat_a_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?framework=B{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
+                                    <span class="badge" style="background-color: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.76rem;">ក្របខណ្ឌ (ខ)</span>
+                                    <span class="fw-bold text-dark">{{ cat_b_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?framework=C{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
+                                    <span class="badge" style="background-color: #047857; color: #ffffff; font-weight: 700; font-size: 0.76rem;">ក្របខណ្ឌ (គ)</span>
+                                    <span class="fw-bold text-dark">{{ cat_c_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?framework=D{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
+                                    <span class="badge" style="background-color: #334155; color: #ffffff; font-weight: 700; font-size: 0.76rem;">ក្របខណ្ឌ (ឃ)</span>
+                                    <span class="fw-bold text-dark">{{ cat_d_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ផ្នែក ខ. ព័ត៌មានមន្ត្រីតាមសញ្ញាប័ត្រ -->
+        <div class="col-12 col-lg-4">
+            <div class="status-dashboard-card h-100">
+                <div class="sec-card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-info text-white fw-bold px-2 py-1" style="background: #0284c7;">ខ</span>
+                        <h6 class="fw-bold mb-0 text-dark" style="font-family: 'Khmer OS Battambang', sans-serif;">
+                            ព័ត៌មានមន្ត្រីតាមសញ្ញាប័ត្រ
+                        </h6>
+                    </div>
+                    <span class="badge bg-light text-dark border">៦ កម្រិត</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="?degree=DOCTORATE{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item">
+                                    <div class="fw-bold text-dark fs-8">(១). បណ្ឌិត</div>
+                                    <div class="fw-bold text-primary fs-7 mt-1">{{ phd_count_kh }} នាក់</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?degree=MASTER{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item">
+                                    <div class="fw-bold text-dark fs-8">(២). អនុបណ្ឌិត</div>
+                                    <div class="fw-bold text-primary fs-7 mt-1">{{ master_count_kh }} នាក់</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?degree=BACHELOR{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item">
+                                    <div class="fw-bold text-dark fs-8">(៣). បរិញ្ញាប័ត្រ</div>
+                                    <div class="fw-bold text-primary fs-7 mt-1">{{ bachelor_count_kh }} នាក់</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?degree=ASSOCIATE{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item">
+                                    <div class="fw-bold text-dark fs-8">(៤). បរិញ្ញាប័ត្ររង</div>
+                                    <div class="fw-bold text-primary fs-7 mt-1">{{ associate_count_kh }} នាក់</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?degree=HIGHSCHOOL{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item">
+                                    <div class="fw-bold text-dark fs-8">(៥). ទុតិយភូមិ</div>
+                                    <div class="fw-bold text-primary fs-7 mt-1">{{ highschool_count_kh }} នាក់</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?degree=OTHER{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item">
+                                    <div class="fw-bold text-dark fs-8">(៦). ផ្សេងៗ</div>
+                                    <div class="fw-bold text-primary fs-7 mt-1">{{ other_degree_count_kh }} នាក់</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ផ្នែក គ. ស្ថានភាពមន្ត្រី គិតមកដល់បច្ចុប្បន្ន -->
+        <div class="col-12 col-lg-4">
+            <div class="status-dashboard-card h-100">
+                <div class="sec-card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success text-white fw-bold px-2 py-1" style="background-color: #15803d !important;">គ</span>
+                        <h6 class="fw-bold mb-0 text-dark" style="font-family: 'Khmer OS Battambang', sans-serif;">
+                            ស្ថានភាពមន្ត្រី (គិតមកដល់បច្ចុប្បន្ន)
+                        </h6>
+                    </div>
+                    <span class="badge bg-light text-dark border">៧ ស្ថានភាព</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="?status=ACTIVE{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
+                                    <span class="badge" style="background-color: #15803d; color: #ffffff; font-weight: 700; font-size: 0.76rem;">១. សកម្ម</span>
+                                    <span class="fw-bold text-dark">{{ active_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?status=RETIRED{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
+                                    <span class="badge" style="background-color: #4b5563; color: #ffffff; font-weight: 700; font-size: 0.76rem;">៥. និវត្តន៍</span>
+                                    <span class="fw-bold text-dark">{{ retired_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?status=UNPAID_LEAVE{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
+                                    <span class="badge" style="background-color: #b45309; color: #ffffff; font-weight: 700; font-size: 0.76rem;">២. គ្មានបៀវត្ស</span>
+                                    <span class="fw-bold text-dark">{{ unpaid_leave_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?status=TRAINEE{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
+                                    <span class="badge" style="background-color: #1d4ed8; color: #ffffff; font-weight: 700; font-size: 0.76rem;">៦. កម្មសិក្សា</span>
+                                    <span class="fw-bold text-dark">{{ trainee_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?status=OUTSIDE_FRAMEWORK{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
+                                    <span class="badge" style="background-color: #0e7490; color: #ffffff; font-weight: 700; font-size: 0.76rem;">៣. ក្រៅក្របខណ្ឌ</span>
+                                    <span class="fw-bold text-dark">{{ outside_framework_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="?status=TRANSFERRED_OUT{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
+                                    <span class="badge" style="background-color: #334155; color: #ffffff; font-weight: 700; font-size: 0.76rem;">៧. ផ្ទេរចេញ</span>
+                                    <span class="fw-bold text-dark">{{ transferred_out_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-12">
+                            <a href="?status=DISMISSED{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
+                                <div class="stat-pill-item d-flex justify-content-between align-items-center py-1">
+                                    <span class="badge" style="background-color: #b91c1c; color: #ffffff; font-weight: 700; font-size: 0.76rem;">៤. ត្រូវបានលុបឈ្មោះ</span>
+                                    <span class="fw-bold text-dark">{{ dismissed_count_kh }} នាក់</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Officer List Table Section -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-0 py-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-table-list text-primary fs-5"></i>
+                <h5 class="fw-bold mb-0 text-dark">
+                    បញ្ជីមន្ត្រីរាជការតាមស្ថានភាព ({% if selected_dept_obj %}{{ selected_dept_obj.name_kh }}{% else %}ទាំងអស់{% endif %})
+                </h5>
+                <span class="badge bg-secondary rounded-pill ms-1">{{ total_in_table }} នាក់</span>
+            </div>
+            <div class="small text-muted">
+                ចុចប៊ូតុង <i class="fa-solid fa-pen-to-square text-primary"></i> ដើម្បីប្តូរស្ថានភាពមន្ត្រីបានរហ័ស
+            </div>
+        </div>
+        <div class="table-responsive officer-table-scroll">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.86rem;">
+                <thead class="bg-light text-muted fs-8 text-uppercase">
+                    <tr>
+                        <th class="ps-3 text-center" style="width: 45px;">ល.រ</th>
+                        <th style="min-width: 220px;">គោត្តនាម-នាមខ្លួន (រូបថត)</th>
+                        <th style="width: 100px;">អត្តលេខ</th>
+                        <th class="text-center" style="width: 65px;">ភេទ</th>
+                        <th>ការិយាល័យ/អង្គភាព & មុខតំណែង</th>
+                        <th class="text-center" style="width: 110px;">ក្របខ័ណ្ឌ</th>
+                        <th class="text-center" style="width: 150px;">សញ្ញាបត្រខ្ពស់បំផុត</th>
+                        <th class="text-center" style="width: 150px;">ស្ថានភាពមន្ត្រី</th>
+                        <th class="text-center pe-3" style="width: 90px;">សកម្មភាព</th>
+                    </tr>
+                </thead>
+                <tbody class="fs-7">
+                    {% for o in officers %}
+                    <tr class="table-officer-row" id="officer-row-{{ o.id }}">
+                        <td class="ps-3 text-center text-muted fw-bold">
+                            {{ forloop.counter|add:page_obj.start_index|add:"-1" }}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2.5">
+                                {% if o.photo %}
+                                <img src="{{ o.photo.url }}" alt="{{ o.full_name_kh }}" class="rounded-2 border shadow-xs object-fit-cover flex-shrink-0" style="width: 38px; height: 48px;" onerror="this.style.display='none'; if (this.nextElementSibling) { this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('d-flex'); }">
+                                <div class="bg-light text-secondary rounded-2 border d-none align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 48px; font-size: 16px;">
+                                    <i class="fa-solid fa-user"></i>
+                                </div>
+                                {% else %}
+                                <div class="bg-light text-secondary rounded-2 border d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 48px; font-size: 16px;">
+                                    <i class="fa-solid fa-user"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <a href="{% url 'officer_detail' o.id %}" class="fw-bold text-dark text-decoration-none hover-primary d-block">
+                                        {{ o.full_name_kh }}
+                                    </a>
+                                    <small class="text-muted text-uppercase font-monospace fs-8">{{ o.full_name_latin|default:"-" }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if o.officer_id_number %}
+                            <span class="badge bg-light text-dark border font-monospace px-2 py-1">{{ o.officer_id_number }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if o.gender == 'FEMALE' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5" style="font-size: 0.75rem;">ស្រី</span>
+                            {% else %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5" style="font-size: 0.75rem;">ប្រុស</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ o.department.name_kh|default:"មិនទាន់ចាត់តាំង" }}</div>
+                            <small class="text-muted">{{ o.current_position_title|default:"មន្ត្រី" }}</small>
+                        </td>
+                        <td class="text-center">
+                            {% if o.computed_framework_category == 'A' %}
+                            <span class="badge px-2 py-1" style="background-color: #3730a3; color: #fff; font-weight: 700; font-size: 0.76rem;" id="badge-fw-{{ o.id }}">ក្របខ័ណ្ឌ ក</span>
+                            {% elif o.computed_framework_category == 'B' %}
+                            <span class="badge px-2 py-1" style="background-color: #0284c7; color: #fff; font-weight: 700; font-size: 0.76rem;" id="badge-fw-{{ o.id }}">ក្របខ័ណ្ឌ ខ</span>
+                            {% elif o.computed_framework_category == 'C' %}
+                            <span class="badge px-2 py-1" style="background-color: #047857; color: #fff; font-weight: 700; font-size: 0.76rem;" id="badge-fw-{{ o.id }}">ក្របខ័ណ្ឌ គ</span>
+                            {% else %}
+                            <span class="badge px-2 py-1" style="background-color: #334155; color: #fff; font-weight: 700; font-size: 0.76rem;" id="badge-fw-{{ o.id }}">ក្របខ័ណ្ឌ ឃ</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-light text-dark border border-secondary border-opacity-50 px-2 py-1" style="font-weight: 600; font-size: 0.76rem;" id="badge-deg-{{ o.id }}">
+                                {{ o.highest_degree_label }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge {{ o.officer_status_badge_class }} px-2.5 py-1" style="font-weight: 700; font-size: 0.76rem;" id="badge-st-{{ o.id }}">
+                                {{ o.officer_status_label }}
+                            </span>
+                        </td>
+                        <td class="text-center pe-3">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-primary btn-sm px-2 py-1" title="កែប្រែស្ថានភាពរហ័ស" 
+                                        onclick="openQuickStatusModal('{{ o.id }}', '{{ o.full_name_kh|escapejs }}', '{{ o.computed_officer_status }}', '{{ o.computed_highest_degree }}', '{{ o.computed_framework_category }}')">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <a href="{% url 'officer_detail' o.id %}" class="btn btn-outline-secondary btn-sm px-2 py-1" title="មើលជីវប្រវត្តិ">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-user-slash fa-3x mb-3 text-secondary opacity-50"></i>
+                            <p class="mb-0 fs-6">មិនមានទិន្នន័យមន្ត្រីរាជការតាមលក្ខខណ្ឌស្វែងរកនេះឡើយ។</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+            <div class="small text-muted">
+                បង្ហាញពីទំព័រ <strong>{{ page_obj.number }}</strong> នៃ <strong>{{ page_obj.paginator.num_pages }}</strong> (សរុប {{ total_in_table }} នាក់)
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if fw_filter %}&framework={{ fw_filter }}{% endif %}{% if degree_filter %}&degree={{ degree_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}">
+                            &laquo; មុន
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if fw_filter %}&framework={{ fw_filter }}{% endif %}{% if degree_filter %}&degree={{ degree_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if fw_filter %}&framework={{ fw_filter }}{% endif %}{% if degree_filter %}&degree={{ degree_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}">
+                            បន្ទាប់ &raquo;
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- Quick Status Changer Modal (កែប្រែស្ថានភាព ក្របខ័ណ្ឌ និងសញ្ញាបត្ររហ័ស) -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="quickStatusModal" tabindex="-1" aria-labelledby="quickStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header bg-primary text-white border-0 py-3" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-user-pen fs-5"></i>
+                    <h5 class="modal-title fw-bold mb-0" id="quickStatusModalLabel">កែប្រែស្ថានភាព និងកម្រិតសញ្ញាបត្រ</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="quickStatusForm" onsubmit="submitQuickStatus(event)">
+                {% csrf_token %}
+                <input type="hidden" name="officer_id" id="modal_officer_id">
+                <div class="modal-body p-4">
+                    <div class="p-3 mb-3 rounded-3" style="background: #f1f5f9;">
+                        <span class="small text-muted d-block">មន្ត្រីរាជការ៖</span>
+                        <strong class="fs-6 text-dark" id="modal_officer_name">-</strong>
+                    </div>
+
+                    <!-- Officer Status Select -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark small">
+                            <i class="fa-solid fa-toggle-on text-primary me-1"></i> ស្ថានភាពមន្ត្រី (គិតមកដល់បច្ចុប្បន្ន)
+                        </label>
+                        <select name="officer_status" id="modal_officer_status" class="form-select">
+                            {% for val, label in status_choices %}
+                            <option value="{{ val }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Framework Category Select -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark small">
+                            <i class="fa-solid fa-id-badge text-primary me-1"></i> ប្រភេទក្របខ័ណ្ឌ
+                        </label>
+                        <select name="framework_category" id="modal_framework_category" class="form-select">
+                            {% for val, label in framework_choices %}
+                            <option value="{{ val }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Highest Degree Select -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark small">
+                            <i class="fa-solid fa-graduation-cap text-primary me-1"></i> កម្រិតសញ្ញាបត្រខ្ពស់បំផុត
+                        </label>
+                        <select name="highest_degree" id="modal_highest_degree" class="form-select">
+                            {% for val, label in degree_choices %}
+                            <option value="{{ val }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold" id="btnSaveQuickStatus">
+                        <i class="fa-solid fa-check me-1"></i> រក្សាទុក
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- Print Options Modal (ជម្រើសបោះពុម្ពទម្រង់ផ្លូវការ) -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="printReportModal" tabindex="-1" aria-labelledby="printReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header bg-dark text-white border-0 py-3" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-print fs-5 text-warning"></i>
+                    <h5 class="modal-title fw-bold mb-0" id="printReportModalLabel">ជម្រើសបោះពុម្ពរបាយការណ៍ស្ថានភាពមន្ត្រី</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="GET" action="{% url 'officer_status_report_print' %}" target="_blank">
+                <div class="modal-body p-4">
+                    {% if has_global_access %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark small">🏢 ការិយាល័យ / អង្គភាពត្រូវបោះពុម្ព</label>
+                        <select name="department" class="form-select">
+                            <option value="">-- មន្ទីរកសិកម្មទាំងមូល (មន្ទីរខេត្តប៉ៃលិន) --</option>
+                            {% for d in departments %}
+                            <option value="{{ d.id }}" {% if selected_dept == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name_kh }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark small">📍 ទីកន្លែងធ្វើរបាយការណ៍ (Location)</label>
+                        <input type="text" name="location" value="ប៉ៃលិន" class="form-control">
+                        <small class="text-muted">ឧ. ប៉ៃលិន (ធ្វើនៅប៉ៃលិន, ថ្ងៃទី...)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" name="include_roster" value="1" id="includeRosterCheck" checked>
+                            <label class="form-check-label fw-semibold text-dark" for="includeRosterCheck">
+                                បោះពុម្ពភ្ជាប់ជាមួយបញ្ជីរាយនាមមន្ត្រីលម្អិត (Include Detailed Roster)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">បិទ</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> បើកផ្ទាំងបោះពុម្ព (Print Preview)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openQuickStatusModal(officerId, officerName, statusVal, degreeVal, fwVal) {
+        document.getElementById('modal_officer_id').value = officerId;
+        document.getElementById('modal_officer_name').textContent = officerName;
+        document.getElementById('modal_officer_status').value = statusVal || 'ACTIVE';
+        document.getElementById('modal_highest_degree').value = degreeVal || 'BACHELOR';
+        document.getElementById('modal_framework_category').value = fwVal || 'C';
+
+        const modal = new bootstrap.Modal(document.getElementById('quickStatusModal'));
+        modal.show();
+    }
+
+    function submitQuickStatus(e) {
+        e.preventDefault();
+        const form = document.getElementById('quickStatusForm');
+        const formData = new FormData(form);
+        const btn = document.getElementById('btnSaveQuickStatus');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> កំពុងរក្សាទុក...';
+
+        fetch("{% url 'api_officer_status_update' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> រក្សាទុក';
+            if (data.success) {
+                // Update badges live in table
+                const id = data.officer_id;
+                const fwBadge = document.getElementById('badge-fw-' + id);
+                const degBadge = document.getElementById('badge-deg-' + id);
+                const stBadge = document.getElementById('badge-st-' + id);
+
+                if (fwBadge) {
+                    fwBadge.textContent = data.framework_category_label;
+                    fwBadge.className = 'badge badge-fw-' + (data.framework_category ? data.framework_category.toLowerCase() : 'c') + ' px-2.5 py-1';
+                }
+                if (degBadge) {
+                    degBadge.textContent = data.highest_degree_label;
+                }
+                if (stBadge) {
+                    stBadge.textContent = data.officer_status_label;
+                    stBadge.className = 'badge ' + data.officer_status_badge_class + ' px-2.5 py-1.5 shadow-xs';
+                }
+
+                // Close modal
+                const modalEl = document.getElementById('quickStatusModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                // Show success toast or small alert
+                alert(data.message);
+                // Reload to refresh the summary cards if desired
+                window.location.reload();
+            } else {
+                alert('⚠️ បរាជ័យ៖ ' + (data.error || 'មិនអាចកែប្រែស្ថានភាពបានឡើយ។'));
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> រក្សាទុក';
+            console.error(err);
+            alert('⚠️ មានបញ្ហាបច្ចេកទេសក្នុងការទាក់ទងទៅកាន់ម៉ាស៊ីនបម្រើ!');
+        });
+    }
+</script>
+{% endblock %}

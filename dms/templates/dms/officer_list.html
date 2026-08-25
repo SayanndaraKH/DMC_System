@@ -80,8 +80,21 @@
                             </div>
                         </a>
                     </li>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li>
+                        <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="{% url 'officer_status_report' %}">
+                            <i class="fa-solid fa-users-gear text-primary fs-6"></i>
+                            <div>
+                                <strong class="d-block text-dark">៤. ស្ថានភាពមន្ត្រីរាជការ</strong>
+                                <span class="fs-9 text-muted">របាយការណ៍ ក្របខ័ណ្ឌ សញ្ញាបត្រ & ស្ថានភាព</span>
+                            </div>
+                        </a>
+                    </li>
                 </ul>
             </div>
+            <a href="{% url 'officer_status_report' %}" class="btn btn-outline-primary rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold">
+                <i class="fa-solid fa-users-gear me-1.5"></i> ស្ថានភាពមន្ត្រី
+            </a>
             {% if is_admin_or_lead %}
             <a href="{% url 'officer_audit_trail' %}" class="btn btn-outline-dark rounded-pill px-3 py-2 fs-7 shadow-sm fw-semibold">
                 <i class="fa-solid fa-clock-rotate-left me-1.5 text-warning"></i> Audit Logs
@@ -374,7 +387,12 @@
                             </span>
                         </td>
                         <td><strong class="text-secondary">{{ o.current_position_title|default:"-" }}</strong></td>
-                        <td><span class="badge bg-light text-dark border">{{ o.current_rank_and_step|default:"-" }}</span></td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ o.current_rank_and_step|default:"-" }}</span>
+                            <div class="mt-1">
+                                <span class="badge {{ o.officer_status_badge_class }} px-2 py-0.5" style="font-size: 0.72rem;">{{ o.officer_status_label }}</span>
+                            </div>
+                        </td>
                         <td><span class="text-muted font-monospace">{{ o.phone|default:"-" }}</span></td>
                         <td class="text-end pe-4">
                             <div class="d-inline-flex align-items-center gap-1.5">

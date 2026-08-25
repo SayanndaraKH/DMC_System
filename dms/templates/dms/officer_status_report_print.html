@@ -1,0 +1,524 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ស្ថានភាពមន្ត្រីរាជការ - បោះពុម្ពផ្លូវការ</title>
+    
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Kantumruy+Pro:wght@400;600;700&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        @font-face {
+            font-family: 'Khmer OS Muol Light';
+            src: local('Khmer OS Muol Light'), local('Khmer OS Muol'), local('Moul');
+        }
+        @font-face {
+            font-family: 'Khmer OS Battambang';
+            src: local('Khmer OS Battambang'), local('Battambang');
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 12mm 15mm 12mm 15mm;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: 'Khmer OS Battambang', 'Battambang', 'Kantumruy Pro', serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #000;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 20px 0;
+        }
+
+        .a4-page {
+            background: #ffffff;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 15mm 18mm;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            position: relative;
+        }
+
+        .page-break {
+            page-break-before: always;
+            break-before: page;
+        }
+
+        /* Top Action Bar (hidden when printing) */
+        .print-toolbar {
+            width: 210mm;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e293b;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 16px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            font-family: 'Khmer OS Battambang', sans-serif;
+        }
+        .btn-print {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .btn-print:hover {
+            background-color: #2563eb;
+        }
+        .btn-close-tab {
+            background-color: #475569;
+            color: white;
+        }
+        .btn-close-tab:hover {
+            background-color: #334155;
+        }
+
+        /* Header layout */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+        .header-table td {
+            vertical-align: top;
+            padding: 0;
+        }
+
+        .ministry-title {
+            font-family: 'Khmer OS Muol Light', 'Moul', serif;
+            font-size: 11pt;
+            margin-bottom: 3px;
+        }
+        .dept-title {
+            font-family: 'Khmer OS Muol Light', 'Moul', serif;
+            font-size: 10pt;
+            line-height: 1.4;
+        }
+
+        .kingdom-title {
+            font-family: 'Khmer OS Muol Light', 'Moul', serif;
+            font-size: 12pt;
+            text-align: center;
+            margin-bottom: 3px;
+        }
+        .motto-title {
+            font-family: 'Khmer OS Muol Light', 'Moul', serif;
+            font-size: 11pt;
+            text-align: center;
+        }
+        .royal-curved-line {
+            font-size: 9pt;
+            letter-spacing: 2px;
+            text-align: center;
+            margin-top: 1px;
+        }
+
+        /* Title */
+        .doc-title-container {
+            text-align: center;
+            margin-top: 12px;
+            margin-bottom: 18px;
+        }
+        .doc-title {
+            font-family: 'Khmer OS Muol Light', 'Moul', serif;
+            font-size: 14pt;
+            font-weight: bold;
+            display: inline-block;
+            letter-spacing: 0.5px;
+        }
+        .doc-title-underline {
+            text-align: center;
+            font-size: 9pt;
+            letter-spacing: 3px;
+            margin-top: -3px;
+        }
+
+        /* Sections */
+        .section-heading {
+            font-family: 'Khmer OS Muol Light', 'Moul', serif;
+            font-size: 11pt;
+            font-weight: bold;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            color: #000;
+        }
+
+        .report-line {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 6px;
+            font-size: 11pt;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 20px;
+            row-gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .grid-item {
+            display: flex;
+            align-items: baseline;
+            font-size: 11pt;
+            white-space: nowrap;
+        }
+
+        .dots-filler {
+            flex-grow: 1;
+            border-bottom: 1px dotted #444;
+            margin: 0 4px 3px 4px;
+            min-width: 15px;
+            position: relative;
+            display: inline-block;
+            height: 12px;
+        }
+
+        .val-highlight {
+            font-weight: bold;
+            min-width: 24px;
+            text-align: center;
+            display: inline-block;
+        }
+
+        /* Signatures block */
+        .signature-block {
+            margin-top: 25px;
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            page-break-inside: avoid;
+        }
+        .signature-box {
+            text-align: center;
+            width: 320px;
+            font-size: 10.5pt;
+        }
+        .sig-seen-agree {
+            font-family: 'Khmer OS Muol Light', 'Moul', serif;
+            font-size: 11pt;
+            margin-bottom: 4px;
+        }
+        .sig-date-lunar {
+            font-size: 10pt;
+            margin-bottom: 2px;
+        }
+        .sig-date-solar {
+            font-size: 10pt;
+            margin-bottom: 8px;
+        }
+        .sig-role {
+            font-family: 'Khmer OS Muol Light', 'Moul', serif;
+            font-size: 11pt;
+            margin-top: 6px;
+            margin-bottom: 75px;
+        }
+
+        /* Detailed Roster Table */
+        table.roster-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+            margin-top: 10px;
+        }
+        table.roster-table th, table.roster-table td {
+            border: 1px solid #333;
+            padding: 4px 6px;
+            vertical-align: middle;
+        }
+        table.roster-table th {
+            background-color: #f1f5f9;
+            font-weight: bold;
+            text-align: center;
+            font-family: 'Khmer OS Battambang', serif;
+        }
+
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+            }
+            .a4-page {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                min-height: auto;
+                padding: 0;
+            }
+            .print-toolbar {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Print Control Bar -->
+    <div class="print-toolbar no-print">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-file-lines text-warning fs-5"></i>
+            <span style="font-weight: bold; font-size: 14px;">ទម្រង់បោះពុម្ពស្ថានភាពមន្ត្រីរាជការផ្លូវការ</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="window.print()" class="btn-action btn-print">
+                <i class="fa-solid fa-print"></i> បោះពុម្ពឥឡូវនេះ (Print)
+            </button>
+            <button onclick="window.close()" class="btn-action btn-close-tab">
+                <i class="fa-solid fa-xmark"></i> បិទ (Close)
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN REPORT PAGE (1-to-1 Official Form) -->
+    <div class="a4-page">
+        <!-- Royal Header -->
+        <table class="header-table">
+            <tr>
+                <td style="width: 55%;">
+                    <div class="ministry-title">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
+                    <div class="dept-title">
+                        {% if selected_dept_obj %}
+                        {{ selected_dept_obj.name_kh }}
+                        {% else %}
+                        {{ user_dept.name_kh|default:"មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន" }}
+                        {% endif %}
+                    </div>
+                </td>
+                <td style="width: 45%; text-align: center;">
+                    <div class="kingdom-title">ព្រះរាជាណាចក្រកម្ពុជា</div>
+                    <div class="motto-title">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                    <div class="royal-curved-line">🙣🙥🙦🙤</div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Document Title -->
+        <div class="doc-title-container">
+            <div class="doc-title">ស្ថានភាពមន្ត្រីរាជការ</div>
+            <div class="doc-title-underline">---------</div>
+        </div>
+
+        <!-- ក. ព័ត៌មានមន្ត្រីតាមក្របខ័ណ្ឌ -->
+        <div class="section-heading">ក. ព័ត៌មានមន្ត្រីតាមក្របខ័ណ្ឌ</div>
+        
+        <div class="report-line">
+            <span>- មន្ត្រីរាជការសរុបរបស់អង្គភាព៖</span>
+            <span class="dots-filler" style="max-width: 140px;"></span>
+            <span class="val-highlight">{{ total_officers_kh }}</span>&nbsp;នាក់&nbsp;&nbsp;
+            <span>( ស្រី៖</span>
+            <span class="dots-filler" style="max-width: 100px;"></span>
+            <span class="val-highlight">{{ female_count_kh }}</span>&nbsp;នាក់&nbsp;&nbsp;
+            <span>ប្រុស៖</span>
+            <span class="dots-filler" style="max-width: 100px;"></span>
+            <span class="val-highlight">{{ male_count_kh }}</span>&nbsp;នាក់ )
+        </div>
+
+        <div class="report-line" style="margin-top: 4px;">
+            <span>- ចំនួនមន្ត្រីរាជការតាមក្របខណ្ឌ៖</span>
+            <span style="margin-left: 10px;">(ក)</span>
+            <span class="dots-filler" style="max-width: 90px;"></span>
+            <span class="val-highlight">{{ cat_a_count_kh }}</span>&nbsp;នាក់&nbsp;&nbsp;
+            <span>(ខ)</span>
+            <span class="dots-filler" style="max-width: 90px;"></span>
+            <span class="val-highlight">{{ cat_b_count_kh }}</span>&nbsp;នាក់&nbsp;&nbsp;
+            <span>(គ)</span>
+            <span class="dots-filler" style="max-width: 90px;"></span>
+            <span class="val-highlight">{{ cat_c_count_kh }}</span>&nbsp;នាក់
+            {% if cat_d_count > 0 %}
+            &nbsp;&nbsp;<span>(ឃ)</span>
+            <span class="dots-filler" style="max-width: 60px;"></span>
+            <span class="val-highlight">{{ cat_d_count_kh }}</span>&nbsp;នាក់
+            {% endif %}
+        </div>
+
+        <!-- ខ. ព័ត៌មានមន្ត្រីតាមសញ្ញាប័ត្រ -->
+        <div class="section-heading" style="margin-top: 14px;">ខ. ព័ត៌មានមន្ត្រីតាមសញ្ញាប័ត្រ</div>
+        <div style="margin-bottom: 6px; font-weight: normal;">កម្រិតសញ្ញាប័ត្រ៖</div>
+
+        <div class="report-grid">
+            <!-- Col 1 -->
+            <div class="grid-item">
+                <span style="width: 170px;">(១). បណ្ឌិត:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ phd_count_kh }}</span>&nbsp;នាក់
+            </div>
+            <!-- Col 2 -->
+            <div class="grid-item">
+                <span style="width: 220px;">(២). បរិញ្ញាបត្រជាន់ខ្ពស់(អនុបណ្ឌិត)៖</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ master_count_kh }}</span>&nbsp;នាក់
+            </div>
+
+            <!-- Col 1 -->
+            <div class="grid-item">
+                <span style="width: 170px;">(៣). បរិញ្ញាប័ត្រ:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ bachelor_count_kh }}</span>&nbsp;នាក់
+            </div>
+            <!-- Col 2 -->
+            <div class="grid-item">
+                <span style="width: 220px;">(៤). បរិញ្ញាប័ត្ររង:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ associate_count_kh }}</span>&nbsp;នាក់
+            </div>
+
+            <!-- Col 1 -->
+            <div class="grid-item">
+                <span style="width: 170px;">(៥). មធ្យមសិក្សាទុតិយភូមិ:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ highschool_count_kh }}</span>&nbsp;នាក់
+            </div>
+            <!-- Col 2 -->
+            <div class="grid-item">
+                <span style="width: 220px;">(៦). ផ្សេងៗ:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ other_degree_count_kh }}</span>&nbsp;នាក់
+            </div>
+        </div>
+
+        <!-- គ. ស្ថានភាពមន្ត្រី (គិតមកដល់បច្ចុប្បន្ន) -->
+        <div class="section-heading" style="margin-top: 14px;">គ. ស្ថានភាពមន្ត្រី (គិតមកដល់បច្ចុប្បន្ន)</div>
+
+        <div class="report-grid">
+            <!-- Row 1 -->
+            <div class="grid-item">
+                <span style="width: 250px;">១. មន្ត្រីសកម្ម:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ active_count_kh }}</span>&nbsp;នាក់
+            </div>
+            <div class="grid-item">
+                <span style="width: 180px;">៥. មន្ត្រីចូលនិវត្តន៍:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ retired_count_kh }}</span>&nbsp;នាក់
+            </div>
+
+            <!-- Row 2 -->
+            <div class="grid-item">
+                <span style="width: 250px;">២. មន្ត្រីស្ថិតក្នុងភាពទំនេរគ្មានបៀវត្ស:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ unpaid_leave_count_kh }}</span>&nbsp;នាក់
+            </div>
+            <div class="grid-item">
+                <span style="width: 180px;">៦. មន្ត្រីកម្មសិក្សា:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ trainee_count_kh }}</span>&nbsp;នាក់
+            </div>
+
+            <!-- Row 3 -->
+            <div class="grid-item">
+                <span style="width: 250px;">៣. មន្ត្រីស្ថិតនៅក្រៅក្របខណ្ឌដើម:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ outside_framework_count_kh }}</span>&nbsp;នាក់
+            </div>
+            <div class="grid-item">
+                <span style="width: 180px;">៧. មន្ត្រីផ្ទេរចេញ:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ transferred_out_count_kh }}</span>&nbsp;នាក់
+            </div>
+
+            <!-- Row 4 -->
+            <div class="grid-item">
+                <span style="width: 250px;">៤. មន្ត្រីត្រូវបានលុបឈ្មោះ:</span>
+                <span class="dots-filler"></span>
+                <span class="val-highlight">{{ dismissed_count_kh }}</span>&nbsp;នាក់
+            </div>
+            <div class="grid-item">
+                <!-- Blank for symmetry -->
+            </div>
+        </div>
+
+        <!-- Official Footer / Signatures -->
+        <div class="signature-block">
+            <div class="signature-box">
+                <div class="sig-seen-agree">បានឃើញ និងឯកភាព</div>
+                <div class="sig-date-lunar">
+                    {% if custom_lunar_str %}
+                    {{ custom_lunar_str }}
+                    {% else %}
+                    {{ date_info.lunar_date_str }}
+                    {% endif %}
+                </div>
+                <div class="sig-date-solar">
+                    ធ្វើនៅ<strong>{{ location_str|default:"ប៉ៃលិន" }}</strong>, {{ date_info.solar_date_str }}
+                </div>
+                <div class="sig-role">ប្រធានអង្គភាព</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPTIONAL DETAILED OFFICER ROSTER PAGE -->
+    {% if include_roster %}
+    <div class="a4-page page-break" style="margin-top: 20px;">
+        <div class="doc-title-container" style="margin-top: 5px; margin-bottom: 12px;">
+            <div class="doc-title" style="font-size: 12pt;">
+                តារាងបញ្ជីរាយនាមមន្ត្រីរាជការតាមស្ថានភាព ({% if selected_dept_obj %}{{ selected_dept_obj.name_kh }}{% else %}ទាំងអស់{% endif %})
+            </div>
+            <div style="font-size: 9.5pt; color: #555;">សរុប៖ {{ total_officers_kh }} នាក់ (ស្រី៖ {{ female_count_kh }} នាក់ / ប្រុស៖ {{ male_count_kh }} នាក់)</div>
+        </div>
+
+        <table class="roster-table">
+            <thead>
+                <tr>
+                    <th style="width: 32px;">ល.រ</th>
+                    <th style="width: 75px;">អត្តលេខ</th>
+                    <th>គោត្តនាម-នាមខ្លួន</th>
+                    <th style="width: 42px;">ភេទ</th>
+                    <th style="width: 80px;">ថ្ងៃខែឆ្នាំកំណើត</th>
+                    <th>ការិយាល័យ & មុខតំណែង</th>
+                    <th style="width: 75px;">ក្របខ័ណ្ឌ</th>
+                    <th style="width: 100px;">កម្រិតសញ្ញាបត្រ</th>
+                    <th style="width: 110px;">ស្ថានភាព</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in officers_list %}
+                <tr>
+                    <td style="text-align: center;">{{ forloop.counter }}</td>
+                    <td style="text-align: center; font-family: monospace;">{{ o.officer_id_number|default:"-" }}</td>
+                    <td><strong>{{ o.full_name_kh }}</strong></td>
+                    <td style="text-align: center;">{{ o.get_gender_display }}</td>
+                    <td style="text-align: center; font-size: 8.5pt;">{{ o.dob|default:"-" }}</td>
+                    <td>{{ o.department.name_kh|default:"-" }} / <small>{{ o.current_position_title|default:"-" }}</small></td>
+                    <td style="text-align: center; font-weight: bold;">{{ o.framework_category_label }}</td>
+                    <td style="text-align: center;">{{ o.highest_degree_label }}</td>
+                    <td style="text-align: center;">{{ o.officer_status_label }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 20px;">មិនមានទិន្នន័យមន្ត្រីរាជការឡើយ</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+</body>
+</html>

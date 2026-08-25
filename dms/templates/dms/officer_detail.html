@@ -107,6 +107,15 @@
                             <i class="fa-solid fa-layer-group me-1"></i> ថ្នាក់ {{ officer.current_rank_and_step }}
                         </span>
                         {% endif %}
+                        <span class="badge {{ officer.officer_status_badge_class }} px-3 py-1.5 rounded-pill fw-semibold">
+                            <i class="fa-solid fa-circle-check me-1"></i> {{ officer.officer_status_label }}
+                        </span>
+                        <span class="badge bg-indigo text-white px-3 py-1.5 rounded-pill fw-semibold" style="background: #4f46e5;">
+                            <i class="fa-solid fa-id-badge me-1"></i> {{ officer.framework_category_label }}
+                        </span>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-1.5 rounded-pill fw-semibold">
+                            <i class="fa-solid fa-graduation-cap me-1"></i> {{ officer.highest_degree_label }}
+                        </span>
                         <span class="badge bg-info bg-opacity-10 text-info px-3 py-1.5 rounded-pill fw-semibold">
                             <i class="fa-solid fa-paperclip me-1"></i> ឯកសារយោង៖ {{ attachments.count }}
                         </span>

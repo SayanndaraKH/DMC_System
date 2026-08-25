@@ -17,6 +17,8 @@
     
     <!-- Custom Khmer Styling -->
     <link rel="stylesheet" href="{% static 'dms/css/styles.css' %}">
+
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <div class="app-wrapper">
@@ -101,6 +103,10 @@
                             <a href="{% url 'officer_list' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_list,officer_detail,officer_edit,officer_print' %}active{% endif %}">
                                 <i class="fa-solid fa-id-card-clip text-info"></i>
                                 <span>បញ្ជីមន្ត្រី (Civil Servants)</span>
+                            </a>
+                            <a href="{% url 'officer_status_report' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_status_report,officer_status_report_print' %}active{% endif %}">
+                                <i class="fa-solid fa-users-gear text-primary"></i>
+                                <span>ស្ថានភាពមន្ត្រី (Status & Cadre)</span>
                             </a>
                             <a href="{% url 'officer_retirement' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_retirement,officer_retirement_export_excel' %}active{% endif %}">
                                 <i class="fa-solid fa-person-walking-luggage text-danger"></i>
@@ -592,5 +598,6 @@
     {% endif %}
 
     {% block scripts %}{% endblock %}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

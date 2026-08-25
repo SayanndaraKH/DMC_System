@@ -1241,6 +1241,57 @@
                                 <input type="hidden" name="department" value="{{ officer.department_id|default:dept.id }}">
                                 {% endif %}
                             </div>
+
+                            <!-- 📌 ស្ថានភាពមន្ត្រី ក្របខ័ណ្ឌ & កម្រិតសញ្ញាបត្រខ្ពស់បំផុត -->
+                            <div class="col-12 mt-3 p-3 bg-light rounded-3 border">
+                                <h6 class="fw-bold text-primary mb-3">
+                                    <i class="fa-solid fa-user-check me-1"></i> ស្ថានភាព ក្របខ័ណ្ឌ និងសញ្ញាបត្រខ្ពស់បំផុត (Officer Status & Cadre Classification)
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label fw-bold small text-dark">
+                                            <i class="fa-solid fa-toggle-on text-primary me-1"></i> ស្ថានភាពមន្ត្រី (គិតមកដល់បច្ចុប្បន្ន)
+                                        </label>
+                                        <select name="officer_status" class="form-select border-primary">
+                                            <option value="ACTIVE" {% if officer.officer_status == 'ACTIVE' or not is_edit %}selected{% endif %}>១. មន្ត្រីសកម្ម (Active)</option>
+                                            <option value="UNPAID_LEAVE" {% if officer.officer_status == 'UNPAID_LEAVE' %}selected{% endif %}>២. មន្ត្រីស្ថិតក្នុងភាពទំនេរគ្មានបៀវត្ស (Unpaid Leave)</option>
+                                            <option value="OUTSIDE_FRAMEWORK" {% if officer.officer_status == 'OUTSIDE_FRAMEWORK' %}selected{% endif %}>៣. មន្ត្រីស្ថិតនៅក្រៅក្របខណ្ឌដើម (Outside Framework)</option>
+                                            <option value="DISMISSED" {% if officer.officer_status == 'DISMISSED' %}selected{% endif %}>៤. មន្ត្រីត្រូវបានលុបឈ្មោះ (Dismissed)</option>
+                                            <option value="RETIRED" {% if officer.officer_status == 'RETIRED' %}selected{% endif %}>៥. មន្ត្រីចូលនិវត្តន៍ (Retired)</option>
+                                            <option value="TRAINEE" {% if officer.officer_status == 'TRAINEE' %}selected{% endif %}>៦. មន្ត្រីកម្មសិក្សា (Trainee/Probation)</option>
+                                            <option value="TRANSFERRED_OUT" {% if officer.officer_status == 'TRANSFERRED_OUT' %}selected{% endif %}>៧. មន្ត្រីផ្ទេរចេញ (Transferred Out)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label fw-bold small text-dark">
+                                            <i class="fa-solid fa-id-badge text-primary me-1"></i> ប្រភេទក្របខ័ណ្ឌ (ក, ខ, គ, ឃ)
+                                        </label>
+                                        <select name="framework_category" class="form-select border-primary">
+                                            <option value="">-- Auto តាមថ្នាក់ (ក/ខ/គ) --</option>
+                                            <option value="A" {% if officer.framework_category == 'A' %}selected{% endif %}>ក្របខ័ណ្ឌ ក (ក) - ឧត្តមមន្ត្រី / បច្ចេកទេសជាន់ខ្ពស់</option>
+                                            <option value="B" {% if officer.framework_category == 'B' %}selected{% endif %}>ក្របខ័ណ្ឌ ខ (ខ) - វរមន្ត្រី / បច្ចេកទេសមធ្យម</option>
+                                            <option value="C" {% if officer.framework_category == 'C' %}selected{% endif %}>ក្របខ័ណ្ឌ គ (គ) - អនុមន្ត្រី / បច្ចេកទេសបឋម</option>
+                                            <option value="D" {% if officer.framework_category == 'D' %}selected{% endif %}>ក្របខ័ណ្ឌ ឃ (ឃ) - មន្ត្រី / ជំនួយការ</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label fw-bold small text-dark">
+                                            <i class="fa-solid fa-graduation-cap text-primary me-1"></i> កម្រិតសញ្ញាបត្រខ្ពស់បំផុត
+                                        </label>
+                                        <select name="highest_degree" class="form-select border-primary">
+                                            <option value="">-- Auto តាមប្រវត្តិសិក្សា --</option>
+                                            <option value="DOCTORATE" {% if officer.highest_degree == 'DOCTORATE' %}selected{% endif %}>(១). បណ្ឌិត (Doctorate / PhD)</option>
+                                            <option value="MASTER" {% if officer.highest_degree == 'MASTER' %}selected{% endif %}>(២). បរិញ្ញាបត្រជាន់ខ្ពស់ / អនុបណ្ឌិត (Master)</option>
+                                            <option value="BACHELOR" {% if officer.highest_degree == 'BACHELOR' %}selected{% endif %}>(៣). បរិញ្ញាប័ត្រ (Bachelor)</option>
+                                            <option value="ASSOCIATE" {% if officer.highest_degree == 'ASSOCIATE' %}selected{% endif %}>(៤). បរិញ្ញាប័ត្ររង (Associate)</option>
+                                            <option value="HIGHSCHOOL" {% if officer.highest_degree == 'HIGHSCHOOL' %}selected{% endif %}>(៥). មធ្យមសិក្សាទុតិយភូមិ / បាក់ឌុប (High School)</option>
+                                            <option value="OTHER" {% if officer.highest_degree == 'OTHER' %}selected{% endif %}>(៦). ផ្សេងៗ (Other / None)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- 📎 ឯកសារយោង និងភស្តុតាងសម្រាប់ផ្នែក ច- ក្របខ័ណ្ឌការងារ -->

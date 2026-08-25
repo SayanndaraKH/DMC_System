@@ -435,6 +435,37 @@ class CivilServantProfile(models.Model):
         ('DIVORCED', 'មេម៉ាយ/ពោះម៉ាយ'),
     ]
 
+    OFFICER_STATUS_CHOICES = [
+        ('ACTIVE', '១. មន្ត្រីសកម្ម (Active)'),
+        ('UNPAID_LEAVE', '២. មន្ត្រីស្ថិតក្នុងភាពទំនេរគ្មានបៀវត្ស (Unpaid Leave)'),
+        ('OUTSIDE_FRAMEWORK', '៣. មន្ត្រីស្ថិតនៅក្រៅក្របខណ្ឌដើម (Outside Framework)'),
+        ('DISMISSED', '៤. មន្ត្រីត្រូវបានលុបឈ្មោះ (Dismissed)'),
+        ('RETIRED', '៥. មន្ត្រីចូលនិវត្តន៍ (Retired)'),
+        ('TRAINEE', '៦. មន្ត្រីកម្មសិក្សា (Trainee/Probation)'),
+        ('TRANSFERRED_OUT', '៧. មន្ត្រីផ្ទេរចេញ (Transferred Out)'),
+    ]
+
+    DEGREE_CHOICES = [
+        ('DOCTORATE', '(១). បណ្ឌិត (Doctorate / PhD)'),
+        ('MASTER', '(២). បរិញ្ញាបត្រជាន់ខ្ពស់ / អនុបណ្ឌិត (Master)'),
+        ('BACHELOR', '(៣). បរិញ្ញាប័ត្រ (Bachelor)'),
+        ('ASSOCIATE', '(៤). បរិញ្ញាប័ត្ររង (Associate)'),
+        ('HIGHSCHOOL', '(៥). មធ្យមសិក្សាទុតិយភូមិ / បាក់ឌុប (High School)'),
+        ('OTHER', '(៦). ផ្សេងៗ (Other / Secondary / Primary / None)'),
+    ]
+
+    FRAMEWORK_CHOICES = [
+        ('A', 'ក្របខ័ណ្ឌ ក (ក) - ឧត្តមមន្ត្រី / បច្ចេកទេសជាន់ខ្ពស់'),
+        ('B', 'ក្របខ័ណ្ឌ ខ (ខ) - វរមន្ត្រី / បច្ចេកទេសមធ្យម'),
+        ('C', 'ក្របខ័ណ្ឌ គ (គ) - អនុមន្ត្រី / បច្ចេកទេសបឋម'),
+        ('D', 'ក្របខ័ណ្ឌ ឃ (ឃ) - មន្ត្រី / ជំនួយការ'),
+    ]
+
+    # Status & Categorization Fields
+    officer_status = models.CharField(max_length=30, choices=OFFICER_STATUS_CHOICES, default='ACTIVE', verbose_name="ស្ថានភាពមន្ត្រី (គិតមកដល់បច្ចុប្បន្ន)")
+    highest_degree = models.CharField(max_length=30, choices=DEGREE_CHOICES, blank=True, null=True, verbose_name="កម្រិតសញ្ញាបត្រខ្ពស់បំផុត")
+    framework_category = models.CharField(max_length=10, choices=FRAMEWORK_CHOICES, blank=True, null=True, verbose_name="ប្រភេទក្របខ័ណ្ឌ (ក, ខ, គ, ឃ)")
+
     # Links
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='civil_servant_profiles', verbose_name="គណនីប្រព័ន្ធ (ប្រសិនបើមាន)")
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='officers', verbose_name="ការិយាល័យ/អង្គភាពបច្ចុប្បន្ន")
@@ -647,6 +678,117 @@ class CivilServantProfile(models.Model):
             lead_dept = Department.objects.filter(models.Q(code='LEAD') | models.Q(name_kh='ថ្នាក់ដឹកនាំមន្ទីរ')).first()
             return lead_dept or self.department
         return self.department
+
+    @property
+    def computed_framework_category(self):
+        if self.framework_category:
+            return self.framework_category
+        s = str(self.current_rank_and_step or '').strip()
+        fw_name = str(self.framework_name or '').strip()
+        if 'ក' in s or 'A' in s.upper() or 'ឧត្តម' in s or 'ជាន់ខ្ពស់' in fw_name:
+            return 'A'
+        elif 'ខ' in s or 'B' in s.upper() or 'វរ' in s or 'មធ្យម' in fw_name:
+            return 'B'
+        elif 'គ' in s or 'C' in s.upper() or 'អនុ' in s or 'បឋម' in fw_name:
+            return 'C'
+        elif 'ឃ' in s or 'D' in s.upper():
+            return 'D'
+        return 'C'
+
+    @property
+    def framework_category_label(self):
+        cat = self.computed_framework_category
+        labels = {'A': 'ក្របខ័ណ្ឌ ក', 'B': 'ក្របខ័ណ្ឌ ខ', 'C': 'ក្របខ័ណ្ឌ គ', 'D': 'ក្របខ័ណ្ឌ ឃ'}
+        return labels.get(cat, 'ក្របខ័ណ្ឌ គ')
+
+    @property
+    def computed_highest_degree(self):
+        if self.highest_degree:
+            return self.highest_degree
+        edus = self.education_data or []
+        found_types = set()
+        for e in edus:
+            deg = (str(e.get('degree') or '') + ' ' + str(e.get('level_label') or '') + ' ' + str(e.get('skill') or '')).strip()
+            deg_lower = deg.lower()
+            if 'បណ្ឌិត' in deg or 'phd' in deg_lower or 'doctor' in deg_lower:
+                found_types.add('DOCTORATE')
+            elif 'ជាន់ខ្ពស់' in deg or 'អនុបណ្ឌិត' in deg or 'master' in deg_lower:
+                found_types.add('MASTER')
+            elif 'បរិញ្ញាបត្រ' in deg or 'បរិញ្ញាប័ត្រ' in deg or 'បរិញ្ញបត្រ' in deg or 'bachelor' in deg_lower:
+                if 'រង' in deg or 'associate' in deg_lower:
+                    found_types.add('ASSOCIATE')
+                else:
+                    found_types.add('BACHELOR')
+            elif 'បរិញ្ញាបត្ររង' in deg or 'បរិញ្ញាប័ត្ររង' in deg or 'associate' in deg_lower:
+                found_types.add('ASSOCIATE')
+            elif 'ទុតិយភូមិ' in deg or 'បាក់ឌុប' in deg or 'bac' in deg_lower:
+                found_types.add('HIGHSCHOOL')
+            elif deg:
+                found_types.add('OTHER')
+
+        if 'DOCTORATE' in found_types:
+            return 'DOCTORATE'
+        elif 'MASTER' in found_types:
+            return 'MASTER'
+        elif 'BACHELOR' in found_types:
+            return 'BACHELOR'
+        elif 'ASSOCIATE' in found_types:
+            return 'ASSOCIATE'
+        elif 'HIGHSCHOOL' in found_types:
+            return 'HIGHSCHOOL'
+        elif 'OTHER' in found_types:
+            return 'OTHER'
+        return 'OTHER'
+
+    @property
+    def highest_degree_label(self):
+        deg = self.computed_highest_degree
+        labels = {
+            'DOCTORATE': 'បណ្ឌិត',
+            'MASTER': 'បរិញ្ញាបត្រជាន់ខ្ពស់ (អនុបណ្ឌិត)',
+            'BACHELOR': 'បរិញ្ញាប័ត្រ',
+            'ASSOCIATE': 'បរិញ្ញាប័ត្ររង',
+            'HIGHSCHOOL': 'មធ្យមសិក្សាទុតិយភូមិ',
+            'OTHER': 'ផ្សេងៗ',
+        }
+        return labels.get(deg, 'ផ្សេងៗ')
+
+    @property
+    def computed_officer_status(self):
+        if self.officer_status:
+            return self.officer_status
+        if self.unpaid_leave_status and len(self.unpaid_leave_status) > 0:
+            return 'UNPAID_LEAVE'
+        if self.outside_framework_status and len(self.outside_framework_status) > 0:
+            return 'OUTSIDE_FRAMEWORK'
+        return 'ACTIVE'
+
+    @property
+    def officer_status_label(self):
+        status = self.computed_officer_status
+        labels = {
+            'ACTIVE': 'មន្ត្រីសកម្ម',
+            'UNPAID_LEAVE': 'មន្ត្រីស្ថិតក្នុងភាពទំនេរគ្មានបៀវត្ស',
+            'OUTSIDE_FRAMEWORK': 'មន្ត្រីស្ថិតនៅក្រៅក្របខណ្ឌដើម',
+            'DISMISSED': 'មន្ត្រីត្រូវបានលុបឈ្មោះ',
+            'RETIRED': 'មន្ត្រីចូលនិវត្តន៍',
+            'TRAINEE': 'មន្ត្រីកម្មសិក្សា',
+            'TRANSFERRED_OUT': 'មន្ត្រីផ្ទេរចេញ',
+        }
+        return labels.get(status, 'មន្ត្រីសកម្ម')
+
+    @property
+    def officer_status_badge_class(self):
+        badges = {
+            'ACTIVE': 'bg-success text-white',
+            'UNPAID_LEAVE': 'bg-warning text-dark',
+            'OUTSIDE_FRAMEWORK': 'bg-info text-dark',
+            'DISMISSED': 'bg-danger text-white',
+            'RETIRED': 'bg-secondary text-white',
+            'TRAINEE': 'bg-primary text-white',
+            'TRANSFERRED_OUT': 'bg-dark text-white',
+        }
+        return badges.get(self.computed_officer_status, 'bg-success text-white')
 
     @property
     def display_department_name(self):

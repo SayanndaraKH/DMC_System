@@ -2754,9 +2754,12 @@ def officer_create(request):
                 civil_service_start_date=request.POST.get('civil_service_start_date', '').strip(),
                 civil_service_permanent_date=request.POST.get('civil_service_permanent_date', '').strip(),
                 framework_name=request.POST.get('framework_name', '').strip(),
+                framework_category=request.POST.get('framework_category', '').strip() or None,
                 current_rank_and_step=request.POST.get('current_rank_and_step', '').strip(),
                 current_position_title=request.POST.get('current_position_title', '').strip(),
                 position_code=request.POST.get('position_code', '').strip() or CivilServantProfile.POSITION_CODE_MAP.get(request.POST.get('current_position_title', '').strip(), ''),
+                highest_degree=request.POST.get('highest_degree', '').strip() or None,
+                officer_status=request.POST.get('officer_status', 'ACTIVE').strip() or 'ACTIVE',
 
                 # JSON Tables
                 children_data=_parse_tabular_json(request.POST, 'child', ['name', 'gender', 'dob', 'occupation']),
@@ -3417,9 +3420,12 @@ def officer_edit(request, pk):
             officer.civil_service_start_date = request.POST.get('civil_service_start_date', '').strip()
             officer.civil_service_permanent_date = request.POST.get('civil_service_permanent_date', '').strip()
             officer.framework_name = request.POST.get('framework_name', '').strip()
+            officer.framework_category = request.POST.get('framework_category', '').strip() or None
             officer.current_rank_and_step = request.POST.get('current_rank_and_step', '').strip()
             officer.current_position_title = request.POST.get('current_position_title', '').strip()
             officer.position_code = request.POST.get('position_code', '').strip() or CivilServantProfile.POSITION_CODE_MAP.get(officer.current_position_title, '')
+            officer.highest_degree = request.POST.get('highest_degree', '').strip() or None
+            officer.officer_status = request.POST.get('officer_status', 'ACTIVE').strip() or 'ACTIVE'
 
             # JSON Tables
             officer.children_data = _parse_tabular_json(request.POST, 'child', ['name', 'gender', 'dob', 'occupation'])
@@ -7071,6 +7077,674 @@ def officer_tracking_export_excel(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
+
+
+# ==============================================================================
+# 📊 OFFICER STATUS REPORT & OVERVIEW (ផ្ទាំងរបាយការណ៍ និងស្ថានភាពមន្ត្រី)
+# ==============================================================================
+
+def get_khmer_lunar_and_solar_date(d=None):
+    """
+    Computes official formatted solar date and lunar calendar text for formal Cambodian administrative reports.
+    """
+    import datetime
+    if d is None:
+        d = datetime.date.today()
+
+    kh_days = {
+        0: 'ចន្ទ', 1: 'អង្គារ', 2: 'ពុធ', 3: 'ព្រហស្បតិ៍', 4: 'សុក្រ', 5: 'សៅរ៍', 6: 'អាទិត្យ'
+    }
+    kh_months = {
+        1: 'មករា', 2: 'កុម្ភៈ', 3: 'មីនា', 4: 'មេសា', 5: 'ឧសភា', 6: 'មិថុនា',
+        7: 'កក្កដា', 8: 'សីហា', 9: 'កញ្ញា', 10: 'តុលា', 11: 'វិច្ឆិកា', 12: 'ធ្នូ'
+    }
+    zodiac_animals = ['ជូត', 'ឆ្លូវ', 'ខាល', 'ថោះ', 'រោង', 'ម្សាញ់', 'មមី', 'មមែ', 'វក', 'រកា', 'ចរ', 'កុរ']
+    sak_names = ['ឯកស័ក', 'ទោស័ក', 'ត្រីស័ក', 'ចត្វាស័ក', 'បញ្ចស័ក', 'ឆស័ក', 'សប្តស័ក', 'អដ្ឋស័ក', 'នព្វស័ក', 'សំរឹទ្ធិស័ក']
+
+    be_year = d.year + 544 if d.month >= 5 else d.year + 543
+    zodiac = zodiac_animals[(d.year - 4) % 12]
+    sak = sak_names[(d.year - 4) % 10]
+    day_name = kh_days.get(d.weekday(), 'ចន្ទ')
+    month_name = kh_months.get(d.month, 'មករា')
+
+    solar_date_str = f"ថ្ងៃទី{to_khmer_digits(d.day)} ខែ{month_name} ឆ្នាំ{to_khmer_digits(d.year)}"
+    lunar_date_str = f"ថ្ងៃ{day_name} ...កើត/រោច ខែ... ឆ្នាំ{zodiac} {sak} ព.ស {to_khmer_digits(be_year)}"
+
+    return {
+        'solar_date_str': solar_date_str,
+        'lunar_date_str': lunar_date_str,
+        'day_kh': to_khmer_digits(d.day),
+        'month_kh': month_name,
+        'year_kh': to_khmer_digits(d.year),
+        'be_year_kh': to_khmer_digits(be_year),
+        'day_name_kh': day_name,
+        'zodiac_kh': zodiac,
+        'sak_kh': sak,
+    }
+
+
+@login_required
+def officer_status_report_view(request):
+    """
+    Dedicated Interactive Dashboard & Overview for Civil Servant Status (ស្ថានភាពមន្ត្រីរាជការ)
+    Categorizes officers into:
+    ក. ព័ត៌មានមន្ត្រីតាមក្របខ័ណ្ឌ (Framework A, B, C, D)
+    ខ. ព័ត៌មានមន្ត្រីតាមសញ្ញាប័ត្រ (Doctorate, Master, Bachelor, Associate, High School, Other)
+    គ. ស្ថានភាពមន្ត្រី គិតមកដល់បច្ចុប្បន្ន (Active, Unpaid, Outside FW, Dismissed, Retired, Trainee, Transferred)
+    """
+    profile = getattr(request.user, 'profile', None)
+    user_dept = profile.department if profile else None
+    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+    is_admin_or_lead = has_global_access
+    is_system_admin = check_is_system_admin(request.user, request)
+
+    dept_id = request.GET.get('department', '').strip()
+    fw_filter = request.GET.get('framework', '').strip()
+    degree_filter = request.GET.get('degree', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    gender_filter = request.GET.get('gender', '').strip()
+    search_q = request.GET.get('q', '').strip()
+
+    base_qs = CivilServantProfile.objects.select_related('department', 'user').all()
+
+    if not has_global_access:
+        if user_dept:
+            base_qs = base_qs.filter(department=user_dept)
+        else:
+            base_qs = base_qs.filter(created_by=request.user)
+    elif dept_id:
+        base_qs = base_qs.filter(department_id=dept_id)
+
+    # Calculate Aggregated Statistics for the Scope (Department or Whole Organization)
+    total_officers = base_qs.count()
+    female_count = base_qs.filter(gender='FEMALE').count()
+    male_count = base_qs.filter(gender='MALE').count()
+
+    # ក. តាមក្របខ័ណ្ឌ
+    cat_a_count = base_qs.filter(framework_category='A').count()
+    cat_b_count = base_qs.filter(framework_category='B').count()
+    cat_c_count = base_qs.filter(framework_category='C').count()
+    cat_d_count = base_qs.filter(framework_category='D').count()
+
+    # ខ. តាមសញ្ញាប័ត្រ
+    phd_count = base_qs.filter(highest_degree='DOCTORATE').count()
+    master_count = base_qs.filter(highest_degree='MASTER').count()
+    bachelor_count = base_qs.filter(highest_degree='BACHELOR').count()
+    associate_count = base_qs.filter(highest_degree='ASSOCIATE').count()
+    highschool_count = base_qs.filter(highest_degree='HIGHSCHOOL').count()
+    other_degree_count = base_qs.filter(Q(highest_degree='OTHER') | Q(highest_degree__isnull=True) | Q(highest_degree='')).count()
+
+    # គ. តាមស្ថានភាពមន្ត្រី
+    active_count = base_qs.filter(officer_status='ACTIVE').count()
+    unpaid_leave_count = base_qs.filter(officer_status='UNPAID_LEAVE').count()
+    outside_framework_count = base_qs.filter(officer_status='OUTSIDE_FRAMEWORK').count()
+    dismissed_count = base_qs.filter(officer_status='DISMISSED').count()
+    retired_count = base_qs.filter(officer_status='RETIRED').count()
+    trainee_count = base_qs.filter(officer_status='TRAINEE').count()
+    transferred_out_count = base_qs.filter(officer_status='TRANSFERRED_OUT').count()
+
+    # Filter queryset for the table display
+    table_qs = base_qs
+    if fw_filter and fw_filter != 'ALL':
+        table_qs = table_qs.filter(framework_category=fw_filter)
+    if degree_filter and degree_filter != 'ALL':
+        if degree_filter == 'OTHER':
+            table_qs = table_qs.filter(Q(highest_degree='OTHER') | Q(highest_degree__isnull=True) | Q(highest_degree=''))
+        else:
+            table_qs = table_qs.filter(highest_degree=degree_filter)
+    if status_filter and status_filter != 'ALL':
+        table_qs = table_qs.filter(officer_status=status_filter)
+    if gender_filter and gender_filter != 'ALL':
+        table_qs = table_qs.filter(gender=gender_filter)
+    if search_q:
+        q_arabic = to_arabic_digits(search_q)
+        table_qs = table_qs.filter(
+            Q(khmer_last_name__icontains=search_q) |
+            Q(khmer_first_name__icontains=search_q) |
+            Q(latin_last_name__icontains=search_q) |
+            Q(latin_first_name__icontains=search_q) |
+            Q(officer_id_number__icontains=search_q) |
+            Q(officer_id_number__icontains=q_arabic) |
+            Q(phone__icontains=search_q) |
+            Q(current_position_title__icontains=search_q)
+        )
+
+    # Sort using standard sorting key
+    from .models import officer_sort_key
+    officers_list = list(table_qs)
+    officers_list.sort(key=officer_sort_key)
+
+    paginator = Paginator(officers_list, 30)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh') if has_global_access else (Department.objects.filter(id=user_dept.id) if user_dept else [])
+
+    selected_dept_obj = None
+    if dept_id:
+        selected_dept_obj = Department.objects.filter(id=dept_id).first()
+
+    today = date.today()
+    date_info = get_khmer_lunar_and_solar_date(today)
+
+    edit_window = OfficerEditWindowSetting.get_setting()
+    is_window_open = edit_window.is_open_for_specialized()
+
+    context = {
+        'page_obj': page_obj,
+        'officers': page_obj.object_list,
+        'total_in_table': len(officers_list),
+        'has_global_access': has_global_access,
+        'is_admin_or_lead': is_admin_or_lead,
+        'is_system_admin': is_system_admin,
+        'user_dept': user_dept,
+        'departments': departments,
+        'selected_dept': dept_id,
+        'selected_dept_obj': selected_dept_obj,
+        'fw_filter': fw_filter,
+        'degree_filter': degree_filter,
+        'status_filter': status_filter,
+        'gender_filter': gender_filter,
+        'search_q': search_q,
+
+        # Khmer Digits & Stats for Section ក
+        'total_officers': total_officers,
+        'total_officers_kh': to_khmer_digits(total_officers),
+        'female_count': female_count,
+        'female_count_kh': to_khmer_digits(female_count),
+        'male_count': male_count,
+        'male_count_kh': to_khmer_digits(male_count),
+        'cat_a_count': cat_a_count,
+        'cat_a_count_kh': to_khmer_digits(cat_a_count),
+        'cat_b_count': cat_b_count,
+        'cat_b_count_kh': to_khmer_digits(cat_b_count),
+        'cat_c_count': cat_c_count,
+        'cat_c_count_kh': to_khmer_digits(cat_c_count),
+        'cat_d_count': cat_d_count,
+        'cat_d_count_kh': to_khmer_digits(cat_d_count),
+
+        # Section ខ
+        'phd_count': phd_count,
+        'phd_count_kh': to_khmer_digits(phd_count),
+        'master_count': master_count,
+        'master_count_kh': to_khmer_digits(master_count),
+        'bachelor_count': bachelor_count,
+        'bachelor_count_kh': to_khmer_digits(bachelor_count),
+        'associate_count': associate_count,
+        'associate_count_kh': to_khmer_digits(associate_count),
+        'highschool_count': highschool_count,
+        'highschool_count_kh': to_khmer_digits(highschool_count),
+        'other_degree_count': other_degree_count,
+        'other_degree_count_kh': to_khmer_digits(other_degree_count),
+
+        # Section គ
+        'active_count': active_count,
+        'active_count_kh': to_khmer_digits(active_count),
+        'unpaid_leave_count': unpaid_leave_count,
+        'unpaid_leave_count_kh': to_khmer_digits(unpaid_leave_count),
+        'outside_framework_count': outside_framework_count,
+        'outside_framework_count_kh': to_khmer_digits(outside_framework_count),
+        'dismissed_count': dismissed_count,
+        'dismissed_count_kh': to_khmer_digits(dismissed_count),
+        'retired_count': retired_count,
+        'retired_count_kh': to_khmer_digits(retired_count),
+        'trainee_count': trainee_count,
+        'trainee_count_kh': to_khmer_digits(trainee_count),
+        'transferred_out_count': transferred_out_count,
+        'transferred_out_count_kh': to_khmer_digits(transferred_out_count),
+
+        'status_choices': CivilServantProfile.OFFICER_STATUS_CHOICES,
+        'degree_choices': CivilServantProfile.DEGREE_CHOICES,
+        'framework_choices': CivilServantProfile.FRAMEWORK_CHOICES,
+        'date_info': date_info,
+        'today': today,
+        'is_window_open': is_window_open,
+    }
+    return render(request, 'dms/officer_status_report.html', context)
+
+
+@login_required
+def officer_status_report_print_view(request):
+    """
+    Official Printable Format of Civil Servant Status Report (ស្ថានភាពមន្ត្រីរាជការ)
+    Designed 1-to-1 to perfectly match the formal Cambodian administration document layout.
+    """
+    profile = getattr(request.user, 'profile', None)
+    user_dept = profile.department if profile else None
+    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+
+    dept_id = request.GET.get('department', '').strip()
+    custom_date_str = request.GET.get('date', '').strip()
+    custom_lunar_str = request.GET.get('lunar_text', '').strip()
+    location_str = request.GET.get('location', 'ប៉ៃលិន').strip()
+    include_roster = request.GET.get('include_roster') == '1'
+
+    base_qs = CivilServantProfile.objects.select_related('department').all()
+
+    if not has_global_access:
+        if user_dept:
+            base_qs = base_qs.filter(department=user_dept)
+        else:
+            base_qs = base_qs.filter(created_by=request.user)
+    elif dept_id:
+        base_qs = base_qs.filter(department_id=dept_id)
+
+    selected_dept_obj = Department.objects.filter(id=dept_id).first() if dept_id else None
+
+    # Aggregations
+    total_officers = base_qs.count()
+    female_count = base_qs.filter(gender='FEMALE').count()
+    male_count = base_qs.filter(gender='MALE').count()
+
+    cat_a_count = base_qs.filter(framework_category='A').count()
+    cat_b_count = base_qs.filter(framework_category='B').count()
+    cat_c_count = base_qs.filter(framework_category='C').count()
+    cat_d_count = base_qs.filter(framework_category='D').count()
+
+    phd_count = base_qs.filter(highest_degree='DOCTORATE').count()
+    master_count = base_qs.filter(highest_degree='MASTER').count()
+    bachelor_count = base_qs.filter(highest_degree='BACHELOR').count()
+    associate_count = base_qs.filter(highest_degree='ASSOCIATE').count()
+    highschool_count = base_qs.filter(highest_degree='HIGHSCHOOL').count()
+    other_degree_count = base_qs.filter(Q(highest_degree='OTHER') | Q(highest_degree__isnull=True) | Q(highest_degree='')).count()
+
+    active_count = base_qs.filter(officer_status='ACTIVE').count()
+    unpaid_leave_count = base_qs.filter(officer_status='UNPAID_LEAVE').count()
+    outside_framework_count = base_qs.filter(officer_status='OUTSIDE_FRAMEWORK').count()
+    dismissed_count = base_qs.filter(officer_status='DISMISSED').count()
+    retired_count = base_qs.filter(officer_status='RETIRED').count()
+    trainee_count = base_qs.filter(officer_status='TRAINEE').count()
+    transferred_out_count = base_qs.filter(officer_status='TRANSFERRED_OUT').count()
+
+    today = date.today()
+    date_info = get_khmer_lunar_and_solar_date(today)
+
+    from .models import officer_sort_key
+    officers_list = list(base_qs)
+    officers_list.sort(key=officer_sort_key)
+
+    context = {
+        'selected_dept_obj': selected_dept_obj,
+        'user_dept': user_dept,
+        'has_global_access': has_global_access,
+        'location_str': location_str,
+        'custom_date_str': custom_date_str,
+        'custom_lunar_str': custom_lunar_str,
+        'include_roster': include_roster,
+        'officers_list': officers_list,
+
+        # Section ក
+        'total_officers': total_officers,
+        'total_officers_kh': to_khmer_digits(total_officers),
+        'female_count': female_count,
+        'female_count_kh': to_khmer_digits(female_count),
+        'male_count': male_count,
+        'male_count_kh': to_khmer_digits(male_count),
+        'cat_a_count': cat_a_count,
+        'cat_a_count_kh': to_khmer_digits(cat_a_count),
+        'cat_b_count': cat_b_count,
+        'cat_b_count_kh': to_khmer_digits(cat_b_count),
+        'cat_c_count': cat_c_count,
+        'cat_c_count_kh': to_khmer_digits(cat_c_count),
+        'cat_d_count': cat_d_count,
+        'cat_d_count_kh': to_khmer_digits(cat_d_count),
+
+        # Section ខ
+        'phd_count': phd_count,
+        'phd_count_kh': to_khmer_digits(phd_count),
+        'master_count': master_count,
+        'master_count_kh': to_khmer_digits(master_count),
+        'bachelor_count': bachelor_count,
+        'bachelor_count_kh': to_khmer_digits(bachelor_count),
+        'associate_count': associate_count,
+        'associate_count_kh': to_khmer_digits(associate_count),
+        'highschool_count': highschool_count,
+        'highschool_count_kh': to_khmer_digits(highschool_count),
+        'other_degree_count': other_degree_count,
+        'other_degree_count_kh': to_khmer_digits(other_degree_count),
+
+        # Section គ
+        'active_count': active_count,
+        'active_count_kh': to_khmer_digits(active_count),
+        'unpaid_leave_count': unpaid_leave_count,
+        'unpaid_leave_count_kh': to_khmer_digits(unpaid_leave_count),
+        'outside_framework_count': outside_framework_count,
+        'outside_framework_count_kh': to_khmer_digits(outside_framework_count),
+        'dismissed_count': dismissed_count,
+        'dismissed_count_kh': to_khmer_digits(dismissed_count),
+        'retired_count': retired_count,
+        'retired_count_kh': to_khmer_digits(retired_count),
+        'trainee_count': trainee_count,
+        'trainee_count_kh': to_khmer_digits(trainee_count),
+        'transferred_out_count': transferred_out_count,
+        'transferred_out_count_kh': to_khmer_digits(transferred_out_count),
+
+        'date_info': date_info,
+        'today': today,
+    }
+    return render(request, 'dms/officer_status_report_print.html', context)
+
+
+@login_required
+def officer_status_export_excel(request):
+    """
+    Excel Export of Officer Cadre Status Report with 2 sheets:
+    1. របាយការណ៍ស្ថានភាពមន្ត្រី (Executive 3-Part Summary)
+    2. បញ្ជីមន្ត្រីរាជការលម្អិត (Detailed officer list with Framework, Highest Degree, Status)
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    import datetime
+
+    profile = getattr(request.user, 'profile', None)
+    user_dept = profile.department if profile else None
+    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+
+    dept_id = request.GET.get('department', '').strip()
+    base_qs = CivilServantProfile.objects.select_related('department').all()
+
+    if not has_global_access:
+        if user_dept:
+            base_qs = base_qs.filter(department=user_dept)
+        else:
+            base_qs = base_qs.filter(created_by=request.user)
+    elif dept_id:
+        base_qs = base_qs.filter(department_id=dept_id)
+
+    selected_dept_obj = Department.objects.filter(id=dept_id).first() if dept_id else None
+    dept_label = selected_dept_obj.name_kh if selected_dept_obj else (user_dept.name_kh if not has_global_access and user_dept else "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន")
+
+    # Aggregations
+    total_officers = base_qs.count()
+    female_count = base_qs.filter(gender='FEMALE').count()
+    male_count = base_qs.filter(gender='MALE').count()
+
+    cat_a_count = base_qs.filter(framework_category='A').count()
+    cat_b_count = base_qs.filter(framework_category='B').count()
+    cat_c_count = base_qs.filter(framework_category='C').count()
+    cat_d_count = base_qs.filter(framework_category='D').count()
+
+    phd_count = base_qs.filter(highest_degree='DOCTORATE').count()
+    master_count = base_qs.filter(highest_degree='MASTER').count()
+    bachelor_count = base_qs.filter(highest_degree='BACHELOR').count()
+    associate_count = base_qs.filter(highest_degree='ASSOCIATE').count()
+    highschool_count = base_qs.filter(highest_degree='HIGHSCHOOL').count()
+    other_degree_count = base_qs.filter(Q(highest_degree='OTHER') | Q(highest_degree__isnull=True) | Q(highest_degree='')).count()
+
+    active_count = base_qs.filter(officer_status='ACTIVE').count()
+    unpaid_leave_count = base_qs.filter(officer_status='UNPAID_LEAVE').count()
+    outside_framework_count = base_qs.filter(officer_status='OUTSIDE_FRAMEWORK').count()
+    dismissed_count = base_qs.filter(officer_status='DISMISSED').count()
+    retired_count = base_qs.filter(officer_status='RETIRED').count()
+    trainee_count = base_qs.filter(officer_status='TRAINEE').count()
+    transferred_out_count = base_qs.filter(officer_status='TRANSFERRED_OUT').count()
+
+    wb = openpyxl.Workbook()
+
+    # Fonts & Styles
+    f_royal_muol = Font(name='Khmer OS Muol Light', size=11, bold=True)
+    f_title_muol = Font(name='Khmer OS Muol Light', size=14, bold=True, color='1F4E78')
+    f_section_muol = Font(name='Khmer OS Muol Light', size=11, bold=True, color='1F4E78')
+    f_header = Font(name='Khmer OS Battambang', size=10.5, bold=True, color='FFFFFF')
+    f_body = Font(name='Khmer OS Battambang', size=10)
+    f_body_bold = Font(name='Khmer OS Battambang', size=10, bold=True)
+
+    align_center = Alignment(horizontal='center', vertical='center')
+    align_left = Alignment(horizontal='left', vertical='center')
+
+    fill_header = PatternFill(start_color='1F4E78', end_color='1F4E78', fill_type='solid')
+    fill_sec = PatternFill(start_color='E8EEF5', end_color='E8EEF5', fill_type='solid')
+
+    border_thin = Border(
+        left=Side(style='thin', color='A0A0A0'),
+        right=Side(style='thin', color='A0A0A0'),
+        top=Side(style='thin', color='A0A0A0'),
+        bottom=Side(style='thin', color='A0A0A0')
+    )
+
+    # -------------------------------------------------------------
+    # SHEET 1: របាយការណ៍ស្ថានភាពមន្ត្រីរាជការ (Summary)
+    # -------------------------------------------------------------
+    ws1 = wb.active
+    ws1.title = "ស្ថានភាពមន្ត្រីរាជការ"
+
+    ws1.merge_cells('A1:D1')
+    ws1['A1'] = "ព្រះរាជាណាចក្រកម្ពុជា"
+    ws1['A1'].font = f_royal_muol
+    ws1['A1'].alignment = align_center
+
+    ws1.merge_cells('A2:D2')
+    ws1['A2'] = "ជាតិ សាសនា ព្រះមហាក្សត្រ"
+    ws1['A2'].font = f_royal_muol
+    ws1['A2'].alignment = align_center
+
+    ws1.merge_cells('A4:D4')
+    ws1['A4'] = "ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"
+    ws1['A4'].font = f_royal_muol
+
+    ws1.merge_cells('A5:D5')
+    ws1['A5'] = dept_label
+    ws1['A5'].font = f_body_bold
+
+    ws1.merge_cells('A7:D7')
+    ws1['A7'] = "ស្ថានភាពមន្ត្រីរាជការ"
+    ws1['A7'].font = f_title_muol
+    ws1['A7'].alignment = align_center
+
+    # Section ក
+    ws1.merge_cells('A9:D9')
+    ws1['A9'] = "ក. ព័ត៌មានមន្ត្រីតាមក្របខ័ណ្ឌ"
+    ws1['A9'].font = f_section_muol
+    ws1['A9'].fill = fill_sec
+
+    ws1.cell(row=10, column=1, value="- មន្ត្រីរាជការសរុបរបស់អង្គភាព").font = f_body_bold
+    ws1.cell(row=10, column=2, value=f"{total_officers} នាក់ ( ស្រី៖ {female_count} នាក់  ប្រុស៖ {male_count} នាក់ )").font = f_body
+    
+    ws1.cell(row=11, column=1, value="- ចំនួនមន្ត្រីរាជការតាមក្របខណ្ឌ").font = f_body_bold
+    ws1.cell(row=11, column=2, value=f"(ក) {cat_a_count} នាក់   (ខ) {cat_b_count} នាក់   (គ) {cat_c_count} នាក់   (ឃ) {cat_d_count} នាក់").font = f_body
+
+    # Section ខ
+    ws1.merge_cells('A13:D13')
+    ws1['A13'] = "ខ. ព័ត៌មានមន្ត្រីតាមសញ្ញាប័ត្រ"
+    ws1['A13'].font = f_section_muol
+    ws1['A13'].fill = fill_sec
+
+    degrees_rows = [
+        ("(១). បណ្ឌិត", f"{phd_count} នាក់", "(២). បរិញ្ញាបត្រជាន់ខ្ពស់(អនុបណ្ឌិត)", f"{master_count} នាក់"),
+        ("(៣). បរិញ្ញាប័ត្រ", f"{bachelor_count} នាក់", "(៤). បរិញ្ញាប័ត្ររង", f"{associate_count} នាក់"),
+        ("(៥). មធ្យមសិក្សាទុតិយភូមិ", f"{highschool_count} នាក់", "(៦). ផ្សេងៗ", f"{other_degree_count} នាក់"),
+    ]
+    for r_idx, (d1_k, d1_v, d2_k, d2_v) in enumerate(degrees_rows, start=14):
+        ws1.cell(row=r_idx, column=1, value=d1_k).font = f_body
+        ws1.cell(row=r_idx, column=2, value=d1_v).font = f_body_bold
+        ws1.cell(row=r_idx, column=3, value=d2_k).font = f_body
+        ws1.cell(row=r_idx, column=4, value=d2_v).font = f_body_bold
+
+    # Section គ
+    ws1.merge_cells('A18:D18')
+    ws1['A18'] = "គ. ស្ថានភាពមន្ត្រី (គិតមកដល់បច្ចុប្បន្ន)"
+    ws1['A18'].font = f_section_muol
+    ws1['A18'].fill = fill_sec
+
+    status_rows = [
+        ("១. មន្ត្រីសកម្ម", f"{active_count} នាក់", "៥. មន្ត្រីចូលនិវត្តន៍", f"{retired_count} នាក់"),
+        ("២. មន្ត្រីស្ថិតក្នុងភាពទំនេរគ្មានបៀវត្ស", f"{unpaid_leave_count} នាក់", "៦. មន្ត្រីកម្មសិក្សា", f"{trainee_count} នាក់"),
+        ("៣. មន្ត្រីស្ថិតនៅក្រៅក្របខណ្ឌដើម", f"{outside_framework_count} នាក់", "៧. មន្ត្រីផ្ទេរចេញ", f"{transferred_out_count} នាក់"),
+        ("៤. មន្ត្រីត្រូវបានលុបឈ្មោះ", f"{dismissed_count} នាក់", "", ""),
+    ]
+    for r_idx, (s1_k, s1_v, s2_k, s2_v) in enumerate(status_rows, start=19):
+        ws1.cell(row=r_idx, column=1, value=s1_k).font = f_body
+        ws1.cell(row=r_idx, column=2, value=s1_v).font = f_body_bold
+        ws1.cell(row=r_idx, column=3, value=s2_k).font = f_body
+        ws1.cell(row=r_idx, column=4, value=s2_v).font = f_body_bold
+
+    today = datetime.date.today()
+    d_info = get_khmer_lunar_and_solar_date(today)
+
+    ws1.merge_cells('C25:D25')
+    ws1['C25'] = "បានឃើញ និងឯកភាព"
+    ws1['C25'].font = f_royal_muol
+    ws1['C25'].alignment = align_center
+
+    ws1.merge_cells('C26:D26')
+    ws1['C26'] = f"ធ្វើនៅប៉ៃលិន, {d_info['solar_date_str']}"
+    ws1['C26'].font = f_body
+    ws1['C26'].alignment = align_center
+
+    ws1.merge_cells('C27:D27')
+    ws1['C27'] = "ប្រធានអង្គភាព"
+    ws1['C27'].font = f_royal_muol
+    ws1['C27'].alignment = align_center
+
+    ws1.column_dimensions['A'].width = 32
+    ws1.column_dimensions['B'].width = 25
+    ws1.column_dimensions['C'].width = 34
+    ws1.column_dimensions['D'].width = 25
+
+    # -------------------------------------------------------------
+    # SHEET 2: បញ្ជីមន្ត្រីរាជការលម្អិត (Detailed List)
+    # -------------------------------------------------------------
+    ws2 = wb.create_sheet(title="បញ្ជីមន្ត្រីរាជការលម្អិត")
+
+    ws2.merge_cells('A1:J1')
+    ws2['A1'] = f"បញ្ជីរាយនាមមន្ត្រីរាជការ - ស្ថានភាព ក្របខ័ណ្ឌ និងសញ្ញាបត្រ ({dept_label})"
+    ws2['A1'].font = f_title_muol
+    ws2['A1'].alignment = align_center
+
+    ws2.merge_cells('A2:J2')
+    ws2['A2'] = f"កាលបរិច្ឆេទ Export៖ {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')} | សរុប៖ {total_officers} នាក់ (ស្រី: {female_count} / ប្រុស: {male_count})"
+    ws2['A2'].font = Font(name='Khmer OS Battambang', size=10, italic=True, color='555555')
+    ws2['A2'].alignment = align_center
+
+    headers2 = [
+        'ល.រ', 'អត្តលេខ', 'គោត្តនាម-នាមខ្លួន (ខ្មែរ)', 'ភេទ', 'ថ្ងៃខែឆ្នាំកំណើត',
+        'ការិយាល័យ/អង្គភាព', 'មុខតំណែង', 'ក្របខ័ណ្ឌ', 'សញ្ញាបត្រខ្ពស់បំផុត', 'ស្ថានភាពមន្ត្រី'
+    ]
+    ws2.append([])
+    ws2.append(headers2)
+
+    for col_num in range(1, len(headers2) + 1):
+        c = ws2.cell(row=4, column=col_num)
+        c.font = f_header
+        c.fill = fill_header
+        c.alignment = align_center
+        c.border = border_thin
+
+    from .models import officer_sort_key
+    officers_list = list(base_qs)
+    officers_list.sort(key=officer_sort_key)
+
+    for idx, o in enumerate(officers_list, start=1):
+        row = [
+            idx,
+            o.officer_id_number or '-',
+            o.full_name_kh,
+            o.get_gender_display(),
+            o.dob or '-',
+            o.department.name_kh if o.department else 'មិនទាន់កំណត់',
+            o.current_position_title or '-',
+            o.framework_category_label,
+            o.highest_degree_label,
+            o.officer_status_label,
+        ]
+        ws2.append(row)
+        curr_row = 4 + idx
+        for col_num in range(1, len(row) + 1):
+            cell = ws2.cell(row=curr_row, column=col_num)
+            cell.font = f_body
+            cell.border = border_thin
+            if col_num in [1, 2, 4, 5, 8]:
+                cell.alignment = align_center
+            elif col_num in [9, 10]:
+                cell.alignment = align_center
+                cell.font = f_body_bold
+            else:
+                cell.alignment = align_left
+
+    for col in ws2.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = openpyxl.utils.get_column_letter(col[0].column)
+        ws2.column_dimensions[col_letter].width = max(max_len + 4, 14)
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"officer_status_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def api_officer_status_update(request):
+    """
+    AJAX API for Quick Status, Degree, or Framework Category Update directly from the Status Report table.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+    profile = getattr(request.user, 'profile', None)
+    dept = profile.department if profile else None
+    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+    is_admin_or_lead = has_global_access
+    is_system_admin = check_is_system_admin(request.user, request)
+
+    officer_id = request.POST.get('officer_id')
+    if not officer_id:
+        return JsonResponse({'success': False, 'error': 'Missing officer ID'}, status=400)
+
+    officer = get_object_or_404(CivilServantProfile, pk=officer_id)
+
+    if not is_admin_or_lead and (not dept or officer.department != dept):
+        return JsonResponse({'success': False, 'error': 'លោកអ្នកគ្មានសិទ្ធិកែប្រែស្ថានភាពមន្ត្រីនៅក្រៅការិយាល័យរបស់ខ្លួនឡើយ!'}, status=403)
+
+    edit_window = OfficerEditWindowSetting.get_setting()
+    if not is_system_admin and not edit_window.is_open_for_department(officer.department or dept):
+        return JsonResponse({'success': False, 'error': f'ប្រព័ន្ធត្រូវបានបិទមិនឱ្យកែប្រែឡើយ! ({edit_window.status_label_kh})'}, status=403)
+
+    new_status = request.POST.get('officer_status')
+    new_degree = request.POST.get('highest_degree')
+    new_framework = request.POST.get('framework_category')
+
+    changes = []
+    if new_status and new_status in dict(CivilServantProfile.OFFICER_STATUS_CHOICES):
+        old_st = officer.officer_status_label
+        officer.officer_status = new_status
+        changes.append(f"ស្ថានភាព៖ {old_st} ➔ {officer.officer_status_label}")
+
+    if new_degree and new_degree in dict(CivilServantProfile.DEGREE_CHOICES):
+        old_deg = officer.highest_degree_label
+        officer.highest_degree = new_degree
+        changes.append(f"សញ្ញាបត្រ៖ {old_deg} ➔ {officer.highest_degree_label}")
+
+    if new_framework and new_framework in dict(CivilServantProfile.FRAMEWORK_CHOICES):
+        old_fw = officer.framework_category_label
+        officer.framework_category = new_framework
+        changes.append(f"ក្របខ័ណ្ឌ៖ {old_fw} ➔ {officer.framework_category_label}")
+
+    if changes:
+        officer.save()
+        log_officer_action(
+            request,
+            officer=officer,
+            action_type='PROFILE_EDIT',
+            category='ស្ថានភាព & កម្រិតសញ្ញាបត្រ',
+            details=f"បានកែប្រែស្ថានភាពមន្ត្រី «{officer.full_name_kh}»៖ " + ", ".join(changes)
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f"បានកែប្រែទិន្នន័យសម្រាប់ «{officer.full_name_kh}» ដោយជោគជ័យ!",
+            'officer_id': officer.id,
+            'officer_name_kh': officer.full_name_kh,
+            'officer_status': officer.officer_status,
+            'officer_status_label': officer.officer_status_label,
+            'officer_status_badge_class': officer.officer_status_badge_class,
+            'highest_degree': officer.highest_degree,
+            'highest_degree_label': officer.highest_degree_label,
+            'framework_category': officer.framework_category,
+            'framework_category_label': officer.framework_category_label,
+        })
+
+    return JsonResponse({'success': False, 'error': 'No valid changes provided'}, status=400)
 
 
 # ==============================================================================
