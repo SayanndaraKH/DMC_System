@@ -4,10 +4,10 @@ from django.core.management.base import BaseCommand
 from django.core.management import call_command
 from django.conf import settings
 from django.contrib.auth.models import User
-from dms.models import Department, UserProfile, CivilServantProfile
+from dms.models import Department, UserProfile, CivilServantProfile, CambodiaProvince
 
 class Command(BaseCommand):
-    help = 'Ensures default ADMIN superuser, departments, and seed data exist on startup.'
+    help = 'Ensures default ADMIN superuser, departments, geography, and seed data exist on startup.'
 
     def handle(self, *args, **options):
         admin_username = os.environ.get('ADMIN_USERNAME', 'ADMIN').strip()
@@ -37,18 +37,29 @@ class Command(BaseCommand):
             }
         )
 
-        # 2. Check and auto-load initial data if officers count is 0
+        # 2. Check and auto-import Cambodia Geography if count is 0
+        try:
+            if CambodiaProvince.objects.count() == 0:
+                geo_file = Path(settings.BASE_DIR) / 'Cambodia All List2025.xlsx'
+                if geo_file.exists():
+                    self.stdout.write("Database has 0 provinces. Importing Cambodia geography from Excel...")
+                    call_command('import_cambodia_geo', file=str(geo_file))
+                    self.stdout.write(self.style.SUCCESS("Successfully imported 25 provinces, 210 districts, 1662 communes, 14576 villages!"))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"Geography import note: {e}"))
+
+        # 3. Check and auto-load initial officers data if officers count is 0
         try:
             if CivilServantProfile.objects.count() == 0:
                 dump_path = Path(settings.BASE_DIR) / 'initial_data.json'
                 if dump_path.exists():
                     self.stdout.write("Database has 0 officers. Auto-loading initial_data.json...")
                     call_command('loaddata', str(dump_path))
-                    self.stdout.write(self.style.SUCCESS("Successfully imported all initial officers and data!"))
+                    self.stdout.write(self.style.SUCCESS("Successfully imported initial officers data!"))
         except Exception as e:
             self.stdout.write(self.style.WARNING(f"Initial data load note: {e}"))
 
-        # 3. Create or update ADMIN account (both uppercase ADMIN and lowercase admin)
+        # 4. Create or update ADMIN account (both uppercase ADMIN and lowercase admin)
         for uname in [admin_username, 'admin']:
             user = User.objects.filter(username__iexact=uname).first()
             if not user:
