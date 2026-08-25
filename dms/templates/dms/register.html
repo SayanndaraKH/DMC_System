@@ -190,20 +190,12 @@
                 <form method="POST" action="{% url 'register' %}">
                     {% csrf_token %}
 
-                    <!-- ១. ព័ត៌មានផ្ទាល់ខ្លួន & ទំនាក់ទំនង -->
-                    <div class="section-tag"><i class="fa-solid fa-user me-1"></i> ១. ព័ត៌មានផ្ទាល់ខ្លួន & ទំនាក់ទំនង</div>
+                    <!-- ១. ព័ត៌មានផ្ទាល់ខ្លួន -->
+                    <div class="section-tag"><i class="fa-solid fa-user me-1"></i> ១. ព័ត៌មានផ្ទាល់ខ្លួន</div>
                     <div class="row g-2 mb-3">
-                        <div class="col-md-4 col-12">
+                        <div class="col-12">
                             <label class="form-label small fw-semibold text-dark mb-1">ឈ្មោះពេញ (Full Name) *</label>
                             <input type="text" name="full_name" class="form-control bg-light fs-7 py-2" required value="{{ form.full_name.value|default:'' }}" placeholder="ឧ. ចាន់ សុខា">
-                        </div>
-                        <div class="col-md-4 col-12">
-                            <label class="form-label small fw-semibold text-dark mb-1">អ៊ីមែលពិត (Email) * <span class="text-success"><i class="fa-solid fa-envelope"></i></span></label>
-                            <input type="email" name="email" class="form-control bg-light fs-7 py-2" required value="{{ form.email.value|default:'' }}" placeholder="name@gov.kh">
-                        </div>
-                        <div class="col-md-4 col-12">
-                            <label class="form-label small fw-semibold text-dark mb-1">លេខទូរស័ព្ទ *</label>
-                            <input type="tel" name="phone" class="form-control bg-light fs-7 py-2" required value="{{ form.phone.value|default:'' }}" placeholder="012 345 678">
                         </div>
                     </div>
 

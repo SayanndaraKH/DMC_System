@@ -253,15 +253,6 @@ class UserRegistrationForm(forms.Form):
         max_length=100,
         widget=forms.TextInput(attrs={'class': 'form-control bg-light fs-7', 'placeholder': 'ឧ. ចាន់ សុខា'})
     )
-    email = forms.EmailField(
-        label="អ៊ីមែលពិត (Email)",
-        widget=forms.EmailInput(attrs={'class': 'form-control bg-light fs-7', 'placeholder': 'ឧ. name@gov.kh'})
-    )
-    phone = forms.CharField(
-        label="លេខទូរស័ព្ទ (Phone Number)",
-        max_length=30,
-        widget=forms.TextInput(attrs={'class': 'form-control bg-light fs-7', 'placeholder': 'ឧ. 012 345 678'})
-    )
     department = forms.ModelChoiceField(
         label="ឈ្មោះអង្គភាព / ការិយាល័យ",
         queryset=Department.objects.filter(is_active=True),
@@ -301,18 +292,6 @@ class UserRegistrationForm(forms.Form):
         if User.objects.filter(username__iexact=username).exists():
             raise forms.ValidationError("ឈ្មោះគណនី (Username) នេះមានអ្នកប្រើប្រាស់រួចហើយ!")
         return username
-
-    def clean_email(self):
-        email = self.cleaned_data.get('email', '').strip().lower()
-        if User.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError("អ៊ីមែលនេះមានចុះឈ្មោះរួចហើយ! សូមប្រើអ៊ីមែលផ្សេង ឬចូលប្រព័ន្ធ។")
-        return email
-
-    def clean_phone(self):
-        phone = self.cleaned_data.get('phone', '').strip().replace(' ', '')
-        if UserProfile.objects.filter(phone=phone).exists():
-            raise forms.ValidationError("លេខទូរស័ព្ទនេះមានចុះឈ្មោះរួចហើយ!")
-        return phone
 
     def clean_password(self):
         password = self.cleaned_data.get('password', '')

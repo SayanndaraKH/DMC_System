@@ -9,7 +9,7 @@ echo.
 
 cd /d "%~dp0"
 
-echo [1/5] Checking Django configuration for errors...
+echo [1/4] Checking Django configuration for errors...
 python manage.py check
 if %ERRORLEVEL% NEQ 0 (
     echo.
@@ -20,7 +20,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo [2/5] Checking Git Status (Modified files)...
+echo [2/4] Checking Git Status (Modified files)...
 git status -s
 echo.
 
@@ -31,15 +31,12 @@ if "%commit_msg%"=="" (
 )
 
 echo.
-echo [3/5] Adding modified files to Git (git add .)...
+echo [3/4] Adding modified files to Git (git add .)...
 git add .
-
-echo.
-echo [4/5] Committing changes (git commit)...
 git commit -m "%commit_msg%"
 
 echo.
-echo [5/5] Pushing to GitHub (origin/main and origin/master)...
+echo [4/4] Pushing to GitHub (origin/main and origin/master)...
 git push -u origin main
 git push origin main:master
 
@@ -50,7 +47,9 @@ if %ERRORLEVEL% EQU 0 (
     echo.
     echo  - GitHub Repo: https://github.com/SayanndaraKH/DMC_System
     echo  - Railway Deploy: Railway is automatically deploying your latest update!
-    echo  - Web Application: https://dmcsystem-production.up.railway.app
+    echo  - Web Application: https://dmcsystem-admin.up.railway.app
+    echo.
+    echo  [NOTE] Live database records entered via Web are 100%% SAFE and intact!
     echo =======================================================================
 ) else (
     echo.
