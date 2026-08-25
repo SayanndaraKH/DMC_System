@@ -1,19 +1,20 @@
 #!/bin/bash
 set -e
+export PYTHONUNBUFFERED=1
 
 echo "=== [DMC SYSTEM] STARTING APPLICATION ==="
 
 # 1. Wait for database
-python manage.py wait_for_db || true
+python manage.py wait_for_db
 
 # 2. Run migrations
-python manage.py migrate --noinput || true
+python manage.py migrate --noinput
 
 # 3. Initialize Admin & Seed initial data
-python manage.py init_admin || true
+python manage.py init_admin
 
 # 4. Collect static files
-python manage.py collectstatic --noinput || true
+python manage.py collectstatic --noinput
 
 # 5. Start Gunicorn Web Server
 PORT="${PORT:-8000}"
