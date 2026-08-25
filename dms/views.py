@@ -2561,22 +2561,28 @@ def officer_sync_initial_data_view(request):
         messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តមុខងារនេះឡើយ!")
         return redirect('officer_list')
 
-    dump_path = Path(settings.BASE_DIR) / 'initial_data.json'
     geo_file = Path(settings.BASE_DIR) / 'Cambodia All List2025.xlsx'
+    officers_dump = Path(settings.BASE_DIR) / 'initial_officers.json'
+    dump_path = Path(settings.BASE_DIR) / 'initial_data.json'
 
-    # 1. Try loading complete fixture
-    if dump_path.exists():
-        try:
-            call_command('loaddata', str(dump_path))
-        except Exception as e:
-            messages.warning(request, f"Fixture load note: {e}")
-
-    # 2. If geo is still empty, import from Excel
+    # 1. First ensure Geography exists (from Excel)
     if CambodiaProvince.objects.count() == 0 and geo_file.exists():
         try:
             call_command('import_cambodia_geo', file=str(geo_file))
         except Exception as e:
             messages.warning(request, f"Excel geo import note: {e}")
+
+    # 2. Then load officers and departments
+    if officers_dump.exists():
+        try:
+            call_command('loaddata', str(officers_dump))
+        except Exception as e:
+            messages.warning(request, f"Officers load note: {e}")
+    elif dump_path.exists():
+        try:
+            call_command('loaddata', str(dump_path))
+        except Exception as e:
+            messages.warning(request, f"Fixture load note: {e}")
 
     provinces_count = CambodiaProvince.objects.count()
     districts_count = CambodiaDistrict.objects.count()
