@@ -78,3 +78,46 @@ class Command(BaseCommand):
             profile.save()
 
         self.stdout.write(self.style.SUCCESS(f"Successfully initialized ADMIN with password: {admin_password}"))
+
+        # 3. Auto-bootstrap initial geography data if database is empty
+        try:
+            from dms.models import CambodiaProvince, CivilServantProfile
+            from django.core.management import call_command
+            from pathlib import Path
+            from django.conf import settings
+
+            base_path = Path(settings.BASE_DIR)
+            geo_file = base_path / 'initial_geo.json'
+            officers_file = base_path / 'initial_officers.json'
+
+            if CambodiaProvince.objects.count() == 0 and geo_file.exists():
+                self.stdout.write("Loading initial Cambodia geography data...")
+                call_command('loaddata', str(geo_file))
+                self.stdout.write(self.style.SUCCESS(f"Loaded {CambodiaProvince.objects.count()} provinces."))
+
+            if CivilServantProfile.objects.count() == 0 and officers_file.exists():
+                self.stdout.write("Loading initial civil servants data (56 officers)...")
+                call_command('loaddata', str(officers_file))
+                self.stdout.write(self.style.SUCCESS(f"Loaded {CivilServantProfile.objects.count()} officers."))
+
+            # Auto-sync status fields if missing on existing profiles
+            updated_count = 0
+            for p in CivilServantProfile.objects.all():
+                needs_save = False
+                if not p.framework_category:
+                    p.framework_category = p.computed_framework_category
+                    needs_save = True
+                if not p.highest_degree:
+                    p.highest_degree = p.computed_highest_degree
+                    needs_save = True
+                if not p.officer_status:
+                    p.officer_status = p.computed_officer_status
+                    needs_save = True
+                if needs_save:
+                    p.save()
+                    updated_count += 1
+            if updated_count > 0:
+                self.stdout.write(self.style.SUCCESS(f"Auto-synced status and cadre fields for {updated_count} profiles."))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"Bootstrap note: {e}"))
+

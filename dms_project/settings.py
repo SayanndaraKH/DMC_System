@@ -109,7 +109,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'dms_project.wsgi.application'
 
-# Database Configuration (Auto-detects Railway PostgreSQL or defaults to local SQLite)
+# Database Configuration (Auto-detects Railway PostgreSQL or persistent storage / local SQLite)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
     try:
@@ -129,10 +129,23 @@ if DATABASE_URL:
             }
         }
 else:
+    # If no PostgreSQL, check for persistent volume mount paths (/app/data, /data, /app/media, or DATA_DIR)
+    persistent_db_dir = os.environ.get('DATA_DIR')
+    if not persistent_db_dir:
+        for candidate in ['/app/data', '/data', '/app/media']:
+            if os.path.exists(candidate) and os.path.isdir(candidate):
+                persistent_db_dir = candidate
+                break
+
+    if persistent_db_dir and os.path.exists(persistent_db_dir):
+        db_file = os.path.join(persistent_db_dir, 'db.sqlite3')
+    else:
+        db_file = BASE_DIR / 'db.sqlite3'
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': db_file,
         }
     }
 
@@ -157,9 +170,15 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Media files (Uploads)
+# Media files (Uploads - persistent detection)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.environ.get('MEDIA_ROOT', os.path.join(BASE_DIR, 'media'))
+media_candidate = os.environ.get('MEDIA_ROOT')
+if not media_candidate:
+    if os.path.exists('/app/media') and os.path.isdir('/app/media'):
+        media_candidate = '/app/media'
+    else:
+        media_candidate = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = media_candidate
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
