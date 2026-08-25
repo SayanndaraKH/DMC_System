@@ -59,6 +59,7 @@ urlpatterns = [
 
     # 👥 Civil Servant Profile & HR Management (ជីវប្រវត្តិមន្ត្រីរាជការ)
     path('officers/', views.officer_list, name='officer_list'),
+    path('officers/sync-initial-data/', views.officer_sync_initial_data_view, name='officer_sync_initial_data'),
     path('officers/new/', views.officer_create, name='officer_create'),
     path('officers/import-docx/', views.officer_import_docx, name='officer_import_docx'),
     path('officers/batch-photos/officers-index/', views.api_officers_for_photo_match, name='api_officers_for_photo_match'),

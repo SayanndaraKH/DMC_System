@@ -86,6 +86,9 @@
             <a href="{% url 'officer_audit_trail' %}" class="btn btn-outline-dark rounded-pill px-3 py-2 fs-7 shadow-sm fw-semibold">
                 <i class="fa-solid fa-clock-rotate-left me-1.5 text-warning"></i> Audit Logs
             </a>
+            <a href="{% url 'officer_sync_initial_data' %}" class="btn btn-outline-warning text-dark rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold" onclick="return confirm('តើអ្នកពិតជាចង់ទាញ និងនាំចូលទិន្នន័យដើម (មន្ត្រី ៥៦ នាក់ + ភូមិសាស្រ្ត) ចូលទៅក្នុងប្រព័ន្ធនេះមែនទេ?');">
+                <i class="fa-solid fa-cloud-arrow-down text-warning me-1.5"></i> ទាញទិន្នន័យដើម (Sync Data)
+            </a>
             {% endif %}
 
             {% if can_edit_officers %}

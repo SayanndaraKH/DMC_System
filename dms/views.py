@@ -2567,6 +2567,41 @@ def _resolve_geo_address(province_code, district_code, commune_code, village_cod
 
 
 @login_required
+def officer_sync_initial_data_view(request):
+    is_admin = request.user.is_superuser or (request.user.username.upper() == 'ADMIN')
+    if not is_admin:
+        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តមុខងារនេះឡើយ!")
+        return redirect('officer_list')
+
+    dump_path = Path(settings.BASE_DIR) / 'initial_data.json'
+    geo_file = Path(settings.BASE_DIR) / 'Cambodia All List2025.xlsx'
+
+    # 1. Load Geo if empty
+    try:
+        if CambodiaProvince.objects.count() == 0 and geo_file.exists():
+            call_command('import_cambodia_geo', file=str(geo_file))
+    except Exception as e:
+        messages.warning(request, f"Geo import note: {e}")
+
+    # 2. Load Initial Data
+    if dump_path.exists():
+        try:
+            call_command('loaddata', str(dump_path))
+            officers_count = CivilServantProfile.objects.count()
+            contract_count = ContractOfficer.objects.count()
+            messages.success(
+                request,
+                f"🎉 បានទាញ និងនាំចូលទិន្នន័យដើមជោគជ័យ! បច្ចុប្បន្នមាន៖ មន្ត្រីរាជការ {officers_count} នាក់ និងមន្ត្រីជាប់កិច្ចសន្យា {contract_count} នាក់។"
+            )
+        except Exception as e:
+            messages.error(request, f"មានបញ្ហាក្នុងការទាញទិន្នន័យ៖ {e}")
+    else:
+        messages.warning(request, "រកមិនឃើញឯកសារទិន្នន័យដើម initial_data.json ឡើយ!")
+
+    return redirect('officer_list')
+
+
+@login_required
 def officer_create(request):
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
