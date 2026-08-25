@@ -8,6 +8,11 @@ echo   DOCUMENT MANAGEMENT SYSTEM (DMS) - STARTING UP...
 echo ============================================================
 echo.
 
+:: 0. Free Port 8000 from any stuck or conflicting processes
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000 " ^| findstr "LISTENING"') do (
+    taskkill /f /pid %%a >nul 2>&1
+)
+
 :: 1. Check Python installation
 set "PY_CMD="
 where python >nul 2>&1
@@ -34,12 +39,6 @@ if exist "venv\Scripts\activate.bat" (
     echo [INFO] កំពុងដំណើរការតាមរយៈ Virtual Environment...
     call "venv\Scripts\activate.bat"
     set "PY_CMD=python"
-) else (
-    %PY_CMD% -c "import django, openpyxl, reportlab, PIL" >nul 2>&1
-    if errorlevel 1 (
-        echo [INFO] កំពុងដំឡើង Packages ចាំបាច់ សូមរង់ចាំបន្តិច...
-        %PY_CMD% -m pip install -r requirements.txt
-    )
 )
 
 :: 3. Run Database Migrations
