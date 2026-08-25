@@ -2577,10 +2577,11 @@ def officer_sync_initial_data_view(request):
         except Exception as e:
             messages.warning(request, f"Excel geo note: {e}")
 
-    # 2. Load Officers & Departments
+    # 2. Load Officers & Departments (matches departments by code, not fixture pk,
+    # since migrations already seed departments with different auto-assigned pks)
     if officers_dump.exists():
         try:
-            call_command('loaddata', str(officers_dump))
+            call_command('import_initial_officers')
         except Exception as e:
             messages.warning(request, f"Officers load note: {e}")
 
