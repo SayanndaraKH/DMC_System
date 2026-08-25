@@ -1,0 +1,1304 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}ជីវប្រវត្តិ៖ {{ officer.full_name_kh }} - ប្រព័ន្ធគ្រប់គ្រងឯកសារ{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Top Action Breadcrumb & Buttons -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'officer_list' %}" class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <h4 class="fw-bold m-0 text-dark">{{ officer.full_name_kh }}</h4>
+                    {% if officer.officer_id_number %}
+                    <span class="badge bg-primary bg-opacity-10 text-primary font-monospace px-2.5 py-1">ID: {{ officer.officer_id_number }}</span>
+                    {% endif %}
+                </div>
+                <p class="text-muted small m-0 font-monospace text-uppercase">{{ officer.full_name_latin|default:"-" }} &bull; {{ officer.current_position_title|default:"មន្ត្រី" }} &bull; {{ officer.display_department_name }}</p>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- 🏢 Department Transfer Button (ADMIN / Leadership) -->
+            {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+            <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 fw-bold text-white shadow-sm" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); border: none;" data-bs-toggle="modal" data-bs-target="#officerTransferModal">
+                <i class="fa-solid fa-right-left me-1.5"></i> ផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ
+            </button>
+            {% endif %}
+
+            <a href="{% url 'officer_print' officer.pk %}" target="_blank" class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                <i class="fa-solid fa-print me-1.5"></i> បោះពុម្ព A4 ផ្លូវការ (Print Form)
+            </a>
+            {% if can_edit %}
+            <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAttachmentModal">
+                <i class="fa-solid fa-paperclip me-1.5"></i> + បញ្ចូលឯកសារយោង
+            </button>
+            <a href="{% url 'officer_edit' officer.pk %}" class="btn btn-outline-primary rounded-pill px-3.5 py-2 fw-semibold shadow-sm">
+                <i class="fa-solid fa-pen-to-square me-1.5"></i> កែប្រែជីវប្រវត្តិ
+            </a>
+            {% else %}
+            <button type="button" class="btn btn-light text-muted rounded-pill px-3.5 py-2 fw-semibold border shadow-sm" disabled title="ប្រព័ន្ធបានបិទការកែប្រែដោយសារផុតកាលវិភាគ">
+                <i class="fa-solid fa-lock text-danger me-1.5"></i> កែប្រែ (ជាប់សោ)
+            </button>
+            {% endif %}
+
+            {% if is_system_admin or is_admin_or_lead or user.is_superuser or user.is_staff %}
+            <form method="POST" action="{% url 'officer_delete' officer.pk %}" class="d-inline" onsubmit="return confirm('⚠️ តើលោកអ្នកពិតជាចង់លុបជីវប្រវត្តិមន្ត្រី «{{ officer.full_name_kh }}» (អត្តលេខ: {{ officer.officer_id_number|default:'-' }}) នេះចេញពីប្រព័ន្ធមែនទេ? \n\nសកម្មភាពនេះនឹងលុបប្រវត្តិរូប និងឯកសារយោងទាំងអស់របស់មន្ត្រីរូបនេះ ហើយមិនអាចត្រឡប់វិញបានឡើយ!');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-semibold shadow-sm" title="លុបជីវប្រវត្តិមន្ត្រី (ADMIN ប៉ុណ្ណោះ)">
+                    <i class="fa-solid fa-trash-can me-1.5"></i> លុបជីវប្រវត្តិ
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not can_edit and not is_system_admin %}
+    <!-- Time Window Lock Notice -->
+    <div class="alert alert-warning border-0 rounded-4 shadow-sm p-3 mb-4 d-flex align-items-center gap-3">
+        <div class="bg-warning text-dark p-2.5 rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+            <i class="fa-solid fa-lock fs-5"></i>
+        </div>
+        <div>
+            <h6 class="fw-bold m-0 text-dark">ប្រព័ន្ធបានចាក់សោការកែប្រែទិន្នន័យ (Locked by Admin Schedule)</h6>
+            <span class="fs-8 text-secondary">
+                {{ edit_window.status_label_kh }}
+                {% if edit_window.start_datetime and edit_window.end_datetime %}
+                &bull; កាលវិភាគអនុញ្ញាត៖ {{ edit_window.start_datetime|date:"d/m/Y H:i" }} ដល់ {{ edit_window.end_datetime|date:"d/m/Y H:i" }}
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Main Profile Hero Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <!-- Hero Header -->
+        <div class="card-body p-4 bg-white border-bottom">
+            <div class="row align-items-center g-4">
+                <div class="col-auto">
+                    {% if officer.photo %}
+                    <img src="{{ officer.photo.url }}" alt="{{ officer.full_name_kh }}" class="rounded-4 border shadow-sm object-fit-cover" style="width: 120px; height: 155px;">
+                    {% else %}
+                    <div class="bg-light text-secondary rounded-4 border d-flex flex-column align-items-center justify-content-center shadow-sm" style="width: 120px; height: 155px;">
+                        <i class="fa-solid fa-user fa-3x text-secondary opacity-50 mb-1"></i>
+                        <span class="fs-9 text-muted">គ្មានរូបថត</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-1.5 rounded-pill fw-semibold d-inline-flex align-items-center">
+                            <i class="fa-solid fa-building me-1"></i> {{ officer.department.name_kh|default:"មន្ទីរ" }}
+                            {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+                            <button type="button" class="btn btn-sm btn-link text-success p-0 ms-2 text-decoration-none fw-bold" data-bs-toggle="modal" data-bs-target="#officerTransferModal" title="ផ្លាស់ប្តូរការិយាល័យ">
+                                <i class="fa-solid fa-right-left"></i> ផ្លាស់ប្តូរ
+                            </button>
+                            {% endif %}
+                        </span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1.5 rounded-pill fw-semibold">
+                            <i class="fa-solid fa-user-tie me-1"></i> {{ officer.current_position_title|default:"មន្ត្រី" }}
+                        </span>
+                        {% if officer.current_rank_and_step %}
+                        <span class="badge bg-warning bg-opacity-25 text-dark px-3 py-1.5 rounded-pill fw-semibold">
+                            <i class="fa-solid fa-layer-group me-1"></i> ថ្នាក់ {{ officer.current_rank_and_step }}
+                        </span>
+                        {% endif %}
+                        <span class="badge bg-info bg-opacity-10 text-info px-3 py-1.5 rounded-pill fw-semibold">
+                            <i class="fa-solid fa-paperclip me-1"></i> ឯកសារយោង៖ {{ attachments.count }}
+                        </span>
+                    </div>
+                    <h2 class="fw-bold text-dark m-0 mb-1">{{ officer.full_name_kh }}</h2>
+                    <h5 class="text-muted font-monospace text-uppercase mb-3">{{ officer.full_name_latin|default:"-" }}</h5>
+                    <div class="row g-3 fs-7 text-secondary">
+                        <div class="col-6 col-md-3">
+                            <i class="fa-solid fa-venus-mars text-primary me-1"></i> ភេទ៖ <strong>{{ officer.get_gender_display }}</strong>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <i class="fa-solid fa-calendar text-danger me-1"></i> កំណើត៖ <strong>{{ officer.dob|default:"-" }}</strong>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <i class="fa-solid fa-phone text-success me-1"></i> ទូរស័ព្ទ៖ <strong>{{ officer.phone|default:"-" }}</strong>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <i class="fa-solid fa-envelope text-info me-1"></i> អ៊ីម៉ែល៖ <strong>{{ officer.email|default:"-" }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Sub-Navigation Tabs -->
+        <div class="bg-light px-4 pt-3 border-bottom">
+            <ul class="nav nav-tabs border-bottom-0 gap-2" id="detailTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold text-dark border-0 bg-transparent pb-3 border-bottom border-primary border-3" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-view" type="button" role="tab">
+                        <i class="fa-solid fa-address-card text-primary me-1.5"></i> ជីវប្រវត្តិពេញលេញ (Full Bio)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-secondary border-0 bg-transparent pb-3" id="attachment-tab" data-bs-toggle="tab" data-bs-target="#attachment-view" type="button" role="tab">
+                        <i class="fa-solid fa-paperclip text-info me-1.5"></i> ឯកសារយោង និងភស្តុតាង ({{ attachments.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-secondary border-0 bg-transparent pb-3" id="transfer-tab" data-bs-toggle="tab" data-bs-target="#transfer-view" type="button" role="tab">
+                        <i class="fa-solid fa-right-left text-success me-1.5"></i> ប្រវត្តិផ្លាស់ប្តូរការិយាល័យ ({{ department_transfers.count }})
+                    </button>
+                </li>
+                {% if is_admin_or_lead %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-secondary border-0 bg-transparent pb-3" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit-view" type="button" role="tab">
+                        <i class="fa-solid fa-clock-rotate-left text-warning me-1.5"></i> កំណត់ត្រាសកម្មភាព Admin ({{ audit_logs.count }})
+                    </button>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="tab-content" id="detailTabContent">
+
+            <!-- ==========================================
+                 TAB 1: FULL BIO VIEW (ជីវប្រវត្តិពេញលេញ)
+                 ========================================== -->
+            <div class="tab-pane fade show active p-4 bg-light" id="profile-view" role="tabpanel">
+                <div class="row g-4">
+                    <!-- ក- ព័ត៌មានផ្ទាល់ខ្លួន -->
+                    <div class="col-12">
+                        <div class="card border-0 shadow-xs rounded-4 p-4 bg-white">
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                                <i class="fa-solid fa-id-badge me-2"></i> ក- ព័ត៌មានផ្ទាល់ខ្លួន (Personal Information)
+                            </h6>
+                            <div class="row g-3 fs-7">
+                                <div class="col-12 col-md-4">
+                                    <span class="text-muted d-block fs-8">ជនជាតិ / សញ្ជាតិ៖</span>
+                                    <strong>{{ officer.ethnicity }} / {{ officer.nationality }}</strong>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <span class="text-muted d-block fs-8">អត្តលេខមន្ត្រីរាជការ៖</span>
+                                    <strong class="font-monospace text-primary">{{ officer.officer_id_number|default:"-" }}</strong>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <span class="text-muted d-block fs-8">លេខអត្តសញ្ញាណប័ណ្ណសញ្ជាតិខ្មែរ៖</span>
+                                    <strong class="font-monospace">{{ officer.national_id_number|default:"-" }}</strong>
+                                    {% if officer.national_id_valid_from %}
+                                    <span class="text-muted fs-8">({{ officer.national_id_valid_from }} ដល់ {{ officer.national_id_valid_to|default:"-" }})</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <span class="text-muted d-block fs-8">ទីកន្លែងកំណើត៖</span>
+                                    <strong>{{ officer.pob_full }}</strong>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <span class="text-muted d-block fs-8">អាសយដ្ឋានបច្ចុប្បន្ន៖</span>
+                                    <strong>{{ officer.current_address_full }}</strong>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <span class="text-muted d-block fs-8">អាសយដ្ឋានអចិន្ត្រៃយ៍៖</span>
+                                    <strong>{{ officer.perm_address_full }}</strong>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <span class="text-muted d-block fs-8">កាយសម្បទា៖</span>
+                                    <strong>{{ officer.physical_condition }}</strong>
+                                    {% if officer.disability_detail %}
+                                    <span class="text-danger ms-1">({{ officer.disability_detail }})</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ខ- ព័ត៌មានគ្រួសារ -->
+                    <div class="col-12">
+                        <div class="card border-0 shadow-xs rounded-4 p-4 bg-white">
+                            <h6 class="fw-bold text-info border-bottom pb-2 mb-3">
+                                <i class="fa-solid fa-people-roof me-2"></i> ខ- ព័ត៌មានគ្រួសារ (Family Information)
+                            </h6>
+                            <div class="row g-3 fs-7 mb-4">
+                                <div class="col-12 col-md-4">
+                                    <span class="text-muted d-block fs-8">ស្ថានភាពគ្រួសារ៖</span>
+                                    <span class="badge bg-light text-dark border px-3 py-1.5">{{ officer.get_marital_status_display }}</span>
+                                </div>
+                                {% if officer.spouse_name_kh %}
+                                <div class="col-12 col-md-4">
+                                    <span class="text-muted d-block fs-8">ឈ្មោះប្តី/ប្រពន្ធ៖</span>
+                                    <strong>{{ officer.spouse_name_kh }}</strong> ({{ officer.spouse_name_latin|default:"-" }})
+                                    <span class="badge {% if officer.spouse_is_alive %}bg-success{% else %}bg-secondary{% endif %} bg-opacity-10 text-{% if officer.spouse_is_alive %}success{% else %}secondary{% endif %} ms-1 fs-9">
+                                        {% if officer.spouse_is_alive %}នៅរស់{% else %}ស្លាប់{% endif %}
+                                    </span>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <span class="text-muted d-block fs-8">មុខរបរប្តី/ប្រពន្ធ៖</span>
+                                    <strong>{{ officer.spouse_occupation|default:"-" }}</strong>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- កូនៗ -->
+                            {% if children_list %}
+                            <div class="mb-4">
+                                <div class="fw-bold text-secondary fs-8 mb-2">
+                                    <i class="fa-solid fa-children text-success me-1"></i> បញ្ជីព័ត៌មានកូន (សរុប៖ {{ total_children_count }} នាក់ / ស្រី៖ {{ female_children_count }} នាក់)
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered mb-0 align-middle fs-8">
+                                        <thead class="bg-light text-center">
+                                            <tr>
+                                                <th style="width: 50px;">ល.រ</th>
+                                                <th>គោត្តនាម និងនាមខ្លួន</th>
+                                                <th style="width: 100px;">ភេទ</th>
+                                                <th>ថ្ងៃខែឆ្នាំកំណើត</th>
+                                                <th>មុខរបរ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for c in children_list %}
+                                            <tr>
+                                                <td class="text-center fw-bold">{{ forloop.counter }}</td>
+                                                <td><strong>{{ c.name }}</strong></td>
+                                                <td class="text-center">{{ c.gender }}</td>
+                                                <td>{{ c.dob }}</td>
+                                                <td>{{ c.occupation|default:"ក្នុងបន្ទុក" }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- ឪពុកម្តាយ -->
+                            <div class="row g-3 fs-7">
+                                <div class="col-12 col-md-6">
+                                    <div class="p-3 border rounded-3 bg-light">
+                                        <div class="fw-bold text-primary mb-1">ព័ត៌មានឪពុកបង្កើត</div>
+                                        <div>ឈ្មោះ៖ <strong>{{ officer.father_name|default:"-" }}</strong> ({% if officer.father_is_alive %}នៅរស់{% else %}ស្លាប់{% endif %})</div>
+                                        <div class="text-muted fs-8">មុខរបរ៖ {{ officer.father_occupation|default:"-" }} | ទីកន្លែងកំណើត៖ {{ officer.father_pob|default:"-" }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="p-3 border rounded-3 bg-light">
+                                        <div class="fw-bold text-danger mb-1">ព័ត៌មានម្តាយបង្កើត</div>
+                                        <div>ឈ្មោះ៖ <strong>{{ officer.mother_name|default:"-" }}</strong> ({% if officer.mother_is_alive %}នៅរស់{% else %}ស្លាប់{% endif %})</div>
+                                        <div class="text-muted fs-8">មុខរបរ៖ {{ officer.mother_occupation|default:"-" }} | ទីកន្លែងកំណើត៖ {{ officer.mother_pob|default:"-" }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- គ- ទំនាក់ទំនងអាសន្ន -->
+                    {% if officer.emergency_last_name or officer.emergency_phone %}
+                    <div class="col-12">
+                        <div class="card border-0 shadow-xs rounded-4 p-4 bg-white">
+                            <h6 class="fw-bold text-danger border-bottom pb-2 mb-3">
+                                <i class="fa-solid fa-phone-volume me-2"></i> គ- ព័ត៌មានទំនាក់ទំនងក្នុងករណីមានអាសន្ន (Emergency Contact)
+                            </h6>
+                            <div class="row g-3 fs-7">
+                                <div class="col-12 col-md-4">
+                                    <span class="text-muted d-block fs-8">ឈ្មោះអ្នកទាក់ទង៖</span>
+                                    <strong>{{ officer.emergency_last_name }} {{ officer.emergency_first_name }}</strong> (ត្រូវជា {{ officer.emergency_relationship|default:"-" }})
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <span class="text-muted d-block fs-8">លេខទូរស័ព្ទអាសន្ន៖</span>
+                                    <strong class="text-danger font-monospace fs-6">{{ officer.emergency_phone|default:"-" }}</strong>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <span class="text-muted d-block fs-8">មុខរបរ៖</span>
+                                    <strong>{{ officer.emergency_occupation|default:"-" }}</strong>
+                                </div>
+                                <div class="col-12">
+                                    <span class="text-muted d-block fs-8">អាសយដ្ឋាន៖</span>
+                                    <strong>{{ officer.emergency_address|default:"-" }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ឃ- កម្រិតវប្បធម៌ និងការបណ្តុះបណ្តាល -->
+                    {% if education_list %}
+                    <div class="col-12">
+                        <div class="card border-0 shadow-xs rounded-4 p-4 bg-white">
+                            <h6 class="fw-bold text-success border-bottom pb-2 mb-3">
+                                <i class="fa-solid fa-graduation-cap me-2"></i> ឃ- កម្រិតវប្បធម៌ទូទៅ ការបណ្តុះបណ្តាលមុខវិជ្ជាជីវៈ និងការបណ្តុះបណ្តាលបន្ត
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm align-middle fs-8 mb-0">
+                                    <thead class="bg-light text-center">
+                                        <tr>
+                                            <th>កម្រិតសិក្សា</th>
+                                            <th>គ្រឹះស្ថានសិក្សា បណ្តុះបណ្តាល</th>
+                                            <th>ទីតាំង</th>
+                                            <th>សញ្ញាបត្រ</th>
+                                            <th>ជំនាញ</th>
+                                            <th style="width: 100px;">ចូលរៀន</th>
+                                            <th style="width: 100px;">បញ្ចប់</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for e in education_list %}
+                                        <tr>
+                                            <td><strong>{{ e.level_label|default:"-" }}</strong></td>
+                                            <td>{{ e.school|default:"-" }}</td>
+                                            <td>{{ e.location|default:"-" }}</td>
+                                            <td><span class="badge bg-light text-success border">{{ e.degree|default:"-" }}</span></td>
+                                            <td>{{ e.skill|default:"-" }}</td>
+                                            <td class="text-center">{{ e.start_date|default:"-" }}</td>
+                                            <td class="text-center">{{ e.end_date|default:"-" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ង- ភាសាបរទេស -->
+                    {% if languages_list %}
+                    <div class="col-12">
+                        <div class="card border-0 shadow-xs rounded-4 p-4 bg-white">
+                            <h6 class="fw-bold text-warning text-dark border-bottom pb-2 mb-3">
+                                <i class="fa-solid fa-language me-2 text-warning"></i> ង- ភាសាបរទេស (Foreign Languages)
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm align-middle fs-8 mb-0 text-center">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>ភាសាបរទេស</th>
+                                            <th>ការអាន</th>
+                                            <th>ការសន្ទនា</th>
+                                            <th>ការសរសេរ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for l in languages_list %}
+                                        <tr>
+                                            <td class="fw-bold text-start ps-3">{{ l.language }}</td>
+                                            <td><span class="badge bg-light text-dark border">{{ l.reading }}</span></td>
+                                            <td><span class="badge bg-light text-dark border">{{ l.speaking }}</span></td>
+                                            <td><span class="badge bg-light text-dark border">{{ l.writing }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ច- ក្របខ័ណ្ឌការងារ -->
+                    <div class="col-12">
+                        <div class="card border-0 shadow-xs rounded-4 p-4 bg-white">
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                                <i class="fa-solid fa-briefcase me-2"></i> ច- ក្របខ័ណ្ឌការងារ (Civil Service Framework)
+                            </h6>
+                            <div class="row g-3 fs-7">
+                                <div class="col-12 col-md-3">
+                                    <span class="text-muted d-block fs-8">ថ្ងៃចូលបម្រើក្របខ័ណ្ឌរដ្ឋ៖</span>
+                                    <strong>{{ officer.civil_service_start_date|default:"-" }}</strong>
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <span class="text-muted d-block fs-8">ថ្ងៃតាំងស៊ប់ក្នុងក្របខ័ណ្ឌ៖</span>
+                                    <strong>{{ officer.civil_service_permanent_date|default:"-" }}</strong>
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <span class="text-muted d-block fs-8">ឈ្មោះក្របខ័ណ្ឌ៖</span>
+                                    <strong>{{ officer.framework_name|default:"-" }}</strong>
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <span class="text-muted d-block fs-8">ក្របខណ្ឌ ឋានន្តរស័ក្តិ និងថ្នាក់៖</span>
+                                    <strong class="text-primary font-monospace fs-6">{{ officer.current_rank_and_step|default:"-" }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ឆ- មុខតំណែង និងប្រវត្តិការងារ -->
+                    <div class="col-12">
+                        <div class="card border-0 shadow-xs rounded-4 p-4 bg-white">
+                            <h6 class="fw-bold text-info border-bottom pb-2 mb-3">
+                                <i class="fa-solid fa-timeline me-2"></i> ឆ- មុខតំណែង និងប្រវត្តិការងារ (Work History & Promotions)
+                            </h6>
+                            
+                            <!-- ឆ.១.១ Public Sector -->
+                            {% if pub_history_list %}
+                            <div class="mb-4">
+                                <div class="fw-bold text-primary fs-8 mb-2">ឆ.១.១- ក្នុងវិស័យសាធារណៈ (Public Sector)</div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm align-middle fs-8 mb-0">
+                                        <thead class="bg-light text-center">
+                                            <tr>
+                                                <th>ថ្ងៃចូល</th>
+                                                <th>ថ្ងៃបញ្ចប់</th>
+                                                <th>ក្រសួង-ស្ថាប័ន</th>
+                                                <th>នាយកដ្ឋាន-អង្គភាព</th>
+                                                <th>មុខតំណែង</th>
+                                                <th>ជំនាញ/បច្ចេកទេស</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for h in pub_history_list %}
+                                            <tr>
+                                                <td class="text-center">{{ h.start_date }}</td>
+                                                <td class="text-center">{{ h.end_date }}</td>
+                                                <td>{{ h.ministry }}</td>
+                                                <td>{{ h.department }}</td>
+                                                <td><strong>{{ h.position }}</strong></td>
+                                                <td>{{ h.skill }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- ឆ.២ Promotion by Seniority -->
+                            {% if promo_seniority_list %}
+                            <div class="mb-3">
+                                <div class="fw-bold text-success fs-8 mb-2">ឆ.២- ការដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់តាមវេនជ្រើសរើស អតីតភាព ឬប្រឡង</div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm align-middle fs-8 mb-0">
+                                        <thead class="bg-light text-center">
+                                            <tr>
+                                                <th>ថ្ងៃសុពលភាព</th>
+                                                <th>ក្រសួង-ស្ថាប័ន</th>
+                                                <th>អង្គភាព</th>
+                                                <th>ការិយាល័យ</th>
+                                                <th>ថ្នាក់ចាស់</th>
+                                                <th>ថ្នាក់ថ្មី</th>
+                                                <th>ប្រភេទ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for p in promo_seniority_list %}
+                                            <tr>
+                                                <td class="text-center">{{ p.effective_date }}</td>
+                                                <td>{{ p.ministry }}</td>
+                                                <td>{{ p.department }}</td>
+                                                <td>{{ p.office }}</td>
+                                                <td class="text-center">{{ p.old_rank_step }}</td>
+                                                <td class="text-center font-monospace fw-bold text-success">{{ p.new_rank_step }}</td>
+                                                <td>{{ p.promo_type }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- ជ- ការលើកសរសើរ ឬទណ្ឌកម្មវិន័យ -->
+                    {% if awards_list or sanctions_list %}
+                    <div class="col-12">
+                        <div class="card border-0 shadow-xs rounded-4 p-4 bg-white">
+                            <h6 class="fw-bold text-warning text-dark border-bottom pb-2 mb-3">
+                                <i class="fa-solid fa-medal me-2 text-warning"></i> ជ- ការលើកសរសើរ ឬទណ្ឌកម្មវិន័យ (Awards & Sanctions)
+                            </h6>
+                            {% if awards_list %}
+                            <div class="mb-3">
+                                <div class="fw-bold text-warning text-dark fs-8 mb-2">ជ.១- ការលើកសរសើរ (គ្រឿងឥស្សរិយយស មេដាយ ប័ណ្ណសរសើរ)</div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm align-middle fs-8 mb-0">
+                                        <thead class="bg-light text-center">
+                                            <tr>
+                                                <th>លេខលិខិត</th>
+                                                <th>កាលបរិច្ឆេទ</th>
+                                                <th>ក្រសួង/ស្ថាប័ន</th>
+                                                <th>បរិយាយ</th>
+                                                <th>ប្រភេទមេដាយ/ថ្នាក់</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for a in awards_list %}
+                                            <tr>
+                                                <td class="font-monospace">{{ a.doc_number }}</td>
+                                                <td class="text-center">{{ a.date }}</td>
+                                                <td>{{ a.ministry }}</td>
+                                                <td>{{ a.description }}</td>
+                                                <td><span class="badge bg-warning text-dark">{{ a.type }}</span></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TAB 2: REFERENCE ATTACHMENTS (ឯកសារយោង)
+                 ========================================== -->
+            <div class="tab-pane fade p-4 bg-light" id="attachment-view" role="tabpanel">
+                <div class="card border-0 shadow-xs rounded-4 p-4 bg-white mb-4">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                        <div>
+                            <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-paperclip text-info me-2"></i> បញ្ជីឯកសារយោង និងភស្តុតាងភ្ជាប់ ({{ attachments.count }})</h5>
+                            <p class="text-muted small m-0">ឯកសារយោងត្រូវបានបែងចែកតាមមុខងារ/ផ្នែក និងកត់ត្រា History ទុកក្នុង Audit Log គ្រប់សកម្មភាព</p>
+                        </div>
+                        {% if can_edit %}
+                        <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAttachmentModal">
+                            <i class="fa-solid fa-cloud-arrow-up me-1.5"></i> + បញ្ចូលឯកសារយោងថ្មី
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- Category Filter Buttons -->
+                    <div class="d-flex flex-wrap gap-2 mb-4 pb-2 border-bottom">
+                        <button class="btn btn-sm btn-outline-dark rounded-pill active attachment-filter-btn" onclick="filterAttachments('ALL', this)">
+                            ទាំងអស់ ({{ attachments.count }})
+                        </button>
+                        {% for cat_code, cat_name in attachment_categories %}
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill attachment-filter-btn" onclick="filterAttachments('{{ cat_code }}', this)">
+                            {{ cat_name }}
+                        </button>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Attachments List / Grid -->
+                    <div class="row g-3" id="attachmentsGrid">
+                        {% for att in attachments %}
+                        <div class="col-12 col-md-6 col-lg-4 attachment-card" data-category="{{ att.category }}">
+                            <div class="card h-100 border rounded-4 shadow-xs p-3 hover-shadow transition-all bg-white">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="p-3 rounded-3 {% if att.is_pdf %}bg-danger bg-opacity-10 text-danger{% elif att.is_image %}bg-success bg-opacity-10 text-success{% else %}bg-primary bg-opacity-10 text-primary{% endif %} fs-3 d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                                        {% if att.is_pdf %}
+                                        <i class="fa-solid fa-file-pdf"></i>
+                                        {% elif att.is_image %}
+                                        <i class="fa-solid fa-file-image"></i>
+                                        {% else %}
+                                        <i class="fa-solid fa-file-lines"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        <span class="badge bg-light text-primary border mb-1 fs-9">{{ att.get_category_display }}</span>
+                                        <h6 class="fw-bold text-dark m-0 text-truncate" title="{{ att.title }}">{{ att.title }}</h6>
+                                        <div class="text-muted fs-8">
+                                            {% if att.doc_number %}<span class="me-2">លេខ៖ <strong>{{ att.doc_number }}</strong></span>{% endif %}
+                                            {% if att.issued_date %}<span>កាលបរិច្ឆេទ៖ {{ att.issued_date }}</span>{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% if att.description %}
+                                <p class="text-muted fs-8 mb-3 bg-light p-2 rounded-3 text-truncate">{{ att.description }}</p>
+                                {% endif %}
+
+                                <div class="d-flex justify-content-between align-items-center text-muted fs-9 pt-2 border-top mt-auto">
+                                    <span><i class="fa-solid fa-hard-drive me-1"></i> {{ att.formatted_file_size }}</span>
+                                    <span>{{ att.created_at|date:"d/m/Y H:i" }}</span>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between gap-1 mt-3 pt-2 border-top">
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fs-8" onclick="previewOfficerAttachment('{% url 'officer_attachment_view' officer.pk att.pk %}', '{{ att.title|escapejs }}', '{{ att.file_extension }}')">
+                                            <i class="fa-solid fa-eye me-1"></i> មើល
+                                        </button>
+                                        <a href="{% url 'officer_attachment_download' officer.pk att.pk %}" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 fs-8" title="ទាញយក">
+                                            <i class="fa-solid fa-download"></i>
+                                        </a>
+                                    </div>
+
+                                    {% if can_edit %}
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-2.5 py-1 fs-8" title="កែប្រែ/ប្តូរ File ថ្មី" onclick="openEditAttachmentModal('{{ att.pk }}', '{{ att.category }}', '{{ att.title|escapejs }}', '{{ att.doc_number|escapejs }}', '{{ att.issued_date|escapejs }}', '{{ att.description|escapejs }}')">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <form method="POST" action="{% url 'officer_attachment_delete' officer.pk att.pk %}" class="d-inline" onsubmit="return confirm('⚠️ តើលោកអ្នកពិតជាចង់លុបឯកសារយោង «{{ att.title|escapejs }}» នេះមែនទេ? សកម្មភាពនេះនឹងត្រូវ Record ក្នុង Audit Log។');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 fs-8" title="លុប">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center py-5 text-muted">
+                            <i class="fa-solid fa-paperclip fa-3x mb-3 text-secondary opacity-50 d-block"></i>
+                            <div class="fw-bold fs-6">ពុំទាន់មានឯកសារយោងនៅឡើយទេ</div>
+                            <p class="small text-muted mb-3">លោកអ្នកអាចបញ្ចូលឯកសារអត្តសញ្ញាណប័ណ្ណ សំបុត្រកំណើត សញ្ញាបត្រ ប្រកាសតែងតាំង ឬលិខិតសរសើរ...</p>
+                            {% if can_edit %}
+                            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3.5 py-2" data-bs-toggle="modal" data-bs-target="#addAttachmentModal">
+                                <i class="fa-solid fa-cloud-arrow-up me-1"></i> + បញ្ចូលឯកសារយោងដំបូង
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TAB 3: AUDIT LOG (កំណត់ត្រាសកម្មភាព ADMIN)
+                 ========================================== -->
+            {% if is_admin_or_lead %}
+            <div class="tab-pane fade p-4 bg-light" id="audit-view" role="tabpanel">
+                <div class="card border-0 shadow-xs rounded-4 p-4 bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-shield-halved text-warning me-2"></i> កំណត់ត្រាសកម្មភាព & Audit Log របស់មន្ត្រីនេះ</h5>
+                            <p class="text-muted small m-0">កត់ត្រារាល់ពេលមានអ្នក បញ្ចូល មើល កែប្រែ ឬលុបឯកសារយោង និងជីវប្រវត្តិ</p>
+                        </div>
+                        <a href="{% url 'officer_audit_trail' %}?q={{ officer.officer_id_number|default:officer.full_name_kh }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+                            <i class="fa-solid fa-up-right-from-square me-1"></i> មើលក្នុងផ្ទាំងធំ Audit Center
+                        </a>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 fs-8">
+                            <thead class="bg-light text-muted text-uppercase">
+                                <tr>
+                                    <th style="width: 160px;">កាលបរិច្ឆេទ-ម៉ោង</th>
+                                    <th style="width: 140px;">អ្នកធ្វើសកម្មភាព</th>
+                                    <th style="width: 150px;">ប្រភេទសកម្មភាព</th>
+                                    <th>ព័ត៌មានលម្អិត (Details)</th>
+                                    <th style="width: 120px;">IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in audit_logs %}
+                                <tr>
+                                    <td class="font-monospace text-muted">{{ log.timestamp|date:"d/m/Y H:i:s" }}</td>
+                                    <td>
+                                        <div class="fw-bold text-dark">{{ log.user.get_full_name|default:log.user.username|default:"ប្រព័ន្ធ" }}</div>
+                                        <span class="text-muted fs-9 font-monospace">@{{ log.user.username|default:"system" }}</span>
+                                    </td>
+                                    <td>
+                                        {% if log.action_type == 'UPLOAD' %}
+                                        <span class="badge bg-success bg-opacity-10 text-success px-2.5 py-1"><i class="fa-solid fa-cloud-arrow-up me-1"></i> បញ្ចូលថ្មី</span>
+                                        {% elif log.action_type == 'EDIT' %}
+                                        <span class="badge bg-warning bg-opacity-25 text-dark px-2.5 py-1"><i class="fa-solid fa-pen-to-square me-1"></i> កែប្រែ/ប្តូរ</span>
+                                        {% elif log.action_type == 'DELETE' %}
+                                        <span class="badge bg-danger bg-opacity-10 text-danger px-2.5 py-1"><i class="fa-solid fa-trash me-1"></i> លុប</span>
+                                        {% elif log.action_type == 'VIEW' %}
+                                        <span class="badge bg-info bg-opacity-10 text-info px-2.5 py-1"><i class="fa-solid fa-eye me-1"></i> មើល/ទាញយក</span>
+                                        {% else %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary px-2.5 py-1">{{ log.get_action_type_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="text-dark">{{ log.details|default:log.attachment_title }}</div>
+                                        {% if log.category %}<span class="badge bg-light text-muted border fs-9">{{ log.category }}</span>{% endif %}
+                                    </td>
+                                    <td><span class="badge bg-light text-secondary font-monospace">{{ log.ip_address|default:"127.0.0.1" }}</span></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">ពុំទាន់មានកំណត់ត្រាសកម្មភាពនៅឡើយទេ</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ==========================================
+                 TAB 4: DEPARTMENT TRANSFERS (ប្រវត្តិនៃការផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ)
+                 ========================================== -->
+            <div class="tab-pane fade p-4 bg-light" id="transfer-view" role="tabpanel">
+                <div class="card border-0 shadow-xs rounded-4 p-4 bg-white">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 border-bottom pb-3 mb-4">
+                        <div>
+                            <h5 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-right-left text-success"></i>
+                                ប្រវត្តិនៃការផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ (Working & Transfer History)
+                            </h5>
+                            <p class="text-muted fs-8 m-0 mt-1">កត់ត្រារាល់ការផ្ទេរការិយាល័យ ប្តូរមុខតំណែង និងឯកសារបង្គាប់ការផ្លូវការរបស់មន្ត្រី</p>
+                        </div>
+                        {% if is_admin_or_lead %}
+                        <button type="button" class="btn btn-indigo rounded-pill px-3.5 py-1.5 fw-bold text-white shadow-xs" style="background-color: #4f46e5;" data-bs-toggle="modal" data-bs-target="#officerTransferModal">
+                            <i class="fa-solid fa-right-left me-1.5"></i> ផ្លាស់ប្តូរការិយាល័យថ្មី
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {% if department_transfers %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle border text-nowrap rounded-3 overflow-hidden">
+                            <thead class="table-light fs-8 text-uppercase">
+                                <tr>
+                                    <th class="text-center" style="width: 50px;">ល.រ</th>
+                                    <th>កាលបរិច្ឆេទផ្ទេរ</th>
+                                    <th>ពីការិយាល័យ/ខណ្ឌ</th>
+                                    <th></th>
+                                    <th>ទៅការិយាល័យ/ខណ្ឌថ្មី</th>
+                                    <th>មុខតំណែងថ្មី</th>
+                                    <th>លេខលិខិតផ្ទេរ</th>
+                                    <th>ឯកសារយោង</th>
+                                    <th>អ្នកធ្វើការផ្លាស់ប្តូរ (Admin)</th>
+                                    {% if is_admin_or_lead %}
+                                    <th class="text-center" style="width: 80px;">សកម្មភាព</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody class="fs-7">
+                                {% for t in department_transfers %}
+                                <tr>
+                                    <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
+                                    <td>
+                                        <span class="fw-bold text-dark">
+                                            <i class="fa-solid fa-calendar-day text-primary me-1"></i>
+                                            {{ t.transfer_date|date:"d/m/Y"|default:"-" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if t.from_department %}
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-semibold fs-8">
+                                            {{ t.from_department.name_kh }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted fs-8">គ្មាន</span>
+                                        {% endif %}
+                                        {% if t.from_position_title %}
+                                        <div class="fs-9 text-muted">{{ t.from_position_title }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center px-1">
+                                        <i class="fa-solid fa-arrow-right text-primary"></i>
+                                    </td>
+                                    <td>
+                                        {% if t.to_department %}
+                                        <span class="badge bg-primary text-white fw-bold fs-8">
+                                            {{ t.to_department.name_kh }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted fs-8">គ្មាន</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong class="text-dark">{{ t.to_position_title|default:officer.current_position_title|default:"-" }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if t.reference_letter_number %}
+                                        <span class="badge bg-light text-secondary border font-monospace fs-8">
+                                            {{ t.reference_letter_number }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if t.transfer_document %}
+                                        <a href="{{ t.transfer_document.url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-0.5 fs-8">
+                                            <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលឯកសារ
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted fs-9">គ្មានឯកសារ</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if t.transferred_by %}
+                                        <span class="fw-semibold text-dark">{{ t.transferred_by.get_full_name|default:t.transferred_by.username }}</span>
+                                        <div class="fs-9 text-muted">{{ t.created_at|date:"d/m/Y H:i" }}</div>
+                                        {% else %}
+                                        <span class="text-muted">ប្រព័ន្ធ</span>
+                                        {% endif %}
+                                    </td>
+                                    {% if is_admin_or_lead %}
+                                    <td class="text-center">
+                                        <form method="POST" action="{% url 'officer_transfer_delete' officer.pk t.pk %}" class="d-inline" onsubmit="return confirm('⚠️ តើលោកអ្នកពិតជាចង់លុបកំណត់ត្រាប្រវត្តិផ្លាស់ប្តូរការិយាល័យនេះមែនទេ?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle p-1" title="លុបប្រវត្តិ">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% if t.remarks %}
+                                <tr class="bg-light bg-opacity-50">
+                                    <td></td>
+                                    <td colspan="{% if is_admin_or_lead %}9{% else %}8{% endif %}" class="py-1.5 px-3">
+                                        <span class="fs-8 text-muted"><strong>កំណត់សម្គាល់៖</strong> {{ t.remarks }}</span>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <div class="bg-light text-secondary rounded-circle d-inline-flex align-items-center justify-content-center p-3 mb-3" style="width: 60px; height: 60px;">
+                            <i class="fa-solid fa-arrows-split-up-and-left fs-3 text-secondary opacity-50"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">ពុំទាន់មានប្រវត្តិផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌនៅឡើយ</h6>
+                        <p class="fs-8 text-muted mb-0">មន្ត្រីរូបនេះបច្ចុប្បន្នកំពុងបម្រើការងារនៅ <strong>«{{ officer.display_department_name }}»</strong></p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL 1: ADD ATTACHMENT (បញ្ចូលឯកសារយោង)
+     ========================================== -->
+<div class="modal fade" id="addAttachmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white py-3 px-4">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-paperclip me-2"></i> បញ្ចូលឯកសារយោង និងភស្តុតាងថ្មី</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'officer_attachment_add' officer.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">មុខងារ / ផ្នែកនៃឯកសារយោង <span class="text-danger">*</span></label>
+                            <select name="category" class="form-select" required>
+                                {% for cat_code, cat_name in attachment_categories %}
+                                <option value="{{ cat_code }}" {% if cat_code == 'PERSONAL' %}selected{% endif %}>{{ cat_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-8">
+                            <label class="form-label fw-bold">ចំណងជើង / ឈ្មោះឯកសារ <span class="text-danger">*</span></label>
+                            <input type="text" name="title" class="form-control" placeholder="ឧ. សំបុត្រកំណើត, សញ្ញាបត្របរិញ្ញាបត្រ, ប្រកាសតែងតាំង..." required>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold">លេខលិខិត / ឯកសារ</label>
+                            <input type="text" name="doc_number" class="form-control" placeholder="ឧ. លេខ ៣៣៥ អនក្រ.តត">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold">កាលបរិច្ឆេទចេញលិខិត</label>
+                            <input type="text" name="issued_date" class="form-control" placeholder="ឧ. ២៥/មេសា/២០២២">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold">ជ្រើសរើស File ឯកសារ (PDF, រូបភាព...) <span class="text-danger">*</span> <span class="badge bg-danger bg-opacity-10 text-danger fs-9">អតិបរមា 2MB</span></label>
+                            <input type="file" name="file" class="form-control" required accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx" onchange="validateFileSize(this)">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">ការពិពណ៌នា / កំណត់ចំណាំ</label>
+                            <textarea name="description" class="form-control" rows="2" placeholder="ព័ត៌មានបន្ថែម (ប្រសិនបើមាន)..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                        <i class="fa-solid fa-cloud-arrow-up me-1.5"></i> រក្សាទុកឯកសារ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL 2: EDIT / REPLACE ATTACHMENT (កែប្រែ/ប្តូរឯកសារ)
+     ========================================== -->
+<div class="modal fade" id="editAttachmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-warning text-dark py-3 px-4">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i> កែប្រែ ឬប្តូរ File ឯកសារយោងថ្មី</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editAttachmentForm" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">មុខងារ / ផ្នែកនៃឯកសារយោង <span class="text-danger">*</span></label>
+                            <select name="category" id="edit_category" class="form-select" required>
+                                {% for cat_code, cat_name in attachment_categories %}
+                                <option value="{{ cat_code }}">{{ cat_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-8">
+                            <label class="form-label fw-bold">ចំណងជើង / ឈ្មោះឯកសារ <span class="text-danger">*</span></label>
+                            <input type="text" name="title" id="edit_title" class="form-control" required>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold">លេខលិខិត / ឯកសារ</label>
+                            <input type="text" name="doc_number" id="edit_doc_number" class="form-control">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold">កាលបរិច្ឆេទចេញលិខិត</label>
+                            <input type="text" name="issued_date" id="edit_issued_date" class="form-control">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold">ប្តូរ File ថ្មីជំនួស (ទុកទំនេរ បើមិនប្តូរ) <span class="badge bg-danger bg-opacity-10 text-danger fs-9">អតិបរមា 2MB</span></label>
+                            <input type="file" name="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx" onchange="validateFileSize(this)">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">ការពិពណ៌នា / កំណត់ចំណាំ</label>
+                            <textarea name="description" id="edit_description" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark">
+                        <i class="fa-solid fa-floppy-disk me-1.5"></i> រក្សាទុកការកែប្រែ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL: OFFICER DEPARTMENT TRANSFER (ផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ - ADMIN)
+     ========================================== -->
+{% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+<div class="modal fade" id="officerTransferModal" tabindex="-1" aria-labelledby="officerTransferModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" action="{% url 'officer_transfer' officer.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header text-white px-4 py-3 border-0" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="bg-white bg-opacity-20 p-2 rounded-circle">
+                            <i class="fa-solid fa-right-left text-white fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold m-0" id="officerTransferModalLabel">ផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌបំពេញការងារ (មន្ត្រីរាជការ)</h5>
+                            <p class="fs-8 text-white text-opacity-75 m-0">{{ officer.full_name_kh }} &bull; ការិយាល័យបច្ចុប្បន្ន៖ {{ officer.display_department_name }}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4 bg-white">
+                    <div class="alert alert-primary bg-primary bg-opacity-10 border-0 rounded-3 p-3 mb-4 d-flex align-items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-primary mt-0.5"></i>
+                        <div class="fs-8 text-dark">
+                            <strong>កំណត់ចំណាំរដ្ឋបាល (Admin Transfer):</strong>
+                            ការផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ នឹងធ្វើបច្ចុប្បន្នភាពទីតាំងបម្រើការងាររបស់មន្ត្រី បញ្ចូលក្នុងប្រវត្តិការងារសាធារណៈ និងរក្សាទុកប្រវត្តិនៃការផ្លាស់ប្តូរ (Transfer Log) ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ការិយាល័យ/ខណ្ឌបច្ចុប្បន្ន</label>
+                            <input type="text" class="form-control bg-light fs-7" value="{{ officer.display_department_name }}" readonly disabled>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ទៅកាន់ការិយាល័យ/ខណ្ឌថ្មី <span class="text-danger">*</span></label>
+                            <select name="target_department" class="form-select fs-7" required>
+                                <option value="">-- សូមជ្រើសរើសការិយាល័យ/ខណ្ឌ --</option>
+                                {% for d in all_departments %}
+                                <option value="{{ d.id }}" {% if officer.department_id == d.id %}selected{% endif %}>
+                                    {{ d.name_kh }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">មុខតំណែងថ្មី (Position Title)</label>
+                            <input type="text" name="current_position_title" class="form-control fs-7" value="{{ officer.current_position_title|default:'មន្ត្រី' }}" placeholder="ឧ. ប្រធានការិយាល័យ, អនុប្រធាន...">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">កាលបរិច្ឆេទចូលកាន់តំណែងថ្មី/ផ្ទេរ <span class="text-danger">*</span></label>
+                            <input type="date" name="transfer_date" class="form-control fs-7" value="{% now 'Y-m-d' %}" required>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">លេខលិខិតផ្ទេរ/ប្រកាស/សេចក្តីសម្រេច</label>
+                            <input type="text" name="reference_letter_number" class="form-control fs-7" placeholder="ឧ. លេខ ០៥៤ ប្រក.កសក...">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ឯកសារលិខិតផ្ទេរភ្ជាប់ (PDF / រូបភាព)</label>
+                            <input type="file" name="transfer_document" class="form-control fs-7" accept=".pdf,image/*,.doc,.docx">
+                            <small class="text-muted fs-9">ភ្ជាប់ឯកសារប្រកាស ឬលិខិតបង្គាប់ការផ្លាស់ប្តូរ</small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-8">មូលហេតុ ឬកំណត់សម្គាល់បន្ថែម</label>
+                            <textarea name="remarks" class="form-control fs-7" rows="2" placeholder="បញ្ជាក់មូលហេតុនៃការផ្លាស់ប្តូរការិយាល័យ..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-top">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fs-7 fw-bold shadow-xs">
+                        <i class="fa-solid fa-check me-1"></i> រក្សាទុក និងផ្លាស់ប្តូរការិយាល័យ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ==========================================
+     MODAL 3: IN-APP DOCUMENT PREVIEW (មើលឯកសារដោយមិនបាច់ Download / មិនទាក់ IDM)
+     ========================================== -->
+<div class="modal fade" id="officerDocPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 94vw; height: 92vh;">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden h-100 d-flex flex-column">
+            <!-- Header -->
+            <div class="modal-header bg-dark text-white py-2.5 px-3.5 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2 overflow-hidden">
+                    <i class="fa-solid fa-file-lines text-warning fs-5 flex-shrink-0"></i>
+                    <h6 class="modal-title fw-bold m-0 text-truncate" id="previewModalTitle" style="max-width: 35vw;">មើលឯកសារយោង</h6>
+                </div>
+                
+                <!-- PDF Controls Toolbar (Shown when viewing PDF) -->
+                <div id="pdfControls" class="d-none d-flex align-items-center gap-1.5 bg-secondary bg-opacity-25 px-2.5 py-1 rounded-pill border border-secondary border-opacity-50">
+                    <button type="button" class="btn btn-xs btn-outline-light rounded-circle" id="prevPdfBtn" onclick="prevPdfPage()" title="ទំព័រមុន" style="width: 28px; height: 28px; padding: 0;">
+                        <i class="fa-solid fa-chevron-left fs-8"></i>
+                    </button>
+                    <span class="text-light fs-8 font-monospace px-1">
+                        ទំព័រ <span id="pdfCurrentPage" class="fw-bold text-warning">1</span> / <span id="pdfTotalPages">1</span>
+                    </span>
+                    <button type="button" class="btn btn-xs btn-outline-light rounded-circle" id="nextPdfBtn" onclick="nextPdfPage()" title="ទំព័របន្ទាប់" style="width: 28px; height: 28px; padding: 0;">
+                        <i class="fa-solid fa-chevron-right fs-8"></i>
+                    </button>
+                    <div class="vr bg-secondary mx-1" style="height: 16px;"></div>
+                    <button type="button" class="btn btn-xs btn-outline-light rounded-circle" onclick="zoomOutPdf()" title="Zoom Out (-)" style="width: 28px; height: 28px; padding: 0;">
+                        <i class="fa-solid fa-magnifying-glass-minus fs-8"></i>
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-light rounded-circle" onclick="zoomInPdf()" title="Zoom In (+)" style="width: 28px; height: 28px; padding: 0;">
+                        <i class="fa-solid fa-magnifying-glass-plus fs-8"></i>
+                    </button>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex align-items-center gap-2">
+                    <a id="previewDownloadBtn" href="#" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-xs">
+                        <i class="fa-solid fa-download me-1"></i> ទាញយក (Download)
+                    </a>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Body Viewer -->
+            <div class="modal-body p-0 flex-grow-1 position-relative d-flex flex-column align-items-center justify-content-start overflow-auto" id="previewModalBody" style="background-color: #525659 !important;">
+                
+                <!-- Loading indicator -->
+                <div id="previewLoader" class="text-center p-5 my-auto">
+                    <div class="spinner-border text-warning mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                    <div class="text-light fw-bold fs-6">កំពុងដំណើរការទាញឯកសារមកបង្ហាញ...</div>
+                    <div class="text-white-50 fs-8 mt-1">សូមរង់ចាំបន្តិច ឯកសារនឹងបង្ហាញក្នុងផ្ទាំងនេះ</div>
+                </div>
+
+                <!-- PDF Canvas Container -->
+                <div id="pdfCanvasContainer" class="d-none w-100 d-flex flex-column align-items-center py-3"></div>
+
+                <!-- Image Viewer Container -->
+                <div id="imageViewerContainer" class="d-none w-100 h-100 d-flex align-items-center justify-content-center p-3">
+                    <img id="docPreviewImg" src="" class="img-fluid mh-100 object-fit-contain shadow-lg rounded bg-white" alt="Preview">
+                </div>
+
+                <!-- Fallback / Unsupported Container -->
+                <div id="unsupportedDocContainer" class="d-none text-center p-4 my-auto bg-white rounded-4 shadow-sm border" style="max-width: 450px;">
+                    <i class="fa-solid fa-file-lines fa-3x text-primary mb-3 d-block"></i>
+                    <h6 class="fw-bold text-dark mb-1" id="unsupportedDocTitle">ឯកសារភ្ជាប់</h6>
+                    <p class="text-muted small mb-3">ប្រភេទឯកសារនេះតម្រូវឱ្យទាញយកដើម្បីមើលលើកុំព្យូទ័រ</p>
+                    <a id="unsupportedDownloadBtn" href="#" class="btn btn-primary rounded-pill px-4 fw-bold">
+                        <i class="fa-solid fa-download me-1"></i> ទាញយកឯកសារនេះ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PDF.js CDN for In-App Canvas PDF Viewer -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+function validateFileSize(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const maxSizeBytes = 2 * 1024 * 1024; // 2MB
+        if (file.size > maxSizeBytes) {
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            alert(`⚠️ ទំហំឯកសារ «${file.name}» គឺ ${fileSizeMB}MB ដែលលើសពីកម្រិតកំណត់ 2MB!\n\nសូមជ្រើសរើសឯកសារដែលមានទំហំត្រឹម 2MB ឬតូចជាងនេះ។`);
+            input.value = '';
+            return false;
+        }
+    }
+    return true;
+}
+
+function filterAttachments(category, btn) {
+    document.querySelectorAll('.attachment-filter-btn').forEach(b => b.classList.remove('active', 'btn-outline-dark'));
+    document.querySelectorAll('.attachment-filter-btn').forEach(b => b.classList.add('btn-outline-secondary'));
+    btn.classList.add('active', 'btn-outline-dark');
+    btn.classList.remove('btn-outline-secondary');
+
+    const cards = document.querySelectorAll('.attachment-card');
+    cards.forEach(card => {
+        if (category === 'ALL' || card.getAttribute('data-category') === category) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function openEditAttachmentModal(id, category, title, docNumber, issuedDate, description) {
+    const form = document.getElementById('editAttachmentForm');
+    form.action = `/officers/{{ officer.pk }}/attachments/${id}/edit/`;
+    document.getElementById('edit_category').value = category;
+    document.getElementById('edit_title').value = title;
+    document.getElementById('edit_doc_number').value = docNumber;
+    document.getElementById('edit_issued_date').value = issuedDate;
+    document.getElementById('edit_description').value = description;
+
+    const modal = new bootstrap.Modal(document.getElementById('editAttachmentModal'));
+    modal.show();
+}
+
+let currentPdfDoc = null;
+let currentPdfPage = 1;
+let currentPdfScale = 1.25;
+
+async function previewOfficerAttachment(viewUrl, title, ext) {
+    document.getElementById('previewModalTitle').innerText = title;
+    const downloadUrl = viewUrl.replace('/view/', '/download/');
+    document.getElementById('previewDownloadBtn').href = downloadUrl;
+    document.getElementById('unsupportedDownloadBtn').href = downloadUrl;
+    document.getElementById('unsupportedDocTitle').innerText = title;
+
+    const loader = document.getElementById('previewLoader');
+    const pdfControls = document.getElementById('pdfControls');
+    const pdfContainer = document.getElementById('pdfCanvasContainer');
+    const imgContainer = document.getElementById('imageViewerContainer');
+    const img = document.getElementById('docPreviewImg');
+    const unsupported = document.getElementById('unsupportedDocContainer');
+
+    loader.classList.remove('d-none');
+    pdfControls.classList.add('d-none');
+    pdfContainer.classList.add('d-none');
+    pdfContainer.innerHTML = '';
+    imgContainer.classList.add('d-none');
+    unsupported.classList.add('d-none');
+
+    const modalEl = document.getElementById('officerDocPreviewModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    const fileExt = (ext || '').toLowerCase();
+    const isImage = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].some(e => fileExt.endsWith(e) || viewUrl.toLowerCase().includes(e));
+    const isPdf = fileExt.endsWith('.pdf') || viewUrl.toLowerCase().includes('.pdf') || fileExt === 'pdf' || (!isImage && !fileExt.includes('.doc') && !fileExt.includes('.xls'));
+
+    if (isImage) {
+        img.src = viewUrl;
+        img.onload = () => {
+            loader.classList.add('d-none');
+            imgContainer.classList.remove('d-none');
+        };
+        img.onerror = () => {
+            loader.classList.add('d-none');
+            unsupported.classList.remove('d-none');
+        };
+    } else if (isPdf) {
+        try {
+            // Fetch via JS fetch in memory -> completely bypasses IDM download popup!
+            const res = await fetch(viewUrl, { credentials: 'same-origin' });
+            if (!res.ok) throw new Error("HTTP error " + res.status);
+            const arrayBuffer = await res.arrayBuffer();
+
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            currentPdfDoc = await loadingTask.promise;
+            currentPdfPage = 1;
+            document.getElementById('pdfTotalPages').textContent = currentPdfDoc.numPages;
+
+            loader.classList.add('d-none');
+            pdfContainer.classList.remove('d-none');
+            pdfControls.classList.remove('d-none');
+
+            renderPdfPage(currentPdfPage);
+        } catch (err) {
+            console.error("PDF preview error:", err);
+            loader.classList.add('d-none');
+            unsupported.classList.remove('d-none');
+        }
+    } else {
+        loader.classList.add('d-none');
+        unsupported.classList.remove('d-none');
+    }
+}
+
+async function renderPdfPage(pageNum) {
+    if (!currentPdfDoc) return;
+    try {
+        const page = await currentPdfDoc.getPage(pageNum);
+        const viewport = page.getViewport({ scale: currentPdfScale });
+        const container = document.getElementById('pdfCanvasContainer');
+        container.innerHTML = '';
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'shadow-lg rounded bg-white my-2';
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        container.appendChild(canvas);
+
+        await page.render({
+            canvasContext: context,
+            viewport: viewport
+        }).promise;
+
+        document.getElementById('pdfCurrentPage').textContent = pageNum;
+        document.getElementById('prevPdfBtn').disabled = (pageNum <= 1);
+        document.getElementById('nextPdfBtn').disabled = (pageNum >= currentPdfDoc.numPages);
+    } catch (e) {
+        console.error("Render PDF page error:", e);
+    }
+}
+
+function prevPdfPage() {
+    if (currentPdfDoc && currentPdfPage > 1) {
+        currentPdfPage--;
+        renderPdfPage(currentPdfPage);
+    }
+}
+
+function nextPdfPage() {
+    if (currentPdfDoc && currentPdfPage < currentPdfDoc.numPages) {
+        currentPdfPage++;
+        renderPdfPage(currentPdfPage);
+    }
+}
+
+function zoomInPdf() {
+    currentPdfScale = Math.min(currentPdfScale + 0.2, 2.5);
+    renderPdfPage(currentPdfPage);
+}
+
+function zoomOutPdf() {
+    currentPdfScale = Math.max(currentPdfScale - 0.2, 0.6);
+    renderPdfPage(currentPdfPage);
+}
+</script>
+{% endblock %}

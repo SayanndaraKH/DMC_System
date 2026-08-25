@@ -1,0 +1,102 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}កែប្រែព័ត៌មានការិយាល័យ - DMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0" style="max-width: 760px;">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h3 class="fw-bold text-dark m-0">
+                <i class="fa-solid fa-pen-to-square text-success me-2"></i>កែប្រែព័ត៌មានការិយាល័យ
+            </h3>
+            <div class="text-muted small mt-1">កែប្រែព័ត៌មាន និងរចនាសម្ព័ន្ធរបស់ការិយាល័យ «{{ department.name_kh }}»</div>
+        </div>
+
+        <a href="{% url 'department_list_manage' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="fa-solid fa-arrow-left me-1"></i> ត្រឡប់ក្រោយ
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show small py-2" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label class="form-label small fw-semibold text-dark">{{ form.name_kh.label }}</label>
+                {{ form.name_kh }}
+                {% if form.name_kh.errors %}
+                    <div class="text-danger small mt-1">{{ form.name_kh.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark">{{ form.code.label }}</label>
+                    {{ form.code }}
+                    {% if form.code.errors %}
+                        <div class="text-danger small mt-1">{{ form.code.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark">{{ form.name_en.label }}</label>
+                    {{ form.name_en }}
+                    {% if form.name_en.errors %}
+                        <div class="text-danger small mt-1">{{ form.name_en.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark">{{ form.structure_type.label }}</label>
+                    {{ form.structure_type }}
+                    {% if form.structure_type.errors %}
+                        <div class="text-danger small mt-1">{{ form.structure_type.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark">{{ form.order_index.label }}</label>
+                    {{ form.order_index }}
+                    {% if form.order_index.errors %}
+                        <div class="text-danger small mt-1">{{ form.order_index.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-3 p-3 bg-light rounded-3 border">
+                <div class="form-check form-switch m-0">
+                    {{ form.is_active }}
+                    <label class="form-check-label fw-semibold text-dark ms-2" for="{{ form.is_active.id_for_label }}">
+                        {{ form.is_active.label }}
+                    </label>
+                </div>
+                <small class="text-muted d-block mt-1">ប្រសិនបើបិទដំណើរការ ការិយាល័យនេះនឹងមិនបង្ហាញក្នុងតារាងចុះលិខិត ឬជ្រើសរើសមន្ត្រីឡើយ។</small>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small fw-semibold text-dark">{{ form.description.label }}</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="d-flex align-items-center justify-content-end gap-2 pt-3 border-top">
+                <a href="{% url 'department_list_manage' %}" class="btn btn-light rounded-pill px-4">បោះបង់</a>
+                <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold shadow-sm">
+                    <i class="fa-solid fa-save me-1"></i> រក្សាទុកការកែប្រែ
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

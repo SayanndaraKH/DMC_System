@@ -1,0 +1,222 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}{% if is_edit %}កែប្រែទិន្នន័យយានយន្ត{% else %}ចុះបញ្ជីយានយន្តថ្មី{% endif %} - ប្រព័ន្ធគ្រប់គ្រងឯកសារ{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 fs-8">
+                    <li class="breadcrumb-item"><a href="{% url 'vehicle_list' %}" class="text-decoration-none">បញ្ជីសារពើភណ្ឌយានយន្ត</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{% if is_edit %}កែប្រែយានយន្ត{% else %}ចុះបញ្ជីថ្មី{% endif %}</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold m-0 text-dark">
+                {% if is_edit %}
+                <i class="fa-solid fa-pen-to-square text-primary me-2"></i>កែប្រែទិន្នន័យយានយន្ត៖ {{ vehicle.brand }} ({{ vehicle.plate_number }})
+                {% else %}
+                <i class="fa-solid fa-car-side text-success me-2"></i>ចុះបញ្ជីយានយន្ត / ម៉ូតូថ្មីក្នុងសារពើភណ្ឌ
+                {% endif %}
+            </h4>
+        </div>
+        <div>
+            <a href="{% url 'vehicle_list' %}" class="btn btn-outline-secondary rounded-pill px-3 py-2 fs-7 shadow-sm">
+                <i class="fa-solid fa-arrow-left me-1"></i> ត្រឡប់ក្រោយ
+            </a>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fa-solid {% if message.tags == 'success' %}fa-circle-check text-success{% elif message.tags == 'error' or message.tags == 'danger' %}fa-circle-exclamation text-danger{% else %}fa-circle-info text-info{% endif %} me-2 fs-5"></i>
+            <div>{{ message }}</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data" class="needs-validation">
+        {% csrf_token %}
+        <div class="row g-4">
+            <!-- Left Column: Specs & Info -->
+            <div class="col-lg-8">
+                <!-- Vehicle Specs Card -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-gears text-primary fs-5"></i>
+                            <h5 class="fw-bold m-0 text-dark">១. លក្ខណៈបច្ចេកទេស និងសម្គាល់</h5>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">ម៉ាក (Brand / Model) <span class="text-danger">*</span></label>
+                                <input type="text" name="brand" value="{% if is_edit %}{{ vehicle.brand }}{% endif %}" class="form-control" required placeholder="ឧ. HONDA C125, Toyota Hilux, Ford Ranger">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">ស្លាកលេខ (License Plate) <span class="text-danger">*</span></label>
+                                <input type="text" name="plate_number" value="{% if is_edit %}{{ vehicle.plate_number }}{% endif %}" class="form-control" required placeholder="ឧ. រដ្ឋ 11 2-1234">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">ប្រភេទមធ្យោបាយ <span class="text-danger">*</span></label>
+                                <select name="vehicle_type" class="form-select">
+                                    <option value="MOTORCYCLE" {% if is_edit and vehicle.vehicle_type == 'MOTORCYCLE' %}selected{% endif %}>ម៉ូតូ (Motorcycle)</option>
+                                    <option value="CAR" {% if is_edit and vehicle.vehicle_type == 'CAR' %}selected{% endif %}>រថយន្តទេសចរណ៍ (Car)</option>
+                                    <option value="TRUCK" {% if is_edit and vehicle.vehicle_type == 'TRUCK' %}selected{% endif %}>រថយន្តដឹកទំនិញ/ភីកអាប់ (Pickup/Truck)</option>
+                                    <option value="VAN" {% if is_edit and vehicle.vehicle_type == 'VAN' %}selected{% endif %}>រថយន្តវ៉ែន (Van)</option>
+                                    <option value="OTHER" {% if is_edit and vehicle.vehicle_type == 'OTHER' %}selected{% endif %}>ផ្សេងៗ (Other)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">ពណ៌</label>
+                                <input type="text" name="color" value="{% if is_edit %}{{ vehicle.color }}{% endif %}" class="form-control" placeholder="ឧ. ខ្មៅ, ក្រហម, ទឹកប្រាក់, ស">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">ឆ្នាំផលិត</label>
+                                <input type="text" name="model_year" value="{% if is_edit %}{{ vehicle.model_year }}{% endif %}" class="form-control" placeholder="ឧ. 2024, 2026">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">លេខតួ (Chassis Number)</label>
+                                <input type="text" name="chassis_number" value="{% if is_edit %}{{ vehicle.chassis_number }}{% endif %}" class="form-control font-monospace" placeholder="ឧ. ND110M-XXXXXX">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">លេខម៉ាស៊ីន (Engine Number)</label>
+                                <input type="text" name="engine_number" value="{% if is_edit %}{{ vehicle.engine_number }}{% endif %}" class="form-control font-monospace" placeholder="ឧ. ND110E-XXXXXX">
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold fs-8">ឈ្មោះសម្គាល់បន្ថែម (Optional Title)</label>
+                                <input type="text" name="name" value="{% if is_edit %}{{ vehicle.name }}{% endif %}" class="form-control" placeholder="ឧ. ម៉ូតូប្រចាំការិយាល័យកសិកម្ម ធនធានធម្មជាតិ និងបរិស្ថាន">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status & Usage Info Card -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-circle-info text-primary fs-5"></i>
+                            <h5 class="fw-bold m-0 text-dark">២. ស្ថានភាព និងព័ត៌មានគ្រប់គ្រង</h5>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">ស្ថានភាពបច្ចុប្បន្ន <span class="text-danger">*</span></label>
+                                <select name="status" class="form-select">
+                                    <option value="AVAILABLE" {% if is_edit and vehicle.status == 'AVAILABLE' %}selected{% endif %}>ទំនេរ / អាចខ្ចីបាន (Available)</option>
+                                    <option value="IN_USE" {% if is_edit and vehicle.status == 'IN_USE' %}selected{% endif %}>កំពុងប្រើប្រាស់ (In Use)</option>
+                                    <option value="MAINTENANCE" {% if is_edit and vehicle.status == 'MAINTENANCE' %}selected{% endif %}>កំពុងជួសជុល/ថែទាំ (Maintenance)</option>
+                                    <option value="DISPOSED" {% if is_edit and vehicle.status == 'DISPOSED' %}selected{% endif %}>រំសាយ/ខូចលែងប្រើ (Disposed)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">អង្គភាព / ការិយាល័យកាន់កាប់</label>
+                                <select name="department" class="form-select">
+                                    <option value="">-- មន្ទីរ (កណ្តាល) --</option>
+                                    {% for d in departments %}
+                                    <option value="{{ d.id }}" {% if is_edit and vehicle.department_id == d.id %}selected{% endif %}>{{ d.name_kh }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">អ្នកប្រើប្រាស់បច្ចុប្បន្ន</label>
+                                <input type="text" name="current_user_name" value="{% if is_edit %}{{ vehicle.current_user_name }}{% endif %}" class="form-control" placeholder="ឧ. លោក ហ៊ីង សុភា">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">អ្នកប្រើប្រាស់ចុងក្រោយ</label>
+                                <input type="text" name="previous_user_name" value="{% if is_edit %}{{ vehicle.previous_user_name }}{% endif %}" class="form-control" placeholder="ឧ. លោក សុខ សាន">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">កុងទ័រគីឡូម៉ែត្របច្ចុប្បន្ន (Km)</label>
+                                <input type="text" name="odometer" value="{% if is_edit %}{{ vehicle.odometer }}{% endif %}" class="form-control" placeholder="ឧ. 12500">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold fs-8">កំណត់សម្គាល់បន្ថែម</label>
+                                <textarea name="notes" rows="3" class="form-control" placeholder="កំណត់សម្គាល់ផ្សេងៗ...">{% if is_edit %}{{ vehicle.notes }}{% endif %}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Photos & Submit -->
+            <div class="col-lg-4">
+                <!-- Vehicle Photos Card -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-camera text-primary fs-5"></i>
+                            <h5 class="fw-bold m-0 text-dark">៣. រូបថតយានយន្ត</h5>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold fs-8">រូបថតមើលពីមុខ</label>
+                            {% if is_edit and vehicle.photo_front %}
+                            <div class="mb-2">
+                                <img src="{{ vehicle.photo_front.url }}" class="img-thumbnail rounded-3 shadow-xs" style="max-height: 110px; width: 100%; object-fit: cover;" alt="Front">
+                            </div>
+                            {% endif %}
+                            <input type="file" name="photo_front" accept="image/*" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold fs-8">រូបថតមើលពីចំហៀង</label>
+                            {% if is_edit and vehicle.photo_side %}
+                            <div class="mb-2">
+                                <img src="{{ vehicle.photo_side.url }}" class="img-thumbnail rounded-3 shadow-xs" style="max-height: 110px; width: 100%; object-fit: cover;" alt="Side">
+                            </div>
+                            {% endif %}
+                            <input type="file" name="photo_side" accept="image/*" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold fs-8">ប័ណ្ណសម្គាល់ (កាតគ្រី)</label>
+                            {% if is_edit and vehicle.registration_card_photo %}
+                            <div class="mb-2">
+                                <img src="{{ vehicle.registration_card_photo.url }}" class="img-thumbnail rounded-3 shadow-xs" style="max-height: 110px; width: 100%; object-fit: cover;" alt="Card">
+                            </div>
+                            {% endif %}
+                            <input type="file" name="registration_card_photo" accept="image/*" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="card border-0 shadow-sm rounded-3 sticky-top" style="top: 20px;">
+                    <div class="card-body p-4">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg rounded-pill fs-7 fw-bold shadow-sm">
+                                <i class="fa-solid fa-save me-1.5"></i> {% if is_edit %}រក្សាទុកការកែប្រែ{% else %}ចុះបញ្ជីយានយន្ត{% endif %}
+                            </button>
+                            <a href="{% url 'vehicle_list' %}" class="btn btn-light rounded-pill fs-7">
+                                បោះបង់
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

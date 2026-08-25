@@ -1,0 +1,2170 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}គ្រប់គ្រងមន្ត្រីរាជការ - ប្រព័ន្ធគ្រប់គ្រងឯកសារ{% endblock %}
+
+{% block content %}
+<style>
+.officer-table-scroll {
+    max-height: 68vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+}
+.officer-table-scroll::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+.officer-table-scroll::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.officer-table-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.officer-table-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+.officer-table-scroll thead th {
+    position: sticky !important;
+    top: 0 !important;
+    background-color: #f8fafc !important;
+    z-index: 10 !important;
+    box-shadow: inset 0 -2px 0 #e2e8f0, 0 2px 4px rgba(0,0,0,0.03);
+}
+</style>
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Header Banner -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <div class="bg-primary bg-opacity-10 text-primary p-2.5 rounded-3 d-inline-flex align-items-center justify-content-center">
+                    <i class="fa-solid fa-id-card-clip fs-4"></i>
+                </div>
+                <div>
+                    <h4 class="fw-bold m-0 text-dark">បញ្ជីជីវប្រវត្តិមន្ត្រីរាជការ</h4>
+                    <p class="text-muted small m-0">គ្រប់គ្រងព័ត៌មានប្រវត្តិរូបមន្ត្រីរាជការ និងបុគ្គលិកតាមស្តង់ដារជាតិ (ក ដល់ ឆ/ជ)</p>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="dropdown">
+                <button class="btn btn-outline-warning text-dark rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-chart-line text-warning me-1.5"></i> តាមដានការងារ (HR Tracking)
+                </button>
+                <ul class="dropdown-menu shadow-lg border-0 rounded-3 p-2 fs-7" style="min-width: 230px;">
+                    <li>
+                        <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="{% url 'officer_retirement' %}">
+                            <i class="fa-solid fa-person-walking-luggage text-danger fs-6"></i>
+                            <div>
+                                <strong class="d-block text-dark">១. មន្ត្រីចូលនិវត្តន៍</strong>
+                                <span class="fs-9 text-muted">តាមដានអាយុ ៦០ ឆ្នាំ</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="{% url 'officer_promotion' %}">
+                            <i class="fa-solid fa-chart-line text-warning fs-6"></i>
+                            <div>
+                                <strong class="d-block text-dark">២. ស្នើសុំដំឡើងថ្នាក់</strong>
+                                <span class="fs-9 text-muted">តាមដានវេន ២ ឆ្នាំម្តង</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="{% url 'officer_medals' %}">
+                            <i class="fa-solid fa-medal text-success fs-6"></i>
+                            <div>
+                                <strong class="d-block text-dark">៣. ស្នើសុំមេដាយ</strong>
+                                <span class="fs-9 text-muted">តាមដានអតីតភាព ១០-៣០ ឆ្នាំ</span>
+                            </div>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            {% if is_admin_or_lead %}
+            <a href="{% url 'officer_audit_trail' %}" class="btn btn-outline-dark rounded-pill px-3 py-2 fs-7 shadow-sm fw-semibold">
+                <i class="fa-solid fa-clock-rotate-left me-1.5 text-warning"></i> Audit Logs
+            </a>
+            {% endif %}
+
+            {% if can_edit_officers %}
+            <button type="button" class="btn btn-outline-info text-dark rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#batchUploadPhotoModal">
+                <i class="fa-solid fa-images me-1.5 text-info"></i> ទម្លាក់រូបថត (Batch Photos)
+            </button>
+            <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#importDocxModal">
+                <i class="fa-solid fa-file-word me-1.5 text-primary"></i> នាំចូលពី Word (.docx)
+            </button>
+            {% else %}
+            <button type="button" class="btn btn-light text-muted rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold border" disabled title="ប្រព័ន្ធបានបិទការកែប្រែដោយសារផុតកាលវិភាគកំណត់">
+                <i class="fa-solid fa-lock text-danger me-1.5"></i> ទម្លាក់រូបថត (ជាប់សោ)
+            </button>
+            <button type="button" class="btn btn-light text-muted rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold border" disabled title="ប្រព័ន្ធបានបិទការនាំចូលដោយសារផុតកាលវិភាគកំណត់">
+                <i class="fa-solid fa-lock text-danger me-1.5"></i> នាំចូលពី Word (ជាប់សោ)
+            </button>
+            {% endif %}
+
+            <a href="{% url 'officer_export_excel' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-success rounded-pill px-3 py-2 fs-7 shadow-sm fw-semibold">
+                <i class="fa-solid fa-file-excel me-1.5 text-success"></i> ទាញយក Excel
+            </a>
+
+            {% if can_edit_officers %}
+            <a href="{% url 'officer_create' %}" class="btn btn-primary rounded-pill px-4 py-2 fs-7 shadow-sm fw-bold">
+                <i class="fa-solid fa-user-plus me-1.5"></i> បញ្ចូលជីវប្រវត្តិមន្ត្រីថ្មី
+            </a>
+            {% else %}
+            <button class="btn btn-secondary rounded-pill px-4 py-2 fs-7 shadow-sm fw-bold opacity-75" disabled title="ប្រព័ន្ធបានបិទការបញ្ចូលជីវប្រវត្តិថ្មីដោយសារផុតកាលវិភាគកំណត់">
+                <i class="fa-solid fa-lock me-1.5 text-warning"></i> បញ្ចូលជីវប្រវត្តិ (ជាប់សោ)
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if is_system_admin %}
+    <!-- Time Window Schedule Banner (Admin Control Card - Visible ONLY to ADMIN) -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+        <div class="card-body p-3 p-md-3.5 {% if edit_window.is_open_for_specialized %}bg-primary bg-opacity-10 border-start border-primary border-5{% else %}bg-warning bg-opacity-10 border-start border-warning border-5{% endif %}">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="{% if edit_window.is_open_for_specialized %}bg-primary text-white{% else %}bg-warning text-dark{% endif %} p-2.5 rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 42px; height: 42px; min-width: 42px;">
+                        {% if edit_window.is_open_for_specialized %}
+                        <i class="fa-solid fa-clock-rotate-left fs-5"></i>
+                        {% else %}
+                        <i class="fa-solid fa-lock fs-5"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                            <h6 class="fw-bold m-0 text-dark">{{ edit_window.title|default:"កាលវិភាគកែប្រែ និងបញ្ចូលជីវប្រវត្តិមន្ត្រី" }}</h6>
+                            <span class="badge {% if edit_window.status_code == 'OPEN' %}bg-success{% elif edit_window.status_code == 'NOT_STARTED' %}bg-info text-dark{% elif edit_window.status_code == 'EXPIRED' %}bg-danger{% else %}bg-secondary{% endif %} rounded-pill px-2.5 py-1 fs-8">
+                                <i class="fa-solid fa-circle me-1" style="font-size: 8px;"></i> {{ edit_window.status_label_kh }}
+                            </span>
+                        </div>
+                        <p class="text-secondary small m-0 mb-1">
+                            {% if edit_window.start_datetime or edit_window.end_datetime %}
+                            <span><i class="fa-regular fa-calendar-check me-1 text-primary"></i> <strong>ចាប់ផ្តើម៖</strong> {{ edit_window.start_datetime_formatted|default:"បើកភ្លាមៗ" }}</span>
+                            <span class="mx-2">|</span>
+                            <span><i class="fa-regular fa-hourglass-half me-1 text-danger"></i> <strong>ផុតកំណត់ (Deadline)៖</strong> {{ edit_window.end_datetime_formatted|default:"មិនកំណត់" }}</span>
+                            {% else %}
+                            <span><i class="fa-regular fa-circle-check text-success me-1"></i> បើកដំណើរការជាប្រចាំ (មិនកំណត់ពេលវេលា)</span>
+                            {% endif %}
+                            {% if edit_window.allowed_departments.exists %}
+                            <span class="mx-2">|</span>
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 fs-9"><i class="fa-solid fa-building me-1"></i> អនុញ្ញាត៖ {{ edit_window.allowed_departments.count }} ការិយាល័យ</span>
+                            {% endif %}
+                        </p>
+                        {% if edit_window.instruction_note %}
+                        <div class="fs-8 text-muted fst-italic">
+                            <i class="fa-solid fa-bullhorn text-warning me-1"></i> {{ edit_window.instruction_note }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-2 fw-bold shadow-xs d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#editWindowModal">
+                        <i class="fa-solid fa-gear"></i>
+                        <span>កំណត់កាលវិភាគ / បើក-បិទ</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-primary border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold text-uppercase">មន្ត្រីសរុប</div>
+                        <h3 class="fw-bold text-dark m-0 mt-1">{{ total_officers }} <span class="fs-7 fw-normal text-muted">នាក់</span></h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle">
+                        <i class="fa-solid fa-users fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-info border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold text-uppercase">មន្ត្រីជាបុរស (ប្រុស)</div>
+                        <h3 class="fw-bold text-info m-0 mt-1">{{ male_count }} <span class="fs-7 fw-normal text-muted">នាក់</span></h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info p-3 rounded-circle">
+                        <i class="fa-solid fa-person fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-danger border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold text-uppercase">មន្ត្រីជានារី (ស្រី)</div>
+                        <h3 class="fw-bold text-danger m-0 mt-1">{{ female_count }} <span class="fs-7 fw-normal text-muted">នាក់</span></h3>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-circle">
+                        <i class="fa-solid fa-person-dress fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-success border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold text-uppercase">ការិយាល័យ/អង្គភាព</div>
+                        <h3 class="fw-bold text-success m-0 mt-1">{{ departments.count }} <span class="fs-7 fw-normal text-muted">កន្លែង</span></h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle">
+                        <i class="fa-solid fa-building fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3 p-md-4">
+            <form method="GET" action="{% url 'officer_list' %}" class="row g-2 align-items-center">
+                <div class="col-12 col-lg-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" name="q" value="{{ search_q }}" class="form-control border-start-0 bg-light" placeholder="ស្វែងរកតាម ឈ្មោះ, អត្តលេខ, ទូរស័ព្ទ, មុខតំណែង...">
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    {% if has_global_access %}
+                    <select name="department" class="form-select bg-light">
+                        <option value="">-- គ្រប់ការិយាល័យ/អង្គភាព --</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}" {% if dept_filter == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name_kh }}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary bg-opacity-10 text-primary border-0 fw-bold fs-8"><i class="fa-solid fa-building me-1"></i></span>
+                        <input type="text" class="form-control bg-light border-0 fw-bold text-dark fs-8" value="{{ dept.name_kh|default:'គ្មានការិយាល័យ' }}" readonly>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-6 col-sm-3 col-lg-2">
+                    <select name="gender" class="form-select bg-light">
+                        <option value="">-- ភេទ --</option>
+                        <option value="MALE" {% if gender_filter == 'MALE' %}selected{% endif %}>ប្រុស</option>
+                        <option value="FEMALE" {% if gender_filter == 'FEMALE' %}selected{% endif %}>ស្រី</option>
+                    </select>
+                </div>
+                <div class="col-6 col-sm-3 col-lg-2">
+                    <select name="marital_status" class="form-select bg-light">
+                        <option value="">-- ស្ថានភាពគ្រួសារ --</option>
+                        <option value="SINGLE" {% if marital_filter == 'SINGLE' %}selected{% endif %}>នៅលីវ</option>
+                        <option value="MARRIED" {% if marital_filter == 'MARRIED' %}selected{% endif %}>រៀបការហើយ</option>
+                        <option value="DIVORCED" {% if marital_filter == 'DIVORCED' %}selected{% endif %}>មេម៉ាយ/ពោះម៉ាយ</option>
+                    </select>
+                </div>
+                <div class="col-12 col-lg-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-primary w-100 rounded-3 shadow-xs">
+                        <i class="fa-solid fa-filter"></i>
+                    </button>
+                    {% if search_q or dept_filter or gender_filter or marital_filter %}
+                    <a href="{% url 'officer_list' %}" class="btn btn-outline-secondary rounded-3" title="សម្អាត Filter">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Officers Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-0 py-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-list-check text-primary me-2"></i> បញ្ជីមន្ត្រីរាជការទាំងអស់ ({{ officers|length }})</h6>
+                <span id="selectedBadge" class="badge bg-primary rounded-pill d-none px-2.5 py-1">បានជ្រើសរើស <span id="selectedCount">0</span> នាក់</span>
+            </div>
+
+            {% if is_system_admin %}
+            <!-- Admin Bulk Action Buttons -->
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" id="bulkDeleteBtn" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1.5 fw-semibold d-none" onclick="confirmBulkDelete()">
+                    <i class="fa-solid fa-trash-can me-1"></i> លុបដែលបានជ្រើសរើស (<span id="bulkDeleteCount">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-danger rounded-pill px-3 py-1.5 fw-semibold text-white shadow-xs" data-bs-toggle="modal" data-bs-target="#deleteAllModal">
+                    <i class="fa-solid fa-dumpster-fire me-1 text-white"></i> លុបមន្ត្រីទាំងអស់ (Admin)
+                </button>
+            </div>
+            {% endif %}
+        </div>
+        <div class="table-responsive officer-table-scroll">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted fs-8 text-uppercase">
+                    <tr>
+                        {% if is_system_admin %}
+                        <th class="ps-3" style="width: 40px;">
+                            <input type="checkbox" id="selectAllCheckbox" class="form-check-input" title="ជ្រើសរើសទាំងអស់" onchange="toggleSelectAll(this)">
+                        </th>
+                        {% endif %}
+                        <th class="{% if not is_system_admin %}ps-4{% endif %}" style="width: 50px;">ល.រ</th>
+                        <th style="min-width: 200px;">គោត្តនាម-នាមខ្លួន (រូបថត)</th>
+                        <th>អត្តលេខ</th>
+                        <th>ភេទ</th>
+                        <th>ការិយាល័យ/អង្គភាព</th>
+                        <th>មុខតំណែង</th>
+                        <th>ក្របខ័ណ្ឌ & ថ្នាក់</th>
+                        <th>លេខទូរស័ព្ទ</th>
+                        <th class="text-end pe-4" style="min-width: 140px;">សកម្មភាព</th>
+                    </tr>
+                </thead>
+                <tbody class="fs-7">
+                    {% for o in officers %}
+                    <tr>
+                        {% if is_system_admin %}
+                        <td class="ps-3">
+                            <input type="checkbox" name="officer_id" value="{{ o.pk }}" class="form-check-input officer-select-checkbox" onchange="handleRowCheckboxChange()">
+                        </td>
+                        {% endif %}
+                        <td class="{% if not is_system_admin %}ps-4{% endif %} fw-bold text-muted">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                {% if o.photo %}
+                                <img src="{{ o.photo.url }}" alt="{{ o.full_name_kh }}" class="rounded-3 shadow-xs object-fit-cover" style="width: 44px; height: 54px;">
+                                {% else %}
+                                <div class="bg-light text-secondary rounded-3 d-flex align-items-center justify-content-center fw-bold shadow-xs" style="width: 44px; height: 54px; font-size: 18px;">
+                                    <i class="fa-solid fa-user"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <a href="{% url 'officer_detail' o.pk %}" class="fw-bold text-dark text-decoration-none hover-primary d-block">
+                                        {{ o.full_name_kh }}
+                                    </a>
+                                    <span class="text-muted fs-8 text-uppercase font-monospace">{{ o.full_name_latin|default:"-" }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if o.officer_id_number %}
+                            <span class="badge bg-light text-dark border font-monospace px-2.5 py-1">{{ o.officer_id_number }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if o.gender == 'MALE' %}
+                            <span class="badge bg-info bg-opacity-10 text-info px-2.5 py-1"><i class="fa-solid fa-mars me-1"></i> ប្រុស</span>
+                            {% else %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger px-2.5 py-1"><i class="fa-solid fa-venus me-1"></i> ស្រី</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-primary border border-primary border-opacity-25 px-2.5 py-1">
+                                {{ o.display_department_name }}
+                            </span>
+                        </td>
+                        <td><strong class="text-secondary">{{ o.current_position_title|default:"-" }}</strong></td>
+                        <td><span class="badge bg-light text-dark border">{{ o.current_rank_and_step|default:"-" }}</span></td>
+                        <td><span class="text-muted font-monospace">{{ o.phone|default:"-" }}</span></td>
+                        <td class="text-end pe-4">
+                            <div class="d-inline-flex align-items-center gap-1.5">
+                                <!-- 🏢 Transfer Department Button -->
+                                {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-1" style="color: #4f46e5; border-color: #c7d2fe;" title="ផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ (Transfer)"
+                                        onclick="openQuickOfficerTransferModal({{ o.id }}, '{{ o.full_name_kh|escapejs }}', '{{ o.display_department_name|escapejs }}', '{{ o.current_position_title|default:'មន្ត្រី'|escapejs }}', '{{ o.department_id|default:'' }}')">
+                                    <i class="fa-solid fa-right-left"></i>
+                                </button>
+                                {% endif %}
+
+                                <a href="{% url 'officer_detail' o.pk %}" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-1" title="មើលជីវប្រវត្តិលម្អិត">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                                <a href="{% url 'officer_print' o.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1" title="បោះពុម្ព A4 ផ្លូវការ">
+                                    <i class="fa-solid fa-print"></i>
+                                </a>
+                                {% if can_edit_officers %}
+                                <a href="{% url 'officer_edit' o.pk %}" class="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-1 text-dark" title="កែប្រែ">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </a>
+                                {% else %}
+                                <button type="button" class="btn btn-sm btn-light text-muted rounded-pill px-2.5 py-1 border" disabled title="ប្រព័ន្ធបានបិទការកែប្រែដោយសារផុតកាលវិភាគ">
+                                    <i class="fa-solid fa-lock text-danger"></i>
+                                </button>
+                                {% endif %}
+
+                                {% if is_system_admin %}
+                                <form method="POST" action="{% url 'officer_delete' o.pk %}" class="d-inline m-0" onsubmit="return confirm('⚠️ តើលោកអ្នកពិតជាចង់លុបជីវប្រវត្តិមន្ត្រី «{{ o.full_name_kh }}» (អត្តលេខ: {{ o.officer_id_number|default:'-' }}) នេះចេញពីប្រព័ន្ធមែនទេ? \n\nសកម្មភាពនេះនឹងលុបប្រវត្តិរូប និងឯកសារយោងទាំងអស់របស់មន្ត្រីរូបនេះ ហើយមិនអាចត្រឡប់វិញបានឡើយ!');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1" title="លុបជីវប្រវត្តិមន្ត្រី (ADMIN ប៉ុណ្ណោះ)">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if is_system_admin %}10{% else %}9{% endif %}" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-user-xmark fa-3x mb-3 text-secondary opacity-50 d-block"></i>
+                            <div class="fw-bold fs-6">ពុំទាន់មានទិន្នន័យជីវប្រវត្តិមន្ត្រីនៅឡើយទេ</div>
+                            <p class="small text-muted mb-3">សូមចុចប៊ូតុងខាងក្រោមដើម្បីបញ្ចូលជីវប្រវត្តិមន្ត្រីរាជការដំបូង</p>
+                            {% if can_edit_officers %}
+                            <a href="{% url 'officer_create' %}" class="btn btn-sm btn-primary rounded-pill px-3.5 py-2">
+                                <i class="fa-solid fa-user-plus me-1"></i> បញ្ចូលជីវប្រវត្តិមន្ត្រីថ្មី
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Multi-File Batch Import Civil Servant CVs from Word (.docx) -->
+<div class="modal fade" id="importDocxModal" tabindex="-1" aria-labelledby="importDocxModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" id="batchModalDialog">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="modal-header bg-primary text-white px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="bg-white bg-opacity-25 p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="fa-solid fa-file-word fs-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0" id="importDocxModalLabel">នាំចូលជីវប្រវត្តិមន្ត្រីពី Word (.docx) - Batch Import</h6>
+                        <span class="fs-8 text-white-50">Auto-Extract & Populate Multiple Civil Servant CV Files</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-link text-white text-decoration-none p-1 opacity-75 opacity-100-hover" id="batchFullscreenToggleBtn" onclick="toggleBatchFullscreen()" title="ពង្រីកពេញអេក្រង់ / បង្រួមមកវិញ">
+                        <i class="fa-solid fa-expand fs-6" id="batchFullscreenIcon"></i>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" id="batchModalCloseBtn" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                {% csrf_token %}
+                <!-- Info Alert -->
+                <div class="alert alert-info border-0 rounded-3 small mb-3 d-flex align-items-start gap-2.5 shadow-xs">
+                    <i class="fa-solid fa-circle-info fs-5 mt-0.5 text-info"></i>
+                    <div>
+                        <strong>ប្រព័ន្ធស្គាល់ទម្រង់ជីវប្រវត្តិមន្ត្រីរាជការស្តង់ដារជាតិ (ក ដល់ ឆ/ជ)</strong><br>
+                        លោកអ្នកអាច <strong>ជ្រើសរើស ឬទម្លាក់បញ្ចូល File Word ច្រើនក្នុងពេលតែមួយ (Multi-files)</strong> ដើម្បីឱ្យប្រព័ន្ធស្រង់ និងបញ្ចូលទិន្នន័យដោយស្វ័យប្រវត្តិតាមឈ្មោះ File នីមួយៗ!
+                    </div>
+                </div>
+
+                <!-- Duplicate Handling Option Card -->
+                <div class="card border border-primary border-opacity-25 bg-light rounded-3 p-3 mb-3 shadow-xs" id="duplicateModeCard">
+                    <label class="form-label fw-bold small text-dark d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-code-compare text-primary"></i>
+                        <span>ជម្រើសពេលជួបមន្ត្រីដែលមានក្នុងប្រព័ន្ធរួច (ករណីដូចអត្តលេខ ឬឈ្មោះ)៖</span>
+                    </label>
+                    <div class="d-flex flex-column flex-md-row gap-2 pt-1">
+                        <div class="form-check p-2 bg-white rounded-3 border flex-fill">
+                            <input class="form-check-input ms-1" type="radio" name="batchDuplicateMode" id="dupModeReview" value="review" checked>
+                            <label class="form-check-label small fw-bold text-dark ps-2 cursor-pointer" for="dupModeReview">
+                                🔍 ពិនិត្យទិន្នន័យខុសគ្នាជាមុនសិន
+                                <span class="d-block fs-8 text-muted fw-normal">បើទិន្នន័យដូចគ្នា មិនបញ្ចូលជាន់គ្នាទេ; បើខុសគ្នា ជូនដំណឹងឱ្យផ្ទៀងផ្ទាត់ & Update</span>
+                            </label>
+                        </div>
+                        <div class="form-check p-2 bg-white rounded-3 border flex-fill">
+                            <input class="form-check-input ms-1" type="radio" name="batchDuplicateMode" id="dupModeAutoUpdate" value="auto_update">
+                            <label class="form-check-label small fw-bold text-dark ps-2 cursor-pointer" for="dupModeAutoUpdate">
+                                🔄 Update ស្វ័យប្រវត្តិ
+                                <span class="d-block fs-8 text-muted fw-normal">Update ស្វ័យប្រវត្តិតែពេលមានទិន្នន័យថ្មីខុសពីចាស់</span>
+                            </label>
+                        </div>
+                        <div class="form-check p-2 bg-white rounded-3 border flex-fill">
+                            <input class="form-check-input ms-1" type="radio" name="batchDuplicateMode" id="dupModeSkip" value="skip">
+                            <label class="form-check-label small fw-bold text-dark ps-2 cursor-pointer" for="dupModeSkip">
+                                ⏭️ រំលង (Skip)
+                                <span class="d-block fs-8 text-muted fw-normal">រំលងមន្ត្រីដែលមានរួចហើយ មិនបញ្ចូល ឬកែប្រែអ្វីទាំងអស់</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🏢 Department Selector for Word Import -->
+                <div class="card border border-primary border-opacity-25 bg-white rounded-3 p-3 mb-3 shadow-xs" id="batchDeptSelectGroup">
+                    <label class="form-label fw-bold text-dark d-flex align-items-center justify-content-between mb-2">
+                        <span class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-building-user text-primary fs-6"></i>
+                            <span>ជ្រើសរើសការិយាល័យ/អង្គភាពដែលត្រូវដាក់បញ្ចូល (Target Department)៖</span>
+                        </span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1 fs-9">កំណត់មុនពេលនាំចូល</span>
+                    </label>
+                    <select id="batchGlobalDeptSelect" class="form-select rounded-3 fs-7 fw-semibold border-primary border-opacity-50">
+                        <option value="">-- ស្វែងរកតាមប្រវត្តិការងារក្នុងឯកសារនីមួយៗដោយស្វ័យប្រវត្តិ (Auto-Detect) --</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}" {% if not is_admin_or_lead and dept and dept.id == d.id %}selected{% endif %}>
+                            🏢 {{ d.name_kh }} ({{ d.code }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted fs-8 mt-1.5 d-block">
+                        <i class="fa-solid fa-circle-info text-primary me-1"></i>
+                        រាល់ប្រវត្តិរូបមន្ត្រីដែលទាញចេញពី File Word នឹងត្រូវបានចាត់ចែងដាក់ចូលក្នុងការិយាល័យដែលបានជ្រើសរើសនេះ។
+                    </small>
+                </div>
+
+                <!-- Multi-File Drag-and-Drop Zone -->
+                <div id="batchDropZone" class="border border-2 border-dashed border-primary border-opacity-50 rounded-4 p-4 text-center bg-light position-relative mb-3 cursor-pointer" style="transition: all 0.2s ease;">
+                    <i class="fa-solid fa-cloud-arrow-up fs-1 text-primary mb-2 d-block"></i>
+                    <h6 class="fw-bold text-dark mb-1">ចុចទីនេះ ឬទម្លាក់ File Word ច្រើនចូលទីនេះ (.docx)</h6>
+                    <p class="text-muted fs-8 mb-0">លោកអ្នកអាច Select ជ្រើសរើស File Word ម្ដង ១០ ឬ ២០ ឯកសារបានយ៉ាងងាយស្រួល</p>
+                    <input type="file" id="batchDocxFileInput" multiple accept=".docx" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" onchange="handleFilesSelected(this.files)">
+                </div>
+
+                <!-- Live Upload & Progress Container (Hidden until files selected) -->
+                <div id="batchProgressContainer" class="d-none">
+                    <!-- Overall Progress Card -->
+                    <div class="card border-0 bg-light rounded-3 p-3 mb-3 shadow-xs">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-bold fs-7 text-dark">
+                                <i class="fa-solid fa-chart-pie text-primary me-1.5"></i>
+                                វឌ្ឍនភាពសរុប (Overall Progress): <span id="overallProgressText" class="text-primary font-monospace">0 / 0</span>
+                            </span>
+                            <span id="overallPercentBadge" class="badge bg-primary rounded-pill px-2.5 py-1">0%</span>
+                        </div>
+                        <div class="progress rounded-pill" style="height: 10px;">
+                            <div id="overallProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;"></div>
+                        </div>
+
+                        <div class="d-flex flex-wrap align-items-center gap-2 mt-2.5 fs-8">
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border">
+                                <i class="fa-solid fa-files me-1"></i> សរុប៖ <strong id="statTotalFiles">0</strong>
+                            </span>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                <i class="fa-solid fa-circle-plus me-1"></i> បញ្ចូលថ្មី៖ <strong id="statNewFiles">0</strong>
+                            </span>
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">
+                                <i class="fa-solid fa-circle-check me-1"></i> មានរួច (ដូចគ្នា)៖ <strong id="statIdenticalFiles">0</strong>
+                            </span>
+                            <span class="badge bg-warning bg-opacity-15 text-dark border border-warning border-opacity-25">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i> ខុសគ្នា/Update៖ <strong id="statDiffFiles">0</strong>
+                            </span>
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">
+                                <i class="fa-solid fa-circle-xmark me-1"></i> បរាជ័យ៖ <strong id="statErrorFiles">0</strong>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Per-File Live Table Container (Expandable & Resizable) -->
+                    <div id="batchTableContainer" class="table-responsive rounded-3 border position-relative" style="min-height: 220px; max-height: 460px; overflow-y: auto; resize: vertical;">
+                        <table class="table table-hover align-middle mb-0 fs-8">
+                            <thead class="table-light sticky-top shadow-xs">
+                                <tr>
+                                    <th style="width: 40px;" class="text-center">#</th>
+                                    <th style="min-width: 220px;">ឈ្មោះឯកសារ (File Name)</th>
+                                    <th style="min-width: 180px;">មន្ត្រីដែលស្រង់បាន (Officer)</th>
+                                    <th style="min-width: 220px;">អង្គភាព & មុខតំណែង</th>
+                                    <th style="min-width: 160px;" class="text-center">ស្ថានភាព & សកម្មភាព</th>
+                                    <th style="width: 50px;" class="text-center">លុប</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batchFileTableBody">
+                                <!-- Dynamic rows generated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-1 text-muted fs-9">
+                        <span><i class="fa-solid fa-arrow-up-down me-1"></i> លោកអ្នកអាចទាញជ្រុងខាងក្រោមដើម្បីពង្រីកកម្ពស់តារាងបាន (Drag to resize)</span>
+                        <span id="batchTableRowCount">0 ឯកសារ</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer bg-light px-4 py-3 border-0 d-flex align-items-center justify-content-between">
+                <div>
+                    <button type="button" id="batchClearBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-none" onclick="resetBatchUpload()">
+                        <i class="fa-solid fa-rotate-left me-1"></i> សម្អាតបញ្ជីទាំងអស់
+                    </button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-light rounded-pill px-3 fs-7" data-bs-dismiss="modal" id="batchCancelBtn">បិទ</button>
+                    <button type="button" id="startBatchUploadBtn" class="btn btn-primary rounded-pill px-4 fs-7 fw-bold shadow-sm d-none" onclick="startBatchProcessing()">
+                        <i class="fa-solid fa-play me-1.5"></i> ចាប់ផ្តើមនាំចូលទាំងអស់
+                    </button>
+                    <button type="button" id="batchDoneBtn" class="btn btn-success rounded-pill px-4 fs-7 fw-bold shadow-sm d-none" onclick="window.location.reload()">
+                        <i class="fa-solid fa-check-double me-1.5"></i> រួចរាល់ & មើលបញ្ជីមន្ត្រីថ្មី
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Diff Review & Decision (ផ្ទាំងប្រៀបធៀបទិន្នន័យខុសគ្នា) -->
+<div class="modal fade" id="diffReviewModal" tabindex="-1" aria-labelledby="diffReviewModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" id="diffModalDialog">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header bg-warning text-dark px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation fs-5 text-dark"></i>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0" id="diffReviewModalLabel">ផ្ទៀងផ្ទាត់ទិន្នន័យខុសគ្នា (Data Difference Review)</h6>
+                        <span class="fs-8 text-muted">ប្រៀបធៀបទិន្នន័យបច្ចុប្បន្នក្នុងប្រព័ន្ធ ជាមួយទិន្នន័យថ្មីក្នុងឯកសារ Word</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-link text-dark text-decoration-none p-1 opacity-75 opacity-100-hover" onclick="toggleDiffFullscreen()" title="ពង្រីកពេញអេក្រង់ / បង្រួមមកវិញ">
+                        <i class="fa-solid fa-expand fs-6" id="diffFullscreenIcon"></i>
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-3 mb-3 border">
+                    <div>
+                        <strong class="d-block text-dark fs-7" id="diffOfficerName">-</strong>
+                        <span class="text-muted fs-8">អត្តលេខ៖ <strong id="diffOfficerId">-</strong> | អង្គភាព៖ <span id="diffOfficerDept">-</span></span>
+                    </div>
+                    <span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill fw-bold" id="diffCountBadge">0 ចំណុចខុសគ្នា</span>
+                </div>
+
+                <div class="table-responsive rounded-3 border" style="min-height: 240px; max-height: 460px; overflow-y: auto; resize: vertical;">
+                    <table class="table table-bordered align-middle mb-0 fs-8">
+                        <thead class="table-light sticky-top shadow-xs">
+                            <tr>
+                                <th style="width: 25%;">ព័ត៌មាន/ទិន្នន័យ</th>
+                                <th style="width: 37%;" class="bg-secondary bg-opacity-10">ទិន្នន័យបច្ចុប្បន្ន (ក្នុងប្រព័ន្ធ)</th>
+                                <th style="width: 38%;" class="bg-warning bg-opacity-10 text-dark">ទិន្នន័យថ្មី (ក្នុងឯកសារ Word)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="diffTableBody">
+                            <!-- Dynamic Diff Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light px-4 py-3 border-0 d-flex align-items-center justify-content-between">
+                <button type="button" class="btn btn-light rounded-pill px-3 fs-7" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-xmark me-1"></i> រក្សាទុកទិន្នន័យចាស់ដដែល (មិនកែប្រែ)
+                </button>
+                <button type="button" id="confirmDiffUpdateBtn" class="btn btn-success rounded-pill px-4 fs-7 fw-bold shadow-sm" onclick="applyDiffUpdate()">
+                    <i class="fa-solid fa-floppy-disk me-1.5"></i> យល់ព្រម Update ទៅទិន្នន័យថ្មីនេះ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Multi-File Batch Photo Upload & Auto-Match -->
+<div class="modal fade" id="batchUploadPhotoModal" tabindex="-1" aria-labelledby="batchUploadPhotoModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" id="batchPhotoModalDialog">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="modal-header text-white px-4 py-3 border-0" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="bg-white bg-opacity-25 p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="fa-solid fa-images fs-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0 text-white" id="batchUploadPhotoModalLabel">ទម្លាក់ & Update រូបថតមន្ត្រីដោយស្វ័យប្រវត្តិ (Batch Photo Match)</h6>
+                        <span class="fs-8 text-white-50">Auto-Match & Upload Multiple Officer Photos by ID or Name</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-link text-white text-decoration-none p-1 opacity-75 opacity-100-hover" id="batchPhotoFullscreenToggleBtn" onclick="toggleBatchPhotoFullscreen()" title="ពង្រីកពេញអេក្រង់ / បង្រួមមកវិញ">
+                        <i class="fa-solid fa-expand fs-6" id="batchPhotoFullscreenIcon"></i>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" id="batchPhotoModalCloseBtn" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                <!-- Info & Guidelines Alert -->
+                <div class="alert alert-info border-0 rounded-3 small mb-3 shadow-xs">
+                    <div class="d-flex align-items-start gap-2.5">
+                        <i class="fa-solid fa-circle-info fs-5 mt-0.5 text-info"></i>
+                        <div class="w-100">
+                            <strong class="d-block mb-1">🎯 របៀបដាក់ឈ្មោះ File រូបថតដើម្បីឱ្យប្រព័ន្ធផ្គូផ្គងស្វ័យប្រវត្តិកាន់តែសុក្រឹត៖</strong>
+                            <div class="row g-2 mt-0.5">
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <div class="bg-white p-2 rounded border">
+                                        <span class="badge bg-primary me-1">១. ល្អបំផុត</span> <strong>តាមអត្តលេខ</strong>
+                                        <div class="text-muted fs-8 mt-0.5 font-monospace">1712100079.jpg</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <div class="bg-white p-2 rounded border">
+                                        <span class="badge bg-success me-1">២. ឈ្មោះខ្មែរ</span> <strong>គោត្តនាម+នាម</strong>
+                                        <div class="text-muted fs-8 mt-0.5">សាយ សុផាត.png</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <div class="bg-white p-2 rounded border">
+                                        <span class="badge bg-info text-dark me-1">៣. ឈ្មោះឡាតាំង</span> <strong>អក្សរឡាតាំង</strong>
+                                        <div class="text-muted fs-8 mt-0.5 font-monospace">SAY SOPHAT.jpg</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <div class="bg-white p-2 rounded border">
+                                        <span class="badge bg-secondary me-1">៤. អត្តសញ្ញាណប័ណ្ណ</span> <strong>លេខកាត</strong>
+                                        <div class="text-muted fs-8 mt-0.5 font-monospace">010203040.png</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Card -->
+                <div class="card border rounded-3 p-3 mb-3 bg-light shadow-xs">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input fs-5 cursor-pointer" type="checkbox" id="photoOverwriteSwitch" checked>
+                            <label class="form-check-label fw-bold text-dark fs-7 ms-2 cursor-pointer" for="photoOverwriteSwitch">
+                                <i class="fa-solid fa-arrows-rotate text-primary me-1"></i> ជំនួសរូបថតចាស់ (Overwrite Existing Photo)
+                                <span class="d-block fs-8 text-muted fw-normal">បើបិទ ប្រព័ន្ធនឹង Update តែមន្ត្រីណាដែលពុំទាន់មានរូបថតប៉ុណ្ណោះ</span>
+                            </label>
+                        </div>
+                        <div class="d-flex align-items-center gap-1.5" id="photoFilterButtons" style="display: none !important;">
+                            <span class="fs-8 text-muted fw-bold me-1">បង្ហាញ៖</span>
+                            <button type="button" class="btn btn-xs btn-dark rounded-pill px-2.5 py-1" onclick="filterPhotoQueue('ALL', this)">ទាំងអស់ (<span id="countFilterAll">0</span>)</button>
+                            <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-2.5 py-1" onclick="filterPhotoQueue('MATCHED', this)">✅ ត្រូវគ្នា (<span id="countFilterMatched">0</span>)</button>
+                            <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-2.5 py-1" onclick="filterPhotoQueue('UNMATCHED', this)">❌ មិនត្រូវ (<span id="countFilterUnmatched">0</span>)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Drag & Drop Zone -->
+                <div id="photoDropZone" class="border-2 border-dashed rounded-4 p-4 text-center cursor-pointer transition-all bg-white mb-3 shadow-xs" onclick="document.getElementById('batchPhotoFileInput').click()" style="border: 2px dashed #0284c7; background-color: #f0f9ff !important;">
+                    <input type="file" id="batchPhotoFileInput" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" class="d-none" onchange="handlePhotoFilesSelected(this.files)">
+                    <div class="py-3">
+                        <div class="bg-info bg-opacity-10 text-info rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 64px; height: 64px;">
+                            <i class="fa-solid fa-cloud-arrow-up fs-2 text-info"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">ទម្លាក់ File រូបថតមន្ត្រីច្រើននៅទីនេះ (Drag & Drop Photos Here)</h6>
+                        <p class="text-muted small mb-2">ឬ <span class="text-info fw-bold text-decoration-underline">ចុចទីនេះដើម្បីជ្រើសរើសរូបថត (Multi-select)</span></p>
+                        <span class="badge bg-light text-secondary border px-2.5 py-1 fs-8">ទទួលស្គាល់៖ JPG, JPEG, PNG, WEBP (អាចជ្រើសរើសរាប់សិប ឬរាប់រយរូបក្នុងពេលតែមួយ)</span>
+                    </div>
+                </div>
+
+                <!-- Progress Container -->
+                <div id="photoProgressContainer" class="d-none mb-3">
+                    <div class="card border rounded-3 p-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fs-7 fw-bold text-dark" id="photoProgressStatusText">កំពុងដំណើរការ...</span>
+                            <span class="fs-7 fw-bold text-primary" id="photoProgressPercentText">0%</span>
+                        </div>
+                        <div class="progress" style="height: 10px; border-radius: 6px;">
+                            <div id="photoProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Queue & Match Preview Table Container -->
+                <div id="photoQueueContainer" class="d-none">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                        <h6 class="fw-bold m-0 text-dark">
+                            <i class="fa-solid fa-list-check text-primary me-1.5"></i> បញ្ជីរូបថតបានជ្រើសរើស (<span id="photoTotalCount">0</span> រូប)
+                        </h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success rounded-pill px-2.5 py-1" id="photoMatchedBadge">✅ ត្រូវគ្នា 0 នាក់</span>
+                            <span class="badge bg-danger rounded-pill px-2.5 py-1" id="photoUnmatchedBadge">❌ មិនទាន់ត្រូវគ្នា 0 រូប</span>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive rounded-3 border" id="photoTableContainer" style="max-height: 440px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0 fs-8">
+                            <thead class="table-light sticky-top shadow-xs">
+                                <tr>
+                                    <th style="width: 40px;" class="text-center">ល.រ</th>
+                                    <th style="width: 80px;" class="text-center">រូបថតថ្មី</th>
+                                    <th style="min-width: 160px;">File រូបថត</th>
+                                    <th style="width: 130px;" class="text-center">ស្ថានភាព</th>
+                                    <th style="min-width: 280px;">ផ្គូផ្គងជាមួយមន្ត្រី (Matched Officer)</th>
+                                    <th style="width: 60px;" class="text-center">លុប</th>
+                                </tr>
+                            </thead>
+                            <tbody id="photoQueueTableBody">
+                                <!-- Dynamic Items -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between align-items-center">
+                <div>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 fs-7" data-bs-dismiss="modal" id="batchPhotoCancelBtn">បិទ</button>
+                    <button type="button" class="btn btn-outline-danger rounded-pill px-3 py-2 fs-7 d-none" id="batchPhotoClearBtn" onclick="resetPhotoBatchUpload()">
+                        <i class="fa-solid fa-trash-can me-1"></i> សម្អាតទាំងអស់
+                    </button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fs-7 fw-bold shadow-sm d-none" id="startBatchPhotoUploadBtn" onclick="startBatchPhotoUpload()">
+                        <i class="fa-solid fa-cloud-arrow-up me-1.5"></i> ចាប់ផ្តើម Update រូបថតទាំងអស់ (<span id="photoUploadActionCount">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-success rounded-pill px-4 py-2 fs-7 fw-bold shadow-sm d-none" id="batchPhotoDoneBtn" onclick="finishBatchPhotoUpload()">
+                        <i class="fa-solid fa-circle-check me-1.5"></i> រួចរាល់ (Refresh ទំព័រ)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let batchFileQueue = [];
+let isBatchUploading = false;
+let batchNewCount = 0;
+let batchIdenticalCount = 0;
+let batchDiffCount = 0;
+let batchErrorCount = 0;
+let activeDiffItem = null;
+
+// Setup Drag and Drop events
+document.addEventListener("DOMContentLoaded", function() {
+    const dropZone = document.getElementById('batchDropZone');
+    if (!dropZone) return;
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('bg-primary', 'bg-opacity-10', 'border-2');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('bg-primary', 'bg-opacity-10');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+        const dt = e.dataTransfer;
+        if (dt && dt.files && dt.files.length > 0) {
+            handleFilesSelected(dt.files);
+        }
+    }, false);
+});
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    else return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function handleFilesSelected(fileList) {
+    if (!fileList || fileList.length === 0) return;
+
+    for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        if (file.name.toLowerCase().endsWith('.docx')) {
+            if (!batchFileQueue.some(f => f.file.name === file.name && f.file.size === file.size)) {
+                batchFileQueue.push({
+                    id: 'file_' + Math.random().toString(36).substr(2, 9),
+                    file: file,
+                    status: 'WAITING', // WAITING, PROCESSING, SUCCESS_NEW, EXISTING_IDENTICAL, DIFF_DETECTED, SUCCESS_UPDATED, EXISTING_SKIPPED, ERROR
+                    result: null,
+                    errorMsg: null
+                });
+            }
+        }
+    }
+
+    renderBatchTable();
+}
+
+function renderBatchTable() {
+    const container = document.getElementById('batchProgressContainer');
+    const startBtn = document.getElementById('startBatchUploadBtn');
+    const clearBtn = document.getElementById('batchClearBtn');
+    const tableBody = document.getElementById('batchFileTableBody');
+
+    if (batchFileQueue.length === 0) {
+        container.classList.add('d-none');
+        startBtn.classList.add('d-none');
+        clearBtn.classList.add('d-none');
+        return;
+    }
+
+    container.classList.remove('d-none');
+    startBtn.classList.remove('d-none');
+    clearBtn.classList.remove('d-none');
+
+    document.getElementById('statTotalFiles').textContent = batchFileQueue.length;
+    document.getElementById('statNewFiles').textContent = batchNewCount;
+    document.getElementById('statIdenticalFiles').textContent = batchIdenticalCount;
+    document.getElementById('statDiffFiles').textContent = batchDiffCount;
+    document.getElementById('statErrorFiles').textContent = batchErrorCount;
+
+    let html = '';
+    batchFileQueue.forEach((item, idx) => {
+        let statusBadge = '';
+        let officerDisplay = '<span class="text-muted fst-italic">រង់ចាំស្រង់...</span>';
+        let deptDisplay = '<span class="text-muted">-</span>';
+
+        if (item.status === 'WAITING') {
+            statusBadge = '<span class="badge bg-secondary bg-opacity-25 text-secondary px-2 py-1"><i class="fa-regular fa-clock me-1"></i> រង់ចាំ</span>';
+        } else if (item.status === 'PROCESSING') {
+            statusBadge = `<div class="d-flex flex-column align-items-center gap-1">
+                <span class="badge bg-warning bg-opacity-25 text-dark px-2 py-1"><i class="fa-solid fa-spinner fa-spin me-1"></i> កំពុងស្រង់</span>
+                <div class="progress w-100 rounded-pill" style="height: 4px;"><div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" style="width: 100%;"></div></div>
+            </div>`;
+        } else if (item.status === 'SUCCESS_NEW') {
+            statusBadge = '<span class="badge bg-success px-2 py-1"><i class="fa-solid fa-circle-plus me-1"></i> បញ្ចូលថ្មី</span>';
+            if (item.result) {
+                officerDisplay = `<strong class="text-success">${item.result.officer_name_kh}</strong> <small class="text-muted font-monospace d-block">ID: ${item.result.officer_id_number}</small>`;
+                deptDisplay = `<span class="badge bg-light text-dark border">${item.result.position}</span><div class="fs-9 text-muted">${item.result.department_name}</div>`;
+            }
+        } else if (item.status === 'EXISTING_IDENTICAL') {
+            statusBadge = '<span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 px-2 py-1" title="ទិន្នន័យដូចគ្នាទាំងស្រុង មិនបាច់កែប្រែ"><i class="fa-solid fa-circle-check me-1"></i> មានរួច (ដូចគ្នា)</span>';
+            if (item.result) {
+                officerDisplay = `<strong class="text-dark">${item.result.officer_name_kh}</strong> <small class="text-muted font-monospace d-block">ID: ${item.result.officer_id_number}</small>`;
+                deptDisplay = `<span class="badge bg-light text-dark border">${item.result.position}</span><div class="fs-9 text-muted">${item.result.department_name}</div>`;
+            }
+        } else if (item.status === 'EXISTING_SKIPPED') {
+            statusBadge = '<span class="badge bg-secondary bg-opacity-25 text-secondary px-2 py-1"><i class="fa-solid fa-forward me-1"></i> បានរំលង</span>';
+            if (item.result) {
+                officerDisplay = `<strong class="text-secondary">${item.result.officer_name_kh}</strong> <small class="text-muted font-monospace d-block">ID: ${item.result.officer_id_number}</small>`;
+                deptDisplay = `<span class="badge bg-light text-muted border">${item.result.position}</span>`;
+            }
+        } else if (item.status === 'DIFF_DETECTED') {
+            const diffCount = item.result && item.result.differences ? item.result.differences.length : 0;
+            statusBadge = `
+                <div class="d-flex flex-column gap-1 align-items-center">
+                    <span class="badge bg-warning text-dark px-2 py-1"><i class="fa-solid fa-triangle-exclamation me-1"></i> ខុសគ្នា (${diffCount})</span>
+                    <button type="button" class="btn btn-xs btn-outline-warning text-dark rounded-pill fw-bold fs-9 py-0.5 px-2" onclick="openDiffModal('${item.id}')">
+                        <i class="fa-solid fa-eye me-1"></i> ពិនិត្យ & Update
+                    </button>
+                </div>
+            `;
+            if (item.result) {
+                officerDisplay = `<strong class="text-primary">${item.result.officer_name_kh}</strong> <small class="text-muted font-monospace d-block">ID: ${item.result.officer_id_number}</small>`;
+                deptDisplay = `<span class="badge bg-light text-dark border">${item.result.position}</span><div class="fs-9 text-muted">${item.result.department_name}</div>`;
+            }
+        } else if (item.status === 'SUCCESS_UPDATED') {
+            statusBadge = '<span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2 py-1"><i class="fa-solid fa-arrows-rotate me-1"></i> បាន Update</span>';
+            if (item.result) {
+                officerDisplay = `<strong class="text-success">${item.result.officer_name_kh}</strong> <small class="text-muted font-monospace d-block">ID: ${item.result.officer_id_number}</small>`;
+                deptDisplay = `<span class="badge bg-light text-dark border">${item.result.position}</span><div class="fs-9 text-muted">${item.result.department_name}</div>`;
+            }
+        } else if (item.status === 'ERROR') {
+            statusBadge = `<span class="badge bg-danger px-2 py-1" title="${item.errorMsg || 'Error'}"><i class="fa-solid fa-circle-exclamation me-1"></i> បរាជ័យ</span>`;
+            officerDisplay = `<span class="text-danger small">${item.errorMsg || 'មិនអាចស្រង់ទិន្នន័យ'}</span>`;
+        }
+
+        html += `
+            <tr id="row_${item.id}">
+                <td class="text-center font-monospace">${idx + 1}</td>
+                <td>
+                    <div class="d-flex align-items-center gap-1.5">
+                        <i class="fa-solid fa-file-word text-primary fs-6"></i>
+                        <span class="fw-bold text-dark text-truncate" style="max-width: 200px;" title="${item.file.name}">${item.file.name}</span>
+                    </div>
+                    <small class="text-muted font-monospace">${formatFileSize(item.file.size)}</small>
+                </td>
+                <td id="officer_cell_${item.id}">${officerDisplay}</td>
+                <td id="dept_cell_${item.id}">${deptDisplay}</td>
+                <td class="text-center" id="status_cell_${item.id}">${statusBadge}</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle d-inline-flex align-items-center justify-content-center p-0" style="width: 28px; height: 28px;" title="លុបឯកសារនេះចេញពីបញ្ជី" onclick="removeBatchFile('${item.id}')" ${isBatchUploading ? 'disabled' : ''}>
+                        <i class="fa-solid fa-trash-can fs-8"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableBody.innerHTML = html;
+    const countEl = document.getElementById('batchTableRowCount');
+    if (countEl) countEl.textContent = `${batchFileQueue.length} ឯកសារក្នុងបញ្ជី`;
+}
+
+function toggleBatchFullscreen() {
+    const dialog = document.getElementById('batchModalDialog');
+    const icon = document.getElementById('batchFullscreenIcon');
+    const tableContainer = document.getElementById('batchTableContainer');
+    if (!dialog) return;
+
+    if (dialog.classList.contains('modal-fullscreen')) {
+        dialog.classList.remove('modal-fullscreen');
+        if (icon) {
+            icon.classList.remove('fa-compress');
+            icon.classList.add('fa-expand');
+        }
+        if (tableContainer) {
+            tableContainer.style.maxHeight = '460px';
+        }
+    } else {
+        dialog.classList.add('modal-fullscreen');
+        if (icon) {
+            icon.classList.remove('fa-expand');
+            icon.classList.add('fa-compress');
+        }
+        if (tableContainer) {
+            tableContainer.style.maxHeight = 'calc(100vh - 270px)';
+        }
+    }
+}
+
+function toggleDiffFullscreen() {
+    const dialog = document.getElementById('diffModalDialog');
+    const icon = document.getElementById('diffFullscreenIcon');
+    if (!dialog) return;
+
+    if (dialog.classList.contains('modal-fullscreen')) {
+        dialog.classList.remove('modal-fullscreen');
+        if (icon) {
+            icon.classList.remove('fa-compress');
+            icon.classList.add('fa-expand');
+        }
+    } else {
+        dialog.classList.add('modal-fullscreen');
+        if (icon) {
+            icon.classList.remove('fa-expand');
+            icon.classList.add('fa-compress');
+        }
+    }
+}
+
+function getCsrfToken() {
+    const input = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (input && input.value) return input.value;
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? match[1] : '';
+}
+
+async function removeBatchFile(itemId) {
+    if (isBatchUploading) return;
+    const idx = batchFileQueue.findIndex(f => f.id === itemId);
+    if (idx === -1) return;
+
+    const item = batchFileQueue[idx];
+
+    // If this item was newly created in the database during this batch session
+    if (item.status === 'SUCCESS_NEW' && item.result && item.result.officer_id) {
+        const officerName = item.result.officer_name_kh || item.file.name;
+        if (!confirm(`តើលោកអ្នកពិតជាចង់លុបទិន្នន័យមន្ត្រី «${officerName}» ដែលទើបបញ្ចូលនេះ ចេញពីប្រព័ន្ធមែនទេ?`)) {
+            return;
+        }
+
+        const csrfToken = getCsrfToken();
+        try {
+            const formData = new FormData();
+            formData.append('format', 'json');
+            const res = await fetch(`/officers/${item.result.officer_id}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+            const data = await res.json();
+            if (!data.success) {
+                alert('មិនអាចលុបទិន្នន័យពីប្រព័ន្ធបានទេ៖ ' + (data.error || 'កំហុសបច្ចេកទេស'));
+                return;
+            }
+        } catch (err) {
+            alert('មានបញ្ហាក្នុងការតភ្ជាប់ដើម្បីលុបទិន្នន័យ៖ ' + err);
+            return;
+        }
+    }
+
+    // Decrement counters
+    if (item.status === 'SUCCESS_NEW') batchNewCount = Math.max(0, batchNewCount - 1);
+    else if (item.status === 'EXISTING_IDENTICAL' || item.status === 'EXISTING_SKIPPED') batchIdenticalCount = Math.max(0, batchIdenticalCount - 1);
+    else if (item.status === 'DIFF_DETECTED' || item.status === 'SUCCESS_UPDATED') batchDiffCount = Math.max(0, batchDiffCount - 1);
+    else if (item.status === 'ERROR') batchErrorCount = Math.max(0, batchErrorCount - 1);
+
+    batchFileQueue.splice(idx, 1);
+
+    if (batchFileQueue.length === 0) {
+        resetBatchUpload();
+    } else {
+        renderBatchTable();
+        updateOverallProgress();
+    }
+}
+
+function updateOverallProgress() {
+    const total = batchFileQueue.length;
+    const completed = batchNewCount + batchIdenticalCount + batchDiffCount + batchErrorCount;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    document.getElementById('overallProgressText').textContent = `${completed} / ${total} Files`;
+    document.getElementById('overallPercentBadge').textContent = `${pct}%`;
+    document.getElementById('overallProgressBar').style.width = `${pct}%`;
+
+    document.getElementById('statNewFiles').textContent = batchNewCount;
+    document.getElementById('statIdenticalFiles').textContent = batchIdenticalCount;
+    document.getElementById('statDiffFiles').textContent = batchDiffCount;
+    document.getElementById('statErrorFiles').textContent = batchErrorCount;
+}
+
+async function startBatchProcessing() {
+    if (isBatchUploading || batchFileQueue.length === 0) return;
+
+    isBatchUploading = true;
+    document.getElementById('startBatchUploadBtn').classList.add('d-none');
+    document.getElementById('batchClearBtn').classList.add('d-none');
+    document.getElementById('batchCancelBtn').classList.add('d-none');
+    document.getElementById('batchModalCloseBtn').classList.add('d-none');
+    document.getElementById('batchDropZone').classList.add('d-none');
+    if (document.getElementById('duplicateModeCard')) {
+        document.getElementById('duplicateModeCard').classList.add('d-none');
+    }
+    if (document.getElementById('batchDeptSelectGroup')) {
+        document.getElementById('batchDeptSelectGroup').classList.add('d-none');
+    }
+
+    const dupMode = document.querySelector('input[name="batchDuplicateMode"]:checked')?.value || 'review';
+    const deptSelect = document.getElementById('batchGlobalDeptSelect');
+    const selectedDeptId = deptSelect ? deptSelect.value : '';
+
+    for (let i = 0; i < batchFileQueue.length; i++) {
+        const item = batchFileQueue[i];
+        if (item.status === 'SUCCESS_NEW' || item.status === 'EXISTING_IDENTICAL' || item.status === 'SUCCESS_UPDATED' || item.status === 'EXISTING_SKIPPED') continue;
+
+        item.status = 'PROCESSING';
+        renderBatchTable();
+        updateOverallProgress();
+
+        const formData = new FormData();
+        formData.append('docx_file', item.file);
+        formData.append('format', 'json');
+        formData.append('duplicate_mode', dupMode);
+        if (selectedDeptId) {
+            formData.append('department', selectedDeptId);
+        }
+
+        const csrfToken = getCsrfToken();
+
+        try {
+            const response = await fetch("{% url 'officer_import_docx' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                item.result = data;
+                item.status = data.status || 'SUCCESS_NEW';
+                if (item.status === 'SUCCESS_NEW') batchNewCount++;
+                else if (item.status === 'EXISTING_IDENTICAL') batchIdenticalCount++;
+                else if (item.status === 'DIFF_DETECTED') batchDiffCount++;
+                else if (item.status === 'SUCCESS_UPDATED') batchDiffCount++;
+                else if (item.status === 'EXISTING_SKIPPED') batchIdenticalCount++;
+            } else {
+                item.status = 'ERROR';
+                item.errorMsg = data.error || 'កំហុសមិនស្គាល់';
+                batchErrorCount++;
+            }
+        } catch (err) {
+            item.status = 'ERROR';
+            item.errorMsg = 'បាត់បង់ការតភ្ជាប់ Server';
+            batchErrorCount++;
+        }
+
+        renderBatchTable();
+        updateOverallProgress();
+    }
+
+    isBatchUploading = false;
+    document.getElementById('batchDoneBtn').classList.remove('d-none');
+    document.getElementById('batchCancelBtn').classList.remove('d-none');
+    document.getElementById('batchModalCloseBtn').classList.remove('d-none');
+}
+
+function openDiffModal(itemId) {
+    const item = batchFileQueue.find(f => f.id === itemId);
+    if (!item || !item.result || !item.result.differences) return;
+
+    activeDiffItem = item;
+    document.getElementById('diffOfficerName').textContent = item.result.officer_name_kh || '-';
+    document.getElementById('diffOfficerId').textContent = item.result.officer_id_number || '-';
+    document.getElementById('diffOfficerDept').textContent = item.result.department_name || '-';
+    document.getElementById('diffCountBadge').textContent = `${item.result.differences.length} ចំណុចខុសគ្នា`;
+
+    let rowsHtml = '';
+    item.result.differences.forEach(d => {
+        rowsHtml += `
+            <tr>
+                <td class="fw-bold text-dark">${d.label}</td>
+                <td class="text-secondary bg-light font-monospace small">${d.old_val}</td>
+                <td class="text-primary bg-warning bg-opacity-10 fw-bold font-monospace small">
+                    <i class="fa-solid fa-arrow-right text-warning me-1"></i> ${d.new_val}
+                </td>
+            </tr>
+        `;
+    });
+
+    document.getElementById('diffTableBody').innerHTML = rowsHtml;
+    const diffModal = new bootstrap.Modal(document.getElementById('diffReviewModal'));
+    diffModal.show();
+}
+
+async function applyDiffUpdate() {
+    if (!activeDiffItem) return;
+
+    const btn = document.getElementById('confirmDiffUpdateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> កំពុង Update...';
+
+    const formData = new FormData();
+    formData.append('docx_file', activeDiffItem.file);
+    formData.append('format', 'json');
+    formData.append('duplicate_mode', 'force_update');
+
+    const csrfToken = getCsrfToken();
+
+    try {
+        const response = await fetch("{% url 'officer_import_docx' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            activeDiffItem.status = 'SUCCESS_UPDATED';
+            activeDiffItem.result = data;
+            renderBatchTable();
+        }
+    } catch (e) {
+        alert('មានបញ្ហាក្នុងការ Update: ' + e);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1.5"></i> យល់ព្រម Update ទៅទិន្នន័យថ្មីនេះ';
+
+    const diffModalEl = document.getElementById('diffReviewModal');
+    const modalInstance = bootstrap.Modal.getInstance(diffModalEl);
+    if (modalInstance) modalInstance.hide();
+}
+
+function resetBatchUpload() {
+    if (isBatchUploading) return;
+    batchFileQueue = [];
+    batchNewCount = 0;
+    batchIdenticalCount = 0;
+    batchDiffCount = 0;
+    batchErrorCount = 0;
+    document.getElementById('batchDocxFileInput').value = '';
+    document.getElementById('startBatchUploadBtn').classList.add('d-none');
+    document.getElementById('batchDoneBtn').classList.add('d-none');
+    document.getElementById('batchClearBtn').classList.add('d-none');
+    document.getElementById('batchProgressContainer').classList.add('d-none');
+    document.getElementById('batchDropZone').classList.remove('d-none');
+    if (document.getElementById('duplicateModeCard')) {
+        document.getElementById('duplicateModeCard').classList.remove('d-none');
+    }
+    if (document.getElementById('batchDeptSelectGroup')) {
+        document.getElementById('batchDeptSelectGroup').classList.remove('d-none');
+    }
+}
+
+// Checkbox and Bulk Delete Management (Admin Only)
+function toggleSelectAll(master) {
+    const checkboxes = document.querySelectorAll('.officer-select-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = master.checked;
+    });
+    handleRowCheckboxChange();
+}
+
+function handleRowCheckboxChange() {
+    const checkboxes = document.querySelectorAll('.officer-select-checkbox');
+    const checkedBoxes = document.querySelectorAll('.officer-select-checkbox:checked');
+    const count = checkedBoxes.length;
+
+    const badge = document.getElementById('selectedBadge');
+    const countSpan = document.getElementById('selectedCount');
+    const bulkBtn = document.getElementById('bulkDeleteBtn');
+    const bulkCountSpan = document.getElementById('bulkDeleteCount');
+    const masterCheckbox = document.getElementById('selectAllCheckbox');
+
+    if (badge && countSpan) {
+        countSpan.textContent = count;
+        if (count > 0) {
+            badge.classList.remove('d-none');
+        } else {
+            badge.classList.add('d-none');
+        }
+    }
+
+    if (bulkBtn && bulkCountSpan) {
+        bulkCountSpan.textContent = count;
+        if (count > 0) {
+            bulkBtn.classList.remove('d-none');
+        } else {
+            bulkBtn.classList.add('d-none');
+        }
+    }
+
+    if (masterCheckbox && checkboxes.length > 0) {
+        masterCheckbox.checked = (checkboxes.length === count);
+    }
+}
+
+async function confirmBulkDelete() {
+    const checkedBoxes = document.querySelectorAll('.officer-select-checkbox:checked');
+    const count = checkedBoxes.length;
+    if (count === 0) {
+        alert('សូមជ្រើសរើសមន្ត្រីយ៉ាងហោចណាស់ម្នាក់ដើម្បីលុប!');
+        return;
+    }
+
+    const confirmMsg = `⚠️ តើលោកអ្នកពិតជាចង់លុបជីវប្រវត្តិមន្ត្រីដែលបានជ្រើសរើសចំនួន ${count} នាក់ នេះចេញពីប្រព័ន្ធមែនទេ? \n\nសកម្មភាពនេះនឹងលុបប្រវត្តិរូប និងឯកសារយោងទាំងអស់របស់មន្ត្រីទាំងនេះ ហើយមិនអាចត្រឡប់វិញបានឡើយ!`;
+    if (!confirm(confirmMsg)) return;
+
+    const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+    const formData = new FormData();
+    selectedIds.forEach(id => formData.append('selected_ids', id));
+
+    const csrfToken = getCsrfToken();
+    try {
+        const res = await fetch("{% url 'officer_bulk_delete' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message || 'បានលុបដោយជោគជ័យ!');
+            window.location.reload();
+        } else {
+            alert('⚠️ ' + (data.error || 'មានបញ្ហាក្នុងការលុប!'));
+        }
+    } catch (e) {
+        alert('⚠️ មានបញ្ហាក្នុងការតភ្ជាប់៖ ' + e);
+    }
+}
+
+function checkDeleteAllConfirm(val) {
+    const btn = document.getElementById('confirmDeleteAllBtn');
+    if (!btn) return;
+    const clean = (val || '').trim();
+    if (clean === 'DELETE ALL' || clean === 'DELETEALL' || clean === 'DELETE' || clean === 'លុបទាំងអស់') {
+        btn.disabled = false;
+    } else {
+        btn.disabled = true;
+    }
+}
+
+// ==========================================
+// 📸 BATCH PHOTO UPLOAD & SMART AUTO-MATCH
+// ==========================================
+let photoFileQueue = [];
+let allOfficersForPhotoMatch = [];
+let isPhotoBatchUploading = false;
+let isBatchPhotoFullscreen = false;
+let photoFilterCurrent = 'ALL';
+
+function toggleBatchPhotoFullscreen() {
+    const dialog = document.getElementById('batchPhotoModalDialog');
+    const icon = document.getElementById('batchPhotoFullscreenIcon');
+    const tableContainer = document.getElementById('photoTableContainer');
+    if (!dialog) return;
+
+    if (dialog.classList.contains('modal-fullscreen')) {
+        dialog.classList.remove('modal-fullscreen');
+        if (icon) {
+            icon.classList.remove('fa-compress');
+            icon.classList.add('fa-expand');
+        }
+        if (tableContainer) {
+            tableContainer.style.maxHeight = '440px';
+        }
+    } else {
+        dialog.classList.add('modal-fullscreen');
+        if (icon) {
+            icon.classList.remove('fa-expand');
+            icon.classList.add('fa-compress');
+        }
+        if (tableContainer) {
+            tableContainer.style.maxHeight = 'calc(100vh - 270px)';
+        }
+    }
+}
+
+async function loadOfficersIndexForPhotoMatching() {
+    if (allOfficersForPhotoMatch.length > 0) return;
+    try {
+        const res = await fetch("{% url 'api_officers_for_photo_match' %}");
+        const data = await res.json();
+        if (data.success && data.officers) {
+            allOfficersForPhotoMatch = data.officers;
+            // If queue already has items waiting for officer matching
+            if (photoFileQueue.length > 0) {
+                reMatchAllPhotosInQueue();
+            }
+        }
+    } catch (e) {
+        console.error('Error fetching officers for photo match:', e);
+    }
+}
+
+function normalizeKhmerText(str) {
+    if (!str) return '';
+    return str.toString()
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .replace(/[\s\-_.,()/\\\[\]]/g, '')
+        .trim();
+}
+
+function normalizeLatinText(str) {
+    if (!str) return '';
+    return str.toString()
+        .toUpperCase()
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .replace(/[^A-Z0-9]/g, '')
+        .trim();
+}
+
+function extractPotentialNumbers(str) {
+    const matches = str.match(/\d{4,}/g);
+    return matches || [];
+}
+
+function smartMatchOfficerPhoto(filename) {
+    if (!allOfficersForPhotoMatch || allOfficersForPhotoMatch.length === 0) return null;
+
+    // Strip extension
+    const baseName = filename.replace(/\.[^/.]+$/, '').trim();
+    // Strip common photo prefixes like "photo_", "img_", "pic_", "cv_", "m_", "f_"
+    const cleanBaseName = baseName.replace(/^(photo|img|pic|cv|p|profile|officer|mr|ms|dr)[_\-\s]+/i, '').trim();
+
+    const normBaseKh = normalizeKhmerText(cleanBaseName);
+    const normBaseLatin = normalizeLatinText(cleanBaseName);
+    const extractedNums = extractPotentialNumbers(cleanBaseName);
+
+    // 1. Exact Match by Officer ID Number (អត្តលេខ)
+    for (const o of allOfficersForPhotoMatch) {
+        if (o.officer_id_number) {
+            const cleanId = o.officer_id_number.trim();
+            const normId = normalizeLatinText(cleanId);
+            if (cleanBaseName === cleanId || normBaseLatin === normId || cleanBaseName.startsWith(cleanId)) {
+                return { officer: o, score: 100, label: 'ត្រូវតាមអត្តលេខ' };
+            }
+            if (extractedNums.some(n => n === cleanId || cleanId.includes(n))) {
+                return { officer: o, score: 98, label: 'ត្រូវតាមអត្តលេខ' };
+            }
+        }
+    }
+
+    // 2. Match by National ID Number (លេខអត្តសញ្ញាណប័ណ្ណ)
+    for (const o of allOfficersForPhotoMatch) {
+        if (o.national_id_number) {
+            const cleanNatId = o.national_id_number.trim();
+            if (cleanBaseName === cleanNatId || extractedNums.includes(cleanNatId)) {
+                return { officer: o, score: 95, label: 'ត្រូវតាមអត្តសញ្ញាណប័ណ្ណ' };
+            }
+        }
+    }
+
+    // 3. Match by Khmer Full Name (ឈ្មោះខ្មែរ)
+    for (const o of allOfficersForPhotoMatch) {
+        const normFullKh = normalizeKhmerText(o.name_kh);
+        const normReversedKh = normalizeKhmerText((o.khmer_first_name || '') + (o.khmer_last_name || ''));
+        if (normBaseKh && (normBaseKh === normFullKh || normBaseKh === normReversedKh)) {
+            return { officer: o, score: 95, label: 'ត្រូវតាមឈ្មោះខ្មែរ' };
+        }
+        if (normBaseKh.length >= 4 && (normBaseKh.includes(normFullKh) || normFullKh.includes(normBaseKh))) {
+            return { officer: o, score: 85, label: 'ត្រូវតាមឈ្មោះខ្មែរ' };
+        }
+    }
+
+    // 4. Match by Latin Full Name (ឈ្មោះឡាតាំង)
+    for (const o of allOfficersForPhotoMatch) {
+        if (o.name_latin) {
+            const normFullLatin = normalizeLatinText(o.name_latin);
+            const normReversedLatin = normalizeLatinText((o.latin_first_name || '') + (o.latin_last_name || ''));
+            if (normBaseLatin && (normBaseLatin === normFullLatin || normBaseLatin === normReversedLatin)) {
+                return { officer: o, score: 90, label: 'ត្រូវតាមឈ្មោះឡាតាំង' };
+            }
+            if (normBaseLatin.length >= 5 && (normBaseLatin.includes(normFullLatin) || normFullLatin.includes(normBaseLatin))) {
+                return { officer: o, score: 80, label: 'ត្រូវតាមឈ្មោះឡាតាំង' };
+            }
+        }
+    }
+
+    // 5. Check if individual last name & first name are both present in filename
+    for (const o of allOfficersForPhotoMatch) {
+        const lastKh = normalizeKhmerText(o.khmer_last_name);
+        const firstKh = normalizeKhmerText(o.khmer_first_name);
+        if (lastKh && firstKh && normBaseKh.includes(lastKh) && normBaseKh.includes(firstKh)) {
+            return { officer: o, score: 75, label: 'ត្រូវតាមនាមត្រកូល & នាមខ្លួន' };
+        }
+    }
+
+    return null;
+}
+
+function handlePhotoFilesSelected(fileList) {
+    if (!fileList || fileList.length === 0) return;
+
+    loadOfficersIndexForPhotoMatching();
+
+    const validExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
+    let addedCount = 0;
+
+    for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+        if (!validExts.includes(ext)) continue;
+
+        // Check duplicate file in queue
+        if (photoFileQueue.some(item => item.file.name === file.name && item.file.size === file.size)) continue;
+
+        const matchResult = smartMatchOfficerPhoto(file.name);
+        photoFileQueue.push({
+            id: 'pfile_' + Math.random().toString(36).substr(2, 9),
+            file: file,
+            blobUrl: URL.createObjectURL(file),
+            matchedOfficer: matchResult ? matchResult.officer : null,
+            selectedOfficerId: matchResult ? matchResult.officer.id : '',
+            matchLabel: matchResult ? matchResult.label : 'រកមិនឃើញ',
+            status: 'PENDING', // PENDING, UPLOADING, SUCCESS, SKIPPED, ERROR
+            errorMsg: null,
+            photoUrl: null
+        });
+        addedCount++;
+    }
+
+    renderPhotoQueueTable();
+}
+
+function reMatchAllPhotosInQueue() {
+    photoFileQueue.forEach(item => {
+        if (!item.selectedOfficerId) {
+            const matchResult = smartMatchOfficerPhoto(item.file.name);
+            if (matchResult) {
+                item.matchedOfficer = matchResult.officer;
+                item.selectedOfficerId = matchResult.officer.id;
+                item.matchLabel = matchResult.label;
+            }
+        }
+    });
+    renderPhotoQueueTable();
+}
+
+function renderPhotoQueueTable() {
+    const dropZone = document.getElementById('photoDropZone');
+    const queueContainer = document.getElementById('photoQueueContainer');
+    const startBtn = document.getElementById('startBatchPhotoUploadBtn');
+    const clearBtn = document.getElementById('batchPhotoClearBtn');
+    const tableBody = document.getElementById('photoQueueTableBody');
+    const filterButtons = document.getElementById('photoFilterButtons');
+
+    if (photoFileQueue.length === 0) {
+        if (queueContainer) queueContainer.classList.add('d-none');
+        if (startBtn) startBtn.classList.add('d-none');
+        if (clearBtn) clearBtn.classList.add('d-none');
+        if (filterButtons) filterButtons.style.display = 'none';
+        return;
+    }
+
+    if (queueContainer) queueContainer.classList.remove('d-none');
+    if (startBtn && !isPhotoBatchUploading) startBtn.classList.remove('d-none');
+    if (clearBtn && !isPhotoBatchUploading) clearBtn.classList.remove('d-none');
+    if (filterButtons) filterButtons.style.display = 'flex';
+
+    // Counts
+    const totalCount = photoFileQueue.length;
+    const matchedCount = photoFileQueue.filter(item => Boolean(item.selectedOfficerId)).length;
+    const unmatchedCount = totalCount - matchedCount;
+
+    document.getElementById('photoTotalCount').textContent = totalCount;
+    document.getElementById('photoUploadActionCount').textContent = matchedCount;
+    document.getElementById('photoMatchedBadge').textContent = `✅ ត្រូវគ្នា ${matchedCount} នាក់`;
+    document.getElementById('photoUnmatchedBadge').textContent = `❌ មិនទាន់ត្រូវគ្នា ${unmatchedCount} រូប`;
+
+    const countFilterAll = document.getElementById('countFilterAll');
+    const countFilterMatched = document.getElementById('countFilterMatched');
+    const countFilterUnmatched = document.getElementById('countFilterUnmatched');
+    if (countFilterAll) countFilterAll.textContent = totalCount;
+    if (countFilterMatched) countFilterMatched.textContent = matchedCount;
+    if (countFilterUnmatched) countFilterUnmatched.textContent = unmatchedCount;
+
+    let filteredItems = photoFileQueue;
+    if (photoFilterCurrent === 'MATCHED') {
+        filteredItems = photoFileQueue.filter(item => Boolean(item.selectedOfficerId));
+    } else if (photoFilterCurrent === 'UNMATCHED') {
+        filteredItems = photoFileQueue.filter(item => !item.selectedOfficerId);
+    }
+
+    let rowsHtml = '';
+    filteredItems.forEach((item, idx) => {
+        let statusBadge = '';
+        if (item.status === 'PENDING') {
+            if (item.selectedOfficerId) {
+                statusBadge = `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1 fw-bold"><i class="fa-solid fa-circle-check me-1"></i> ${item.matchLabel}</span>`;
+            } else {
+                statusBadge = `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2.5 py-1 fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i> មិនទាន់ផ្គូផ្គង</span>`;
+            }
+        } else if (item.status === 'UPLOADING') {
+            statusBadge = `<span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 fw-bold"><i class="fa-solid fa-spinner fa-spin me-1"></i> កំពុង Upload...</span>`;
+        } else if (item.status === 'SUCCESS') {
+            statusBadge = `<span class="badge bg-success text-white rounded-pill px-2.5 py-1 fw-bold"><i class="fa-solid fa-check-double me-1"></i> បាន Update</span>`;
+        } else if (item.status === 'SKIPPED') {
+            statusBadge = `<span class="badge bg-secondary text-white rounded-pill px-2.5 py-1 fw-bold"><i class="fa-solid fa-forward me-1"></i> បានរំលង</span>`;
+        } else if (item.status === 'ERROR') {
+            statusBadge = `<span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fw-bold" title="${item.errorMsg || 'កំហុស'}"><i class="fa-solid fa-circle-xmark me-1"></i> បរាជ័យ</span>`;
+        }
+
+        // Build Searchable Officer Selector Options
+        let officerSelectOptions = `<option value="">-- ជ្រើសរើសមន្ត្រីដោយផ្ទាល់ (Search/Select) --</option>`;
+        allOfficersForPhotoMatch.forEach(o => {
+            const isSelected = String(item.selectedOfficerId) === String(o.id);
+            const idStr = o.officer_id_number ? ` [អត្តលេខ: ${o.officer_id_number}]` : '';
+            const latinStr = o.name_latin ? ` (${o.name_latin})` : '';
+            officerSelectOptions += `<option value="${o.id}" ${isSelected ? 'selected' : ''}>${o.name_kh}${idStr}${latinStr} - ${o.department_name}</option>`;
+        });
+
+        const matchedOfficer = allOfficersForPhotoMatch.find(o => String(o.id) === String(item.selectedOfficerId));
+        let officerCardHtml = '';
+        if (matchedOfficer) {
+            const currentPhotoHtml = matchedOfficer.current_photo_url ?
+                `<img src="${matchedOfficer.current_photo_url}" class="rounded-circle border shadow-xs object-fit-cover" style="width: 32px; height: 32px;" title="រូបថតបច្ចុប្បន្ន">` :
+                `<div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 13px;">${matchedOfficer.khmer_last_name ? matchedOfficer.khmer_last_name.substring(0,1) : 'គ្មាន'}</div>`;
+
+            officerCardHtml = `
+                <div class="d-flex align-items-center justify-content-between gap-2 p-1.5 bg-light rounded-3 border mb-1.5">
+                    <div class="d-flex align-items-center gap-2">
+                        ${currentPhotoHtml}
+                        <div>
+                            <strong class="d-block text-dark fs-8">${matchedOfficer.name_kh} <span class="text-muted fw-normal font-monospace">${matchedOfficer.name_latin || ''}</span></strong>
+                            <span class="fs-9 text-muted">${matchedOfficer.officer_id_number ? `<strong class="text-primary font-monospace">អត្តលេខ: ${matchedOfficer.officer_id_number}</strong> &bull; ` : ''}${matchedOfficer.department_name}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        rowsHtml += `
+            <tr id="prow_${item.id}" class="${!item.selectedOfficerId ? 'table-warning table-opacity-10' : ''}">
+                <td class="text-center fw-bold text-muted">${idx + 1}</td>
+                <td class="text-center">
+                    <img src="${item.blobUrl}" class="rounded-3 border shadow-xs object-fit-cover" style="width: 48px; height: 58px;" alt="Photo Preview">
+                </td>
+                <td>
+                    <div class="fw-bold text-dark text-truncate" style="max-width: 220px;" title="${item.file.name}">
+                        <i class="fa-regular fa-image text-info me-1"></i> ${item.file.name}
+                    </div>
+                    <small class="text-muted font-monospace">${formatFileSize(item.file.size)}</small>
+                </td>
+                <td class="text-center" id="pstatus_cell_${item.id}">
+                    ${statusBadge}
+                </td>
+                <td>
+                    ${officerCardHtml}
+                    <select class="form-select form-select-sm fs-8 rounded-pill" onchange="changeOfficerSelection('${item.id}', this.value)" ${isPhotoBatchUploading ? 'disabled' : ''}>
+                        ${officerSelectOptions}
+                    </select>
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle d-inline-flex align-items-center justify-content-center p-0" style="width: 28px; height: 28px;" title="ដកចេញពីបញ្ជី" onclick="removePhotoQueueItem('${item.id}')" ${isPhotoBatchUploading ? 'disabled' : ''}>
+                        <i class="fa-solid fa-trash-can fs-8"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableBody.innerHTML = rowsHtml;
+}
+
+function changeOfficerSelection(itemId, newOfficerId) {
+    const item = photoFileQueue.find(f => f.id === itemId);
+    if (!item) return;
+
+    item.selectedOfficerId = newOfficerId || '';
+    item.matchedOfficer = allOfficersForPhotoMatch.find(o => String(o.id) === String(newOfficerId)) || null;
+    item.matchLabel = newOfficerId ? 'ជ្រើសរើសផ្ទាល់' : 'មិនទាន់ផ្គូផ្គង';
+    renderPhotoQueueTable();
+}
+
+function removePhotoQueueItem(itemId) {
+    const idx = photoFileQueue.findIndex(f => f.id === itemId);
+    if (idx !== -1) {
+        photoFileQueue.splice(idx, 1);
+        renderPhotoQueueTable();
+    }
+}
+
+function filterPhotoQueue(filterType, btnEl) {
+    photoFilterCurrent = filterType;
+    const parent = btnEl.parentElement;
+    if (parent) {
+        parent.querySelectorAll('button').forEach(b => {
+            b.classList.remove('btn-dark', 'btn-success', 'btn-danger');
+            b.classList.add('btn-outline-secondary');
+        });
+        if (filterType === 'ALL') {
+            btnEl.classList.remove('btn-outline-secondary');
+            btnEl.classList.add('btn-dark');
+        } else if (filterType === 'MATCHED') {
+            btnEl.classList.remove('btn-outline-secondary');
+            btnEl.classList.add('btn-success');
+        } else if (filterType === 'UNMATCHED') {
+            btnEl.classList.remove('btn-outline-secondary');
+            btnEl.classList.add('btn-danger');
+        }
+    }
+    renderPhotoQueueTable();
+}
+
+function resetPhotoBatchUpload() {
+    if (isPhotoBatchUploading) return;
+    photoFileQueue = [];
+    document.getElementById('batchPhotoFileInput').value = '';
+    document.getElementById('photoProgressContainer').classList.add('d-none');
+    document.getElementById('startBatchPhotoUploadBtn').classList.add('d-none');
+    document.getElementById('batchPhotoDoneBtn').classList.add('d-none');
+    document.getElementById('batchPhotoClearBtn').classList.add('d-none');
+    document.getElementById('photoQueueContainer').classList.add('d-none');
+    document.getElementById('photoDropZone').classList.remove('d-none');
+}
+
+async function startBatchPhotoUpload() {
+    const validItems = photoFileQueue.filter(item => Boolean(item.selectedOfficerId));
+    if (validItems.length === 0) {
+        alert('ពុំមានរូបថតណាដែលបានផ្គូផ្គងជាមួយមន្ត្រីឡើយ! សូមជ្រើសរើសមន្ត្រីឱ្យបានយ៉ាងហោច ១ រូប។');
+        return;
+    }
+
+    if (isPhotoBatchUploading) return;
+    isPhotoBatchUploading = true;
+
+    // UI state adjustments
+    document.getElementById('startBatchPhotoUploadBtn').classList.add('d-none');
+    document.getElementById('batchPhotoClearBtn').classList.add('d-none');
+    document.getElementById('batchPhotoCancelBtn').classList.add('d-none');
+    document.getElementById('batchPhotoModalCloseBtn').classList.add('d-none');
+    document.getElementById('photoDropZone').classList.add('d-none');
+    document.getElementById('photoProgressContainer').classList.remove('d-none');
+
+    const overwrite = document.getElementById('photoOverwriteSwitch').checked;
+    const csrfToken = getCsrfToken();
+
+    let uploadedSuccessCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < photoFileQueue.length; i++) {
+        const item = photoFileQueue[i];
+        if (!item.selectedOfficerId) continue;
+        if (item.status === 'SUCCESS' || item.status === 'SKIPPED') continue;
+
+        item.status = 'UPLOADING';
+        renderPhotoQueueTable();
+
+        // Update progress bar
+        const percent = Math.round(((i) / photoFileQueue.length) * 100);
+        document.getElementById('photoProgressBar').style.width = `${percent}%`;
+        document.getElementById('photoProgressPercentText').textContent = `${percent}%`;
+        document.getElementById('photoProgressStatusText').textContent = `កំពុង Update រូបថត (${i + 1}/${photoFileQueue.length})៖ ${item.file.name}...`;
+
+        const formData = new FormData();
+        formData.append('officer_id', item.selectedOfficerId);
+        formData.append('photo', item.file);
+        formData.append('overwrite', overwrite ? 'true' : 'false');
+
+        try {
+            const res = await fetch("{% url 'officer_batch_upload_photo_single' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                if (data.skipped) {
+                    item.status = 'SKIPPED';
+                    skippedCount++;
+                } else {
+                    item.status = 'SUCCESS';
+                    item.photoUrl = data.photo_url;
+                    uploadedSuccessCount++;
+                }
+            } else {
+                item.status = 'ERROR';
+                item.errorMsg = data.error || 'កំហុសបច្ចេកទេស';
+                errorCount++;
+            }
+        } catch (err) {
+            item.status = 'ERROR';
+            item.errorMsg = err.toString();
+            errorCount++;
+        }
+
+        renderPhotoQueueTable();
+    }
+
+    // Complete Progress Bar
+    document.getElementById('photoProgressBar').style.width = '100%';
+    document.getElementById('photoProgressPercentText').textContent = '100%';
+    document.getElementById('photoProgressStatusText').textContent = `🎉 បាន Update រួចរាល់! ជោគជ័យ៖ ${uploadedSuccessCount} រូប, រំលង៖ ${skippedCount} រូប, បរាជ័យ៖ ${errorCount} រូប`;
+
+    isPhotoBatchUploading = false;
+    document.getElementById('batchPhotoDoneBtn').classList.remove('d-none');
+    document.getElementById('batchPhotoCancelBtn').classList.remove('d-none');
+    document.getElementById('batchPhotoModalCloseBtn').classList.remove('d-none');
+}
+
+function finishBatchPhotoUpload() {
+    window.location.reload();
+}
+
+// Setup Event Listeners for Drop Zone & Modal
+document.addEventListener("DOMContentLoaded", function() {
+    const photoDropZone = document.getElementById('photoDropZone');
+    if (photoDropZone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            photoDropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                photoDropZone.style.borderColor = '#0369a1';
+                photoDropZone.style.backgroundColor = '#e0f2fe';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            photoDropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                photoDropZone.style.borderColor = '#0284c7';
+                photoDropZone.style.backgroundColor = '#f0f9ff';
+            }, false);
+        });
+
+        photoDropZone.addEventListener('drop', function(e) {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length > 0) {
+                handlePhotoFilesSelected(dt.files);
+            }
+        }, false);
+    }
+
+    const photoModalEl = document.getElementById('batchUploadPhotoModal');
+    if (photoModalEl) {
+        photoModalEl.addEventListener('show.bs.modal', function() {
+            loadOfficersIndexForPhotoMatching();
+        });
+    }
+});
+
+// Auto-convert Khmer numerals to Arabic digits on search input if typing ID/phone
+document.addEventListener('input', function(e) {
+    const target = e.target;
+    if (target && target.matches('input[name="q"]')) {
+        const khmerNums = {'០':'0', '១':'1', '២':'2', '៣':'3', '៤':'4', '៥':'5', '៦':'6', '៧':'7', '៨':'8', '៩':'9'};
+        const val = target.value;
+        if (/^[០-៩\s\-]+$/.test(val)) {
+            target.value = val.replace(/[០-៩]/g, d => khmerNums[d] || d);
+        }
+    }
+});
+</script>
+
+{% if is_system_admin %}
+<!-- Modal: Admin Edit Window Settings -->
+<div class="modal fade" id="editWindowModal" tabindex="-1" aria-labelledby="editWindowModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="bg-white bg-opacity-25 p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="fa-solid fa-clock-rotate-left fs-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0" id="editWindowModalLabel">កំណត់កាលវិភាគកែប្រែ & បញ្ចូលជីវប្រវត្តិមន្ត្រី</h6>
+                        <span class="fs-8 text-white-50">Admin HR Profile Submission & Edit Window Control</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="POST" action="{% url 'officer_edit_window_setting' %}">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <!-- Status Overview Alert -->
+                    <div class="alert alert-info border-0 rounded-3 small mb-4 d-flex align-items-start gap-2.5">
+                        <i class="fa-solid fa-circle-info fs-5 mt-0.5 text-info"></i>
+                        <div>
+                            <strong>មុខងារគ្រប់គ្រងផ្ដាច់មុខដោយ ADMIN</strong><br>
+                            នៅពេលដល់កាលកំណត់ ឬនៅពេលបិទ ប្រព័ន្ធនឹង <strong>Lock ដោយស្វ័យប្រវត្តិ</strong> មិនឱ្យគ្រប់ការិយាល័យជំនាញកែប្រែ ឬបញ្ចូលជីវប្រវត្តិថ្មីបានឡើយ។ <strong>ADMIN តែងតែមានសិទ្ធិកែប្រែជានិច្ច</strong>។
+                        </div>
+                    </div>
+
+                    <!-- Master Switch -->
+                    <div class="card border rounded-3 p-3 mb-3 bg-light">
+                        <div class="form-check form-switch d-flex justify-content-between align-items-center p-0 m-0">
+                            <div>
+                                <label class="form-check-label fw-bold text-dark fs-7 d-block" for="windowIsActive">
+                                    <i class="fa-solid fa-power-off me-1.5 text-primary"></i> បើកដំណើរការកាលវិភាគ (Enable Time Window)
+                                </label>
+                                <span class="text-muted fs-8">បើបិទ ប្រព័ន្ធនឹងចាត់ទុកថាកាលវិភាគត្រូវបានបិទ (Locked) សម្រាប់គ្រប់ការិយាល័យជំនាញ</span>
+                            </div>
+                            <input class="form-check-input ms-3 fs-5 cursor-pointer" type="checkbox" role="switch" name="is_active" id="windowIsActive" value="true" {% if edit_window.is_active %}checked{% endif %}>
+                        </div>
+                    </div>
+
+                    <div class="card border rounded-3 p-3 mb-3 bg-light">
+                        <div class="form-check form-switch d-flex justify-content-between align-items-center p-0 m-0">
+                            <div>
+                                <label class="form-check-label fw-bold text-dark fs-7 d-block" for="windowAllowSpecialized">
+                                    <i class="fa-solid fa-pen-to-square me-1.5 text-success"></i> អនុញ្ញាតឱ្យការិយាល័យជំនាញកែប្រែ/បញ្ចូល (Allow Specialized Office Edit)
+                                </label>
+                                <span class="text-muted fs-8">បិទភ្លាមៗក្នុងករណីចង់ចាក់សោបន្ទាន់ដោយមិនចាំបាច់រង់ចាំដល់ Deadline</span>
+                            </div>
+                            <input class="form-check-input ms-3 fs-5 cursor-pointer" type="checkbox" role="switch" name="allow_specialized_edit" id="windowAllowSpecialized" value="true" {% if edit_window.allow_specialized_edit %}checked{% endif %}>
+                        </div>
+                    </div>
+
+                    <!-- Title -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">ចំណងជើងកាលវិភាគ</label>
+                        <input type="text" name="title" class="form-control rounded-3 fs-7" value="{{ edit_window.title|default:'កាលវិភាគកែប្រែ និងបញ្ចូលជីវប្រវត្តិមន្ត្រី' }}" required>
+                    </div>
+
+                    <!-- Date-Time Range -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small text-dark d-flex align-items-center gap-1.5">
+                                <i class="fa-regular fa-calendar-plus text-primary"></i>
+                                <span>កាលបរិច្ឆេទ & ម៉ោង ចាប់ផ្តើម៖</span>
+                            </label>
+                            <input type="datetime-local" name="start_datetime" class="form-control rounded-3 fs-7" value="{{ edit_window.start_datetime_input }}">
+                            <span class="fs-8 text-muted">ទុកចោលបើចង់ឱ្យបើកភ្លាមៗ</span>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small text-dark d-flex align-items-center gap-1.5">
+                                <i class="fa-regular fa-calendar-xmark text-danger"></i>
+                                <span>កាលបរិច្ឆេទ & ម៉ោង បញ្ចប់ (Deadline)៖</span>
+                            </label>
+                            <input type="datetime-local" name="end_datetime" class="form-control rounded-3 fs-7" value="{{ edit_window.end_datetime_input }}">
+                            <span class="fs-8 text-muted">ពេលដល់ម៉ោងនេះ ប្រព័ន្ធនឹងបិទស្វ័យប្រវត្តិ</span>
+                        </div>
+                    </div>
+
+                    <!-- Target Departments Selection -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark d-flex align-items-center justify-content-between">
+                            <span><i class="fa-solid fa-building me-1 text-primary"></i> វិសាលភាពការិយាល័យដែលអនុញ្ញាត (Target Offices)៖</span>
+                            <span class="fs-8 text-muted fw-normal">បើមិនជ្រើសរើស = អនុញ្ញាតគ្រប់ការិយាល័យ</span>
+                        </label>
+                        <div class="card border rounded-3 p-2.5 bg-light" style="max-height: 160px; overflow-y: auto;">
+                            <div class="row g-2">
+                                {% for d in departments %}
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-check form-check-sm">
+                                        <input class="form-check-input" type="checkbox" name="allowed_departments" value="{{ d.id }}" id="allowDept_{{ d.id }}" {% if d in edit_window.allowed_departments.all %}checked{% endif %}>
+                                        <label class="form-check-label fs-8 text-dark cursor-pointer text-truncate d-block" for="allowDept_{{ d.id }}" title="{{ d.name_kh }}">
+                                            {{ d.name_kh }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instruction Message -->
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small text-dark">សេចក្តីណែនាំ/សារជូនដំណឹងទៅកាន់ការិយាល័យជំនាញ</label>
+                        <textarea name="instruction_note" rows="2" class="form-control rounded-3 fs-7" placeholder="ឧ. សូមគ្រប់ការិយាល័យជំនាញទាំងអស់ រួសរាន់បញ្ចូល និងកែប្រែទិន្នន័យឱ្យបានមុនថ្ងៃកំណត់...">{{ edit_window.instruction_note }}</textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fs-7 fw-bold shadow-xs">
+                        <i class="fa-solid fa-floppy-disk me-1.5"></i> រក្សាទុកការកំណត់
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Admin Delete All Officers Confirmation -->
+<div class="modal fade" id="deleteAllModal" tabindex="-1" aria-labelledby="deleteAllModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header bg-danger text-white px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="bg-white bg-opacity-25 p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="fa-solid fa-triangle-exclamation fs-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0" id="deleteAllModalLabel">ការលុបទិន្នន័យជីវប្រវត្តិមន្ត្រីទាំងអស់</h6>
+                        <span class="fs-8 text-white-50">Admin Master Delete Confirmation</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="POST" action="{% url 'officer_delete_all' %}">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="alert alert-danger border-0 rounded-3 small mb-3">
+                        <i class="fa-solid fa-triangle-exclamation me-1.5"></i>
+                        <strong>ការព្រមានកម្រិតធ្ងន់បំផុត!</strong><br>
+                        សកម្មភាពនេះនឹង <strong>លុបជីវប្រវត្តិមន្ត្រីទាំងអស់ រួមទាំងឯកសារយោង និងរូបថត</strong> ចេញពីប្រព័ន្ធទាំងស្រុង ហើយមិនអាចត្រឡប់មកវិញបានឡើយ!
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">ជ្រើសរើសវិសាលភាពលុប៖</label>
+                        <select name="department_id" class="form-select rounded-3 fs-7">
+                            <option value="">-- លុបមន្ត្រីទាំងអស់គ្រប់ការិយាល័យក្នុងប្រព័ន្ធ ({{ total_officers }} នាក់) --</option>
+                            {% for d in departments %}
+                            <option value="{{ d.id }}">លុបតែមន្ត្រីក្នុង «{{ d.name_kh }}»</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small text-danger">ដើម្បីផ្ទៀងផ្ទាត់ សូមវាយពាក្យ «<span class="font-monospace">DELETE ALL</span>» ឬ «<span class="font-monospace">លុបទាំងអស់</span>»៖</label>
+                        <input type="text" name="confirm_text" id="deleteAllConfirmInput" class="form-control rounded-3 font-monospace border-danger text-danger fw-bold" placeholder="DELETE ALL" autocomplete="off" required oninput="checkDeleteAllConfirm(this.value)">
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" id="confirmDeleteAllBtn" class="btn btn-danger rounded-pill px-4 py-2 fs-7 fw-bold shadow-xs" disabled>
+                        <i class="fa-solid fa-trash-can me-1.5"></i> បញ្ជាក់ការលុបទាំងអស់
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 🏢 Modal: Quick Department Transfer for Regular Officers (ADMIN) -->
+{% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+<div class="modal fade" id="quickOfficerTransferModal" tabindex="-1" aria-labelledby="quickOfficerTransferModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" id="quickOfficerTransferForm" action="" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header text-white px-4 py-3 border-0" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="bg-white bg-opacity-20 p-2 rounded-circle">
+                            <i class="fa-solid fa-right-left text-white fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold m-0" id="quickOfficerTransferModalLabel">ផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ (មន្ត្រីរាជការ)</h5>
+                            <p class="fs-8 text-white text-opacity-75 m-0" id="quickOfficerTransferOfficerName">-</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4 bg-white">
+                    <div class="alert alert-primary bg-primary bg-opacity-10 border-0 rounded-3 p-3 mb-4 d-flex align-items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-primary mt-0.5"></i>
+                        <div class="fs-8 text-dark">
+                            <strong>កំណត់ចំណាំរដ្ឋបាល (Admin Transfer):</strong>
+                            ការផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ នឹងធ្វើបច្ចុប្បន្នភាពទីតាំងបម្រើការងាររបស់មន្ត្រី បញ្ចូលក្នុងប្រវត្តិការងារសាធារណៈ និងរក្សាទុកប្រវត្តិនៃការផ្លាស់ប្តូរ (Transfer Log) ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ការិយាល័យ/ខណ្ឌបច្ចុប្បន្ន</label>
+                            <input type="text" id="quickOfficerTransferCurrentDept" class="form-control bg-light fs-7" readonly disabled>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ទៅកាន់ការិយាល័យ/ខណ្ឌថ្មី <span class="text-danger">*</span></label>
+                            <select name="target_department" id="quickOfficerTransferTargetDept" class="form-select fs-7" required>
+                                <option value="">-- សូមជ្រើសរើសការិយាល័យ/ខណ្ឌ --</option>
+                                {% for d in departments %}
+                                <option value="{{ d.id }}">{{ d.name_kh }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">មុខតំណែងថ្មី (Position Title)</label>
+                            <input type="text" name="current_position_title" id="quickOfficerTransferPositionTitle" class="form-control fs-7" placeholder="ឧ. ប្រធានការិយាល័យ, អនុប្រធាន, មន្ត្រី...">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">កាលបរិច្ឆេទចូលកាន់តំណែងថ្មី/ផ្ទេរ <span class="text-danger">*</span></label>
+                            <input type="date" name="transfer_date" class="form-control fs-7" value="{% now 'Y-m-d' %}" required>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">លេខលិខិតផ្ទេរ/ប្រកាស/សេចក្តីសម្រេច</label>
+                            <input type="text" name="reference_letter_number" class="form-control fs-7" placeholder="ឧ. លេខ ០៥៤ ប្រក.កសក...">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ឯកសារលិខិតផ្ទេរភ្ជាប់ (PDF / រូបភាព)</label>
+                            <input type="file" name="transfer_document" class="form-control fs-7" accept=".pdf,image/*,.doc,.docx">
+                            <small class="text-muted fs-9">ភ្ជាប់ឯកសារប្រកាស ឬលិខិតបង្គាប់ការផ្លាស់ប្តូរ</small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-8">មូលហេតុ ឬកំណត់សម្គាល់បន្ថែម</label>
+                            <textarea name="remarks" class="form-control fs-7" rows="2" placeholder="បញ្ជាក់មូលហេតុនៃការផ្លាស់ប្តូរការិយាល័យ..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-top">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fs-7 fw-bold shadow-xs">
+                        <i class="fa-solid fa-check me-1"></i> រក្សាទុក និងផ្លាស់ប្តូរការិយាល័យ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openQuickOfficerTransferModal(officerId, officerName, currentDept, positionTitle, currentDeptId) {
+    document.getElementById('quickOfficerTransferOfficerName').textContent = officerName;
+    document.getElementById('quickOfficerTransferCurrentDept').value = currentDept || 'គ្មាន';
+    document.getElementById('quickOfficerTransferPositionTitle').value = positionTitle || 'មន្ត្រី';
+    document.getElementById('quickOfficerTransferForm').action = `/officers/${officerId}/transfer/`;
+    
+    const deptSelect = document.getElementById('quickOfficerTransferTargetDept');
+    if (deptSelect && currentDeptId) {
+        deptSelect.value = currentDeptId;
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('quickOfficerTransferModal'));
+    modal.show();
+}
+</script>
+{% endif %}
+{% endblock %}
+

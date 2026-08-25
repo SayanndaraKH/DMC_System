@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ជីវប្រវត្តិរូបសង្ខេប - {{ officer.full_name_kh }}</title>
+    <!-- Google Khmer Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Kantumruy+Pro:wght@400;600;700&family=Siemreap&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        @font-face {
+            font-family: 'Khmer OS Battambang';
+            src: local('Khmer OS Battambang'), local('KhmerOS_battambang'), local('KhmerOSBattambang'), local('Battambang');
+        }
+        @font-face {
+            font-family: 'Khmer OS Muol Light';
+            src: local('Khmer OS Muol Light'), local('KhmerOS_muollight'), local('KhmerOSMuolLight'), local('Khmer OS Muol'), local('Moul');
+        }
+        @page {
+            size: A4 portrait;
+            margin: 12mm 15mm 12mm 15mm;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        body {
+            font-family: 'Khmer OS Battambang', 'Battambang', 'Khmer OS', 'Siemreap', sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #000;
+            background-color: #525659;
+            margin: 0;
+            padding: 20px 0;
+        }
+        
+        /* A4 Page Container on Screen */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm 18mm 15mm 18mm;
+            margin: 0 auto 20px auto;
+            background: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.35);
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .muol-text {
+            font-family: 'Khmer OS Muol Light', 'Khmer OS Muol', serif;
+            font-weight: normal;
+        }
+        .bold-text {
+            font-weight: bold;
+        }
+
+        /* Top Royal Header */
+        .royal-header {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .royal-title {
+            font-family: 'Khmer OS Muol Light', serif;
+            font-size: 13.5pt;
+            margin: 0 0 2px 0;
+        }
+        .royal-sub {
+            font-family: 'Khmer OS Muol Light', serif;
+            font-size: 12pt;
+            margin: 0 0 4px 0;
+        }
+        .tactical-line {
+            font-size: 10pt;
+            letter-spacing: 2px;
+            margin: 0 0 8px 0;
+        }
+
+        /* Document Title */
+        .doc-title-box {
+            text-align: center;
+            margin: 10px 0 15px 0;
+        }
+        .doc-title {
+            font-family: 'Khmer OS Muol Light', serif;
+            font-size: 15pt;
+            letter-spacing: 0.5px;
+            margin: 0 0 4px 0;
+        }
+
+        /* Header Grid with Photo Box */
+        .header-layout {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: relative;
+            margin-bottom: 10px;
+        }
+        .header-center {
+            flex-grow: 1;
+            text-align: center;
+        }
+        .photo-box-wrapper {
+            position: absolute;
+            right: 0;
+            top: -10px;
+            width: 32mm;
+            height: 42mm;
+            border: 1px dashed #333;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fafafa;
+        }
+        .photo-box-inner {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #777;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12pt;
+            color: #555;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        .photo-box-inner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Section Headings */
+        .section-heading {
+            font-family: 'Khmer OS Muol Light', serif;
+            font-size: 11.5pt;
+            margin-top: 14px;
+            margin-bottom: 8px;
+        }
+
+        /* Form Lines with Dotted Underline */
+        .form-row {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 8px;
+            line-height: 1.55;
+        }
+        .form-label {
+            white-space: nowrap;
+            padding-right: 6px;
+        }
+        .form-value-dots {
+            flex-grow: 1;
+            border-bottom: 1px dotted #000;
+            min-height: 22px;
+            padding-left: 6px;
+            padding-right: 6px;
+            font-weight: 500;
+        }
+        .form-value-inline {
+            border-bottom: 1px dotted #000;
+            min-height: 22px;
+            padding: 0 8px;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        /* Checkbox styling */
+        .check-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 15px;
+            height: 15px;
+            border: 1.5px solid #000;
+            margin: 0 4px;
+            font-size: 10pt;
+            line-height: 1;
+            vertical-align: middle;
+        }
+
+        /* Footer Declaration & Signature */
+        .footer-declaration {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 11pt;
+            line-height: 1.6;
+        }
+        .signature-section {
+            margin-top: 15px;
+            display: flex;
+            justify-content: flex-end;
+            text-align: center;
+        }
+        .signature-box {
+            width: 250px;
+        }
+        .signature-location {
+            margin-bottom: 6px;
+            font-size: 10.5pt;
+        }
+        .signature-title {
+            font-family: 'Khmer OS Muol Light', serif;
+            font-size: 11pt;
+            margin-bottom: 75px;
+        }
+        .signature-name {
+            font-family: 'Khmer OS Muol Light', serif;
+            font-size: 11.5pt;
+        }
+
+        /* Screen Floating Action Bar */
+        .print-actions-bar {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            gap: 10px;
+            background: rgba(255,255,255,0.95);
+            padding: 10px 16px;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            backdrop-filter: blur(5px);
+        }
+        .btn-print {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(22,163,74,0.3);
+        }
+        .btn-close-win {
+            background: #fff;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        @media print {
+            body {
+                background: none !important;
+                padding: 0 !important;
+            }
+            .a4-page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 100% !important;
+                min-height: auto !important;
+                padding: 0 !important;
+            }
+            .print-actions-bar {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating Top Print Action Bar -->
+    <div class="print-actions-bar">
+        <button onclick="window.print()" class="btn-print">
+            <i class="fa-solid fa-print"></i> បោះពុម្ព (Print)
+        </button>
+        <button onclick="window.close()" class="btn-close-win">
+            <i class="fa-solid fa-xmark"></i> បិទ
+        </button>
+    </div>
+
+    <!-- Main A4 Document -->
+    <div class="a4-page">
+        <!-- Header & Photo Area -->
+        <div class="header-layout">
+            <div class="header-center">
+                <div class="royal-header">
+                    <div class="royal-title">ព្រះរាជាណាចក្រកម្ពុជា</div>
+                    <div class="royal-sub">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                    <div class="tactical-line">33333333333333333333</div>
+                </div>
+
+                <div class="doc-title-box">
+                    <div class="doc-title">ជីវប្រវត្តិរូបសង្ខេប</div>
+                    <div class="tactical-line">33333333333333333333</div>
+                </div>
+            </div>
+
+            <!-- 4x6 Photo Box on Top Right -->
+            <div class="photo-box-wrapper">
+                <div class="photo-box-inner">
+                    {% if officer.photo %}
+                    <img src="{{ officer.photo.url }}" alt="{{ officer.full_name_kh }}">
+                    {% else %}
+                    <span>4x6</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section ក. ព័ត៌មានផ្ទាល់ខ្លួន -->
+        <div class="section-heading">ក.ព័ត៌មានផ្ទាល់ខ្លួន</div>
+
+        <!-- Row 1: ឈ្មោះ, ភេទ, សញ្ជាតិ -->
+        <div class="form-row">
+            <span class="form-label">១-គោត្តនាម និងនាមខ្លួន ៖</span>
+            <span class="form-value-dots" style="flex: 2;">{{ officer.full_name_kh }}</span>
+            <span class="form-label" style="margin-left: 10px;">ភេទ</span>
+            <span class="form-value-dots" style="flex: 0.8; text-align: center;">{{ officer.get_gender_display }}</span>
+            <span class="form-label" style="margin-left: 10px;">សញ្ជាតិ</span>
+            <span class="form-value-dots" style="flex: 1; text-align: center;">{{ officer.nationality|default:"ខ្មែរ" }}</span>
+        </div>
+
+        <!-- Row 2: អក្សរពុម្ពឡាតាំង -->
+        <div class="form-row">
+            <span class="form-label">២-អក្សរពុម្ពឡាតាំង ៖</span>
+            <span class="form-value-dots" style="font-family: Arial, sans-serif; text-transform: uppercase;">{{ officer.latin_name|default:"" }}</span>
+        </div>
+
+        <!-- Row 3: ថ្ងៃខែឆ្នាំកំណើត -->
+        <div class="form-row">
+            <span class="form-label">៣-ថ្ងៃខែឆ្នាំកំណើត ៖</span>
+            <span class="form-value-dots">{{ officer.dob|default:"" }}</span>
+        </div>
+
+        <!-- Row 4: ទីកន្លែងកំណើត -->
+        <div class="form-row">
+            <span class="form-label">៤-ទីកន្លែងកំណើត ៖</span>
+            <span class="form-value-dots">{{ officer.full_pob }}</span>
+        </div>
+
+        <!-- Row 5: កម្រិតវប្បធម៌ទូទៅ -->
+        <div class="form-row">
+            <span class="form-label">៥-កម្រិតវប្បធម៌ទូទៅ ៖</span>
+            <span class="form-value-dots">{{ officer.general_education|default:"" }}</span>
+        </div>
+
+        <!-- Row 6: កម្រិតបណ្តុះបណ្តាល & ជំនាញ -->
+        <div class="form-row">
+            <span class="form-label">៦-កម្រិតបណ្តុះបណ្តាល ៖</span>
+            <span class="form-value-dots" style="flex: 1.2;">{{ officer.training_level|default:"" }}</span>
+            <span class="form-label" style="margin-left: 10px;">ជំនាញ/ឯកទេស</span>
+            <span class="form-value-dots" style="flex: 1.8;">{{ officer.skill_specialization|default:"" }}</span>
+        </div>
+
+        <!-- Row 7: អត្តសញ្ញាណប័ណ្ណ ឬ លិខិតឆ្លងដែន -->
+        <div class="form-row">
+            <span class="form-label">៧-លេខអត្តសញ្ញាណប័ណ្ណសញ្ជាតិខ្មែរ</span>
+            <span class="check-box">{% if officer.id_type == 'NATIONAL_ID' and officer.id_number %}&#10003;{% endif %}</span>
+            <span class="form-label">ឬលិខិតឆ្លងដែន</span>
+            <span class="check-box">{% if officer.id_type == 'PASSPORT' and officer.id_number %}&#10003;{% endif %}</span>
+            <span class="form-label">៖</span>
+            <span class="form-value-dots" style="font-family: Arial, sans-serif;">{{ officer.id_number|default:"" }}</span>
+        </div>
+
+        <!-- Row 8: អង្គភាព/ការិយាល័យបំពេញការងារ -->
+        <div class="form-row">
+            <span class="form-label">៨-អង្គភាព/ការិយាល័យបំពេញការងារ ៖</span>
+            <span class="form-value-dots">{{ officer.display_working_unit }}</span>
+        </div>
+
+        <!-- Section ខ. ព័ត៌មានទំនាក់ទំនង -->
+        <div class="section-heading" style="margin-top: 16px;">ខ.ព័ត៌មានទំនាក់ទំនង</div>
+
+        <!-- Row 9: អាសយដ្ឋានបច្ចុប្បន្ន -->
+        <div class="form-row">
+            <span class="form-label">៩-អាសយដ្ឋានបច្ចុប្បន្ន ៖</span>
+            <span class="form-value-dots">{{ officer.full_current_address }}</span>
+        </div>
+
+        <!-- Row 10: លេខទូរស័ព្ទ -->
+        <div class="form-row">
+            <span class="form-label">១០-លេខទូរស័ព្ទ ៖</span>
+            <span class="form-value-dots" style="font-family: Arial, sans-serif;">{{ officer.phone|default:"" }}</span>
+        </div>
+
+        <!-- Row 11: អ៊ីម៉ែល (បើមាន) -->
+        <div class="form-row">
+            <span class="form-label">១១-អ៊ីម៉ែល(បើមាន) ៖</span>
+            <span class="form-value-dots" style="font-family: Arial, sans-serif;">{{ officer.email|default:"" }}</span>
+        </div>
+
+        <!-- Footer Declaration -->
+        <div class="footer-declaration">
+            ខ្ញុំបាទ/នាងខ្ញុំសូមសន្យាថា ការអះអាងចំពោះព័ត៌មានខាងលើនេះ ពិតជាត្រឹមត្រូវប្រាកដមែន។
+        </div>
+
+        <!-- Signature Section -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-location">
+                    ធ្វើនៅប៉ៃលិន, ថ្ងៃទី<span style="display:inline-block; width: 35px; border-bottom: 1px dotted #000;"></span> ខែ<span style="display:inline-block; width: 45px; border-bottom: 1px dotted #000;"></span> ឆ្នាំ២០២<span style="display:inline-block; width: 20px; border-bottom: 1px dotted #000;"></span>
+                </div>
+                <div class="signature-title">
+                    ហត្ថលេខា និងឈ្មោះសាមីខ្លួន
+                </div>
+                <div class="signature-name">
+                    {{ officer.full_name_kh }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

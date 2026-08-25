@@ -1,0 +1,746 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}ជីវប្រវត្តិ៖ {{ contract_officer.full_name_kh }} - មន្ត្រីជាប់កិច្ចសន្យា{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Top Action Breadcrumb & Buttons -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'contract_officer_list' %}" class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 42px; height: 42px;">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <h4 class="fw-bold m-0 text-dark">{{ contract_officer.full_name_kh }}</h4>
+                    {% if contract_officer.id_number %}
+                    <span class="badge bg-primary bg-opacity-10 text-primary font-monospace px-2.5 py-1">{{ contract_officer.get_id_type_display }}: {{ contract_officer.id_number }}</span>
+                    {% endif %}
+                </div>
+                <p class="text-muted small m-0 font-monospace text-uppercase">{{ contract_officer.latin_name|default:"-" }} &bull; {{ contract_officer.position_title }} &bull; {{ contract_officer.display_working_unit }}</p>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- 🔄 1-Click Renewal Button -->
+            {% if can_edit or is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+            <button type="button" class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#renewModal">
+                <i class="fa-solid fa-arrows-rotate me-1.5"></i> បន្តកិច្ចសន្យាទៅឆ្នាំ {{ next_year }}
+            </button>
+            {% endif %}
+
+            <!-- 🏢 Department Transfer Button (ADMIN / Leadership) -->
+            {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+            <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 fw-bold text-white shadow-sm" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); border: none;" data-bs-toggle="modal" data-bs-target="#transferModal">
+                <i class="fa-solid fa-right-left me-1.5"></i> ផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ
+            </button>
+            {% endif %}
+
+            <a href="{% url 'contract_officer_print' contract_officer.pk %}" target="_blank" class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                <i class="fa-solid fa-print me-1.5"></i> បោះពុម្ពទម្រង់ជីវប្រវត្តិ A4
+            </a>
+            {% if can_edit %}
+            <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAttachmentModal">
+                <i class="fa-solid fa-paperclip me-1.5"></i> + បញ្ចូលឯកសារភ្ជាប់
+            </button>
+            <a href="{% url 'contract_officer_edit' contract_officer.pk %}" class="btn btn-outline-primary rounded-pill px-3.5 py-2 fw-semibold shadow-sm">
+                <i class="fa-solid fa-pen-to-square me-1.5"></i> កែប្រែជីវប្រវត្តិ
+            </a>
+            {% endif %}
+
+            {% if is_system_admin or is_admin_or_lead or user.is_superuser or user.is_staff %}
+            <form method="POST" action="{% url 'contract_officer_delete' contract_officer.pk %}" class="d-inline" onsubmit="return confirm('⚠️ តើលោកអ្នកពិតជាចង់លុបមន្ត្រីជាប់កិច្ចសន្យា «{{ contract_officer.full_name_kh }}» នេះចេញពីប្រព័ន្ធមែនទេ?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-semibold shadow-sm" title="លុបទិន្នន័យ">
+                    <i class="fa-solid fa-trash-can me-1.5"></i> លុប
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Profile Hero Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-4 bg-white border-bottom">
+            <div class="row align-items-center g-4">
+                <div class="col-auto">
+                    {% if contract_officer.photo %}
+                    <img src="{{ contract_officer.photo.url }}" alt="{{ contract_officer.full_name_kh }}" class="rounded-4 border shadow-sm object-fit-cover" style="width: 120px; height: 155px;">
+                    {% else %}
+                    <div class="bg-light text-secondary rounded-4 border d-flex flex-column align-items-center justify-content-center shadow-sm" style="width: 120px; height: 155px;">
+                        <i class="fa-solid fa-user fa-3x text-secondary opacity-50 mb-1"></i>
+                        <span class="fs-9 text-muted">គ្មានរូបថត</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary px-3 py-1.5 rounded-pill fw-bold fs-7 shadow-xs">
+                            <i class="fa-solid fa-calendar me-1"></i> ឆ្នាំកិច្ចសន្យា៖ {{ contract_officer.contract_year }}
+                        </span>
+                        {% if contract_officer.contract_count_years > 1 %}
+                        <span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill fw-bold shadow-xs">
+                            <i class="fa-solid fa-arrows-rotate me-1"></i> បន្តលើកទី {{ contract_officer.contract_count_years }}
+                        </span>
+                        {% endif %}
+                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1.5 rounded-pill fw-semibold">
+                            <i class="fa-solid fa-briefcase me-1"></i> {{ contract_officer.position_title }}
+                        </span>
+                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-1.5 rounded-pill fw-semibold d-inline-flex align-items-center">
+                            <i class="fa-solid fa-building me-1"></i> {{ contract_officer.display_working_unit }}
+                            {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+                            <button type="button" class="btn btn-sm btn-link text-success p-0 ms-2 text-decoration-none fw-bold" data-bs-toggle="modal" data-bs-target="#transferModal" title="ផ្លាស់ប្តូរការិយាល័យ">
+                                <i class="fa-solid fa-right-left"></i> ផ្លាស់ប្តូរ
+                            </button>
+                            {% endif %}
+                        </span>
+                        {% if contract_officer.contract_status == 'ACTIVE' %}
+                        <span class="badge bg-success text-white px-3 py-1.5 rounded-pill fw-semibold">
+                            <i class="fa-solid fa-circle-check me-1"></i> កំពុងបម្រើការ
+                        </span>
+                        {% elif contract_officer.contract_status == 'RENEWED' %}
+                        <span class="badge bg-primary text-white px-3 py-1.5 rounded-pill fw-semibold">
+                            <i class="fa-solid fa-rotate me-1"></i> បានបន្តកិច្ចសន្យា
+                        </span>
+                        {% elif contract_officer.contract_status == 'EXPIRED' %}
+                        <span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill fw-semibold">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> ផុតកិច្ចសន្យា
+                        </span>
+                        {% else %}
+                        <span class="badge bg-secondary text-white px-3 py-1.5 rounded-pill fw-semibold">
+                            <i class="fa-solid fa-ban me-1"></i> បានបញ្ឈប់/ឈប់
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h2 class="fw-bold text-dark m-0 mb-1">{{ contract_officer.full_name_kh }}</h2>
+                    <div class="text-muted font-monospace text-uppercase mb-3 fs-6">
+                        {{ contract_officer.latin_name|default:"-" }} &bull; ភេទ៖ {{ contract_officer.get_gender_display }} &bull; សញ្ជាតិ៖ {{ contract_officer.nationality }}
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-3 fs-7">
+                        {% if contract_officer.phone %}
+                        <a href="tel:{{ contract_officer.phone }}" class="text-decoration-none text-dark d-flex align-items-center gap-1.5 bg-light px-3 py-1.5 rounded-pill border">
+                            <i class="fa-solid fa-phone text-success"></i>
+                            <span class="font-monospace fw-semibold">{{ contract_officer.phone }}</span>
+                        </a>
+                        {% endif %}
+                        {% if contract_officer.email %}
+                        <a href="mailto:{{ contract_officer.email }}" class="text-decoration-none text-dark d-flex align-items-center gap-1.5 bg-light px-3 py-1.5 rounded-pill border">
+                            <i class="fa-solid fa-envelope text-primary"></i>
+                            <span class="fw-semibold">{{ contract_officer.email }}</span>
+                        </a>
+                        {% endif %}
+                        {% if contract_officer.dob %}
+                        <span class="d-flex align-items-center gap-1.5 bg-light px-3 py-1.5 rounded-pill border text-secondary">
+                            <i class="fa-solid fa-cake-candles text-warning"></i>
+                            <span>កំណើត៖ <strong>{{ contract_officer.dob }}</strong></span>
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4 Quick Info Tiles -->
+        <div class="card-footer bg-light bg-opacity-50 p-3 border-0">
+            <div class="row g-2 text-center">
+                <div class="col-md-3 border-end-md">
+                    <span class="text-muted fs-8 d-block">ឆ្នាំកិច្ចសន្យាបច្ចុប្បន្ន</span>
+                    <strong class="text-primary fs-7">ឆ្នាំ {{ contract_officer.contract_year }}</strong>
+                </div>
+                <div class="col-md-3 border-end-md">
+                    <span class="text-muted fs-8 d-block">កម្រិតវប្បធម៌ & ជំនាញ</span>
+                    <strong class="text-dark fs-7">{{ contract_officer.general_education|default:"-" }} {% if contract_officer.skill_specialization %}({{ contract_officer.skill_specialization }}){% endif %}</strong>
+                </div>
+                <div class="col-md-3 border-end-md">
+                    <span class="text-muted fs-8 d-block">សុពលភាពកិច្ចសន្យា</span>
+                    <strong class="text-dark fs-7">
+                        {% if contract_officer.contract_start_date %}{{ contract_officer.contract_start_date|date:"d/m/Y" }}{% else %}?{% endif %} 
+                        ដល់ 
+                        {% if contract_officer.contract_end_date %}{{ contract_officer.contract_end_date|date:"d/m/Y" }}{% else %}មិនកំណត់{% endif %}
+                    </strong>
+                </div>
+                <div class="col-md-3">
+                    <span class="text-muted fs-8 d-block">ប្រាក់បៀវត្ស/ប្រាក់ឧបត្ថម្ភ</span>
+                    <strong class="text-success fs-7">{% if contract_officer.salary %}{{ contract_officer.salary|floatformat:0 }} រៀល{% else %}មិនបានបញ្ជាក់{% endif %}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Tabs & Content -->
+    <div class="row g-4">
+        <!-- Left 2 Cols: Structured CV Info -->
+        <div class="col-12 col-lg-8">
+            <!-- Section ក. ព័ត៌មានផ្ទាល់ខ្លួន -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white py-3 px-4 border-bottom">
+                    <h6 class="fw-bold m-0 text-dark d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-user-tag text-primary"></i>
+                        ក. ព័ត៌មានផ្ទាល់ខ្លួន (Personal Information)
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 fs-7">
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block fs-8">១. គោត្តនាម និងនាមខ្លួន</span>
+                            <strong class="text-dark">{{ contract_officer.full_name_kh }}</strong>
+                        </div>
+                        <div class="col-sm-3">
+                            <span class="text-muted d-block fs-8">ភេទ</span>
+                            <strong class="text-dark">{{ contract_officer.get_gender_display }}</strong>
+                        </div>
+                        <div class="col-sm-3">
+                            <span class="text-muted d-block fs-8">សញ្ជាតិ & ជនជាតិ</span>
+                            <strong class="text-dark">{{ contract_officer.nationality }} / {{ contract_officer.ethnicity }}</strong>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block fs-8">២. អក្សរពុម្ពឡាតាំង</span>
+                            <strong class="text-dark font-monospace text-uppercase">{{ contract_officer.latin_name|default:"-" }}</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block fs-8">៣. ថ្ងៃខែឆ្នាំកំណើត</span>
+                            <strong class="text-dark">{{ contract_officer.dob|default:"-" }}</strong>
+                        </div>
+
+                        <div class="col-12">
+                            <span class="text-muted d-block fs-8">៤. ទីកន្លែងកំណើត</span>
+                            <strong class="text-dark">{{ contract_officer.full_pob }}</strong>
+                        </div>
+
+                        <div class="col-sm-4">
+                            <span class="text-muted d-block fs-8">៥. កម្រិតវប្បធម៌ទូទៅ</span>
+                            <strong class="text-dark">{{ contract_officer.general_education|default:"-" }}</strong>
+                        </div>
+                        <div class="col-sm-4">
+                            <span class="text-muted d-block fs-8">៦. កម្រិតបណ្តុះបណ្តាល</span>
+                            <strong class="text-dark">{{ contract_officer.training_level|default:"-" }}</strong>
+                        </div>
+                        <div class="col-sm-4">
+                            <span class="text-muted d-block fs-8">ជំនាញ / ឯកទេស</span>
+                            <strong class="text-primary">{{ contract_officer.skill_specialization|default:"-" }}</strong>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block fs-8">៧. ឯកសារសម្គាល់ខ្លួន</span>
+                            <strong class="text-dark">{{ contract_officer.get_id_type_display }}៖ <span class="font-monospace">{{ contract_officer.id_number|default:"-" }}</span></strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block fs-8">៨. អង្គភាព/ការិយាល័យបំពេញការងារ</span>
+                            <strong class="text-dark">{{ contract_officer.display_working_unit }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section ខ. ព័ត៌មានទំនាក់ទំនង -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white py-3 px-4 border-bottom">
+                    <h6 class="fw-bold m-0 text-dark d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-address-book text-success"></i>
+                        ខ. ព័ត៌មានទំនាក់ទំនង (Contact Information)
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 fs-7">
+                        <div class="col-12">
+                            <span class="text-muted d-block fs-8">៩. អាសយដ្ឋានបច្ចុប្បន្ន</span>
+                            <strong class="text-dark">{{ contract_officer.full_current_address }}</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block fs-8">១០. លេខទូរស័ព្ទ</span>
+                            <strong class="text-dark font-monospace">{{ contract_officer.phone|default:"-" }}</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block fs-8">១១. អ៊ីម៉ែល</span>
+                            <strong class="text-dark">{{ contract_officer.email|default:"-" }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section គ. ព័ត៌មានកិច្ចសន្យា -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white py-3 px-4 border-bottom">
+                    <h6 class="fw-bold m-0 text-dark d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-file-contract text-warning"></i>
+                        គ. ព័ត៌មានកិច្ចសន្យាការងារ (Contract Details)
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 fs-7">
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block fs-8">មុខតំណែង / តួនាទី</span>
+                            <strong class="text-dark">{{ contract_officer.position_title }}</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block fs-8">លេខកិច្ចសន្យា</span>
+                            <strong class="text-dark font-monospace">{{ contract_officer.contract_number|default:"-" }}</strong>
+                        </div>
+
+                        <div class="col-sm-4">
+                            <span class="text-muted d-block fs-8">ថ្ងៃចាប់ផ្តើមកិច្ចសន្យា</span>
+                            <strong class="text-dark">{% if contract_officer.contract_start_date %}{{ contract_officer.contract_start_date|date:"d/m/Y" }}{% else %}-{% endif %}</strong>
+                        </div>
+                        <div class="col-sm-4">
+                            <span class="text-muted d-block fs-8">ថ្ងៃផុតកំណត់កិច្ចសន្យា</span>
+                            <strong class="text-dark">{% if contract_officer.contract_end_date %}{{ contract_officer.contract_end_date|date:"d/m/Y" }}{% else %}-{% endif %}</strong>
+                        </div>
+                        <div class="col-sm-4">
+                            <span class="text-muted d-block fs-8">ប្រាក់បៀវត្ស/ប្រាក់ឧបត្ថម្ភ</span>
+                            <strong class="text-success">{% if contract_officer.salary %}{{ contract_officer.salary|floatformat:0 }} ៛{% else %}-{% endif %}</strong>
+                        </div>
+
+                        {% if contract_officer.contract_file %}
+                        <div class="col-12">
+                            <span class="text-muted d-block fs-8">ឯកសារកិច្ចសន្យា (PDF/រូបភាព)</span>
+                            <a href="{{ contract_officer.contract_file.url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 mt-1">
+                                <i class="fa-solid fa-file-pdf me-1 text-danger"></i> បើកមើលឯកសារកិច្ចសន្យា
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        {% if contract_officer.remarks %}
+                        <div class="col-12">
+                            <span class="text-muted d-block fs-8">កំណត់សម្គាល់បន្ថែម</span>
+                            <div class="p-2.5 bg-light rounded-3 text-secondary">{{ contract_officer.remarks }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+            <!-- Section ឃ. ប្រវត្តិបន្តកិច្ចសន្យាប្រចាំឆ្នាំ (Annual Renewal History) -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+                    <h6 class="fw-bold m-0 text-dark d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-warning"></i>
+                        ឃ. ប្រវត្តិបន្តកិច្ចសន្យាប្រចាំឆ្នាំ (Renewal History)
+                    </h6>
+                    {% if can_edit or is_admin_or_lead %}
+                    <button type="button" class="btn btn-sm btn-warning rounded-pill px-3 py-1 fw-bold text-dark shadow-xs" data-bs-toggle="modal" data-bs-target="#renewModal">
+                        <i class="fa-solid fa-arrows-rotate me-1"></i> អនុម័តបន្តឆ្នាំថ្មី
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body p-4">
+                    {% if renewals %}
+                    <div class="timeline position-relative ps-3 border-start border-2 border-warning ms-2">
+                        {% for r in renewals %}
+                        <div class="mb-4 position-relative">
+                            <div class="position-absolute bg-warning rounded-circle shadow-xs" style="width: 14px; height: 14px; left: -24px; top: 4px; border: 3px solid #fff;"></div>
+                            <div class="card border border-warning border-opacity-25 rounded-3 shadow-xs bg-light bg-opacity-50 p-3">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-warning text-dark fw-bold px-2.5 py-1 fs-8">
+                                            បន្តពីឆ្នាំ {{ r.from_year }} ➔ ឆ្នាំ {{ r.to_year }}
+                                        </span>
+                                        {% if r.contract_number %}
+                                        <span class="badge bg-light text-secondary border font-monospace fs-9">
+                                            លេខកិច្ចសន្យា៖ {{ r.contract_number }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <span class="text-muted fs-9">
+                                        <i class="fa-solid fa-clock me-1"></i> {{ r.approved_at|date:"d/m/Y H:i" }}
+                                    </span>
+                                </div>
+                                <div class="row g-2 fs-8 text-secondary mb-2">
+                                    <div class="col-sm-6">
+                                        <span>មុខតំណែង៖</span> <strong class="text-dark">{{ r.position_title }}</strong>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <span>ប្រាក់បៀវត្ស៖</span> <strong class="text-success">{% if r.salary %}{{ r.salary|floatformat:0 }} ៛{% else %}-{% endif %}</strong>
+                                    </div>
+                                    <div class="col-sm-12">
+                                        <span>សុពលភាព៖</span> <strong class="text-dark">{{ r.contract_start_date|date:"d/m/Y" }} ដល់ {{ r.contract_end_date|date:"d/m/Y" }}</strong>
+                                    </div>
+                                    {% if r.approved_by %}
+                                    <div class="col-sm-12">
+                                        <span class="text-muted">អនុម័តដោយ៖</span> <strong class="text-primary">{{ r.approved_by.get_full_name|default:r.approved_by.username }}</strong>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% if r.remarks %}
+                                <div class="p-2 bg-white rounded border fs-8 text-muted mb-2">
+                                    {{ r.remarks }}
+                                </div>
+                                {% endif %}
+                                {% if r.renewal_document %}
+                                <div>
+                                    <a href="{{ r.renewal_document.url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-0.5 fs-9">
+                                        <i class="fa-solid fa-file-pdf me-1 text-danger"></i> ឯកសារកិច្ចសន្យាភ្ជាប់
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3 text-muted">
+                        <i class="fa-solid fa-clipboard-list fa-2x text-secondary opacity-50 mb-2"></i>
+                        <p class="fs-8 text-muted m-0">មិនទាន់មានប្រវត្តិបន្តកិច្ចសន្យានៅឡើយ (ឆ្នាំដំបូង៖ {{ contract_officer.contract_year }})</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Section ង. ប្រវត្តិនៃការផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ (Department / Canton Transfer History) -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+                    <h6 class="fw-bold m-0 text-dark d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-right-left text-primary"></i>
+                        ង. ប្រវត្តិនៃការផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ (Working & Transfer History)
+                    </h6>
+                    {% if is_admin_or_lead %}
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold shadow-xs" data-bs-toggle="modal" data-bs-target="#transferModal">
+                        <i class="fa-solid fa-right-left me-1"></i> ផ្លាស់ប្តូរការិយាល័យ
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body p-4">
+                    {% if transfers %}
+                    <div class="timeline position-relative ps-3 border-start border-2 border-primary ms-2">
+                        {% for t in transfers %}
+                        <div class="mb-4 position-relative">
+                            <div class="position-absolute bg-primary rounded-circle shadow-xs" style="width: 14px; height: 14px; left: -24px; top: 4px; border: 3px solid #fff;"></div>
+                            <div class="card border border-primary border-opacity-25 rounded-3 shadow-xs bg-light bg-opacity-50 p-3">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-primary text-white fw-bold px-2.5 py-1 fs-8">
+                                            {{ t.from_department.name_kh|default:t.from_working_unit|default:"គ្មាន" }} ➔ {{ t.to_department.name_kh|default:t.to_working_unit|default:"គ្មាន" }}
+                                        </span>
+                                        {% if t.reference_letter_number %}
+                                        <span class="badge bg-light text-secondary border font-monospace fs-9">
+                                            លិខិតផ្ទេរ៖ {{ t.reference_letter_number }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-muted fs-9">
+                                            <i class="fa-solid fa-calendar-day me-1"></i> {{ t.transfer_date|date:"d/m/Y"|default:"-" }}
+                                        </span>
+                                        {% if is_admin_or_lead %}
+                                        <form method="POST" action="{% url 'contract_officer_transfer_delete' contract_officer.pk t.pk %}" class="d-inline" onsubmit="return confirm('តើលោកអ្នកពិតជាចង់លុបប្រវត្តិនៃការផ្លាស់ប្តូរនេះមែនទេ?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-link text-danger p-0 ms-1" title="លុបប្រវត្តិ">
+                                                <i class="fa-solid fa-trash-can fs-9"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row g-2 fs-8 text-secondary mb-2">
+                                    <div class="col-sm-6">
+                                        <span>មុខតំណែង៖</span> <strong class="text-dark">{{ t.from_position_title|default:"-" }} ➔ {{ t.to_position_title|default:t.from_position_title|default:"-" }}</strong>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <span>អង្គភាពចាស់/ថ្មី៖</span> <strong class="text-dark">{{ t.from_working_unit|default:t.from_department.name_kh|default:"-" }} ➔ {{ t.to_working_unit|default:t.to_department.name_kh|default:"-" }}</strong>
+                                    </div>
+                                    {% if t.transferred_by %}
+                                    <div class="col-sm-12">
+                                        <span class="text-muted">ធ្វើការផ្លាស់ប្តូរដោយ Admin៖</span> <strong class="text-primary">{{ t.transferred_by.get_full_name|default:t.transferred_by.username }}</strong>
+                                        <span class="text-muted fs-9 ms-1">({{ t.created_at|date:"d/m/Y H:i" }})</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% if t.remarks %}
+                                <div class="p-2 bg-white rounded border fs-8 text-muted mb-2">
+                                    {{ t.remarks }}
+                                </div>
+                                {% endif %}
+                                {% if t.transfer_document %}
+                                <div>
+                                    <a href="{{ t.transfer_document.url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-0.5 fs-9">
+                                        <i class="fa-solid fa-file-pdf me-1 text-danger"></i> ឯកសារលិខិតផ្ទេរ/ចាត់តាំង
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3 text-muted">
+                        <i class="fa-solid fa-arrows-split-up-and-left fa-2x text-secondary opacity-50 mb-2"></i>
+                        <p class="fs-8 text-muted m-0">មិនទាន់មានប្រវត្តិផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌនៅឡើយ (បម្រើការងារនៅ៖ {{ contract_officer.display_working_unit }})</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Col: Attachments & Audit -->
+        <div class="col-12 col-lg-4">
+            <!-- Attachments Card -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+                    <h6 class="fw-bold m-0 text-dark">
+                        <i class="fa-solid fa-paperclip text-info me-1.5"></i> ឯកសារភ្ជាប់ ({{ attachments.count }})
+                    </h6>
+                    {% if can_edit %}
+                    <button class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-1 fs-8" data-bs-toggle="modal" data-bs-target="#addAttachmentModal">
+                        + បញ្ចូល
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body p-3">
+                    {% if attachments %}
+                    <div class="d-flex flex-column gap-2">
+                        {% for att in attachments %}
+                        <div class="p-2.5 bg-light rounded-3 d-flex align-items-center justify-content-between gap-2 border">
+                            <div class="overflow-hidden">
+                                <strong class="d-block text-truncate fs-8 text-dark">{{ att.title }}</strong>
+                                <span class="fs-9 text-muted">{{ att.file_type|default:"ឯកសារ" }} &bull; {{ att.created_at|date:"d/m/Y" }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <a href="{% url 'contract_officer_attachment_view' contract_officer.pk att.pk %}" target="_blank" class="btn btn-sm btn-light border p-1 rounded" title="មើល">
+                                    <i class="fa-solid fa-eye text-primary fs-8"></i>
+                                </a>
+                                <a href="{% url 'contract_officer_attachment_download' contract_officer.pk att.pk %}" class="btn btn-sm btn-light border p-1 rounded" title="ទាញយក">
+                                    <i class="fa-solid fa-download text-success fs-8"></i>
+                                </a>
+                                {% if can_edit %}
+                                <form method="POST" action="{% url 'contract_officer_attachment_delete' contract_officer.pk att.pk %}" class="d-inline" onsubmit="return confirm('តើលោកអ្នកពិតជាចង់លុបឯកសារភ្ជាប់នេះ?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-light border p-1 rounded text-danger" title="លុប">
+                                        <i class="fa-solid fa-trash-can fs-8"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fa-regular fa-folder-open fa-2x text-secondary opacity-50 mb-2"></i>
+                        <p class="fs-8 text-muted m-0">មិនទាន់មានឯកសារភ្ជាប់នៅឡើយ</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Print Preview Card -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center bg-white">
+                <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 54px; height: 54px;">
+                    <i class="fa-solid fa-print fs-4"></i>
+                </div>
+                <h6 class="fw-bold text-dark mb-1">ទម្រង់ជីវប្រវត្តិរូបសង្ខេប A4</h6>
+                <p class="text-muted fs-8 mb-3">បោះពុម្ពចេញជាទម្រង់ស្តង់ដាររដ្ឋបាលផ្លូវការ ព្រះរាជាណាចក្រកម្ពុជា មានប្រអប់រូបថត និងកន្លែងចុះហត្ថលេខា</p>
+                <a href="{% url 'contract_officer_print' contract_officer.pk %}" target="_blank" class="btn btn-success rounded-pill fw-bold py-2 shadow-sm">
+                    <i class="fa-solid fa-print me-1.5"></i> បើកទម្រង់បោះពុម្ព A4
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🔄 Modal: Contract Renewal (បន្តកិច្ចសន្យាការងារឆ្នាំថ្មី) -->
+<div class="modal fade" id="renewModal" tabindex="-1" aria-labelledby="renewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" action="{% url 'contract_officer_renew' contract_officer.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header bg-warning text-dark px-4 py-3 border-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-arrows-rotate fs-5"></i>
+                        <h6 class="modal-title fw-bold m-0" id="renewModalLabel">អនុម័តបន្តកិច្ចសន្យាការងារឆ្នាំថ្មី</h6>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="bg-light p-3 rounded-3 border mb-3">
+                        <div class="fs-8 text-muted">ឈ្មោះមន្ត្រីជាប់កិច្ចសន្យា៖</div>
+                        <div class="fw-bold fs-6 text-dark">{{ contract_officer.full_name_kh }}</div>
+                        <div class="fs-8 text-muted mt-1">ឆ្នាំកិច្ចសន្យាបច្ចុប្បន្ន៖ <span class="badge bg-primary px-2">ឆ្នាំ {{ contract_officer.contract_year }}</span></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark required">បន្តទៅឆ្នាំកិច្ចសន្យាថ្មី (Target Year) <span class="text-danger">*</span></label>
+                        <select name="to_year" class="form-select fs-7 fw-bold border-warning" required>
+                            <option value="{{ next_year }}" selected>ឆ្នាំ {{ next_year }}</option>
+                            <option value="{{ contract_officer.contract_year|add:'2' }}">ឆ្នាំ {{ contract_officer.contract_year|add:'2' }}</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">លេខកិច្ចសន្យា/លេខលិខិតថ្មី</label>
+                        <input type="text" name="contract_number" value="{{ contract_officer.contract_number|default:'' }}" class="form-control fs-7" placeholder="ឧ. ០៤៥/២៦ សសរ.កស">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-dark">កាលបរិច្ឆេទចាប់ផ្តើម</label>
+                            <input type="date" name="contract_start_date" value="{{ next_year }}-01-01" class="form-control fs-7">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-dark">កាលបរិច្ឆេទផុតកំណត់</label>
+                            <input type="date" name="contract_end_date" value="{{ next_year }}-12-31" class="form-control fs-7">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">ប្រាក់បៀវត្ស/ឧបត្ថម្ភថ្មី (រៀល)</label>
+                        <input type="number" step="0.01" name="salary" value="{% if contract_officer.salary %}{{ contract_officer.salary|stringformat:'f'|slice:':-3' }}{% endif %}" class="form-control fs-7" placeholder="ឧ. 1200000">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">ឯកសារកិច្ចសន្យាថ្មី (PDF/រូបភាព)</label>
+                        <input type="file" name="renewal_document" class="form-control fs-7" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small text-dark">កំណត់សម្គាល់បន្ថែម</label>
+                        <textarea name="remarks" class="form-control fs-7" rows="2" placeholder="ព័ត៌មានបន្ថែមពីការបន្ត..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-2.5 border-top">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fs-7 fw-bold text-dark shadow-xs">
+                        <i class="fa-solid fa-check me-1"></i> អនុម័តបន្តកិច្ចសន្យា
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Attachment -->
+<div class="modal fade" id="addAttachmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-paperclip text-primary me-1.5"></i> បញ្ចូលឯកសារភ្ជាប់</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'contract_officer_attachment_add' contract_officer.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">ចំណងជើងឯកសារ <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" placeholder="ឧ. កិច្ចសន្យាការងារឆ្នាំ២០២៦, អត្តសញ្ញាណប័ណ្ណ, សញ្ញាបត្រ..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">ប្រភេទឯកសារ</label>
+                        <select name="file_type" class="form-select">
+                            <option value="កិច្ចសន្យាការងារ">កិច្ចសន្យាការងារ</option>
+                            <option value="អត្តសញ្ញាណប័ណ្ណ/លិខិតឆ្លងដែន">អត្តសញ្ញាណប័ណ្ណ/លិខិតឆ្លងដែន</option>
+                            <option value="សញ្ញាបត្រ/វិញ្ញាបនបត្រ">សញ្ញាបត្រ/វិញ្ញាបនបត្រ</option>
+                            <option value="លិខិតបទដ្ឋាន/បង្អែក">លិខិតបទដ្ឋាន/បង្អែក</option>
+                            <option value="ឯកសារទូទៅ">ឯកសារទូទៅ</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">ជ្រើសរើសឯកសារ <span class="text-danger">*</span></label>
+                        <input type="file" name="file" class="form-control" required accept=".pdf,image/*,.doc,.docx">
+                        <small class="text-muted fs-9">គាំទ្រប្រភេទ PDF, រូបភាព JPG/PNG, Word</small>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold small">កំណត់សម្គាល់</label>
+                        <textarea name="notes" rows="2" class="form-control" placeholder="កំណត់សម្គាល់បន្ថែម..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2.5 px-4">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">បញ្ចូលឯកសារ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 🏢 Modal: Department Transfer (ផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ - ADMIN) -->
+{% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+<div class="modal fade" id="transferModal" tabindex="-1" aria-labelledby="transferModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" action="{% url 'contract_officer_transfer' contract_officer.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header text-white px-4 py-3 border-0" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="bg-white bg-opacity-20 p-2 rounded-circle">
+                            <i class="fa-solid fa-right-left text-white fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold m-0" id="transferModalLabel">ផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌបំពេញការងារ</h5>
+                            <p class="fs-8 text-white text-opacity-75 m-0">{{ contract_officer.full_name_kh }} &bull; ការិយាល័យបច្ចុប្បន្ន៖ {{ contract_officer.display_working_unit }}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4 bg-white">
+                    <div class="alert alert-primary bg-primary bg-opacity-10 border-0 rounded-3 p-3 mb-4 d-flex align-items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-primary mt-0.5"></i>
+                        <div class="fs-8 text-dark">
+                            <strong>កំណត់ចំណាំរដ្ឋបាល (Admin Transfer):</strong>
+                            ការផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ នឹងធ្វើបច្ចុប្បន្នភាពទីតាំងបម្រើការងាររបស់មន្ត្រីជាប់កិច្ចសន្យា ហើយរក្សាទុកប្រវត្តិនៃការផ្លាស់ប្តូរ (Transfer Log) ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ការិយាល័យ/ខណ្ឌបច្ចុប្បន្ន</label>
+                            <input type="text" class="form-control bg-light fs-7" value="{{ contract_officer.display_working_unit }}" readonly disabled>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ទៅកាន់ការិយាល័យ/ខណ្ឌថ្មី <span class="text-danger">*</span></label>
+                            <select name="target_department" class="form-select fs-7" required>
+                                <option value="">-- សូមជ្រើសរើសការិយាល័យ/ខណ្ឌ --</option>
+                                {% for d in all_departments %}
+                                <option value="{{ d.id }}" {% if contract_officer.department_id == d.id %}selected{% endif %}>
+                                    {{ d.name_kh }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ឈ្មោះអង្គភាព/ការិយាល័យថ្មីជាក់ស្តែង (Working Unit)</label>
+                            <input type="text" name="working_unit" class="form-control fs-7" value="{{ contract_officer.working_unit }}" placeholder="ឧ. ការិយាល័យរដ្ឋបាល-បុគ្គលិក">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">មុខតំណែងថ្មី (Position Title)</label>
+                            <input type="text" name="position_title" class="form-control fs-7" value="{{ contract_officer.position_title }}" placeholder="ឧ. មន្ត្រីជាប់កិច្ចសន្យា">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">កាលបរិច្ឆេទចូលកាន់តំណែងថ្មី/ផ្ទេរ <span class="text-danger">*</span></label>
+                            <input type="date" name="transfer_date" class="form-control fs-7" value="{% now 'Y-m-d' %}" required>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">លេខលិខិតផ្ទេរ/បង្គាប់ការ/ចាត់តាំង</label>
+                            <input type="text" name="reference_letter_number" class="form-control fs-7" placeholder="ឧ. ០៤៥/២៦ សជណ...">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-8">ឯកសារលិខិតផ្ទេរភ្ជាប់ (PDF / រូបភាព)</label>
+                            <input type="file" name="transfer_document" class="form-control fs-7" accept=".pdf,image/*,.doc,.docx">
+                            <small class="text-muted fs-9">ភ្ជាប់ឯកសារលិខិតបង្គាប់ការ ឬសេចក្តីសម្រេចផ្ទេរការិយាល័យ</small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-8">មូលហេតុ ឬកំណត់សម្គាល់បន្ថែម</label>
+                            <textarea name="remarks" class="form-control fs-7" rows="2" placeholder="បញ្ជាក់មូលហេតុនៃការផ្លាស់ប្តូរការិយាល័យ..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-top">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fs-7 fw-bold shadow-xs">
+                        <i class="fa-solid fa-check me-1"></i> រក្សាទុក និងផ្លាស់ប្តូរការិយាល័យ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,1634 @@
+{% extends 'dms/base.html' %}
+{% load static %}
+
+{% block title %}ស្នើសុំដំឡើងថ្នាក់ (Promotion Forecast, Requests & Master Dossier) - ប្រព័ន្ធគ្រប់គ្រងទិន្នន័យមន្ត្រី{% endblock %}
+
+{% block content %}
+<style>
+/* Custom Table Scrollbar & Sticky Headers */
+.promotion-table-scroll {
+    max-height: 65vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+}
+.promotion-table-scroll::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+.promotion-table-scroll::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.promotion-table-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.promotion-table-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+.promotion-table-scroll thead th {
+    position: sticky !important;
+    top: 0 !important;
+    background-color: #f8fafc !important;
+    z-index: 10 !important;
+    box-shadow: inset 0 -2px 0 #e2e8f0, 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.sub-filter-btn {
+    border-radius: 50rem;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1px solid #cbd5e1;
+    background-color: #ffffff;
+    color: #475569;
+}
+.sub-filter-btn:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+.sub-filter-btn.active {
+    background-color: #d97706 !important;
+    color: #ffffff !important;
+    border-color: #d97706 !important;
+    box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3) !important;
+}
+
+.view-nav-tab {
+    font-weight: 700;
+    padding: 0.65rem 1.3rem;
+    border-radius: 50rem;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+.view-nav-tab:hover {
+    background: #f8fafc;
+    color: #0f172a;
+}
+.view-nav-tab.active {
+    background: #d97706 !important;
+    color: #ffffff !important;
+    border-color: #d97706 !important;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25) !important;
+}
+</style>
+
+<div class="container-fluid px-4 py-3">
+
+    <!-- Page Header & Top Toolbar -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none fw-bold">ផ្ទាំងបញ្ជា</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'officer_list' %}" class="text-decoration-none fw-bold">គ្រប់គ្រងមន្ត្រី</a></li>
+                    <li class="breadcrumb-item active fw-bold text-warning" aria-current="page">ស្នើសុំដំឡើងថ្នាក់ (Promotion)</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
+                <i class="fa-solid fa-chart-line text-warning"></i>
+                គ្រប់គ្រង & តាមដានវេនស្នើសុំដំឡើងថ្នាក់ (Promotion Tracking & Master Dossier)
+            </h3>
+            <span class="text-muted fs-8">ប្រព័ន្ធតាមដាន ព្យាករណ៍ និងរៀបចំតារាងស្នើសុំសរុបសម្រាប់កិច្ចប្រជុំ និងបញ្ជូនទៅក្រសួង</span>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button type="button" class="btn btn-warning text-dark rounded-pill px-3.5 py-2 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#createPromotionRequestModal" onclick="openPromotionModalForOfficer('', '', '', '')">
+                <i class="fa-solid fa-paper-plane me-1.5 fs-6"></i> + ស្នើសុំដំឡើងថ្នាក់ Online
+            </button>
+            <a id="exportPromoForecastExcelBtn" href="{% url 'officer_promotion_export_excel' %}?forecast_year={{ forecast_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" class="btn btn-outline-warning text-dark rounded-pill px-3.5 py-2 shadow-xs fw-bold" title="ទាញយកតារាងព្យាករណ៍វេនដំឡើងថ្នាក់ជា Excel">
+                <i class="fa-solid fa-file-excel me-1.5 fs-6 text-success"></i> <span id="exportPromoExcelBtnText">Excel វេនដំឡើង (ឆ្នាំ {{ forecast_year }})</span>
+            </a>
+            <a href="{% url 'officer_promotion_master_export_excel' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-success rounded-pill px-3.5 py-2 shadow-xs fw-bold" title="ទាញយកតារាងស្នើសុំសរុបជាផ្លូវការជូនក្រសួង">
+                <i class="fa-solid fa-file-excel me-1.5 fs-6"></i> Excel ជូនក្រសួង
+            </a>
+            <a href="{% url 'officer_promotion_master_print_view' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-outline-dark rounded-pill px-3.5 py-2 fw-bold" title="បើកមើលទម្រង់បោះពុម្ពផ្លូវការ">
+                <i class="fa-solid fa-print me-1.5"></i> បោះពុម្ពតារាងផ្លូវការ
+            </a>
+            <a href="{% url 'officer_list' %}" class="btn btn-outline-secondary rounded-pill px-3.5 py-2 fw-bold">
+                <i class="fa-solid fa-arrow-left me-1.5"></i> ត្រឡប់ទៅបញ្ជីមន្ត្រី
+            </a>
+        </div>
+    </div>
+
+    <!-- 🌟 Top KPI Summary Cards (Interactive for Forecast Year) -->
+    <div class="row g-3 mb-4">
+        <!-- Card 1: Total Promo Attention -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-warning border-4 cursor-pointer hover-scale transition-all" onclick="triggerPromoFilter('ALL')" style="cursor: pointer;" title="ចុចដើម្បីមើលទាំងអស់">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-secondary fs-8 fw-bold d-block mb-1">🎖️ ត្រូវយកចិត្តទុកដាក់សរុប</span>
+                        <div class="d-flex align-items-baseline gap-2">
+                            <h2 class="fw-bold text-dark m-0">{{ total_promo_attention }}</h2>
+                            <span class="fs-8 text-dark fw-bold">នាក់</span>
+                        </div>
+                        <span class="fs-9 text-muted">ឆ្នាំ {{ forecast_year }} & {{ forecast_year|add:1 }}</span>
+                    </div>
+                    <div class="bg-warning bg-opacity-15 p-3 rounded-circle text-warning">
+                        <i class="fa-solid fa-award fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Due in Year (New + Carried Over) -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-danger border-4 cursor-pointer hover-scale transition-all" onclick="triggerPromoFilter('DUE_ALL')" style="cursor: pointer;" title="ចុចដើម្បីមើលមន្ត្រីដល់វេនសរុបក្នុងឆ្នាំ {{ forecast_year }}">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-secondary fs-8 fw-bold d-block mb-1">🔴 ដល់វេនដំឡើងថ្នាក់ ({{ forecast_year }})</span>
+                        <div class="d-flex align-items-baseline gap-2">
+                            <h2 class="fw-bold text-danger m-0">{{ total_due_in_year }}</h2>
+                            <span class="fs-8 text-danger fw-bold">នាក់</span>
+                        </div>
+                        <span class="fs-9 text-danger fw-semibold">
+                            🔔 ថ្មី {{ due_new_promo_count }} នាក់ | ⚠️ ធ្លាក់/សល់ {{ due_carried_over_count }} នាក់
+                        </span>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 p-3 rounded-circle text-danger">
+                        <i class="fa-solid fa-bell fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Carried Over / Rejected From Previous Year -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-warning border-4 cursor-pointer hover-scale transition-all" onclick="triggerPromoFilter('CARRIED_OVER')" style="cursor: pointer;" title="ចុចដើម្បីមើលមន្ត្រីធ្លាក់ពីឆ្នាំមុន / ដល់វេនអតីតភាព">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-secondary fs-8 fw-bold d-block mb-1">⚠️ ធ្លាក់ឆ្នាំមុន / អតីតភាពសល់</span>
+                        <div class="d-flex align-items-baseline gap-2">
+                            <h2 class="fw-bold text-warning text-dark m-0">{{ due_carried_over_count }}</h2>
+                            <span class="fs-8 text-dark fw-bold">នាក់</span>
+                        </div>
+                        <span class="fs-9 text-muted">ចូលវេនអតីតភាពស្វ័យប្រវត្តិ</span>
+                    </div>
+                    <div class="bg-warning bg-opacity-15 p-3 rounded-circle text-warning">
+                        <i class="fa-solid fa-rotate-left fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Due Soon (Next Year) -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-primary border-4 cursor-pointer hover-scale transition-all" onclick="triggerPromoFilter('DUE_SOON')" style="cursor: pointer;" title="ចុចដើម្បីមើលមន្ត្រីជិតដល់វេន (ឆ្នាំ {{ forecast_year|add:1 }})">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-secondary fs-8 fw-bold d-block mb-1">⏳ ជិតដល់វេន ({{ forecast_year|add:1 }})</span>
+                        <div class="d-flex align-items-baseline gap-2">
+                            <h2 class="fw-bold text-primary m-0">{{ due_soon_promo_count }}</h2>
+                            <span class="fs-8 text-primary fw-bold">នាក់</span>
+                        </div>
+                        <span class="fs-9 text-muted">វេនជ្រើសរើស ១៣ មេសា {{ forecast_year|add:1 }}</span>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
+                        <i class="fa-solid fa-hourglass-half fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📑 3 Main Sub-Navigation Tabs -->
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <a href="?view_tab=forecast&forecast_year={{ forecast_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" class="view-nav-tab {% if active_view_tab == 'forecast' %}active{% endif %}">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>១. តារាងព្យាករណ៍ & តាមដានវេន (Forecast {{ forecast_year }})</span>
+            <span class="badge bg-white text-dark rounded-pill px-2 py-0.5 fs-9">{{ all_promotion_count }}</span>
+        </a>
+        <a href="?view_tab=requests{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" class="view-nav-tab {% if active_view_tab == 'requests' %}active{% endif %}">
+            <i class="fa-solid fa-list-check"></i>
+            <span>២. បញ្ជីសំណើសុំតាម Online (Online Requests)</span>
+            <span class="badge bg-white text-dark rounded-pill px-2 py-0.5 fs-9">{{ total_requests_count }}</span>
+        </a>
+        <a href="?view_tab=master&year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" class="view-nav-tab {% if active_view_tab == 'master' %}active{% endif %}" style="border-color: #b45309;">
+            <i class="fa-solid fa-file-invoice"></i>
+            <span>៣. 📑 តារាងស្នើសុំសរុប (ត្រៀមកិច្ចប្រជុំ & ជូនក្រសួង)</span>
+            <span class="badge bg-dark text-white rounded-pill px-2 py-0.5 fs-9">{{ master_requests|length }}</span>
+        </a>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body p-3">
+            {% if active_view_tab == 'forecast' %}
+            <!-- Quick Year Filter Pills for Promotion Forecast -->
+            <div class="d-flex align-items-center flex-wrap gap-2 mb-3 pb-2.5 border-bottom border-light">
+                <span class="fs-8 fw-bold text-muted me-1"><i class="fa-solid fa-calendar-days text-warning me-1"></i> ជ្រើសរើសឆ្នាំព្យាករណ៍វេន៖</span>
+                {% for y in available_years|slice:":8" %}
+                <a href="?view_tab=forecast&forecast_year={{ y }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" 
+                   class="badge text-decoration-none rounded-pill px-3 py-1.5 fs-8 {% if forecast_year_str == y|stringformat:'s' %}bg-warning text-dark fw-bold shadow-xs{% elif y == today_year %}bg-warning bg-opacity-15 text-dark border border-warning border-opacity-50{% else %}bg-light text-dark border{% endif %}">
+                    ឆ្នាំ {{ y }} {% if y == today_year %}<span class="badge bg-danger text-white rounded-pill ms-1 fs-9">ឆ្នាំនេះ</span>{% endif %}
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="get" class="row g-2 align-items-center">
+                <input type="hidden" name="view_tab" value="{{ active_view_tab }}">
+                
+                <div class="col-12 col-md-4">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" name="q" value="{{ search_q }}" class="form-control border-start-0 fs-8" placeholder="ស្វែងរកតាមឈ្មោះមន្ត្រី ឬ អត្តលេខ...">
+                    </div>
+                </div>
+
+                {% if active_view_tab == 'forecast' %}
+                <div class="col-6 col-md-3">
+                    <select name="forecast_year" class="form-select form-select-sm fs-8 fw-bold border-warning" onchange="this.form.submit()">
+                        {% for y in available_years %}
+                        <option value="{{ y }}" {% if forecast_year_str == y|stringformat:"s" %}selected{% endif %}>
+                            ព្យាករណ៍ឆ្នាំ {{ y }} {% if y == today_year %}(ឆ្នាំនេះ){% elif y == today_year|add:1 %}(ឆ្នាំក្រោយ){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="col-6 col-md-3">
+                    {% if has_global_access %}
+                    <select name="department" class="form-select form-select-sm fs-8 fw-semibold" onchange="this.form.submit()">
+                        <option value="">-- គ្រប់ការិយាល័យ/អង្គភាពទាំងអស់ --</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name_kh }}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-warning bg-opacity-10 text-dark border-0 fw-bold"><i class="fa-solid fa-building me-1"></i> ការិយាល័យ៖</span>
+                        <input type="text" class="form-control bg-light border-0 fw-bold text-dark fs-8" value="{{ user_dept.name_kh|default:'គ្មានការិយាល័យ' }}" readonly>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if active_view_tab == 'master' %}
+                <div class="col-6 col-md-2">
+                    <select name="year" class="form-select form-select-sm fs-8 fw-bold" onchange="this.form.submit()">
+                        <option value="2026" {% if master_year == 2026 %}selected{% endif %}>ឆ្នាំ ២០២៦</option>
+                        <option value="2027" {% if master_year == 2027 %}selected{% endif %}>ឆ្នាំ ២០២៧</option>
+                        <option value="2025" {% if master_year == 2025 %}selected{% endif %}>ឆ្នាំ ២០២៥</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <select name="req_status" class="form-select form-select-sm fs-8" onchange="this.form.submit()">
+                        <option value="ALL" {% if master_status == 'ALL' %}selected{% endif %}>-- គ្រប់ស្ថានភាព --</option>
+                        <option value="PENDING" {% if master_status == 'PENDING' %}selected{% endif %}>🟡 រង់ចាំពិនិត្យ</option>
+                        <option value="DEPT_APPROVED" {% if master_status == 'DEPT_APPROVED' %}selected{% endif %}>🟢 ថ្នាក់ដឹកនាំមន្ទីរឯកភាព</option>
+                        <option value="SUBMITTED" {% if master_status == 'SUBMITTED' %}selected{% endif %}>🏛️ បានបញ្ជូនទៅក្រសួង</option>
+                        <option value="MINISTRY_APPROVED" {% if master_status == 'MINISTRY_APPROVED' %}selected{% endif %}>👑 ក្រសួងអនុម័តផ្លូវការ</option>
+                        <option value="MINISTRY_REJECTED" {% if master_status == 'MINISTRY_REJECTED' %}selected{% endif %}>❌ ក្រសួងមិនអនុម័ត</option>
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="col-12 {% if active_view_tab == 'master' %}col-md-1{% else %}col-md-2{% endif %} d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-warning text-dark rounded-pill px-3 fw-bold flex-grow-1">
+                        <i class="fa-solid fa-filter me-1"></i> ច្រោះ
+                    </button>
+                    {% if search_q or selected_dept or master_status != 'ALL' or forecast_year_str != today_year|stringformat:'s' %}
+                    <a href="{% url 'officer_promotion' %}?view_tab={{ active_view_tab }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5" title="កំណត់ឡើងវិញ">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if active_view_tab == 'forecast' %}
+    <!-- 📋 Content Box 1: Promotion Forecast Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-bottom p-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex flex-wrap align-items-center gap-1.5" id="promotionFilterPills">
+                    <button type="button" class="sub-filter-btn active" data-filter="ALL" onclick="filterPromoTableRows('promotionTable', 'ALL', this)">
+                        បង្ហាញទាំងអស់ ({{ all_promotion_count }})
+                    </button>
+                    <button type="button" class="sub-filter-btn" data-filter="DUE_ALL" onclick="filterPromoTableRows('promotionTable', 'DUE_ALL', this)">
+                        🔴 ដល់វេនសរុប ({{ total_due_in_year }})
+                    </button>
+                    <button type="button" class="sub-filter-btn" data-filter="DUE_NEW" onclick="filterPromoTableRows('promotionTable', 'DUE_NEW', this)">
+                        🔔 ដល់វេនថ្មី ({{ due_new_promo_count }})
+                    </button>
+                    <button type="button" class="sub-filter-btn" data-filter="CARRIED_OVER" onclick="filterPromoTableRows('promotionTable', 'CARRIED_OVER', this)">
+                        ⚠️ ធ្លាក់ឆ្នាំមុន/អតីតភាពសល់ ({{ due_carried_over_count }})
+                    </button>
+                    <button type="button" class="sub-filter-btn" data-filter="DUE_SOON" onclick="filterPromoTableRows('promotionTable', 'DUE_SOON', this)">
+                        🟡 ជិតដល់វេន ({{ due_soon_promo_count }})
+                    </button>
+                    <button type="button" class="sub-filter-btn" data-filter="MAX_RANK_EXAM_ONLY" onclick="filterPromoTableRows('promotionTable', 'MAX_RANK_EXAM_ONLY', this)">
+                        🏆 ដល់កម្រិត គ.១ / ខ.១.១ ({{ max_c1_count }})
+                    </button>
+                    <button type="button" class="sub-filter-btn" data-filter="NORMAL" onclick="filterPromoTableRows('promotionTable', 'NORMAL', this)">
+                        🔵 មិនទាន់ដល់វេន ({{ normal_promo_count }})
+                    </button>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-warning bg-opacity-15 text-dark border border-warning border-opacity-30 rounded-pill px-2.5 py-1 fs-9">
+                        <i class="fa-solid fa-calendar-check me-1 text-warning"></i> វេនជ្រើសរើស៖ គិតត្រឹមថ្ងៃទី ១៣ ខែមេសា នៃឆ្នាំនីមួយៗ
+                    </span>
+                    <div class="text-muted fs-8">
+                        សរុបមន្ត្រី៖ <strong class="text-warning text-dark" id="promoVisibleCount">{{ displayed_promo_count }}</strong> នាក់
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive promotion-table-scroll">
+                <table class="table table-hover align-middle mb-0 fs-8" id="promotionTable">
+                    <thead>
+                        <tr class="table-light text-secondary">
+                            <th class="text-center" style="width: 45px;">ល.រ</th>
+                            <th class="text-center" style="width: 55px;">រូបថត</th>
+                            <th style="width: 110px;">អត្តលេខ</th>
+                            <th style="min-width: 180px;">គោត្តនាម-នាមខ្លួន</th>
+                            <th class="text-center" style="width: 70px;">ភេទ</th>
+                            <th style="min-width: 180px;">ការិយាល័យ/អង្គភាព</th>
+                            <th style="min-width: 150px;">មុខតំណែង</th>
+                            <th class="text-center" style="width: 130px;">ក្របខ័ណ្ឌ & ថ្នាក់បច្ចុប្បន្ន</th>
+                            <th class="text-center" style="width: 130px;">កាលបរិច្ឆេទដំឡើងចុងក្រោយ</th>
+                            <th class="text-center" style="width: 130px;">អតីតភាព (គិតត្រឹម {{ forecast_year }})</th>
+                            <th class="text-center" style="width: 145px;" title="គិតត្រឹមថ្ងៃទី ១៣ ខែមេសា នៃឆ្នាំនីមួយៗ">កាលបរិច្ឆេទដល់វេន (១៣ មេសា)</th>
+                            <th class="text-center" style="width: 135px;">ថ្នាក់ស្នើសុំបន្ទាប់</th>
+                            <th class="text-center" style="width: 165px;">ស្ថានភាព & ប្រវត្តិធ្លាក់ឆ្នាំមុន</th>
+                            <th class="text-center" style="width: 130px;">សកម្មភាព</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in promotion_list %}
+                        <tr data-status="{{ item.status }}" class="{% if item.status == 'DUE_NEW' %}table-danger bg-opacity-25{% elif item.status == 'CARRIED_OVER' %}table-warning bg-opacity-25{% elif item.status == 'DUE_SOON' %}table-primary bg-opacity-10{% elif item.status == 'MAX_RANK_EXAM_ONLY' %}table-light{% endif %}">
+                            <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
+                            <td class="text-center">
+                                {% if item.officer.photo %}
+                                <img src="{{ item.officer.photo.url }}" class="rounded-circle border shadow-xs object-fit-cover" style="width: 36px; height: 36px;" alt="Photo">
+                                {% else %}
+                                <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center mx-auto fw-bold" style="width: 36px; height: 36px; font-size: 13px;">
+                                    {{ item.officer.khmer_last_name|slice:":1"|default:"-" }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="font-monospace fw-bold text-dark">{{ item.officer.officer_id_number|default:"-" }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <a href="{% url 'officer_detail' item.officer.pk %}" class="fw-bold text-primary text-decoration-none">
+                                        {{ item.officer.full_name_kh }}
+                                    </a>
+                                    {% if item.has_degree_promo %}
+                                    <span class="badge bg-info bg-opacity-15 text-dark border border-info border-opacity-30 rounded-pill px-1.5 py-0.5 fs-9" title="🎓 មន្ត្រីមានប្រវត្តិឡើងតាមសញ្ញាបត្រ (មិនប៉ះពាល់ដល់វេនជ្រើសរើស)">
+                                        <i class="fa-solid fa-graduation-cap text-info"></i> សញ្ញាបត្រ
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <span class="fs-9 text-muted font-monospace">{{ item.officer.full_name_latin|default:"" }}</span>
+                            </td>
+                            <td class="text-center">
+                                {% if item.officer.gender == 'FEMALE' %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-0.5">ស្រី</span>
+                                {% else %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-0.5">ប្រុស</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="fw-semibold text-dark">{{ item.officer.department.name_kh|default:"មិនទាន់កំណត់" }}</span>
+                            </td>
+                            <td>
+                                <span class="fw-semibold text-dark">{{ item.officer.current_position_title|default:"-" }}</span>
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-xs btn-outline-dark rounded-pill px-2.5 py-1 fw-bold font-monospace shadow-xs d-inline-flex align-items-center gap-1.5" onclick="openPastPromotionsModal('{{ item.officer.id }}', '{{ item.officer.full_name_kh|escapejs }}', '{{ item.officer.officer_id_number|default:''|escapejs }}', '{{ item.officer.department.name_kh|default:''|escapejs }}', '{{ item.officer.current_position_title|default:''|escapejs }}', '{{ item.officer.current_rank_and_step|default:''|escapejs }}')" title="ចុចមើលប្រវត្តិដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់">
+                                    <span>{{ item.officer.current_rank_and_step|default:"-" }}</span>
+                                    {% if item.past_promotions_count > 0 %}
+                                    <span class="badge bg-warning bg-opacity-20 text-dark rounded-circle px-1.5 py-0.5 fs-9" title="{{ item.past_promotions_count }} កំណត់ត្រាប្រវត្តិ">{{ item.past_promotions_count }}</span>
+                                    {% endif %}
+                                    <i class="fa-solid fa-clock-rotate-left text-primary fs-9 opacity-75"></i>
+                                </button>
+                                <div id="pastPromotionsData_{{ item.officer.id }}" class="d-none" data-promos='[{% for p in item.past_promotions %}{"date":"{{ p.date|escapejs }}","year":"{{ p.year|escapejs }}","type_category":"{{ p.type_category|escapejs }}","type_label":"{{ p.type_label|escapejs }}","old_rank_step":"{{ p.old_rank_step|escapejs }}","new_rank_step":"{{ p.new_rank_step|escapejs }}","institution":"{{ p.institution|escapejs }}","degree_info":"{{ p.degree_info|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'></div>
+                                {% if item.is_max_rank %}
+                                <span class="badge bg-dark text-white rounded-pill px-1.5 py-0.2 fs-9 d-block mt-1">កំពូល {{ item.max_framework_name }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center font-monospace">{{ item.last_promo_date_str }}</td>
+                            <td class="text-center">
+                                <span class="badge {% if item.status == 'DUE_NEW' %}bg-danger{% elif item.status == 'CARRIED_OVER' %}bg-warning text-dark{% elif item.status == 'DUE_SOON' %}bg-primary{% elif item.status == 'MAX_RANK_EXAM_ONLY' %}bg-secondary text-white{% else %}bg-light text-dark border{% endif %} px-2 py-1 fw-bold fs-8">
+                                    {{ item.years_in_rank }} ឆ្នាំ ({{ item.months_in_rank }} ខែ)
+                                </span>
+                            </td>
+                            <td class="text-center font-monospace fw-bold {% if item.status == 'DUE_NEW' %}text-danger{% elif item.status == 'CARRIED_OVER' %}text-warning text-dark{% elif item.status == 'DUE_SOON' %}text-primary{% else %}text-muted{% endif %}">
+                                {{ item.due_date_str }}
+                            </td>
+                            <td class="text-center">
+                                {% if item.is_max_rank %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-30 px-2 py-1 fw-bold fs-9">
+                                    <i class="fa-solid fa-graduation-cap me-1"></i> {{ item.next_suggested_rank }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1 fw-bold font-monospace">
+                                    {{ item.next_suggested_rank }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-{{ item.status_badge }} rounded-pill px-2.5 py-1 fw-bold">
+                                    {{ item.status_label }}
+                                </span>
+                                {% if item.is_max_rank %}
+                                <div class="mt-1">
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-30 rounded-pill px-2 py-0.5 fs-9 fw-semibold">
+                                        🚫 គ្មានវេនជ្រើសរើស (ដល់កម្រិតកំពូល)
+                                    </span>
+                                </div>
+                                {% elif item.is_carried_over %}
+                                <div class="mt-1">
+                                    <span class="badge bg-warning bg-opacity-20 text-dark border border-warning px-2 py-0.5 rounded-pill fs-9 fw-bold">
+                                        {% if item.has_previous_rejected %}
+                                        ⚠️ ធ្លាក់ឆ្នាំ {{ item.previous_rejected_year }} (ចូលវេនអតីតភាព)
+                                        {% else %}
+                                        ⚠️ អតីតភាពសល់ ({{ item.years_in_rank }} ឆ្នាំ)
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if item.is_max_rank %}
+                                <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 fw-bold shadow-xs" onclick="openPromotionModalForOfficer('{{ item.officer.id }}', '{{ item.officer.full_name_kh|escapejs }}', '{{ item.officer.current_rank_and_step|escapejs }}', 'ក្របខ័ណ្ឌ {{ item.target_framework_name }} ({{ item.target_framework_name }}.៣.៤)', '{{ item.years_in_rank }} ឆ្នាំ ({{ item.months_in_rank }} ខែ)', '{{ forecast_year }}', 'EXAM')" title="ស្នើសុំប្រឡងផ្ទៃក្នុងថ្នាក់ក្រសួងដើម្បីប្តូរក្របខ័ណ្ឌ">
+                                    <i class="fa-solid fa-graduation-cap me-1 text-primary"></i> ស្នើប្រឡងប្តូរក្របខ័ណ្ឌ
+                                </button>
+                                {% else %}
+                                <button type="button" class="btn btn-xs btn-outline-warning text-dark rounded-pill px-2.5 py-1 fw-bold shadow-xs" onclick="openPromotionModalForOfficer('{{ item.officer.id }}', '{{ item.officer.full_name_kh|escapejs }}', '{{ item.officer.current_rank_and_step|escapejs }}', '{{ item.next_suggested_rank|escapejs }}', '{{ item.years_in_rank }} ឆ្នាំ ({{ item.months_in_rank }} ខែ)', '{{ forecast_year }}', 'SENIORITY')" title="ស្នើសុំដំឡើងថ្នាក់សម្រាប់មន្ត្រីរូបនេះ ក្នុងឆ្នាំ {{ forecast_year }}">
+                                    <i class="fa-solid fa-paper-plane me-1"></i> ស្នើសុំ
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="14" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-award fa-3x mb-3 text-secondary opacity-50"></i>
+                                <p class="m-0 fs-7">ពុំមានទិន្នន័យមន្ត្រីត្រូវដំឡើងថ្នាក់តាមលក្ខខណ្ឌស្វែងរកនេះឡើយ</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% elif active_view_tab == 'requests' %}
+    <!-- 📋 Content Box 2: Online Promotion Requests Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-bottom p-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="fa-solid fa-list-check text-warning me-1.5"></i> បញ្ជីសំណើសុំដំឡើងថ្នាក់តាម Online ទាំងអស់
+                </h6>
+                <button type="button" class="btn btn-sm btn-warning text-dark rounded-pill px-3 py-1.5 fw-bold shadow-xs" data-bs-toggle="modal" data-bs-target="#createPromotionRequestModal" onclick="openPromotionModalForOfficer('', '', '', '')">
+                    <i class="fa-solid fa-plus me-1"></i> បង្កើតសំណើថ្មី
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive promotion-table-scroll">
+                <table class="table table-hover align-middle mb-0 fs-8">
+                    <thead>
+                        <tr class="table-light text-secondary">
+                            <th class="text-center" style="width: 45px;">ល.រ</th>
+                            <th style="min-width: 180px;">មន្ត្រីស្នើសុំ</th>
+                            <th style="min-width: 170px;">ការិយាល័យ/អង្គភាព</th>
+                            <th class="text-center" style="width: 120px;">ប្រភេទនៃការដំឡើង</th>
+                            <th class="text-center" style="width: 120px;">ថ្នាក់បច្ចុប្បន្ន</th>
+                            <th class="text-center" style="width: 130px;">ថ្នាក់ស្នើសុំដំឡើងទៅ</th>
+                            <th class="text-center" style="width: 90px;">ឆ្នាំស្នើសុំ</th>
+                            <th class="text-center" style="width: 100px;">ឯកសារយោង</th>
+                            <th class="text-center" style="width: 150px;">ស្ថានភាពដំណើរការ</th>
+                            <th style="min-width: 150px;">អ្នកដាក់សំណើ / កាលបរិច្ឆេទ</th>
+                            <th class="text-center" style="width: 140px;">សកម្មភាព</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in promotion_requests %}
+                        <tr>
+                            <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if req.officer.photo %}
+                                    <img src="{{ req.officer.photo.url }}" class="rounded-circle border object-fit-cover" style="width: 32px; height: 32px;" alt="Photo">
+                                    {% else %}
+                                    <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 12px;">
+                                        {{ req.officer.khmer_last_name|slice:":1"|default:"-" }}
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <a href="{% url 'officer_detail' req.officer.pk %}" class="fw-bold text-primary text-decoration-none">
+                                            {{ req.officer.full_name_kh }}
+                                        </a>
+                                        <div class="fs-9 text-muted font-monospace">{{ req.officer.officer_id_number|default:"-" }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-semibold text-dark">{{ req.department.name_kh|default:"មិនទាន់កំណត់" }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border px-2 py-1 fs-9">{{ req.get_promotion_type_display }}</span>
+                            </td>
+                            <td class="text-center font-monospace">{{ req.current_rank_and_step|default:"-" }}</td>
+                            <td class="text-center font-monospace fw-bold text-success fs-7">
+                                {{ req.proposed_rank_and_step }}
+                            </td>
+                            <td class="text-center font-monospace">{{ req.request_year }}</td>
+                            <td class="text-center">
+                                {% if req.attachment %}
+                                <a href="{{ req.attachment.url }}" target="_blank" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5" title="ទាញយក / បើកមើលឯកសារយោង">
+                                    <i class="fa-solid fa-paperclip me-1"></i> File
+                                </a>
+                                {% else %}
+                                <span class="text-muted fs-9">គ្មាន</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if req.status == 'PENDING' %}
+                                <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 fw-bold">
+                                    <i class="fa-solid fa-clock me-1"></i> 🟡 រង់ចាំពិនិត្យ
+                                </span>
+                                {% elif req.status == 'DEPT_APPROVED' or req.status == 'APPROVED' %}
+                                <span class="badge bg-primary text-white rounded-pill px-2.5 py-1 fw-bold" title="អង្គប្រជុំមន្ទីរបានឯកភាព">
+                                    <i class="fa-solid fa-circle-check me-1"></i> 🟢 មន្ទីរឯកភាព
+                                </span>
+                                {% elif req.status == 'DEPT_REJECTED' or req.status == 'REJECTED' %}
+                                <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fw-bold" title="{{ req.admin_notes }}">
+                                    <i class="fa-solid fa-circle-xmark me-1"></i> 🔴 មន្ទីរមិនឯកភាព
+                                </span>
+                                {% elif req.status == 'SUBMITTED' %}
+                                <span class="badge bg-info text-white rounded-pill px-2.5 py-1 fw-bold">
+                                    <i class="fa-solid fa-paper-plane me-1"></i> 🏛️ បញ្ជូនទៅក្រសួង
+                                </span>
+                                {% elif req.status == 'MINISTRY_APPROVED' %}
+                                <span class="badge bg-success text-white rounded-pill px-2.5 py-1 fw-bold">
+                                    <i class="fa-solid fa-crown me-1"></i> 👑 ក្រសួងអនុម័តផ្លូវការ
+                                </span>
+                                {% elif req.status == 'MINISTRY_REJECTED' %}
+                                <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1 fw-bold" title="{{ req.ministry_decision_notes }}">
+                                    <i class="fa-solid fa-ban me-1"></i> ❌ ក្រសួងមិនអនុម័ត
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark fs-9">{{ req.submitted_by.username|default:"-" }}</div>
+                                <small class="text-muted font-monospace fs-9">{{ req.created_at|date:"d/m/Y H:i" }}</small>
+                                {% if req.admin_notes %}
+                                <div class="text-danger fs-9 mt-0.5"><em>មតិ Admin៖ {{ req.admin_notes }}</em></div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex align-items-center justify-content-center gap-1">
+                                    {% if has_global_access %}
+                                    <!-- Edit Request (in case office submitted wrong rank) -->
+                                    <button type="button" class="btn btn-xs btn-outline-warning text-dark rounded-pill px-2 py-1 fw-bold" onclick="openEditPromotionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.current_rank_and_step|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}', '{{ req.promotion_type }}', '{{ req.years_in_current_rank|escapejs }}', '{{ req.reason|escapejs }}', '{{ req.department_id|default:'' }}', '{{ req.meeting_decision|escapejs }}')" title="✏️ កែតម្រូវទិន្នន័យ (ពេលការិយាល័យស្នើសុំខុស)">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <!-- Dept Review Action -->
+                                    <button type="button" class="btn btn-xs btn-primary rounded-pill px-2 py-1 fw-bold" onclick="openReviewPromotionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.current_rank_and_step|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}', '{{ req.reason|escapejs }}', '{{ req.admin_notes|escapejs }}', '{{ req.meeting_decision|escapejs }}', '{{ req.status }}')" title="ពិនិត្យ & សម្រេចកម្រិតមន្ទីរ">
+                                        <i class="fa-solid fa-gavel"></i>
+                                    </button>
+                                    <!-- Ministry Decision Action -->
+                                    <button type="button" class="btn btn-xs btn-success rounded-pill px-2 py-1 fw-bold" onclick="openMinistryDecisionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}')" title="👑 កត់ត្រាការអនុម័តផ្លូវការពីក្រសួង">
+                                        <i class="fa-solid fa-building-columns"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% if has_global_access or req.status == 'PENDING' %}
+                                    <form method="post" action="{% url 'officer_promotion_request_delete' req.id %}" onsubmit="return confirm('តើលោកអ្នកពិតជាចង់លុបសំណើសុំដំឡើងថ្នាក់នេះមែនទេ?');" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-xs btn-outline-danger border-0 rounded-circle p-1" title="លុបសំណើ">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="11" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-folder-open fa-3x mb-3 text-secondary opacity-50"></i>
+                                <p class="m-0 fs-7">ពុំទាន់មានសំណើសុំដំឡើងថ្នាក់តាម Online ក្នុងបញ្ជីឡើយ</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- 📑 Content Box 3: Master Consolidated Dossier Table (ត្រៀមកិច្ចប្រជុំ & បញ្ជូនទៅក្រសួង) -->
+    <form method="post" action="{% url 'officer_promotion_batch_status_update' %}" id="batchPromotionForm">
+        {% csrf_token %}
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden border-top border-warning border-4">
+            <div class="card-header bg-white border-bottom p-3">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div>
+                        <h6 class="fw-bold m-0 text-dark d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-file-invoice text-warning fs-5"></i>
+                            តារាងបូកសរុបសំណើសុំដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់មន្ត្រីរាជការ ឆ្នាំ {{ master_year }}
+                        </h6>
+                        <span class="text-muted fs-8">ឯកសារបូកសរុបផ្លូវការសម្រាប់កិច្ចប្រជុំគណៈកម្មការវាយតម្លៃ និងរៀបចំឯកសារបញ្ជូនទៅក្រសួង</span>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        {% if has_global_access %}
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="openBatchActionModal()">
+                            <i class="fa-solid fa-bolt me-1"></i> កែប្រែទិន្នន័យរួម (Bulk Action)
+                        </button>
+                        {% endif %}
+                        <a href="{% url 'officer_promotion_master_export_excel' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
+                            <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel ជូនក្រសួង
+                        </a>
+                        <a href="{% url 'officer_promotion_master_print_view' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold">
+                            <i class="fa-solid fa-print me-1"></i> បោះពុម្ពផ្លូវការ
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive promotion-table-scroll">
+                    <table class="table table-hover align-middle mb-0 fs-8">
+                        <thead>
+                            <tr class="table-light text-secondary">
+                                <th class="text-center" style="width: 35px;">
+                                    <input class="form-check-input" type="checkbox" id="selectAllMasterPromo" onchange="toggleSelectAllMasterPromo(this)">
+                                </th>
+                                <th class="text-center" style="width: 45px;">ល.រ</th>
+                                <th style="width: 100px;">អត្តលេខ</th>
+                                <th style="min-width: 160px;">គោត្តនាម-នាម</th>
+                                <th class="text-center" style="width: 60px;">ភេទ</th>
+                                <th style="min-width: 170px;">ការិយាល័យ & មុខតំណែង</th>
+                                <th class="text-center" style="width: 120px;">ថ្នាក់បច្ចុប្បន្ន</th>
+                                <th class="text-center" style="width: 130px;">ថ្នាក់ស្នើសុំដំឡើង</th>
+                                <th class="text-center" style="width: 120px;">ប្រភេទ & អតីតភាព</th>
+                                <th style="min-width: 180px;">មតិអង្គប្រជុំ / គណៈកម្មការ</th>
+                                <th class="text-center" style="width: 150px;">ស្ថានភាពដំណើរការ</th>
+                                <th class="text-center" style="width: 120px;">សកម្មភាព</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in master_requests %}
+                            <tr>
+                                <td class="text-center">
+                                    <input class="form-check-input master-promo-checkbox" type="checkbox" name="selected_request_ids" value="{{ req.id }}">
+                                </td>
+                                <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
+                                <td>
+                                    <span class="font-monospace fw-bold text-dark">{{ req.officer.officer_id_number|default:"-" }}</span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'officer_detail' req.officer.pk %}" class="fw-bold text-primary text-decoration-none">
+                                        {{ req.officer.full_name_kh }}
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    {% if req.officer.gender == 'FEMALE' %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-0.5">ស្រី</span>
+                                    {% else %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-0.5">ប្រុស</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">{{ req.department.name_kh|default:"-" }}</div>
+                                    <small class="text-muted fs-9">{{ req.officer.current_position_title|default:"-" }}</small>
+                                </td>
+                                <td class="text-center font-monospace">{{ req.current_rank_and_step|default:"-" }}</td>
+                                <td class="text-center font-monospace fw-bold text-warning text-dark fs-7">
+                                    {{ req.proposed_rank_and_step }}
+                                </td>
+                                <td class="text-center">
+                                    <span class="d-block text-dark fw-semibold fs-9">{{ req.get_promotion_type_display }}</span>
+                                    <small class="text-muted font-monospace fs-9">{{ req.years_in_current_rank|default:"-" }}</small>
+                                </td>
+                                <td>
+                                    {% if req.meeting_decision %}
+                                    <span class="text-dark fw-semibold">{{ req.meeting_decision }}</span>
+                                    {% else %}
+                                    <span class="text-muted fs-9"><em>ឯកភាពតាមការស្នើសុំ</em></span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if req.status == 'MINISTRY_APPROVED' %}
+                                    <span class="badge bg-success text-white rounded-pill px-2.5 py-1 fw-bold">
+                                        <i class="fa-solid fa-crown me-1"></i> 👑 ក្រសួងអនុម័តផ្លូវការ
+                                    </span>
+                                    {% if req.legal_doc_number %}
+                                    <div class="fs-9 text-dark font-monospace mt-0.5">{{ req.get_legal_doc_type_display }}: {{ req.legal_doc_number }}</div>
+                                    {% endif %}
+                                    {% elif req.status == 'SUBMITTED' or req.is_submitted_to_ministry %}
+                                    <span class="badge bg-info text-white rounded-pill px-2.5 py-1 fw-bold">
+                                        <i class="fa-solid fa-paper-plane me-1"></i> 🏛️ បញ្ជូនទៅក្រសួង
+                                    </span>
+                                    {% if req.ministry_doc_number %}
+                                    <div class="fs-9 text-muted font-monospace mt-0.5">លិខិត៖ {{ req.ministry_doc_number }}</div>
+                                    {% endif %}
+                                    {% elif req.status == 'DEPT_APPROVED' or req.status == 'APPROVED' %}
+                                    <span class="badge bg-primary text-white rounded-pill px-2.5 py-1 fw-bold">
+                                        🟢 មន្ទីរឯកភាព
+                                    </span>
+                                    {% elif req.status == 'MINISTRY_REJECTED' %}
+                                    <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1 fw-bold">
+                                        ❌ ក្រសួងមិនអនុម័ត
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning bg-opacity-20 text-dark rounded-pill px-2.5 py-1">
+                                        🟡 រង់ចាំពិនិត្យ
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center gap-1">
+                                        {% if has_global_access %}
+                                        <!-- Edit button -->
+                                        <button type="button" class="btn btn-xs btn-outline-warning text-dark rounded-pill px-2 py-1 fw-bold shadow-xs" onclick="openEditPromotionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.current_rank_and_step|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}', '{{ req.promotion_type }}', '{{ req.years_in_current_rank|escapejs }}', '{{ req.reason|escapejs }}', '{{ req.department_id|default:'' }}', '{{ req.meeting_decision|escapejs }}')" title="✏️ កែតម្រូវសំណើ (ពេលការិយាល័យស្នើសុំខុស)">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <!-- Ministry Official Approval button -->
+                                        <button type="button" class="btn btn-xs btn-success rounded-pill px-2 py-1 fw-bold shadow-xs" onclick="openMinistryDecisionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}')" title="👑 កត់ត្រាការអនុម័តផ្លូវការពីក្រសួង (Update Profile)">
+                                            <i class="fa-solid fa-stamp"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="12" class="text-center py-5 text-muted">
+                                    <i class="fa-solid fa-file-invoice fa-3x mb-3 text-secondary opacity-50"></i>
+                                    <p class="m-0 fs-7">ពុំមានទិន្នន័យសំណើសុំដំឡើងថ្នាក់សម្រាប់ឆ្នាំ {{ master_year }} ឡើយ</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+
+</div>
+
+<!-- Modal 1: Create Online Promotion Request -->
+<div class="modal fade" id="createPromotionRequestModal" tabindex="-1" aria-labelledby="createPromotionRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header bg-warning text-dark px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="bg-white bg-opacity-50 p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="fa-solid fa-paper-plane fs-5 text-dark"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0" id="createPromotionRequestModalLabel">ទម្រង់បែបបទស្នើសុំដំឡើងឋានន្តរស័ក្តិ & ថ្នាក់តាម Online</h6>
+                        <span class="fs-8 text-muted">Online Civil Servant Promotion Request Form</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="post" action="{% url 'officer_promotion_request_create' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <!-- ⚠️ Alert when officer is at គ.១ or ខ.១.១ (Ceiling of Framework) -->
+                    <div id="modalPromoC1Alert" class="alert alert-warning border-warning d-none mb-3 py-2.5 px-3 fs-8 rounded-3">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-warning fs-5 mt-0.5"></i>
+                            <div>
+                                <strong class="text-dark d-block" id="modalPromoMaxRankTitle">ចំណាំពិសេសសម្រាប់មន្ត្រីថ្នាក់កម្រិតកំពូលនៃក្របខ័ណ្ឌ (គ.១ / ខ.១.១)៖</strong>
+                                <span class="text-secondary" id="modalPromoMaxRankDesc">មន្ត្រីបានដល់កម្រិតកំពូលនៃក្របខ័ណ្ឌហើយ មិនមានមុខងារស្នើសុំដំឡើងថ្នាក់តាមវេនជ្រើសរើស/អតីតភាពឡើយ លុះត្រាតែមានការស្នើសុំ <strong>«ប្រឡងផ្ទៃក្នុងថ្នាក់ក្រសួងដើម្បីប្តូរក្របខ័ណ្ឌ»</strong> តែមួយគត់!</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Select Officer -->
+                        <div class="col-12 col-md-7">
+                            <label class="form-label fw-bold text-dark fs-7">ជ្រើសរើសមន្ត្រីដែលត្រូវស្នើសុំដំឡើងថ្នាក់ <span class="text-danger">*</span></label>
+                            <select name="officer_id" id="modalPromoOfficerSelect" class="form-select fs-8 rounded-3" required onchange="onOfficerSelectedForPromotion(this)">
+                                <option value="">-- ជ្រើសរើសមន្ត្រី --</option>
+                                {% for off in dept_officers %}
+                                <option value="{{ off.id }}" data-rank="{{ off.current_rank_and_step|default:'' }}" data-dept="{{ off.department.name_kh|default:'' }}">
+                                    {{ off.full_name_kh }} {% if off.officer_id_number %}[អត្តលេខ: {{ off.officer_id_number }}]{% endif %} - {{ off.department.name_kh|default:'គ្មានការិយាល័យ' }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Request Year -->
+                        <div class="col-12 col-md-5">
+                            <label class="form-label fw-bold text-dark fs-7">សម្រាប់ឆ្នាំស្នើសុំ</label>
+                            <input type="number" name="request_year" id="modalPromoRequestYear" class="form-control fs-8 rounded-3 font-monospace" value="{{ forecast_year|default:today_year }}" min="2020" max="2040" required>
+                        </div>
+
+                        <!-- Promotion Type -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">ប្រភេទនៃការដំឡើង <span class="text-danger">*</span></label>
+                            <select name="promotion_type" id="modalPromoTypeSelect" class="form-select fs-8 rounded-3" required>
+                                <option value="SENIORITY">តាមវេនជ្រើសរើស / អតីតភាពការងារ (២ ឆ្នាំ)</option>
+                                <option value="DEGREE">តាមកម្រិតសញ្ញាបត្រ</option>
+                                <option value="EXAM">តាមការប្រឡងប្រជែងផ្ទៃក្នុង (ប្តូរក្របខ័ណ្ឌ)</option>
+                                <option value="SPECIAL">ករណីពិសេស / គុណសម្បត្តិការងារ</option>
+                            </select>
+                        </div>
+
+                        <!-- Current Rank -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">ក្របខ័ណ្ឌ & ថ្នាក់បច្ចុប្បន្ន</label>
+                            <input type="text" name="current_rank_and_step" id="modalPromoCurrentRank" class="form-control fs-8 rounded-3 font-monospace bg-light" placeholder="ឧ. គ.៨ ឬ ក.២.២" readonly>
+                        </div>
+
+                        <!-- Proposed Rank -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">ថ្នាក់ដែលស្នើសុំដំឡើងទៅ <span class="text-danger">*</span></label>
+                            <input type="text" name="proposed_rank_and_step" id="modalPromoProposedRank" class="form-control fs-8 rounded-3 font-monospace fw-bold text-primary" placeholder="ឧ. គ.៧ ឬ ក.២.១" required>
+                            <small class="text-muted fs-9">បញ្ចូលថ្នាក់ថ្មីដែលស្នើសុំដំឡើងទៅ</small>
+                        </div>
+
+                        <!-- Years in rank -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">អតីតភាពក្នុងថ្នាក់</label>
+                            <input type="text" name="years_in_current_rank" id="modalPromoYearsInRank" class="form-control fs-8 rounded-3" placeholder="ឧ. ២.៥ ឆ្នាំ">
+                        </div>
+
+                        <!-- Reasons -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-7">មូលហេតុ និងគុណសម្បត្តិការងារ</label>
+                            <textarea name="reason" rows="3" class="form-control fs-8 rounded-3" placeholder="បញ្ជាក់ពីសមិទ្ធផលការងារ ការខិតខំបំពេញភារកិច្ច និងមូលហេតុនៃការស្នើសុំ..."></textarea>
+                        </div>
+
+                        <!-- Attachment -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-7">ឯកសារយោងភ្ជាប់ (លិខិតស្នើសុំ ឬរបាយការណ៍ - PDF/DOCX/JPG/PNG)</label>
+                            <input type="file" name="attachment" class="form-control fs-8 rounded-3" accept=".pdf,.docx,.doc,.jpg,.jpeg,.png">
+                            <small class="text-muted fs-9">ទំហំអតិបរមា 5MB</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-warning text-dark rounded-pill px-4 fs-7 fw-bold shadow-sm">
+                        <i class="fa-solid fa-paper-plane me-1.5"></i> បញ្ជូនសំណើសុំ (Submit Request)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: ✏️ Admin Edit Promotion Request (When office submitted wrong rank/data) -->
+<div class="modal fade" id="editPromotionRequestModal" tabindex="-1" aria-labelledby="editPromotionRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2.5">
+                    <i class="fa-solid fa-pen-to-square text-warning fs-5"></i>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0 text-white" id="editPromotionRequestModalLabel">កែតម្រូវទិន្នន័យសំណើសុំដំឡើងថ្នាក់ (Admin Edit)</h6>
+                        <span class="fs-8 text-white-50">កែសម្រួលករណីការិយាល័យជំនាញស្នើសុំថ្នាក់ខុស ឬទិន្នន័យមិនត្រឹមត្រូវ</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="post" id="editPromotionForm" action="" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="bg-light p-3 rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted fs-8">មន្ត្រីស្នើសុំ៖</span>
+                            <strong class="text-dark fs-8" id="editPromoOfficerName">-</strong>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">ក្របខ័ណ្ឌ & ថ្នាក់បច្ចុប្បន្ន</label>
+                            <input type="text" name="current_rank_and_step" id="editPromoCurrentRank" class="form-control fs-8 rounded-3 font-monospace">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">ថ្នាក់ដែលស្នើសុំដំឡើងទៅ (កែតម្រូវ) <span class="text-danger">*</span></label>
+                            <input type="text" name="proposed_rank_and_step" id="editPromoProposedRank" class="form-control fs-8 rounded-3 font-monospace fw-bold text-primary" required>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">ប្រភេទនៃការដំឡើង</label>
+                            <select name="promotion_type" id="editPromoType" class="form-select fs-8 rounded-3">
+                                <option value="SENIORITY">តាមវេនជ្រើសរើស / អតីតភាពការងារ (២ ឆ្នាំ)</option>
+                                <option value="DEGREE">តាមកម្រិតសញ្ញាបត្រ</option>
+                                <option value="EXAM">តាមការប្រឡងប្រជែង</option>
+                                <option value="SPECIAL">ករណីពិសេស / គុណសម្បត្តិការងារ</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">អតីតភាពក្នុងថ្នាក់</label>
+                            <input type="text" name="years_in_current_rank" id="editPromoYearsInRank" class="form-control fs-8 rounded-3">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-7">មូលហេតុ និងសមិទ្ធផល</label>
+                            <textarea name="reason" id="editPromoReason" rows="2" class="form-control fs-8 rounded-3"></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-7">មតិអង្គប្រជុំ / គណៈកម្មការវាយតម្លៃ</label>
+                            <input type="text" name="meeting_decision" id="editPromoMeetingDecision" class="form-control fs-8 rounded-3" placeholder="ឧ. ឯកភាពតាមការកែសម្រួល">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fs-7 fw-bold shadow-sm">
+                        <i class="fa-solid fa-floppy-disk me-1.5"></i> រក្សាទុកការកែតម្រូវ (Save Changes)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 3: ⚖️ Admin & Department Leadership Review Modal -->
+<div class="modal fade" id="reviewPromotionModal" tabindex="-1" aria-labelledby="reviewPromotionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-gavel fs-5"></i>
+                    <h6 class="modal-title fw-bold m-0" id="reviewPromotionModalLabel">ពិនិត្យ & សម្រេចកម្រិតថ្នាក់ដឹកនាំមន្ទីរ (Department Review)</h6>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="post" id="reviewPromotionForm" action="">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 rounded-3 small mb-3 py-2 px-3">
+                        <i class="fa-solid fa-circle-info me-1"></i>
+                        <strong>ដំណាក់កាលមន្ទីរ៖</strong> ការឯកភាពនៅទីនេះ គឺសម្រេចត្រឹមថ្នាក់ដឹកនាំមន្ទីរ ដើម្បីត្រៀមបញ្ជូនទៅក្រសួង (<strong>មិនទាន់កែប្រែប្រវត្តិរូបមន្ត្រីទេ</strong>)។
+                    </div>
+
+                    <div class="bg-light p-3 rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted fs-8">មន្ត្រីស្នើសុំ៖</span>
+                            <strong class="text-dark fs-8" id="revOfficerName">-</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted fs-8">ថ្នាក់បច្ចុប្បន្ន៖</span>
+                            <span class="font-monospace text-dark fs-8" id="revCurrentRank">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted fs-8">ថ្នាក់ស្នើសុំដំឡើងទៅ៖</span>
+                            <strong class="font-monospace text-primary fs-7" id="revProposedRank">-</strong>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark fs-7">មតិអង្គប្រជុំ / គណៈកម្មការវាយតម្លៃមន្ទីរ</label>
+                        <input type="text" name="meeting_decision" id="revMeetingDecision" class="form-control fs-8 rounded-3" placeholder="ឧ. ឯកភាពតាមការស្នើសុំ ដាក់ឆ្លងកិច្ចប្រជុំមន្ទីររួច">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark fs-7">មតិយោបល់ / កំណត់សម្គាល់របស់ Admin</label>
+                        <textarea name="admin_notes" id="revAdminNotes" rows="2" class="form-control fs-8 rounded-3" placeholder="កំណត់សម្គាល់បន្ថែម..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                    <button type="submit" name="action" value="DEPT_REJECT" class="btn btn-outline-danger rounded-pill px-3.5 fs-7 fw-bold">
+                        <i class="fa-solid fa-xmark me-1"></i> មន្ទីរមិនទាន់ឯកភាព (Reject)
+                    </button>
+                    <button type="submit" name="action" value="DEPT_APPROVE" class="btn btn-primary rounded-pill px-4 fs-7 fw-bold shadow-sm">
+                        <i class="fa-solid fa-check-double me-1.5"></i> ថ្នាក់ដឹកនាំមន្ទីរឯកភាព (Approve)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 4: 👑 Official Ministry Decision Modal (Prakas / Anukret / Reach Kret) -->
+<div class="modal fade" id="ministryDecisionModal" tabindex="-1" aria-labelledby="ministryDecisionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header bg-success text-white px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-stamp fs-5 text-white"></i>
+                    <h6 class="modal-title fw-bold m-0 text-white" id="ministryDecisionModalLabel">កត់ត្រាការអនុម័តជាផ្លូវការពីក្រសួង / រាជរដ្ឋាភិបាល</h6>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="post" id="ministryDecisionForm" action="">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="alert alert-success border-0 rounded-3 small mb-3 py-2 px-3">
+                        <i class="fa-solid fa-circle-check me-1"></i>
+                        <strong>ការសម្រេចរបស់ក្រសួង៖</strong> នៅពេលចុចយល់ព្រមអនុម័ត <strong>ប្រព័ន្ធនឹង Update ថ្នាក់ថ្មី (កាំប្រាក់) ទៅក្នុងជីវប្រវត្តិមន្ត្រីដោយស្វ័យប្រវត្តិ</strong>! ករណីធ្លាក់ ប្រព័ន្ធនឹងរក្សាស្ថានភាពដើមដដែល។
+                    </div>
+
+                    <div class="bg-light p-3 rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted fs-8">មន្ត្រីទទួលការដំឡើង៖</span>
+                            <strong class="text-dark fs-8" id="minOfficerName">-</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted fs-8">ថ្នាក់អនុម័តថ្មី៖</span>
+                            <strong class="font-monospace text-success fs-7" id="minProposedRank">-</strong>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">ប្រភេទលិខិតបទដ្ឋាន <span class="text-danger">*</span></label>
+                            <select name="legal_doc_type" class="form-select fs-8 rounded-3" required>
+                                <option value="PRAKAS">ប្រកាស (ក្រសួង)</option>
+                                <option value="ANUKRET">អនុក្រឹត្យ (រាជរដ្ឋាភិបាល)</option>
+                                <option value="ROYAL_DECREE">ព្រះរាជក្រឹត្យ (ព្រះមហាក្សត្រ)</option>
+                                <option value="DECISION">សេចក្តីសម្រេច / លិខិតផ្លូវការ</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">លេខលិខិតគតិយុត្ត <span class="text-danger">*</span></label>
+                            <input type="text" name="legal_doc_number" class="form-control fs-8 rounded-3 font-monospace" placeholder="ឧ. ១២៤ ប្រក.ដនស" required>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">កាលបរិច្ឆេទចុះហត្ថលេខា</label>
+                            <input type="date" name="legal_doc_date" class="form-control fs-8 rounded-3 font-monospace">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-7">កាលបរិច្ឆេទចូលជាធរមាន</label>
+                            <input type="date" name="effective_date" class="form-control fs-8 rounded-3 font-monospace">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-7">កំណត់សម្គាល់ការសម្រេចរបស់ក្រសួង</label>
+                            <textarea name="ministry_decision_notes" rows="2" class="form-control fs-8 rounded-3" placeholder="បញ្ចូលកំណត់សម្គាល់ការសម្រេច ឬមូលហេតុករណីក្រសួងមិនអនុម័ត..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                    <button type="submit" name="action" value="MINISTRY_REJECT" class="btn btn-outline-danger rounded-pill px-3.5 fs-7 fw-bold" onclick="return confirm('តើលោកអ្នកពិតជាចង់កត់ត្រាថា ក្រសួងមិនអនុម័ត/ធ្លាក់ មែនទេ? (ទិន្នន័យមន្ត្រីនឹងរក្សាដើមដដែល)');">
+                        <i class="fa-solid fa-ban me-1"></i> ក្រសួងមិនអនុម័ត/ធ្លាក់ (Reject)
+                    </button>
+                    <button type="submit" name="action" value="MINISTRY_APPROVE" class="btn btn-success rounded-pill px-4 fs-7 fw-bold shadow-sm">
+                        <i class="fa-solid fa-stamp me-1.5"></i> ទទួលស្គាល់ការអនុម័តផ្លូវការ (Update Profile)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 5: Batch Action Modal for Master Dossier -->
+<div class="modal fade" id="batchActionPromotionModal" tabindex="-1" aria-labelledby="batchActionPromotionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-bolt text-warning fs-5"></i>
+                    <h6 class="modal-title fw-bold m-0" id="batchActionPromotionModalLabel">កែសម្រួលទិន្នន័យរួមសម្រាប់សំណើដែលបានជ្រើសរើស (Bulk Action)</h6>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-dark fs-7">ជ្រើសរើសសកម្មភាព <span class="text-danger">*</span></label>
+                    <select name="batch_action_type" id="batchPromoActionSelect" class="form-select fs-8 rounded-3" required onchange="onBatchActionChange(this.value)">
+                        <option value="DEPT_APPROVE_ALL">🟢 ថ្នាក់ដឹកនាំមន្ទីរឯកភាពសំណើទាំងអស់ (Dept Approve Selected)</option>
+                        <option value="SUBMIT_MINISTRY">🏛️ កត់ត្រាថាបានបញ្ជូនទៅក្រសួងរួច (Mark Submitted to Ministry)</option>
+                        <option value="MINISTRY_APPROVE_ALL">👑 ក្រសួងអនុម័តជាផ្លូវការ (Ministry Approve & Update Profiles)</option>
+                        <option value="MINISTRY_REJECT_ALL">❌ ក្រសួងមិនអនុម័ត/ធ្លាក់ (Ministry Reject - Keep Profiles Intact)</option>
+                        <option value="UPDATE_MEETING_DECISION">📝 កែសម្រួលមតិអង្គប្រជុំរួម (Update Meeting Decision)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="batchMeetingDecisionBox">
+                    <label class="form-label fw-bold text-dark fs-7">មតិអង្គប្រជុំ / គណៈកម្មការវាយតម្លៃ</label>
+                    <input type="text" id="modalBatchMeetingDecision" class="form-control fs-8 rounded-3" placeholder="ឧ. ឯកភាពតាមការស្នើសុំ ដាក់ឆ្លងកិច្ចប្រជុំមន្ទីររួច">
+                </div>
+
+                <div class="mb-3 d-none" id="batchMinistryDocBox">
+                    <label class="form-label fw-bold text-dark fs-7">លេខលិខិតបញ្ជូនទៅក្រសួង</label>
+                    <input type="text" id="modalBatchMinistryDoc" class="form-control fs-8 rounded-3" placeholder="ឧ. លិខិតលេខ ១២៤/២៦ ម.ដ.ន.ស/ត.ដ">
+                </div>
+
+                <div class="p-3 bg-light rounded-3 border d-none" id="batchLegalDocBox">
+                    <h6 class="fw-bold fs-8 text-success mb-2"><i class="fa-solid fa-stamp me-1"></i> លិខិតបទដ្ឋានគតិយុត្តផ្លូវការពីក្រសួង</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label fs-9 fw-bold text-dark">ប្រភេទលិខិត</label>
+                            <select id="modalBatchLegalDocType" class="form-select form-select-sm fs-9 rounded-2">
+                                <option value="PRAKAS">ប្រកាស</option>
+                                <option value="ANUKRET">អនុក្រឹត្យ</option>
+                                <option value="ROYAL_DECREE">ព្រះរាជក្រឹត្យ</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fs-9 fw-bold text-dark">លេខលិខិត</label>
+                            <input type="text" id="modalBatchLegalDocNumber" class="form-control form-select-sm fs-9 rounded-2" placeholder="ឧ. ១២៤ ប្រក.ដនស">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fs-9 fw-bold text-dark">កាលបរិច្ឆេទចុះហត្ថលេខា</label>
+                            <input type="date" id="modalBatchLegalDocDate" class="form-control form-select-sm fs-9 rounded-2">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                <button type="button" class="btn btn-warning text-dark rounded-pill px-4 fs-7 fw-bold shadow-sm" onclick="submitBatchPromotionForm()">
+                    <i class="fa-solid fa-check me-1.5"></i> អនុវត្តសកម្មភាព (Apply Batch)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 6: 📜 ប្រវត្តិការដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់ -->
+<div class="modal fade" id="pastPromotionsModal" tabindex="-1" aria-labelledby="pastPromotionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header bg-gradient bg-dark text-white px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="p-2 bg-white bg-opacity-20 rounded-circle text-warning">
+                        <i class="fa-solid fa-clock-rotate-left fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0 text-white" id="pastPromotionsModalLabel">ប្រវត្តិការដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់ (Promotion History)</h6>
+                        <span class="fs-8 text-white-50">ពិនិត្យមើលកាលបរិច្ឆេទ ឆ្នាំ និងក្របខណ្ឌ/ឋានន្តរស័ក្តិ/ថ្នាក់ដែលធ្លាប់ទទួលបានកន្លងមក</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <!-- Officer Info Header Box -->
+                <div class="bg-light p-3 rounded-4 border mb-3">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-12 col-md-6">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted fs-8">មន្ត្រី៖</span>
+                                <strong class="text-primary fs-7" id="pastPromoOfficerName">-</strong>
+                                <span class="badge bg-secondary bg-opacity-10 text-dark font-monospace fs-9" id="pastPromoOfficerId">-</span>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 text-md-end">
+                            <div class="fs-8 text-muted">
+                                <span id="pastPromoOfficerDept">-</span> &bull; <strong class="text-dark" id="pastPromoOfficerPos">-</strong>
+                                &bull; <span class="badge bg-primary rounded-pill px-2 py-0.5 font-monospace fw-bold" id="pastPromoCurrentRank">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Promotions Timeline / Table Container -->
+                <div id="pastPromotionsListContainer">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                <a href="#" id="pastPromoEditProfileLink" class="btn btn-outline-primary rounded-pill px-3.5 fs-8 fw-bold" target="_blank">
+                    <i class="fa-solid fa-pen-to-square me-1"></i> កែប្រែ/បន្ថែមក្នុង Profile (Tab ឆ)
+                </a>
+                <button type="button" class="btn btn-secondary rounded-pill px-4 fs-8 fw-bold" data-bs-dismiss="modal">បិទ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openPastPromotionsModal(officerId, officerName, officerIdNum, deptName, positionTitle, currentRank) {
+    const modalEl = document.getElementById('pastPromotionsModal');
+    if (!modalEl) return;
+
+    document.getElementById('pastPromoOfficerName').textContent = officerName || '-';
+    document.getElementById('pastPromoOfficerId').textContent = officerIdNum ? `អត្តលេខ: ${officerIdNum}` : 'គ្មានអត្តលេខ';
+    document.getElementById('pastPromoOfficerDept').textContent = deptName || 'មិនទាន់កំណត់ការិយាល័យ';
+    document.getElementById('pastPromoOfficerPos').textContent = positionTitle || 'មន្ត្រី';
+    document.getElementById('pastPromoCurrentRank').textContent = currentRank ? `ថ្នាក់បច្ចុប្បន្ន: ${currentRank}` : '-';
+
+    const editLink = document.getElementById('pastPromoEditProfileLink');
+    if (editLink && officerId) {
+        editLink.href = `/officers/${officerId}/edit/?tab=tab-f`;
+    }
+
+    const dataEl = document.getElementById(`pastPromotionsData_${officerId}`);
+    let promos = [];
+    if (dataEl && dataEl.getAttribute('data-promos')) {
+        try {
+            promos = JSON.parse(dataEl.getAttribute('data-promos'));
+        } catch (e) {
+            console.error('Error parsing promos json', e);
+        }
+    }
+
+    const container = document.getElementById('pastPromotionsListContainer');
+    if (!container) return;
+
+    if (!promos || promos.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4 px-3 bg-light rounded-4 border border-dashed">
+                <i class="fa-solid fa-clock-rotate-left fa-3x text-muted opacity-50 mb-2"></i>
+                <h6 class="fw-bold text-dark mb-1">ពុំទាន់មានកំណត់ត្រាប្រវត្តិឡើងថ្នាក់នៅឡើយទេ</h6>
+                <p class="text-muted fs-8 mb-3">មន្ត្រីរូបនេះមិនទាន់មានទិន្នន័យដំឡើងឋានន្តរស័ក្តិ/ថ្នាក់ដែលបានបញ្ចូលក្នុងប្រវត្តិរូប (ផ្នែក ឆ- ការឡើងថ្នាក់) នៅឡើយទេ។</p>
+                <a href="/officers/${officerId}/edit/?tab=tab-f" target="_blank" class="btn btn-sm btn-primary rounded-pill px-3 shadow-xs fw-bold">
+                    <i class="fa-solid fa-plus me-1"></i> បញ្ចូលទិន្នន័យឥឡូវនេះ (Tab ឆ)
+                </a>
+            </div>
+        `;
+    } else {
+        let html = `
+            <div class="table-responsive rounded-3 border">
+                <table class="table table-hover align-middle mb-0 fs-8">
+                    <thead class="table-light text-secondary">
+                        <tr>
+                            <th class="text-center" style="width: 45px;">ល.រ</th>
+                            <th style="min-width: 140px;">ការវិវត្តថ្នាក់ (ពី ទៅ)</th>
+                            <th style="min-width: 170px;">ប្រភេទនៃការដំឡើង</th>
+                            <th class="text-center" style="width: 130px;">កាលបរិច្ឆេទ / ឆ្នាំ</th>
+                            <th style="min-width: 160px;">ស្ថាប័ន / អង្គភាព / សញ្ញាបត្រ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        promos.forEach((p, idx) => {
+            let yearBadge = (p.year && p.year !== '-') ? `<span class="badge bg-warning bg-opacity-10 text-dark border border-warning border-opacity-25 rounded-pill px-2 py-0.5 fw-bold">ឆ្នាំ ${p.year}</span>` : '';
+            let typeBadge = '';
+            let promoIcon = '📜';
+
+            if (p.type_category === 'DEGREE') {
+                promoIcon = '🎓';
+                typeBadge = `<span class="badge bg-info bg-opacity-15 text-dark border border-info border-opacity-30 rounded-pill px-2 py-1 fw-bold"><i class="fa-solid fa-graduation-cap text-info me-1"></i> ${p.type_label}</span>`;
+            } else if (p.type_category === 'INITIAL') {
+                promoIcon = '🏛️';
+                typeBadge = `<span class="badge bg-secondary bg-opacity-15 text-dark border rounded-pill px-2 py-1 fw-bold"><i class="fa-solid fa-id-card me-1 text-secondary"></i> ${p.type_label}</span>`;
+            } else {
+                promoIcon = '📈';
+                typeBadge = `<span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-1 fw-bold"><i class="fa-solid fa-arrow-trend-up me-1"></i> ${p.type_label}</span>`;
+            }
+
+            let rankTransition = '';
+            if (p.old_rank_step && p.old_rank_step !== '-' && p.new_rank_step && p.new_rank_step !== '-') {
+                rankTransition = `
+                    <div class="d-flex align-items-center gap-1.5 font-monospace fw-bold">
+                        <span class="text-muted">${p.old_rank_step}</span>
+                        <i class="fa-solid fa-arrow-right fs-9 text-success"></i>
+                        <span class="text-primary fs-7">${p.new_rank_step}</span>
+                    </div>
+                `;
+            } else {
+                rankTransition = `<span class="font-monospace fw-bold text-primary fs-7">${p.new_rank_step || p.old_rank_step || '-'}</span>`;
+            }
+
+            let extraInfo = p.degree_info ? `<div class="fs-9 text-info fw-semibold mt-0.5"><i class="fa-solid fa-graduation-cap me-1"></i> ${p.degree_info}</div>` : '';
+
+            html += `
+                <tr>
+                    <td class="text-center fw-bold text-muted">${idx + 1}</td>
+                    <td>
+                        ${rankTransition}
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-1">
+                            <span>${promoIcon}</span>
+                            <span>${typeBadge}</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <div class="font-monospace fw-semibold text-dark">${p.date || '-'}</div>
+                        ${yearBadge ? `<div class="mt-0.5">${yearBadge}</div>` : ''}
+                    </td>
+                    <td>
+                        <div class="text-dark fw-semibold">${p.institution || '-'}</div>
+                        ${extraInfo}
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        container.innerHTML = html;
+    }
+
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+}
+
+function triggerPromoFilter(status) {
+    const btn = document.querySelector(`#promotionFilterPills button[data-filter="${status}"]`);
+    if (btn) {
+        btn.click();
+    } else {
+        filterPromoTableRows('promotionTable', status, null);
+    }
+}
+
+function filterPromoTableRows(tableId, statusFilter, clickedBtn) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const rows = table.querySelectorAll('tbody tr');
+    
+    if (clickedBtn) {
+        const parentContainer = clickedBtn.parentElement;
+        if (parentContainer) {
+            parentContainer.querySelectorAll('.sub-filter-btn').forEach(b => b.classList.remove('active'));
+            clickedBtn.classList.add('active');
+        }
+    }
+
+    let visibleCount = 0;
+    rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status');
+        if (!rowStatus) return;
+        let match = false;
+        if (statusFilter === 'ALL') {
+            match = true;
+        } else if (statusFilter === 'DUE_ALL') {
+            match = (rowStatus === 'DUE_NEW' || rowStatus === 'CARRIED_OVER');
+        } else {
+            match = (rowStatus === statusFilter);
+        }
+
+        if (match) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    const countEl = document.getElementById('promoVisibleCount');
+    if (countEl) {
+        countEl.innerText = visibleCount;
+    }
+
+    // Dynamic export button update
+    const exportBtn = document.getElementById('exportPromoForecastExcelBtn');
+    const exportText = document.getElementById('exportPromoExcelBtnText');
+    if (exportBtn) {
+        const url = new URL(exportBtn.href, window.location.origin);
+        if (statusFilter && statusFilter !== 'ALL') {
+            url.searchParams.set('status', statusFilter);
+        } else {
+            url.searchParams.delete('status');
+        }
+        exportBtn.href = url.pathname + url.search;
+
+        if (exportText) {
+            const statusLabels = {
+                'DUE_ALL': ' (ដល់វេនសរុប)',
+                'DUE_NEW': ' (ដល់វេនថ្មី)',
+                'CARRIED_OVER': ' (ធ្លាក់ឆ្នាំមុន/អតីតភាព)',
+                'DUE_SOON': ' (ជិតដល់វេន)',
+                'NORMAL': ' (មិនទាន់ដល់វេន)'
+            };
+            const statusText = statusLabels[statusFilter] || '';
+            exportText.innerText = `Excel វេនដំឡើង (ឆ្នាំ {{ forecast_year }}${statusText})`;
+        }
+    }
+}
+
+function isC1RankJs(rankStr) {
+    if (!rankStr) return false;
+    const clean = rankStr.trim().replace(/\s+/g, '');
+    return ['គ.១', 'គ.1', 'គ១', 'គ1', 'C.1', 'C1', 'c.1', 'c1', 'កម្រិតគ.១', 'កម្រិតគ.1'].includes(clean) || clean.startsWith('គ.១') || clean.startsWith('គ.1') || clean.startsWith('គ១');
+}
+
+function isB1_1RankJs(rankStr) {
+    if (!rankStr) return false;
+    const clean = rankStr.trim().replace(/\s+/g, '');
+    return ['ខ.១.១', 'ខ.1.1', 'ខ.1.១', 'ខ.១.1', 'ខ១.១', 'ខ1.1', 'ខ១១', 'ខ11', 'B.1.1', 'B1.1', 'b.1.1', 'b1.1', 'កម្រិតខ.១.១', 'កម្រិតខ.1.1'].includes(clean) || clean.startsWith('ខ.១.១') || clean.startsWith('ខ.1.1') || clean.startsWith('ខ១.១') || clean.startsWith('ខ1.1');
+}
+
+function updateModalForC1State(rank, forcePromoType) {
+    const isC1 = isC1RankJs(rank);
+    const isB1_1 = isB1_1RankJs(rank);
+    const isMax = isC1 || isB1_1;
+    const alertEl = document.getElementById('modalPromoC1Alert');
+    const titleEl = document.getElementById('modalPromoMaxRankTitle');
+    const descEl = document.getElementById('modalPromoMaxRankDesc');
+    const typeSelect = document.getElementById('modalPromoTypeSelect');
+    const proposedRankEl = document.getElementById('modalPromoProposedRank');
+    const seniorityOption = typeSelect ? typeSelect.querySelector('option[value="SENIORITY"]') : null;
+
+    if (isMax) {
+        const currentRankName = isC1 ? 'គ.១' : 'ខ.១.១';
+        const fwName = isC1 ? 'គ' : 'ខ';
+        const targetFw = isC1 ? 'ខ' : 'ក';
+        const targetExample = isC1 ? 'ក្របខ័ណ្ឌ ខ (ខ.៣.៤ ឬ ខ.៣.១)' : 'ក្របខ័ណ្ឌ ក (ក.៣.៤ ឬ ក.៣.១)';
+
+        if (alertEl) alertEl.classList.remove('d-none');
+        if (titleEl) titleEl.innerHTML = `ចំណាំពិសេសសម្រាប់មន្ត្រីថ្នាក់ «${currentRankName}» (កម្រិតកំពូលនៃក្របខ័ណ្ឌ ${fwName})៖`;
+        if (descEl) descEl.innerHTML = `មន្ត្រីបានដល់កម្រិតកំពូលនៃក្របខ័ណ្ឌ ${fwName} ហើយ មិនមានមុខងារស្នើសុំដំឡើងថ្នាក់តាមវេនជ្រើសរើស/អតីតភាពឡើយ លុះត្រាតែមានការស្នើសុំ <strong>«ប្រឡងផ្ទៃក្នុងថ្នាក់ក្រសួងដើម្បីប្តូរទៅក្របខ័ណ្ឌ ${targetFw}»</strong> តែមួយគត់!`;
+        if (seniorityOption) seniorityOption.disabled = true;
+        if (typeSelect) typeSelect.value = 'EXAM';
+        if (proposedRankEl && (!proposedRankEl.value || proposedRankEl.value === '-')) {
+            proposedRankEl.placeholder = `ឧ. ${targetExample}`;
+        }
+    } else {
+        if (alertEl) alertEl.classList.add('d-none');
+        if (seniorityOption) seniorityOption.disabled = false;
+        if (typeSelect) typeSelect.value = forcePromoType || 'SENIORITY';
+        if (proposedRankEl) {
+            proposedRankEl.placeholder = 'ឧ. គ.៧ ឬ ក.២.១';
+        }
+    }
+}
+
+function openPromotionModalForOfficer(officerId, officerName, currentRank, nextRank, yearsInRank, requestYear, promoType) {
+    const modalEl = document.getElementById('createPromotionRequestModal');
+    if (!modalEl) return;
+    
+    const selectEl = document.getElementById('modalPromoOfficerSelect');
+    const currentRankEl = document.getElementById('modalPromoCurrentRank');
+    const proposedRankEl = document.getElementById('modalPromoProposedRank');
+    const yearsInRankEl = document.getElementById('modalPromoYearsInRank');
+    const yearSelectEl = document.getElementById('modalPromoRequestYear');
+
+    if (officerId && selectEl) {
+        selectEl.value = officerId;
+    }
+    if (currentRankEl) currentRankEl.value = currentRank || '';
+    if (proposedRankEl) proposedRankEl.value = nextRank && nextRank !== '-' ? nextRank : '';
+    if (yearsInRankEl) yearsInRankEl.value = yearsInRank || '';
+    if (yearSelectEl && requestYear) yearSelectEl.value = requestYear;
+
+    updateModalForC1State(currentRank, promoType);
+
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+}
+
+function onOfficerSelectedForPromotion(selectEl) {
+    const opt = selectEl.options[selectEl.selectedIndex];
+    const rank = opt ? opt.getAttribute('data-rank') : '';
+    const currentRankEl = document.getElementById('modalPromoCurrentRank');
+    if (currentRankEl) currentRankEl.value = rank || '';
+    updateModalForC1State(rank, null);
+}
+
+function openEditPromotionModal(reqId, officerName, currentRank, proposedRank, promoType, yearsInRank, reason, deptId, meetingDecision) {
+    const modalEl = document.getElementById('editPromotionRequestModal');
+    if (!modalEl) return;
+
+    document.getElementById('editPromotionForm').action = `/officers/promotion/requests/${reqId}/edit/`;
+    document.getElementById('editPromoOfficerName').textContent = officerName;
+    document.getElementById('editPromoCurrentRank').value = currentRank || '';
+    document.getElementById('editPromoProposedRank').value = proposedRank || '';
+    document.getElementById('editPromoType').value = promoType || 'SENIORITY';
+    document.getElementById('editPromoYearsInRank').value = yearsInRank || '';
+    document.getElementById('editPromoReason').value = reason || '';
+    document.getElementById('editPromoMeetingDecision').value = meetingDecision || '';
+
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+}
+
+function openReviewPromotionModal(reqId, officerName, currentRank, proposedRank, reason, adminNotes, meetingDecision, status) {
+    const modalEl = document.getElementById('reviewPromotionModal');
+    if (!modalEl) return;
+
+    document.getElementById('reviewPromotionForm').action = `/officers/promotion/requests/${reqId}/review/`;
+    document.getElementById('revOfficerName').textContent = officerName;
+    document.getElementById('revCurrentRank').textContent = currentRank || '-';
+    document.getElementById('revProposedRank').textContent = proposedRank || '-';
+    document.getElementById('revAdminNotes').value = adminNotes || '';
+    document.getElementById('revMeetingDecision').value = meetingDecision || 'ឯកភាពតាមការស្នើសុំ';
+
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+}
+
+function openMinistryDecisionModal(reqId, officerName, proposedRank) {
+    const modalEl = document.getElementById('ministryDecisionModal');
+    if (!modalEl) return;
+
+    document.getElementById('ministryDecisionForm').action = `/officers/promotion/requests/${reqId}/review/`;
+    document.getElementById('minOfficerName').textContent = officerName;
+    document.getElementById('minProposedRank').textContent = proposedRank;
+
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+}
+
+function toggleSelectAllMasterPromo(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('.master-promo-checkbox');
+    checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+}
+
+function openBatchActionModal() {
+    const selected = document.querySelectorAll('.master-promo-checkbox:checked');
+    if (selected.length === 0) {
+        alert('⚠️ សូមជ្រើសរើសយ៉ាងហោចណាស់មួយសំណើក្នុងតារាង!');
+        return;
+    }
+    const modalEl = document.getElementById('batchActionPromotionModal');
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+}
+
+function onBatchActionChange(val) {
+    const meetingBox = document.getElementById('batchMeetingDecisionBox');
+    const docBox = document.getElementById('batchMinistryDocBox');
+    const legalBox = document.getElementById('batchLegalDocBox');
+
+    if (docBox) docBox.classList.add('d-none');
+    if (legalBox) legalBox.classList.add('d-none');
+
+    if (val === 'SUBMIT_MINISTRY') {
+        if (docBox) docBox.classList.remove('d-none');
+    } else if (val === 'MINISTRY_APPROVE_ALL') {
+        if (legalBox) legalBox.classList.remove('d-none');
+    }
+}
+
+function submitBatchPromotionForm() {
+    const form = document.getElementById('batchPromotionForm');
+    const actionType = document.getElementById('batchPromoActionSelect').value;
+    const meetingDecision = document.getElementById('modalBatchMeetingDecision').value;
+    const ministryDoc = document.getElementById('modalBatchMinistryDoc').value;
+
+    let inputAction = document.createElement('input');
+    inputAction.type = 'hidden';
+    inputAction.name = 'batch_action_type';
+    inputAction.value = actionType;
+    form.appendChild(inputAction);
+
+    let inputMeeting = document.createElement('input');
+    inputMeeting.type = 'hidden';
+    inputMeeting.name = 'batch_meeting_decision';
+    inputMeeting.value = meetingDecision;
+    form.appendChild(inputMeeting);
+
+    let inputDoc = document.createElement('input');
+    inputDoc.type = 'hidden';
+    inputDoc.name = 'batch_ministry_doc_number';
+    inputDoc.value = ministryDoc;
+    form.appendChild(inputDoc);
+
+    if (actionType === 'MINISTRY_APPROVE_ALL') {
+        let inputLegalType = document.createElement('input');
+        inputLegalType.type = 'hidden';
+        inputLegalType.name = 'batch_legal_doc_type';
+        inputLegalType.value = document.getElementById('modalBatchLegalDocType').value;
+        form.appendChild(inputLegalType);
+
+        let inputLegalNum = document.createElement('input');
+        inputLegalNum.type = 'hidden';
+        inputLegalNum.name = 'batch_legal_doc_number';
+        inputLegalNum.value = document.getElementById('modalBatchLegalDocNumber').value;
+        form.appendChild(inputLegalNum);
+
+        let inputLegalDate = document.createElement('input');
+        inputLegalDate.type = 'hidden';
+        inputLegalDate.name = 'batch_legal_doc_date';
+        inputLegalDate.value = document.getElementById('modalBatchLegalDocDate').value;
+        form.appendChild(inputLegalDate);
+    }
+
+    form.submit();
+}
+</script>
+{% endblock %}

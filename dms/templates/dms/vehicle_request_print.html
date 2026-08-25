@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>លិខិតសុំប្រើប្រាស់មធ្យោបាយ {{ req.applicant_name }} - {{ req.request_number }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Moul+Light&family=Siemreap&family=Kantumruy+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm 20mm 15mm 20mm;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: 'Khmer OS Battambang', 'Siemreap', 'Kantumruy Pro', sans-serif;
+            font-size: 13.5pt;
+            line-height: 1.65;
+            color: #000;
+            background: #e2e8f0;
+            margin: 0;
+            padding: 20px 0;
+        }
+
+        .no-print-bar {
+            background: #1e293b;
+            color: #fff;
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            margin-bottom: 20px;
+        }
+
+        .btn-print {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .btn-print:hover { background: #1d4ed8; }
+
+        .btn-close-win {
+            background: #475569;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .btn-close-win:hover { background: #334155; }
+
+        .page-sheet {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm 20mm 15mm 20mm;
+            margin: 0 auto 20px auto;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            position: relative;
+        }
+
+        .muol-text {
+            font-family: 'Khmer OS Moul Light', 'Khmer OS Muol', cursive;
+            font-weight: normal;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .header-table td {
+            vertical-align: top;
+            padding: 0;
+        }
+
+        .title-doc {
+            text-align: center;
+            font-size: 14.5pt;
+            margin: 15px 0 20px 0;
+            line-height: 1.5;
+        }
+
+        .dots {
+            border-bottom: 1px dotted #000;
+            display: inline-block;
+            min-width: 80px;
+            font-weight: bold;
+            padding: 0 4px;
+        }
+
+        .indent-p {
+            text-indent: 40px;
+            margin-bottom: 8px;
+            text-align: justify;
+        }
+
+        .promises-list {
+            margin: 10px 0 15px 25px;
+            padding: 0;
+            list-style: none;
+        }
+        .promises-list li {
+            margin-bottom: 6px;
+            text-align: justify;
+            position: relative;
+            padding-left: 24px;
+        }
+        .promises-list li::before {
+            content: attr(data-num);
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-weight: bold;
+        }
+
+        .sig-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+            page-break-inside: avoid;
+        }
+        .sig-table td {
+            text-align: center;
+            vertical-align: top;
+            width: 50%;
+            padding: 0 10px;
+        }
+
+        .sig-space {
+            height: 90px;
+        }
+
+        .photos-grid {
+            display: flex;
+            gap: 12px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+        .photo-box {
+            flex: 1;
+            border: 1px solid #94a3b8;
+            padding: 6px;
+            text-align: center;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+        .photo-box img {
+            width: 100%;
+            height: 135px;
+            object-fit: cover;
+            border-radius: 2px;
+            display: block;
+        }
+        .photo-placeholder {
+            width: 100%;
+            height: 135px;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 11pt;
+            border: 1px dashed #cbd5e1;
+        }
+        .photo-label {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .page-break {
+            page-break-after: always;
+            break-after: page;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .no-print-bar {
+                display: none !important;
+            }
+            .page-sheet {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                min-height: auto;
+                padding: 0;
+            }
+            .page-break {
+                page-break-after: always;
+                break-after: page;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Print Control Bar -->
+    <div class="no-print-bar">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <i class="fa-solid fa-car-side" style="color: #60a5fa; font-size: 20px;"></i>
+            <div>
+                <strong>ទម្រង់បោះពុម្ពផ្លូវការ៖ ពាក្យសុំខ្ចីទ្រព្យប្រើប្រាស់ (រថយន្ត/ម៉ូតូ)</strong>
+                <div style="font-size: 12px; color: #94a3b8;">{{ req.applicant_name }} &bull; {{ req.request_number|default:"N/A" }}</div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="window.print()" class="btn-print">
+                <i class="fa-solid fa-print"></i> បោះពុម្ពឯកសារ (Print)
+            </button>
+            <button onclick="window.close()" class="btn-close-win">
+                បិទផ្ទាំង
+            </button>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- PAGE 1: លិខិតសុំប្រើប្រាស់មធ្យោបាយធ្វើដំណើរ (រថយន្ត/ម៉ូតូ) -->
+    <!-- ================================================================= -->
+    {% if page_mode == '1' or page_mode == 'all' %}
+    <div class="page-sheet">
+        <!-- Header -->
+        <table class="header-table">
+            <tr>
+                <td style="width: 45%; text-align: center;">
+                    <div class="muol-text" style="font-size: 12.5pt; line-height: 1.4;">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
+                    <div class="muol-text" style="font-size: 11.5pt; line-height: 1.4;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</div>
+                    <div style="font-size: 12pt; margin-top: 4px;">លេខ: <span style="font-family: Arial, sans-serif; font-weight: bold;">{{ req.request_number|default:"........../.......... មករន.បល" }}</span></div>
+                </td>
+                <td style="width: 10%;"></td>
+                <td style="width: 45%; text-align: center;">
+                    <div class="muol-text" style="font-size: 13pt;">ព្រះរាជាណាចក្រកម្ពុជា</div>
+                    <div class="muol-text" style="font-size: 12pt; margin-top: 2px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                    <div style="font-size: 14pt; letter-spacing: 2px; margin-top: -4px;">---***---</div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Title -->
+        <div class="title-doc">
+            <span class="muol-text" style="font-size: 14pt;">លិខិតសុំប្រើប្រាស់មធ្យោបាយធ្វើដំណើរ ({{ req.display_vehicle_type_kh }})</span>
+        </div>
+
+        <!-- Addressee -->
+        <div style="margin-bottom: 12px;">
+            <div class="muol-text" style="font-size: 12.5pt; margin-bottom: 8px;">
+                សូមគោរពជូន៖ <span style="font-size: 12.5pt;">ឯកឧត្តម ប្រធានមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</span>
+            </div>
+            <div style="margin-left: 20px;">
+                <div><strong>តាងនាម៖</strong> ខ្ញុំបាទ/នាងខ្ញុំ ឈ្មោះ <span class="dots">{{ req.applicant_name }}</span> ភេទ <span class="dots">{% if req.applicant_gender == 'FEMALE' %}ស្រី{% else %}ប្រុស{% endif %}</span> មុខតំណែង <span class="dots">{{ req.applicant_position|default:"មន្ត្រី" }}</span></div>
+                <div style="margin-top: 4px;">អង្គភាពបម្រើការងារ៖ <span class="dots" style="min-width: 380px;">{{ req.applicant_department_name|default:req.applicant_department.name_kh|default:"មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន" }}</span></div>
+            </div>
+        </div>
+
+        <!-- Subject -->
+        <div style="margin-bottom: 12px; margin-left: 20px;">
+            <strong>កម្មវត្ថុ៖</strong> ស្តីពីការស្នើសុំប្រើប្រាស់មធ្យោបាយធ្វើដំណើរ ({{ req.display_vehicle_type_kh }}) របស់អង្គភាពមន្ទីរ។
+        </div>
+
+        <!-- Body -->
+        <p class="indent-p">
+            សេចក្តីដូចមានចែងក្នុងកម្មវត្ថុខាងលើ ខ្ញុំបាទ/នាងខ្ញុំមានកិត្តិយសសូមគោរពជម្រាបជូន <strong>ឯកឧត្តម ប្រធានមន្ទីរ</strong> មេត្តាជ្រាបថា៖ ខ្ញុំបាទ/នាងខ្ញុំ សូមស្នើសុំប្រើប្រាស់{{ req.display_vehicle_type_kh }} ម៉ាក <span class="dots">{{ req.display_brand }}</span> ពណ៌ <span class="dots">{{ req.display_color }}</span> ឆ្នាំផលិត <span class="dots">{{ req.display_model_year }}</span> ស្លាកលេខ <span class="dots" style="font-family: Arial, sans-serif;">{{ req.display_plate_number }}</span> លេខតួ <span class="dots" style="font-family: Arial, sans-serif;">{{ req.display_chassis_number }}</span> លេខម៉ាស៊ីន <span class="dots" style="font-family: Arial, sans-serif;">{{ req.display_engine_number }}</span> សម្រាប់បម្រើការងារក្នុងអង្គភាព មានរយៈពេល <span class="dots">{{ req.duration_text|default:"១ឆ្នាំ" }}</span>{% if req.start_date and req.end_date %} (គិតចាប់ពីថ្ងៃទី <span style="font-family: Arial, sans-serif;">{{ req.start_date|date:"d/m/Y" }}</span> ដល់ថ្ងៃទី <span style="font-family: Arial, sans-serif;">{{ req.end_date|date:"d/m/Y" }}</span>){% endif %}។
+        </p>
+
+        <p class="indent-p" style="margin-bottom: 4px;">
+            ក្នុងករណី <strong>ឯកឧត្តម ប្រធានមន្ទីរ</strong> អនុញ្ញាតឱ្យខ្ញុំបាទ/នាងខ្ញុំ បានប្រើប្រាស់{{ req.display_vehicle_type_kh }} នេះ ខ្ញុំបាទ/នាងខ្ញុំសូមធ្វើការសន្យាដូចតទៅ៖
+        </p>
+
+        <!-- 4 Promises -->
+        <ul class="promises-list">
+            <li data-num="១.">ខិតខំថែរក្សាឱ្យបានគង់វង្ស និងការពារមិនឱ្យបាត់បង់ ឬខូចខាត។</li>
+            <li data-num="២.">ប្រើប្រាស់សម្រាប់តែបម្រើការងាររដ្ឋ និងសេចក្តីត្រូវការរបស់អង្គភាព។</li>
+            <li data-num="៣.">ទទួលខុសត្រូវរាល់ការខូចខាត ឬបាត់បង់ដែលកើតឡើងដោយការធ្វេសប្រហែស។</li>
+            <li data-num="៤.">ប្រគល់ជូនអង្គភាពវិញនៅពេលផុតកំណត់ ឬនៅពេលអង្គភាពមានតម្រូវការចាំបាច់។</li>
+        </ul>
+
+        <p class="indent-p">
+            អាស្រ័យហេតុនេះ សូម <strong>ឯកឧត្តម ប្រធានមន្ទីរ</strong> មេត្តាពិនិត្យ និងសម្រេចអនុញ្ញាតដោយក្តីអនុគ្រោះ។
+        </p>
+
+        <p class="indent-p">
+            សូម <strong>ឯកឧត្តម ប្រធានមន្ទីរ</strong> មេត្តាទទួលនូវការគោរពដ៏ខ្ពង់ខ្ពស់អំពីខ្ញុំបាទ/នាងខ្ញុំ។
+        </p>
+
+        <!-- Signatures Table -->
+        <table class="sig-table">
+            <tr>
+                <td>
+                    <div style="font-size: 11.5pt;">ថ្ងៃ..................ខែ.........ឆ្នាំ...........ព.ស ២៥......</div>
+                    <div style="font-size: 11.5pt; margin-top: 2px;">ប៉ៃលិន, ថ្ងៃទី.......ខែ.........ឆ្នាំ២០២...</div>
+                    <div class="muol-text" style="font-size: 12pt; margin-top: 4px;">បានឃើញ និងឯកភាព</div>
+                    <div class="muol-text" style="font-size: 12pt; margin-top: 2px;">ប្រធានមន្ទីរ</div>
+                    <div class="sig-space"></div>
+                    {% if req.approved_by %}
+                    <div class="muol-text" style="font-size: 11.5pt;">{{ req.approved_by.get_full_name|default:req.approved_by.username }}</div>
+                    {% else %}
+                    <div style="font-size: 11pt; color: #888;">( ហត្ថលេខា និងត្រា )</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="font-size: 11.5pt;">ថ្ងៃ..................ខែ.........ឆ្នាំ...........ព.ស ២៥......</div>
+                    <div style="font-size: 11.5pt; margin-top: 2px;">ប៉ៃលិន, ថ្ងៃទី.......ខែ.........ឆ្នាំ២០២...</div>
+                    <div class="muol-text" style="font-size: 12pt; margin-top: 4px;">ហត្ថលេខា និងឈ្មោះអ្នកស្នើសុំ</div>
+                    <div class="sig-space"></div>
+                    <div class="muol-text" style="font-size: 11.5pt;">{{ req.applicant_name }}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Page Break for Printing Both Pages -->
+    {% if page_mode == 'all' %}
+    <div class="page-break"></div>
+    {% endif %}
+
+    <!-- ================================================================= -->
+    <!-- PAGE 2: កំណត់ហេតុ ស្តីពីការប្រគល់ ទទួល/រថយន្ត-ម៉ូតូ -->
+    <!-- ================================================================= -->
+    {% if page_mode == '2' or page_mode == 'all' %}
+    <div class="page-sheet">
+        <!-- Title -->
+        <div class="title-doc" style="margin-top: 5px; margin-bottom: 12px; text-align: center;">
+            <div class="muol-text" style="font-size: 14pt;">កំណត់ហេតុ</div>
+            <div class="muol-text" style="font-size: 13pt; margin-top: 2px;">ស្តីពី</div>
+            <div class="muol-text" style="font-size: 13.5pt; margin-top: 2px;">ការប្រគល់ ទទួល/{{ req.display_vehicle_type_kh }} ចំនួន០១ គ្រឿង</div>
+        </div>
+
+        <!-- Handover Paragraph -->
+        <p class="indent-p" style="margin-bottom: 14px; line-height: 1.85;">
+            {% if req.handover_datetime %}
+            ឆ្នាំពាន់ថ្ងៃ <span class="dots">{{ req.handover_datetime|date:"l" }}</span> ខែ <span class="dots">{{ req.handover_datetime|date:"m" }}</span> ថ្ងៃទី <span class="dots">{{ req.handover_datetime|date:"d" }}</span> វេលាម៉ោង <span class="dots">{{ req.handover_datetime|date:"H:i" }}</span>
+            {% else %}
+            ឆ្នាំពាន់ថ្ងៃ.........ខែ.........ថ្ងៃទី........វេលាម៉ោង...........
+            {% endif %}
+            មានការប្រគល់មធ្យោបាយធ្វើដំណើរ({{ req.display_vehicle_type_kh }}) ចំនួន០១គ្រឿង ជូនលោក លោកស្រី <span class="dots" style="min-width: 220px;">{{ req.recipient_name|default:req.applicant_name }}</span> តួនាទីជា <span class="dots" style="min-width: 170px;">{{ req.applicant_position|default:"មន្ត្រី" }}</span> បម្រើការងារនៅខណ្ឌ/ការិយាល័យ <span class="dots" style="min-width: 320px;">{{ req.applicant_department_name|default:req.applicant_department.name_kh|default:"មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន" }}</span> ។
+        </p>
+
+        <!-- Top Table (Front Photo & Specs) -->
+        <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #000; margin-bottom: 12px;">
+            <tr>
+                <th style="width: 50%; border: 1px solid #000; padding: 6px 10px; text-align: center; font-weight: bold; font-size: 12.5pt; background: #fafafa;">
+                    រូបថត{{ req.display_vehicle_type_kh }} (មើលពីមុខ)
+                </th>
+                <th style="width: 50%; border: 1px solid #000; padding: 6px 10px; text-align: center; font-weight: bold; font-size: 12.5pt; background: #fafafa;">
+                    កិតភាគ{{ req.display_vehicle_type_kh }}
+                </th>
+            </tr>
+            <tr>
+                <td style="width: 50%; border: 1px solid #000; padding: 8px; vertical-align: middle; text-align: center; height: 195px;">
+                    {% if req.display_photo_front %}
+                    <img src="{{ req.display_photo_front.url }}" style="max-width: 100%; max-height: 180px; object-fit: contain; display: inline-block;" alt="Front">
+                    {% else %}
+                    <div style="height: 175px; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; color: #777; font-size: 11pt; border-radius: 4px;">
+                        [ រូបថតមើលពីមុខ ]
+                    </div>
+                    {% endif %}
+                </td>
+                <td style="width: 50%; border: 1px solid #000; padding: 10px 14px; vertical-align: top; font-size: 12pt; line-height: 1.75;">
+                    <div>- ម៉ាក <span style="margin-left: 28px;">:</span> <span class="dots" style="min-width: 180px;">{{ req.display_brand }}</span></div>
+                    <div>- ពណ៌ <span style="margin-left: 31px;">:</span> <span class="dots" style="min-width: 180px;">{{ req.display_color }}</span></div>
+                    <div>- ឆ្នាំផលិត <span style="margin-left: 12px;">:</span> <span class="dots" style="min-width: 180px;">{{ req.display_model_year }}</span></div>
+                    <div>- លេខតួ <span style="margin-left: 20px;">:</span> <span class="dots font-monospace" style="min-width: 180px;">{{ req.display_chassis_number }}</span></div>
+                    <div>- លេខម៉ាស៊ីន : <span class="dots font-monospace" style="min-width: 180px;">{{ req.display_engine_number }}</span></div>
+                    <div>- ស្លាកលេខ : <span class="dots font-monospace" style="min-width: 180px;">{{ req.display_plate_number }}</span></div>
+                    <div>- អ្នកប្រើប្រាស់ចុងក្រោយ : <span class="dots" style="min-width: 130px;">{{ req.last_user_name|default:"-" }}</span></div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Bottom Table (Side Photo & Registration Card Photo) -->
+        <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #000; margin-bottom: 14px;">
+            <tr>
+                <th style="width: 50%; border: 1px solid #000; padding: 6px 10px; text-align: center; font-weight: bold; font-size: 12.5pt; background: #fafafa;">
+                    រូបថត{{ req.display_vehicle_type_kh }} (មើលពីចំហៀង)
+                </th>
+                <th style="width: 50%; border: 1px solid #000; padding: 6px 10px; text-align: center; font-weight: bold; font-size: 12.5pt; background: #fafafa;">
+                    {% if req.vehicle_type == 'MOTORCYCLE' %}ប័ណ្ណសម្គាល់ទោចក្រយានយន្ត{% else %}ប័ណ្ណសម្គាល់រថយន្ត (កាតគ្រី){% endif %}
+                </th>
+            </tr>
+            <tr>
+                <td style="width: 50%; border: 1px solid #000; padding: 8px; vertical-align: middle; text-align: center; height: 195px;">
+                    {% if req.display_photo_side %}
+                    <img src="{{ req.display_photo_side.url }}" style="max-width: 100%; max-height: 180px; object-fit: contain; display: inline-block;" alt="Side">
+                    {% else %}
+                    <div style="height: 175px; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; color: #777; font-size: 11pt; border-radius: 4px;">
+                        [ រូបថតមើលពីចំហៀង ]
+                    </div>
+                    {% endif %}
+                </td>
+                <td style="width: 50%; border: 1px solid #000; padding: 8px; vertical-align: middle; text-align: center; height: 195px;">
+                    {% if req.display_registration_card_photo %}
+                    <img src="{{ req.display_registration_card_photo.url }}" style="max-width: 100%; max-height: 180px; object-fit: contain; display: inline-block;" alt="Card">
+                    {% else %}
+                    <div style="height: 175px; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; color: #777; font-size: 11pt; border-radius: 4px;">
+                        [ ប័ណ្ណសម្គាល់យានយន្ត / កាតគ្រី ]
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+
+        <!-- Signatures Table (Matching image) -->
+        <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #000; page-break-inside: avoid;">
+            <tr>
+                <td style="width: 38%; border: 1px solid #000; text-align: center; vertical-align: top; padding: 8px;">
+                    <div class="muol-text" style="font-size: 11.5pt;">បានឃើញនិងឯកភាព</div>
+                    <div class="muol-text" style="font-size: 11.5pt; margin-top: 2px;">ប្រធានអង្គភាព</div>
+                    <div style="height: 70px;"></div>
+                    {% if req.approved_by %}
+                    <div class="muol-text" style="font-size: 11pt;">{{ req.approved_by.get_full_name|default:req.approved_by.username }}</div>
+                    {% else %}
+                    <div style="font-size: 10pt; color: #888;">( ហត្ថលេខា និងត្រា )</div>
+                    {% endif %}
+                </td>
+                <td style="width: 62%; border: 1px solid #000; vertical-align: top; padding: 0;">
+                    <table style="width: 100%; border-collapse: collapse; height: 100%;">
+                        <tr>
+                            <td style="width: 50%; border-right: 1px solid #000; text-align: center; padding: 8px; vertical-align: top;">
+                                <div class="muol-text" style="font-size: 11.5pt;">អ្នកទទួល</div>
+                                <div style="height: 70px;"></div>
+                                <div class="muol-text" style="font-size: 11pt;">{{ req.recipient_name|default:req.applicant_name }}</div>
+                            </td>
+                            <td style="width: 50%; text-align: center; padding: 8px; vertical-align: top;">
+                                <div class="muol-text" style="font-size: 11.5pt;">អ្នកប្រគល់</div>
+                                <div class="muol-text" style="font-size: 10.5pt; margin-top: 1px;">មន្ត្រីទទួលបន្ទុក</div>
+                                <div style="height: 52px;"></div>
+                                <div class="muol-text" style="font-size: 11pt;">{{ req.handover_officer_name|default:"........................" }}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
+    {% endif %}
+
+</body>
+</html>

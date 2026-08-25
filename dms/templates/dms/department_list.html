@@ -1,0 +1,350 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}គ្រប់គ្រងរចនាសម្ព័ន្ធការិយាល័យ - DMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold text-dark m-0">
+                <i class="fa-solid fa-sitemap text-success me-2"></i>គ្រប់គ្រងរចនាសម្ព័ន្ធការិយាល័យ & អង្គភាព
+            </h3>
+            <div class="text-muted small mt-1">គ្រប់គ្រងរចនាសម្ព័ន្ធចាស់ (ការិយាល័យទាំង១០ + ខណ្ឌទាំង២) និងរចនាសម្ព័ន្ធថ្មី ព្រមទាំងបើក/បិទដំណើរការតាមតម្រូវការ</div>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Batch Switch Structure Dropdown/Button -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle rounded-pill px-3.5 py-2 fw-semibold shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-sliders me-1.5 text-primary"></i> ជម្រើសប្តូររចនាសម្ព័ន្ធ
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 p-2">
+                    <li>
+                        <form method="POST" action="{% url 'department_switch_structure' %}" onsubmit="return confirm('តើអ្នកប្រាកដជាចង់ប្តូរទៅប្រើ «រចនាសម្ព័ន្ធចាស់» (ការិយាល័យទាំង១០ + ខណ្ឌទាំង២) មែនទេ?')">
+                            {% csrf_token %}
+                            <input type="hidden" name="target_structure" value="OLD">
+                            <button type="submit" class="dropdown-item rounded-3 py-2 text-success fw-semibold">
+                                <i class="fa-solid fa-landmark me-2"></i> បើកប្រើ «រចនាសម្ព័ន្ធចាស់» (Active)
+                            </button>
+                        </form>
+                    </li>
+                    <li>
+                        <form method="POST" action="{% url 'department_switch_structure' %}" onsubmit="return confirm('⚠️ តើអ្នកប្រាកដជាចង់ប្តូរទៅប្រើ «រចនាសម្ព័ន្ធថ្មី» ឥឡូវនេះមែនទេ?')">
+                            {% csrf_token %}
+                            <input type="hidden" name="target_structure" value="NEW">
+                            <button type="submit" class="dropdown-item rounded-3 py-2 text-primary fw-semibold">
+                                <i class="fa-solid fa-building-flag me-2"></i> ប្តូរទៅប្រើ «រចនាសម្ព័ន្ធថ្មី» (Update New)
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+
+            <button type="button" class="btn btn-success rounded-pill px-3.5 py-2 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#addDeptModal">
+                <i class="fa-solid fa-plus-circle me-1.5"></i> បន្ថែមការិយាល័យថ្មី
+            </button>
+        </div>
+    </div>
+
+    <!-- Info Notice Banner -->
+    <div class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 rounded-4 p-3 mb-4 d-flex align-items-start gap-3 shadow-xs">
+        <i class="fa-solid fa-circle-info text-success fs-4 mt-0.5"></i>
+        <div class="small">
+            <strong class="text-success fs-7">ស្ថានភាពរចនាសម្ព័ន្ធបច្ចុប្បន្ន៖</strong>
+            <p class="mb-0 text-dark">
+                ប្រព័ន្ធកំពុងដំណើរការ <strong>«រចនាសម្ព័ន្ធចាស់» (ការិយាល័យទាំង១០ + ខណ្ឌរដ្ឋបាលព្រៃឈើ + ខណ្ឌរដ្ឋបាលជលផល)</strong> ជាចម្បង។ 
+                ចំណែក <strong>«រចនាសម្ព័ន្ធថ្មី»</strong> ត្រូវបានរក្សាទុកក្នុងប្រព័ន្ធ និងបិទដំណើរការបណ្ដោះអាសន្ន — ADMIN អាចធ្វើការ Update ឬចុចប៊ូតុង <em>«ជម្រើសប្តូររចនាសម្ព័ន្ធ»</em> ដើម្បីប្តូរទៅប្រើរចនាសម្ព័ន្ធថ្មីបានគ្រប់ពេលវេលា។
+            </p>
+        </div>
+    </div>
+
+    <!-- Statistics Overview Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <a href="?tab=active" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white hover-elevate transition {% if tab == 'active' %}ring-active border border-success{% endif %}">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-muted small fw-semibold">កំពុងដំណើរការ (Active)</span>
+                        <div class="badge bg-success bg-opacity-10 text-success rounded-circle p-2">
+                            <i class="fa-solid fa-circle-check fs-6"></i>
+                        </div>
+                    </div>
+                    <div class="h3 fw-bold text-success mb-0">{{ active_count }}</div>
+                    <span class="text-muted fs-8">ការិយាល័យបើកដំណើរការ</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <a href="?tab=old" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white hover-elevate transition {% if tab == 'old' %}ring-active border border-primary{% endif %}">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-muted small fw-semibold">រចនាសម្ព័ន្ធចាស់ (10+2)</span>
+                        <div class="badge bg-primary bg-opacity-10 text-primary rounded-circle p-2">
+                            <i class="fa-solid fa-landmark fs-6"></i>
+                        </div>
+                    </div>
+                    <div class="h3 fw-bold text-primary mb-0">{{ old_count }}</div>
+                    <span class="text-muted fs-8">ការិយាល័យចាស់ទាំង១០ + ខណ្ឌ២</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <a href="?tab=new" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white hover-elevate transition {% if tab == 'new' %}ring-active border border-warning{% endif %}">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-muted small fw-semibold">រចនាសម្ព័ន្ធថ្មី (បិទសិន)</span>
+                        <div class="badge bg-warning bg-opacity-10 text-warning rounded-circle p-2">
+                            <i class="fa-solid fa-building-flag fs-6"></i>
+                        </div>
+                    </div>
+                    <div class="h3 fw-bold text-warning mb-0">{{ new_count }}</div>
+                    <span class="text-muted fs-8">រក្សាទុកត្រៀម Update តាមក្រោយ</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <a href="?tab=inactive" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white hover-elevate transition {% if tab == 'inactive' %}ring-active border border-secondary{% endif %}">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-muted small fw-semibold">បិទបណ្ដោះអាសន្ន</span>
+                        <div class="badge bg-secondary bg-opacity-10 text-secondary rounded-circle p-2">
+                            <i class="fa-solid fa-pause fs-6"></i>
+                        </div>
+                    </div>
+                    <div class="h3 fw-bold text-secondary mb-0">{{ inactive_count }}</div>
+                    <span class="text-muted fs-8">ផ្អាកដំណើរការ</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Nav Tabs -->
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <a href="{% url 'department_list_manage' %}" class="btn btn-sm rounded-pill px-3 {% if not tab or tab == 'all' %}btn-dark text-white fw-bold shadow-sm{% else %}btn-light text-muted{% endif %}">
+            ទាំងអស់ ({{ total_count }})
+        </a>
+        <a href="?tab=old" class="btn btn-sm rounded-pill px-3 {% if tab == 'old' %}btn-primary text-white fw-bold shadow-sm{% else %}btn-light text-muted{% endif %}">
+            <i class="fa-solid fa-landmark me-1"></i> រចនាសម្ព័ន្ធចាស់ ({{ old_count }})
+        </a>
+        <a href="?tab=new" class="btn btn-sm rounded-pill px-3 {% if tab == 'new' %}btn-warning text-dark fw-bold shadow-sm{% else %}btn-light text-muted{% endif %}">
+            <i class="fa-solid fa-building-flag me-1"></i> រចនាសម្ព័ន្ធថ្មី ({{ new_count }})
+        </a>
+        <a href="?tab=active" class="btn btn-sm rounded-pill px-3 {% if tab == 'active' %}btn-success text-white fw-bold shadow-sm{% else %}btn-light text-muted{% endif %}">
+            <i class="fa-solid fa-circle-check me-1"></i> កំពុងដំណើរការ ({{ active_count }})
+        </a>
+        <a href="?tab=inactive" class="btn btn-sm rounded-pill px-3 {% if tab == 'inactive' %}btn-secondary text-white fw-bold shadow-sm{% else %}btn-light text-muted{% endif %}">
+            <i class="fa-solid fa-pause me-1"></i> បានបិទដំណើរការ ({{ inactive_count }})
+        </a>
+    </div>
+
+    <!-- Department Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4 py-3" style="width: 70px;">ល.រ</th>
+                        <th class="py-3" style="width: 140px;">កូដ (Code)</th>
+                        <th class="py-3">ឈ្មោះការិយាល័យ / អង្គភាព</th>
+                        <th class="py-3 text-center" style="width: 170px;">ប្រភេទរចនាសម្ព័ន្ធ</th>
+                        <th class="py-3 text-center" style="width: 160px;">ស្ថានភាព</th>
+                        <th class="py-3 text-center" style="width: 130px;">ចំនួនមន្ត្រី</th>
+                        <th class="pe-4 py-3 text-end" style="width: 220px;">សកម្មភាព</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in departments %}
+                    <tr class="{% if not d.is_active %}opacity-75 bg-light bg-opacity-50{% endif %}">
+                        <!-- Order Index -->
+                        <td class="ps-4 py-3 text-muted small fw-bold font-monospace">
+                            {{ d.order_index }}
+                        </td>
+
+                        <!-- Dept Code -->
+                        <td class="py-3">
+                            <span class="badge {% if d.is_active %}bg-success bg-opacity-10 text-success{% else %}bg-secondary bg-opacity-10 text-secondary{% endif %} fs-7 px-2.5 py-1.5 rounded-3 font-monospace fw-bold">
+                                {{ d.code }}
+                            </span>
+                        </td>
+
+                        <!-- Name Khmer & English -->
+                        <td class="py-3">
+                            <div class="d-flex flex-column">
+                                <strong class="text-dark fs-7 mb-0.5">{{ d.name_kh }}</strong>
+                                <span class="text-muted fs-8">{{ d.name_en|default:"-" }}</span>
+                                {% if d.description %}
+                                <span class="text-secondary fs-8 text-truncate mt-0.5" style="max-width: 320px;" title="{{ d.description }}">
+                                    <i class="fa-solid fa-circle-info me-1 opacity-50"></i>{{ d.description }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Structure Type Badge -->
+                        <td class="py-3 text-center">
+                            {% if d.structure_type == 'OLD' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1.5 rounded-pill fw-semibold fs-8">
+                                    <i class="fa-solid fa-landmark me-1"></i> រចនាសម្ព័ន្ធចាស់
+                                </span>
+                            {% elif d.structure_type == 'NEW' %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2.5 py-1.5 rounded-pill fw-semibold fs-8">
+                                    <i class="fa-solid fa-building-flag me-1"></i> រចនាសម្ព័ន្ធថ្មី
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2.5 py-1.5 rounded-pill fw-semibold fs-8">
+                                    <i class="fa-solid fa-shield-halved me-1"></i> ថ្នាក់ដឹកនាំ/ស្នូល
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Active Status Badge -->
+                        <td class="py-3 text-center">
+                            {% if d.is_active %}
+                                <span class="badge bg-success bg-opacity-15 text-success px-2.5 py-1.5 rounded-pill fw-semibold fs-8 d-inline-flex align-items-center gap-1.5">
+                                    <span class="spinner-grow spinner-grow-sm text-success" style="width: 6px; height: 6px;" role="status"></span>
+                                    កំពុងដំណើរការ
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2.5 py-1.5 rounded-pill fw-semibold fs-8">
+                                    <i class="fa-solid fa-pause me-1"></i> បិទបណ្ដោះអាសន្ន
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- User & Officer Count -->
+                        <td class="py-3 text-center">
+                            <div class="d-inline-flex flex-column gap-1">
+                                <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-0.5 rounded-pill fw-semibold fs-8" title="មន្ត្រីរាជការ">
+                                    <i class="fa-solid fa-user-tie me-1"></i> {{ d.officer_count|default:0 }} នាក់
+                                </span>
+                                {% if d.user_count %}
+                                <span class="badge bg-dark bg-opacity-10 text-dark px-2 py-0.5 rounded-pill fs-9" title="គណនីប្រព័ន្ធ">
+                                    <i class="fa-solid fa-key me-1"></i> {{ d.user_count }} គណនី
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="pe-4 py-3 text-end">
+                            <div class="d-inline-flex align-items-center gap-1.5">
+                                <!-- 1-Click Toggle Active Button -->
+                                {% if d.code != 'LEAD' %}
+                                    <a href="{% url 'department_toggle_active' d.id %}" 
+                                       class="btn btn-sm rounded-pill px-2.5 {% if d.is_active %}btn-outline-secondary{% else %}btn-success text-white shadow-xs{% endif %}" 
+                                       title="{% if d.is_active %}ចុចដើម្បីបិទដំណើរការបណ្ដោះអាសន្ន{% else %}ចុចដើម្បីបើកដំណើរការឡើងវិញ{% endif %}">
+                                        {% if d.is_active %}
+                                            <i class="fa-solid fa-pause me-1"></i> បិទសិន
+                                        {% else %}
+                                            <i class="fa-solid fa-play me-1"></i> បើកដំណើរការ
+                                        {% endif %}
+                                    </a>
+                                {% endif %}
+
+                                <!-- Edit Button -->
+                                <a href="{% url 'department_edit' d.id %}" class="btn btn-outline-primary btn-sm rounded-pill px-2.5 shadow-sm" title="កែប្រែព័ត៌មាន">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </a>
+
+                                <!-- Delete Button (for non-core) -->
+                                {% if d.code == 'LEAD' or d.code == 'ADMIN_PERS' or d.code == 'ADMIN' %}
+                                    <span class="badge bg-light text-muted border px-2 py-1.5 rounded-pill" title="រចនាសម្ព័ន្ធស្នូល - មិនអនុញ្ញាតឱ្យលុប">
+                                        <i class="fa-solid fa-lock text-warning"></i>
+                                    </span>
+                                {% else %}
+                                    <a href="{% url 'department_delete' d.id %}" class="btn btn-outline-danger btn-sm rounded-pill px-2.5" onclick="return confirm('⚠️ តើអ្នកប្រាកដជាចង់លុបការិយាល័យ «{{ d.name_kh }}» ចេញពីប្រព័ន្ធ?')" title="លុបការិយាល័យ">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fa-solid fa-building-circle-xmark fa-3x text-secondary opacity-50 mb-3 d-block"></i>
+                                <h5>មិនទាន់មានការិយាល័យក្នុងបញ្ជីនេះឡើយ</h5>
+                                <p class="small mb-0">សូមចុចប៊ូតុង «បន្ថែមការិយាល័យថ្មី» ខាងលើដើម្បីចាប់ផ្តើម។</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New Department -->
+<div class="modal fade" id="addDeptModal" tabindex="-1" aria-labelledby="addDeptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="addDeptModalLabel">
+                    <i class="fa-solid fa-building-circle-check text-success me-2"></i>បន្ថែមការិយាល័យ / អង្គភាពថ្មី
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form method="POST" action="{% url 'department_list_manage' %}">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-dark">ឈ្មោះការិយាល័យ / អង្គភាព (ខ្មែរ) *</label>
+                        <input type="text" name="name_kh" class="form-control bg-light" required placeholder="ឧ. ការិយាល័យផែនការ និងស្ថិតិ">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">កូដសម្គាល់ (Code) *</label>
+                            <input type="text" name="code" class="form-control bg-light text-uppercase font-monospace" required placeholder="ឧ. PLAN ឬ STAT">
+                            <small class="text-muted fs-8">សម្រាប់ចុះលេខកូដលិខិត</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">English Name</label>
+                            <input type="text" name="name_en" class="form-control bg-light" placeholder="Planning Office">
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">ប្រភេទរចនាសម្ព័ន្ធ</label>
+                            <select name="structure_type" class="form-select bg-light">
+                                <option value="OLD" selected>រចនាសម្ព័ន្ធចាស់ (Old)</option>
+                                <option value="NEW">រចនាសម្ព័ន្ធថ្មី (New)</option>
+                                <option value="CORE">ថ្នាក់ដឹកនាំ/ស្នូល (Core)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">លំដាប់លំដោយ (Order)</label>
+                            <input type="number" name="order_index" value="50" class="form-control bg-light" min="0">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="is_active" id="modal_is_active" checked>
+                        <label class="form-check-label small fw-semibold text-dark" for="modal_is_active">បើកដំណើរការភ្លាមៗ (Active)</label>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold text-dark">ការពណ៌នា / តួនាទីភារកិច្ច</label>
+                        <textarea name="description" class="form-control bg-light" rows="3" placeholder="ព័ត៌មានបន្ថែមអំពីការិយាល័យ ឬតួនាទី..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold shadow-sm">
+                        <i class="fa-solid fa-save me-1"></i> រក្សាទុកការិយាល័យ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

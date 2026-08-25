@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>តារាងបូកសរុបសំណើសុំដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់មន្ត្រីរាជការ ឆ្នាំ {{ req_year }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Khmer OS Battambang', 'Siemreap', sans-serif;
+            font-size: 11pt;
+            color: #000;
+            background: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .muol-font {
+            font-family: 'Khmer OS Muol Light', 'Moul', serif;
+        }
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 25px;
+        }
+        .header-left {
+            text-align: center;
+            line-height: 1.6;
+        }
+        .header-right {
+            text-align: center;
+            line-height: 1.6;
+        }
+        .title-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .title-section h2 {
+            margin: 0 0 5px 0;
+            font-size: 14pt;
+        }
+        .title-section p {
+            margin: 0;
+            font-size: 10.5pt;
+            color: #333;
+        }
+        table.formal-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            font-size: 9.5pt;
+        }
+        table.formal-table th, table.formal-table td {
+            border: 1px solid #000;
+            padding: 6px 4px;
+            vertical-align: middle;
+        }
+        table.formal-table th {
+            background-color: #f2f2f2;
+            font-family: 'Khmer OS Muol Light', sans-serif;
+            font-size: 9pt;
+            text-align: center;
+        }
+        .text-center { text-align: center; }
+        .text-end { text-align: right; }
+        .fw-bold { font-weight: bold; }
+        .signatures-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            page-break-inside: avoid;
+        }
+        .signature-box {
+            text-align: center;
+            width: 30%;
+            line-height: 1.6;
+        }
+        .signature-space {
+            height: 75px;
+        }
+        .no-print {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .btn-print {
+            background: #d97706;
+            color: #fff;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 50px;
+            font-size: 12pt;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page {
+                size: landscape A4;
+                margin: 1cm;
+            }
+            table.formal-table th {
+                background-color: #eee !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <div class="no-print">
+        <button class="btn-print" onclick="window.print()">🖨️ បោះពុម្ពឯកសារនេះ (Print Document)</button>
+        <button class="btn-print" style="background:#64748b; margin-left: 10px;" onclick="window.close()">✖️ បិទ</button>
+    </div>
+
+    <!-- Official Khmer Header -->
+    <div class="header-section">
+        <div class="header-left">
+            <div class="muol-font" style="font-size: 10pt;">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
+            <div class="muol-font" style="font-size: 10pt;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ ខេត្តប៉ៃលិន</div>
+            <div style="font-size: 9.5pt;">លេខ៖ .................... ម.ក.រ.ន/ប.ល</div>
+        </div>
+
+        <div class="header-right">
+            <div class="muol-font" style="font-size: 11.5pt;">ព្រះរាជាណាចក្រកម្ពុជា</div>
+            <div class="muol-font" style="font-size: 11pt;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+            <div style="font-size: 9pt; letter-spacing: 2px;">***</div>
+        </div>
+    </div>
+
+    <!-- Title -->
+    <div class="title-section">
+        <h2 class="muol-font">តារាងបូកសរុបសំណើសុំដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់មន្ត្រីរាជការ ប្រចាំឆ្នាំ {{ req_year }}</h2>
+        <p>សម្រាប់ដាក់ឆ្លងកិច្ចប្រជុំគណៈកម្មការវាយតម្លៃ និងរៀបចំឯកសារបញ្ជូនទៅក្រសួង (គិតត្រឹមថ្ងៃទី ១៣ ខែមេសា ឆ្នាំ {{ req_year }})</p>
+    </div>
+
+    <!-- Master Table -->
+    <table class="formal-table">
+        <thead>
+            <tr>
+                <th style="width: 35px;">ល.រ</th>
+                <th style="width: 80px;">អត្តលេខ</th>
+                <th style="min-width: 140px;">គោត្តនាម-នាម</th>
+                <th style="width: 45px;">ភេទ</th>
+                <th style="width: 85px;">ថ្ងៃខែឆ្នាំកំណើត</th>
+                <th style="min-width: 130px;">មុខតំណែង & អង្គភាព</th>
+                <th style="width: 80px;">ថ្ងៃចូលបម្រើ</th>
+                <th style="width: 80px;">ថ្ងៃតាំងស៊ប់</th>
+                <th style="width: 90px;">ថ្នាក់បច្ចុប្បន្ន</th>
+                <th style="width: 90px;">ថ្នាក់ស្នើសុំដំឡើង</th>
+                <th style="width: 75px;">ប្រភេទដំឡើង</th>
+                <th style="width: 70px;">អតីតភាពក្នុងថ្នាក់</th>
+                <th style="min-width: 140px;">មូលហេតុ & សមិទ្ធផល</th>
+                <th style="min-width: 130px;">មតិអង្គប្រជុំ / គណៈកម្មការ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in requests_list %}
+            <tr>
+                <td class="text-center fw-bold">{{ forloop.counter }}</td>
+                <td class="text-center">{{ req.officer.officer_id_number|default:"-" }}</td>
+                <td class="fw-bold">{{ req.officer.full_name_kh }}</td>
+                <td class="text-center">{{ req.officer.get_gender_display }}</td>
+                <td class="text-center">{{ req.officer.birth_date|default:"-" }}</td>
+                <td>{{ req.officer.current_position_title|default:"-" }}<br><small>{{ req.department.name_kh|default:"-" }}</small></td>
+                <td class="text-center">{{ req.officer.civil_service_start_date|default:"-" }}</td>
+                <td class="text-center">{{ req.officer.civil_service_permanent_date|default:"-" }}</td>
+                <td class="text-center fw-bold">{{ req.current_rank_and_step|default:"-" }}</td>
+                <td class="text-center fw-bold" style="color: #b45309;">{{ req.proposed_rank_and_step }}</td>
+                <td class="text-center">{{ req.get_promotion_type_display }}</td>
+                <td class="text-center">{{ req.years_in_current_rank|default:"-" }}</td>
+                <td>{{ req.reason|default:"-"|truncatewords:20 }}</td>
+                <td>{{ req.meeting_decision|default:"ឯកភាពតាមការស្នើសុំ" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="14" class="text-center" style="padding: 20px;">ពុំមានទិន្នន័យសំណើសុំដំឡើងថ្នាក់ឡើយ</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="font-size: 9.5pt; margin-bottom: 15px;">
+        សរុបមន្ត្រីស្នើសុំដំឡើងថ្នាក់៖ <strong>{{ requests_list|length }}</strong> នាក់ (ស្រី៖ <strong>{{ female_count }}</strong> នាក់)។
+    </div>
+
+    <!-- Formal Signatures Section -->
+    <div class="signatures-section">
+        <div class="signature-box">
+            <div class="muol-font">អ្នករៀបចំតារាង</div>
+            <div class="signature-space"></div>
+            <div class="fw-bold">........................................</div>
+        </div>
+
+        <div class="signature-box">
+            <div>បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
+            <div class="muol-font">ប្រធានការិយាល័យរដ្ឋបាល និងបុគ្គលិក</div>
+            <div class="signature-space"></div>
+            <div class="fw-bold">........................................</div>
+        </div>
+
+        <div class="signature-box">
+            <div>ថ្ងៃ................... ខែ............. ឆ្នាំ២០២៦</div>
+            <div class="muol-font">ប្រធានមន្ទីរ</div>
+            <div class="signature-space"></div>
+            <div class="fw-bold">........................................</div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

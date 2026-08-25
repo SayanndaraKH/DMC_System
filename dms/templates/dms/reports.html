@@ -1,0 +1,325 @@
+{% extends 'dms/base.html' %}
+{% load dms_tags %}
+
+{% block title %}របាយការណ៍ស្ថិតិឯកសារ - DMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                {% if selected_dept %}
+                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill fw-bold fs-8">
+                    <i class="fa-solid fa-building me-1"></i> {{ selected_dept.name_kh }}
+                </span>
+                {% else %}
+                <span class="badge bg-success bg-opacity-10 text-success px-3 py-1 rounded-pill fw-bold fs-8">
+                    <i class="fa-solid fa-layer-group me-1"></i> ទូទាំងមន្ទីរ (All Offices)
+                </span>
+                {% endif %}
+                <span class="badge bg-dark bg-opacity-10 text-dark px-3 py-1 rounded-pill fs-8">
+                    <i class="fa-solid fa-calendar-days me-1"></i> {{ period_label }}
+                </span>
+            </div>
+            <h3 class="fw-bold text-dark m-0">
+                <i class="fa-solid fa-chart-pie text-success me-2"></i>របាយការណ៍ស្ថិតិលិខិតចូល-ចេញ
+            </h3>
+            <div class="text-muted small mt-0.5">ស្រង់របាយការណ៍ និងស្ថិតិលិខិតតាមកាលកំណត់ជាក់លាក់ និងទាញយកជា File Excel</div>
+        </div>
+
+        <a href="{% url 'export_excel_report' %}?period={{ period_type }}&year={{ current_year }}&month={{ current_month }}&quarter={{ current_quarter }}&semester={{ current_semester }}&custom_day={{ custom_day }}&department_id={{ selected_dept.id|default:'all' }}&start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-success rounded-pill px-4 shadow-sm fw-semibold">
+            <i class="fa-solid fa-file-excel me-1.5"></i> ទាញយកជា Excel (.xlsx)
+        </a>
+    </div>
+
+    <!-- Period Selection & Filter Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            
+            <!-- Period Nav Tabs -->
+            <ul class="nav nav-pills gap-1 mb-3 border-bottom pb-2">
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-8 px-3 {% if period_type == 'daily' %}active bg-success text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?period=daily{% if selected_dept %}&department_id={{ selected_dept.id }}{% endif %}">
+                        <i class="fa-solid fa-calendar-day me-1"></i> ប្រចាំថ្ងៃ
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-8 px-3 {% if period_type == 'weekly' %}active bg-success text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?period=weekly{% if selected_dept %}&department_id={{ selected_dept.id }}{% endif %}">
+                        <i class="fa-solid fa-calendar-week me-1"></i> ប្រចាំសប្តាហ៍
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-8 px-3 {% if period_type == 'monthly' %}active bg-success text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?period=monthly{% if selected_dept %}&department_id={{ selected_dept.id }}{% endif %}">
+                        <i class="fa-solid fa-calendar-days me-1"></i> ប្រចាំខែ
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-8 px-3 {% if period_type == 'quarterly' %}active bg-success text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?period=quarterly{% if selected_dept %}&department_id={{ selected_dept.id }}{% endif %}">
+                        <i class="fa-solid fa-chart-column me-1"></i> ប្រចាំត្រីមាស (៣ខែ)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-8 px-3 {% if period_type == 'semester' %}active bg-success text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?period=semester{% if selected_dept %}&department_id={{ selected_dept.id }}{% endif %}">
+                        <i class="fa-solid fa-chart-pie me-1"></i> ប្រចាំឆមាស (៦ខែ)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-8 px-3 {% if period_type == 'nine_month' %}active bg-success text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?period=nine_month{% if selected_dept %}&department_id={{ selected_dept.id }}{% endif %}">
+                        <i class="fa-solid fa-leaf me-1"></i> ប្រចាំនព្វមាស (៩ខែ)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-8 px-3 {% if period_type == 'yearly' %}active bg-success text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?period=yearly{% if selected_dept %}&department_id={{ selected_dept.id }}{% endif %}">
+                        <i class="fa-solid fa-calendar me-1"></i> ប្រចាំឆ្នាំ
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-8 px-3 {% if period_type == 'custom' %}active bg-success text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?period=custom{% if selected_dept %}&department_id={{ selected_dept.id }}{% endif %}">
+                        <i class="fa-solid fa-sliders me-1"></i> ចន្លោះថ្ងៃជាក់លាក់
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Specific Period Filter Form -->
+            <form method="GET" class="row g-2 align-items-end">
+                <input type="hidden" name="period" value="{{ period_type }}">
+
+                <!-- Department Selector (Only for Admin / Leadership) -->
+                {% if is_super_or_lead %}
+                <div class="col-md-3 col-12">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ជ្រើសរើសការិយាល័យ៖</label>
+                    <select name="department_id" class="form-select bg-light fs-7" onchange="this.form.submit()">
+                        <option value="all" {% if not selected_dept %}selected{% endif %}>-- គ្រប់ការិយាល័យទាំងអស់ --</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}" {% if selected_dept.id == d.id %}selected{% endif %}>{{ d.name_kh }} [{{ d.code }}]</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Controls depending on period type -->
+                {% if period_type == 'daily' %}
+                <div class="col-md-3 col-6">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ជ្រើសរើសថ្ងៃ៖</label>
+                    <input type="date" name="custom_day" value="{{ custom_day|default:start_date }}" class="form-control bg-light fs-7">
+                </div>
+                {% elif period_type == 'monthly' %}
+                <div class="col-md-2 col-6">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ខែ៖</label>
+                    <select name="month" class="form-select bg-light fs-7">
+                        <option value="1" {% if current_month == 1 %}selected{% endif %}>ខែមករា (01)</option>
+                        <option value="2" {% if current_month == 2 %}selected{% endif %}>ខែកុម្ភៈ (02)</option>
+                        <option value="3" {% if current_month == 3 %}selected{% endif %}>ខែមីនា (03)</option>
+                        <option value="4" {% if current_month == 4 %}selected{% endif %}>ខែមេសា (04)</option>
+                        <option value="5" {% if current_month == 5 %}selected{% endif %}>ខែឧសភា (05)</option>
+                        <option value="6" {% if current_month == 6 %}selected{% endif %}>ខែមិថុនា (06)</option>
+                        <option value="7" {% if current_month == 7 %}selected{% endif %}>ខែកក្កដា (07)</option>
+                        <option value="8" {% if current_month == 8 %}selected{% endif %}>ខែសីហា (08)</option>
+                        <option value="9" {% if current_month == 9 %}selected{% endif %}>ខែកញ្ញា (09)</option>
+                        <option value="10" {% if current_month == 10 %}selected{% endif %}>ខែតុលា (10)</option>
+                        <option value="11" {% if current_month == 11 %}selected{% endif %}>ខែវិច្ឆិកា (11)</option>
+                        <option value="12" {% if current_month == 12 %}selected{% endif %}>ខែធ្នូ (12)</option>
+                    </select>
+                </div>
+                <div class="col-md-2 col-6">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ឆ្នាំ៖</label>
+                    <select name="year" class="form-select bg-light fs-7">
+                        {% for y in years_list %}
+                        <option value="{{ y }}" {% if current_year == y %}selected{% endif %}>ឆ្នាំ {{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% elif period_type == 'quarterly' %}
+                <div class="col-md-3 col-6">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ត្រីមាស៖</label>
+                    <select name="quarter" class="form-select bg-light fs-7">
+                        <option value="1" {% if current_quarter == 1 %}selected{% endif %}>ត្រីមាសទី ១ (មករា - មីនា)</option>
+                        <option value="2" {% if current_quarter == 2 %}selected{% endif %}>ត្រីមាសទី ២ (មេសា - មិថុនា)</option>
+                        <option value="3" {% if current_quarter == 3 %}selected{% endif %}>ត្រីមាសទី ៣ (កក្កដា - កញ្ញា)</option>
+                        <option value="4" {% if current_quarter == 4 %}selected{% endif %}>ត្រីមាសទី ៤ (តុលា - ធ្នូ)</option>
+                    </select>
+                </div>
+                <div class="col-md-2 col-6">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ឆ្នាំ៖</label>
+                    <select name="year" class="form-select bg-light fs-7">
+                        {% for y in years_list %}
+                        <option value="{{ y }}" {% if current_year == y %}selected{% endif %}>ឆ្នាំ {{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% elif period_type == 'semester' %}
+                <div class="col-md-3 col-6">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ឆមាស៖</label>
+                    <select name="semester" class="form-select bg-light fs-7">
+                        <option value="1" {% if current_semester == 1 %}selected{% endif %}>ឆមាសទី ១ (មករា - មិថុនា)</option>
+                        <option value="2" {% if current_semester == 2 %}selected{% endif %}>ឆមាសទី ២ (កក្កដា - ធ្នូ)</option>
+                    </select>
+                </div>
+                <div class="col-md-2 col-6">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ឆ្នាំ៖</label>
+                    <select name="year" class="form-select bg-light fs-7">
+                        {% for y in years_list %}
+                        <option value="{{ y }}" {% if current_year == y %}selected{% endif %}>ឆ្នាំ {{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% elif period_type == 'yearly' or period_type == 'nine_month' %}
+                <div class="col-md-3 col-6">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ឆ្នាំ៖</label>
+                    <select name="year" class="form-select bg-light fs-7">
+                        {% for y in years_list %}
+                        <option value="{{ y }}" {% if current_year == y %}selected{% endif %}>ឆ្នាំ {{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% elif period_type == 'custom' %}
+                <div class="col-md-3 col-6">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ចាប់ពីថ្ងៃ៖</label>
+                    <input type="date" name="start_date" value="{{ start_date }}" class="form-control bg-light fs-7">
+                </div>
+                <div class="col-md-3 col-6">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ដល់ថ្ងៃ៖</label>
+                    <input type="date" name="end_date" value="{{ end_date }}" class="form-control bg-light fs-7">
+                </div>
+                {% endif %}
+
+                <div class="col-md-2 col-12">
+                    <button type="submit" class="btn btn-success rounded-pill w-100 fs-7 fw-semibold shadow-sm">
+                        <i class="fa-solid fa-filter me-1"></i> ស្រង់ទិន្នន័យ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 6 Metric Stat Cards Breakdown -->
+    <div class="row g-3 mb-4">
+        <!-- Inbound Docs -->
+        <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-info border-4 h-100">
+                <div class="text-muted fs-8 fw-semibold">លិខិតចូល (Inbound)</div>
+                <h3 class="fw-bold text-info m-0 mt-1">{{ inbound_count }}</h3>
+                <small class="text-muted fs-9 mt-1 d-block"><i class="fa-solid fa-inbox me-1"></i>ឯកសារចូល</small>
+            </div>
+        </div>
+
+        <!-- Outbound Docs -->
+        <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4 h-100">
+                <div class="text-muted fs-8 fw-semibold">លិខិតចេញ (Outbound)</div>
+                <h3 class="fw-bold text-success m-0 mt-1">{{ outbound_count }}</h3>
+                <small class="text-muted fs-9 mt-1 d-block"><i class="fa-solid fa-paper-plane me-1"></i>ឯកសារចេញ</small>
+            </div>
+        </div>
+
+        <!-- New Registered Docs -->
+        <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-primary border-4 h-100">
+                <div class="text-muted fs-8 fw-semibold">ចុះលេខថ្មី (Registered)</div>
+                <h3 class="fw-bold text-primary m-0 mt-1">{{ new_registered_count }}</h3>
+                <small class="text-muted fs-9 mt-1 d-block"><i class="fa-solid fa-file-circle-plus me-1"></i>បង្កើតក្នុងកាលកំណត់</small>
+            </div>
+        </div>
+
+        <!-- Completed Docs -->
+        <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-dark border-4 h-100">
+                <div class="text-muted fs-8 fw-semibold">ចាត់ចែងរួច (Completed)</div>
+                <h3 class="fw-bold text-dark m-0 mt-1">{{ completed_count }}</h3>
+                <small class="text-muted fs-9 mt-1 d-block"><i class="fa-solid fa-circle-check me-1"></i>បានបិទបញ្ចប់</small>
+            </div>
+        </div>
+
+        <!-- Pending Docs -->
+        <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-warning border-4 h-100">
+                <div class="text-muted fs-8 fw-semibold">កំពុងចាត់ចែង (Pending)</div>
+                <h3 class="fw-bold text-warning m-0 mt-1">{{ pending_count }}</h3>
+                <small class="text-muted fs-9 mt-1 d-block"><i class="fa-solid fa-clock me-1"></i>កំពុងដំណើរការ</small>
+            </div>
+        </div>
+
+        <!-- Total Docs -->
+        <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-secondary border-4 h-100">
+                <div class="text-muted fs-8 fw-semibold">សរុបទាំងអស់ (Total)</div>
+                <h3 class="fw-bold text-secondary m-0 mt-1">{{ total_count }}</h3>
+                <small class="text-muted fs-9 mt-1 d-block"><i class="fa-solid fa-folder-open me-1"></i>ក្នុងកាលកំណត់</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
+            <h6 class="fw-bold m-0 text-dark">
+                <i class="fa-solid fa-table-list text-success me-2"></i>បញ្ជីលិខិតលម្អិត ({{ docs.count }} ឯកសារ)
+            </h6>
+            <span class="badge bg-light text-muted border fs-8">{{ period_label }}</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 fs-7">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4 py-3">លេខចុះលិខិត</th>
+                        <th class="py-3">ប្រភេទ</th>
+                        <th class="py-3">កម្មវត្ថុ / ចំណងជើង</th>
+                        <th class="py-3">ប្រភពលិខិត</th>
+                        <th class="py-3">អ្នកទទួល</th>
+                        <th class="py-3">ទីតាំងបច្ចុប្បន្ន</th>
+                        <th class="py-3">ស្ថានភាព</th>
+                        <th class="pe-4 py-3 text-end">ថ្ងៃចុះបញ្ជី</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in docs %}
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <a href="{% url 'document_detail' doc.pk %}" class="fw-bold font-monospace text-decoration-none {% if doc.doc_type == 'INBOUND' %}text-info{% else %}text-success{% endif %}">
+                                {{ doc.registry_number }}
+                            </a>
+                        </td>
+                        <td class="py-3">
+                            <span class="badge {% if doc.doc_type == 'INBOUND' %}bg-info{% else %}bg-success{% endif %} bg-opacity-10 {% if doc.doc_type == 'INBOUND' %}text-info{% else %}text-success{% endif %}">
+                                {{ doc.get_doc_type_display }}
+                            </span>
+                        </td>
+                        <td class="py-3">
+                            <div class="fw-bold text-dark fs-7 mb-0.5">{{ doc.title }}</div>
+                            <div class="text-muted fs-8 text-truncate" style="max-width: 250px;">{{ doc.summary|default:"-" }}</div>
+                        </td>
+                        <td class="py-3">{{ doc.origin_org }}</td>
+                        <td class="py-3">{{ doc.destination_org }}</td>
+                        <td class="py-3">
+                            <span class="badge bg-light text-dark border px-2 py-1 fs-8">
+                                {{ doc.current_department.name_kh|default:"មន្ទីរ" }}
+                            </span>
+                        </td>
+                        <td class="py-3">
+                            <span class="badge {{ doc.status|status_badge_class }}">
+                                {{ doc.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="pe-4 py-3 text-end font-monospace text-muted fs-8">
+                            {{ doc.received_date|date:"d/m/Y" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                <i class="fa-solid fa-file-excel fa-2x"></i>
+                            </div>
+                            <h6>មិនមានទិន្នន័យឯកសារក្នុងកាលកំណត់ «{{ period_label }}» ឡើយ</h6>
+                            <p class="small mb-0">សូមផ្លាស់ប្តូរកាលបរិច្ឆេទ ឬជ្រើសរើសជម្រើសផ្សេង។</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

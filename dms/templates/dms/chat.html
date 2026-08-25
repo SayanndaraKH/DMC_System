@@ -1,0 +1,475 @@
+{% extends 'dms/base.html' %}
+{% load dms_tags %}
+
+{% block title %}Live Chat ផ្ទៃក្នុងតាមការិយាល័យ - DMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="height: calc(100vh - 125px); min-height: 580px;">
+        <div class="row g-0 h-100">
+            
+            <!-- Left Panel: Department Channels / Rooms -->
+            <div class="col-md-4 col-lg-3 border-end bg-light d-flex flex-column h-100">
+                <!-- Channel Header -->
+                <div class="p-3 border-bottom bg-white d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="fw-bold text-dark m-0">
+                            <i class="fa-solid fa-comments text-success me-2"></i>Live Chat ផ្ទៃក្នុង
+                        </h6>
+                        <small class="text-muted fs-8">ទំនាក់ទំនង & ពិភាក្សាការងារ</small>
+                    </div>
+                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill fs-8">Online</span>
+                </div>
+
+                <!-- Channels List -->
+                <div class="overflow-y-auto flex-grow-1 p-2" style="max-height: 100%;">
+                    
+                    <!-- 1. General Broadcast Room -->
+                    <a href="{% url 'live_chat' %}?room=all" class="d-flex align-items-center gap-2 p-2.5 rounded-3 text-decoration-none mb-2 {% if room_code == 'all' %}bg-success text-white shadow-sm{% else %}bg-white text-dark hover-bg-light border{% endif %}">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold {% if room_code == 'all' %}bg-white text-success{% else %}bg-success bg-opacity-10 text-success{% endif %}" style="width: 38px; height: 38px;">
+                            <i class="fa-solid fa-bullhorn"></i>
+                        </div>
+                        <div class="flex-grow-1 text-truncate">
+                            <div class="fw-bold fs-7">បន្ទប់ផ្សព្វផ្សាយទូទៅ</div>
+                            <div class="fs-8 {% if room_code == 'all' %}text-white-50{% else %}text-muted{% endif %} text-truncate">សាររួមទូទាំងមន្ទីរ</div>
+                        </div>
+                        {% if broadcast_bell_count > 0 %}
+                        <span class="badge bg-warning text-dark rounded-pill fs-9 d-flex align-items-center gap-1 flex-shrink-0">
+                            <i class="fa-solid fa-bell"></i> {{ broadcast_bell_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+
+                    <!-- 2. My Department Internal Room -->
+                    {% if user_dept %}
+                    {% with my_count=dept_bell_counts|get_item:user_dept.id %}
+                    <a href="{% url 'live_chat' %}?room={{ user_dept.id }}" class="d-flex align-items-center gap-2 p-2.5 rounded-3 text-decoration-none mb-2 {% if room_code == user_dept.id|stringformat:'i' %}bg-primary text-white shadow-sm{% else %}bg-white text-dark hover-bg-light border{% endif %}">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold {% if room_code == user_dept.id|stringformat:'i' %}bg-white text-primary{% else %}bg-primary bg-opacity-10 text-primary{% endif %}" style="width: 38px; height: 38px;">
+                            <i class="fa-solid fa-house-user"></i>
+                        </div>
+                        <div class="flex-grow-1 text-truncate">
+                            <div class="fw-bold fs-7 text-truncate">ផ្ទៃក្នុង៖ {{ user_dept.name_kh }}</div>
+                            <div class="fs-8 {% if room_code == user_dept.id|stringformat:'i' %}text-white-50{% else %}text-muted{% endif %}"><i class="fa-solid fa-lock fs-9 me-1"></i> សម្ងាត់ក្នុងកា.រិ</div>
+                        </div>
+                        {% if my_count and my_count > 0 %}
+                        <span class="badge bg-warning text-dark rounded-pill fs-9 d-flex align-items-center gap-1 flex-shrink-0">
+                            <i class="fa-solid fa-bell"></i> {{ my_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    {% endwith %}
+                    {% endif %}
+
+                    <div class="text-muted small fw-bold px-2 pt-2 pb-1 text-uppercase fs-8 d-flex align-items-center justify-content-between">
+                        <span>ការសន្ទនាផ្ទាល់ (1-to-1)</span>
+                        <i class="fa-solid fa-shield-halved text-success fs-9" title="រក្សាការសម្ងាត់ដាច់ខាត"></i>
+                    </div>
+
+                    <!-- 3. Direct Channels with other departments -->
+                    {% for dept in departments %}
+                    {% if not user_dept or dept.id != user_dept.id %}
+                    {% with bell_count=dept_bell_counts|get_item:dept.id %}
+                    <a href="{% url 'live_chat' %}?room={{ dept.id }}" class="d-flex align-items-center gap-2 p-2.5 rounded-3 text-decoration-none mb-1 {% if room_code == dept.id|stringformat:'i' %}bg-success text-white shadow-sm{% else %}bg-white text-dark hover-bg-light border{% endif %}">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold {% if room_code == dept.id|stringformat:'i' %}bg-white text-success{% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}" style="width: 38px; height: 38px;">
+                            <i class="fa-solid fa-building"></i>
+                        </div>
+                        <div class="flex-grow-1 text-truncate">
+                            <div class="fw-bold fs-7 text-truncate">ឆាតជាមួយ {{ dept.name_kh }}</div>
+                            <div class="fs-8 {% if room_code == dept.id|stringformat:'i' %}text-white-50{% else %}text-muted{% endif %}"><i class="fa-solid fa-lock fs-9 me-1"></i> សម្ងាត់ទ្វេភាគី</div>
+                        </div>
+                        {% if bell_count and bell_count > 0 %}
+                        <span class="badge bg-warning text-dark rounded-pill fs-9 d-flex align-items-center gap-1 flex-shrink-0" title="មានសារទំនាក់ទំនង">
+                            <i class="fa-solid fa-bell text-dark"></i> {{ bell_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    {% endwith %}
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Right Panel: Active Chat Canvas -->
+            <div class="col-md-8 col-lg-9 d-flex flex-column h-100 bg-white">
+                
+                <!-- Chat Room Top Header -->
+                <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-white">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold {% if room_code == 'all' %}bg-success bg-opacity-10 text-success{% elif target_dept == user_dept %}bg-primary bg-opacity-10 text-primary{% else %}bg-info bg-opacity-10 text-info{% endif %}" style="width: 44px; height: 44px;">
+                            {% if room_code == 'all' %}
+                                <i class="fa-solid fa-bullhorn fa-lg"></i>
+                            {% elif target_dept == user_dept %}
+                                <i class="fa-solid fa-house-user fa-lg"></i>
+                            {% else %}
+                                <i class="fa-solid fa-building-user fa-lg"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-dark m-0">
+                                {% if room_code == 'all' %}
+                                    បន្ទប់ផ្សព្វផ្សាយទូទៅ (All Offices Broadcast)
+                                {% elif target_dept == user_dept %}
+                                    បន្ទប់ជជែកផ្ទៃក្នុង៖ {{ user_dept.name_kh }}
+                                {% else %}
+                                    ការសន្ទនាផ្ទាល់៖ {{ user_dept.name_kh|default:"មន្ទីរ" }} ↔ {{ target_dept.name_kh }}
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted fs-8">
+                                {% if room_code == 'all' %}
+                                    <i class="fa-solid fa-circle text-success fs-9 me-1"></i> សារផ្សព្វផ្សាយរួមទូទាំងមន្ទីរ
+                                {% elif target_dept == user_dept %}
+                                    <i class="fa-solid fa-lock text-primary fs-9 me-1"></i> សម្ងាត់ផ្ទៃក្នុងសម្រាប់ការិយាល័យនេះប៉ុណ្ណោះ
+                                {% else %}
+                                    <i class="fa-solid fa-lock text-success fs-9 me-1"></i> សម្ងាត់ដាច់ខាត (ការិយាល័យផ្សេងៗមិនអាចមើលឃើញឡើយ)
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="d-none d-sm-flex align-items-center gap-2">
+                        <span class="badge bg-light text-dark border px-3 py-1.5 rounded-pill fs-8">
+                            <i class="fa-solid fa-user me-1"></i> {{ request.user.get_full_name|default:request.user.username }}
+                            {% if user_dept %}({{ user_dept.code }}){% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Official Document Routing Policy Notice -->
+                <div class="alert alert-warning border-0 bg-warning bg-opacity-10 text-dark rounded-0 m-0 py-2 px-3 fs-8 d-flex align-items-center justify-content-between border-bottom">
+                    <div>
+                        <i class="fa-solid fa-triangle-exclamation text-warning me-1.5"></i>
+                        <strong>គោលការណ៍ប្រព័ន្ធ៖</strong> Live Chat ប្រើប្រាស់សម្រាប់តែការជជែក និងពិភាក្សាការងាររហ័សប៉ុណ្ណោះ។ ការ <strong>បញ្ជូនលិខិត / Files ផ្លូវការ</strong> ទៅកាន់ការិយាល័យណាមួយ ត្រូវធ្វើឡើងតាមមុខងារ <strong>«បញ្ជូនលិខិតផ្លូវការ (Document Routing)»</strong>។
+                    </div>
+                    <a href="{% url 'inbound_documents' %}" class="btn btn-sm btn-outline-dark rounded-pill px-2.5 py-0.5 fs-9 text-nowrap ms-2">
+                        <i class="fa-solid fa-inbox me-1"></i> ផ្ទាំងលិខិតចូល
+                    </a>
+                </div>
+
+                <!-- Messages Feed Container -->
+                <div id="chatMessagesContainer" class="flex-grow-1 p-3 overflow-y-auto bg-light bg-opacity-50 d-flex flex-column gap-2.5">
+                    {% for msg in chat_messages %}
+                    <div class="chat-message-row d-flex {% if msg.sender == request.user %}justify-content-end{% else %}justify-content-start{% endif %}" data-msg-id="{{ msg.id }}">
+                        <div class="d-flex gap-2 {% if msg.sender == request.user %}flex-row-reverse{% endif %}" style="max-width: 75%;">
+                            <!-- Avatar -->
+                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0 fs-8 {% if msg.sender == request.user %}bg-success text-white{% else %}bg-secondary text-white{% endif %}" style="width: 34px; height: 34px;">
+                                {{ msg.sender.first_name|first|default:msg.sender.username|first|upper }}
+                            </div>
+                            
+                            <!-- Bubble & Info -->
+                            <div>
+                                <div class="d-flex align-items-center gap-1.5 mb-1 fs-8 {% if msg.sender == request.user %}justify-content-end{% endif %}">
+                                    <span class="fw-bold text-dark">{{ msg.sender.get_full_name|default:msg.sender.username }}</span>
+                                    {% if msg.department %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary fs-9 py-0.5 px-1.5">{{ msg.department.code }}</span>
+                                    {% endif %}
+                                    <span class="text-muted fs-9">{{ msg.created_at|date:"H:i" }}</span>
+                                    {% if msg.is_edited %}
+                                    <span class="text-muted fs-9" title="សារនេះត្រូវបានកែប្រែ">(បានកែ)</span>
+                                    {% endif %}
+
+                                    <!-- Actions for sender or Admin -->
+                                    {% if msg.sender == request.user or user.is_superuser or user.username|upper == 'ADMIN' %}
+                                    <div class="dropdown d-inline-block ms-1">
+                                        <button class="btn btn-link text-muted p-0 border-0 lh-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 11px;">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-1" style="min-width: 120px;">
+                                            <li>
+                                                <button class="dropdown-item py-1.5 fs-8 text-primary" onclick="openEditMessageModal({{ msg.id }}, this)">
+                                                    <i class="fa-solid fa-pen-to-square me-1.5"></i> កែសម្រួល (Edit)
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button class="dropdown-item py-1.5 fs-8 text-danger" onclick="deleteChatMessage({{ msg.id }})">
+                                                    <i class="fa-solid fa-trash-can me-1.5"></i> លុបសារ (Delete)
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="p-2.5 rounded-4 shadow-xs position-relative {% if msg.sender == request.user %}bg-success text-white rounded-top-end-0{% else %}bg-white text-dark border rounded-top-start-0{% endif %}">
+                                    <div class="msg-content-text fs-7 text-break" style="white-space: pre-wrap;">{{ msg.message }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div id="noMessagesPlaceholder" class="text-center text-muted my-auto py-5">
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="fa-solid fa-comments fa-2x"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark">មិនទាន់មានសារក្នុងការសន្ទនានេះឡើយ</h6>
+                        <p class="small text-muted mb-0">ផ្ញើសារដំបូងដើម្បីចាប់ផ្តើមពិភាក្សាការងារដោយសម្ងាត់!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Chat Input Form (Pure Text Messages Only) -->
+                <div class="p-3 border-top bg-white">
+                    <form id="chatForm" class="d-flex align-items-center gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="target_department_id" id="targetDeptInput" value="{{ room_code }}">
+
+                        <!-- Input field -->
+                        <div class="position-relative flex-grow-1">
+                            <input type="text" name="message" id="chatMessageInput" class="form-control rounded-pill bg-light border-0 px-4 py-2 fs-7" placeholder="វាយបញ្ចូលសារទីនេះ (Press Enter ដើម្បីផ្ញើ)..." autocomplete="off" autofocus>
+                        </div>
+
+                        <!-- Send Button -->
+                        <button type="submit" id="sendBtn" class="btn btn-success rounded-circle d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width: 42px; height: 42px;">
+                            <i class="fa-solid fa-paper-plane text-white"></i>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Message Modal -->
+<div class="modal fade" id="editMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header bg-success text-white py-2.5">
+                <h6 class="modal-title fw-bold">
+                    <i class="fa-solid fa-pen-to-square me-2"></i>កែប្រែសារឆាត (Edit Message)
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <form id="editMessageForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editMessageId" name="message_id">
+                    <div class="mb-3">
+                        <label class="form-label fs-7 fw-bold text-dark">ខ្លឹមសារសារថ្មី៖</label>
+                        <textarea id="editMessageText" name="message" class="form-control rounded-3 fs-7" rows="4" required></textarea>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light rounded-pill px-3 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                        <button type="submit" class="btn btn-success rounded-pill px-4 fs-7 fw-semibold">
+                            <i class="fa-solid fa-check me-1"></i> រក្សាទុកការកែប្រែ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const currentRoom = "{{ room_code }}";
+    const currentUsername = "{{ request.user.username }}";
+    const isSuperOrAdmin = {% if user.is_superuser or user.username|upper == 'ADMIN' %}true{% else %}false{% endif %};
+    const container = document.getElementById('chatMessagesContainer');
+    let lastMsgId = 0;
+
+    // Determine highest lastMsgId from initial rendered messages
+    document.querySelectorAll('.chat-message-row').forEach(row => {
+        const id = parseInt(row.getAttribute('data-msg-id'));
+        if (id > lastMsgId) lastMsgId = id;
+    });
+
+    function scrollToBottom() {
+        container.scrollTop = container.scrollHeight;
+    }
+    scrollToBottom();
+
+    // Submit Message via AJAX
+    document.getElementById('chatForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const msgInput = document.getElementById('chatMessageInput');
+        const text = msgInput.value.trim();
+
+        if (!text) return;
+
+        const formData = new FormData(this);
+
+        fetch("{% url 'send_chat_api' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                msgInput.value = '';
+                appendSingleMessage(data);
+                if (data.message_id > lastMsgId) lastMsgId = data.message_id;
+                scrollToBottom();
+            } else {
+                alert(data.message || 'Error sending message');
+            }
+        })
+        .catch(err => console.error(err));
+    });
+
+    // Open Edit Modal
+    let editModal = null;
+    function openEditMessageModal(msgId, btn) {
+        const row = document.querySelector(`.chat-message-row[data-msg-id="${msgId}"]`);
+        if (!row) return;
+        const textEl = row.querySelector('.msg-content-text');
+        const currentText = textEl ? textEl.innerText.trim() : '';
+
+        document.getElementById('editMessageId').value = msgId;
+        document.getElementById('editMessageText').value = currentText;
+
+        if (!editModal) {
+            editModal = new bootstrap.Modal(document.getElementById('editMessageModal'));
+        }
+        editModal.show();
+    }
+
+    // Handle Edit Submit
+    document.getElementById('editMessageForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const msgId = document.getElementById('editMessageId').value;
+        const newText = document.getElementById('editMessageText').value.trim();
+        if (!newText) return;
+
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        formData.append('message', newText);
+
+        fetch(`/chat/api/edit/${msgId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const row = document.querySelector(`.chat-message-row[data-msg-id="${msgId}"]`);
+                if (row) {
+                    const textEl = row.querySelector('.msg-content-text');
+                    if (textEl) textEl.innerText = data.text;
+                    const infoDiv = row.querySelector('.d-flex.align-items-center');
+                    if (infoDiv && !infoDiv.querySelector('.text-muted.fs-9[title]')) {
+                        const editedSpan = document.createElement('span');
+                        editedSpan.className = 'text-muted fs-9';
+                        editedSpan.title = 'សារនេះត្រូវបានកែប្រែ';
+                        editedSpan.innerText = '(បានកែ)';
+                        infoDiv.appendChild(editedSpan);
+                    }
+                }
+                if (editModal) editModal.hide();
+            } else {
+                alert(data.message || 'Error editing message');
+            }
+        })
+        .catch(err => console.error(err));
+    });
+
+    // Delete Chat Message
+    function deleteChatMessage(msgId) {
+        if (!confirm('តើអ្នកពិតជាចង់លុបសារនេះមែនដែរឬទេ?')) return;
+
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        fetch(`/chat/api/delete/${msgId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const row = document.querySelector(`.chat-message-row[data-msg-id="${msgId}"]`);
+                if (row) {
+                    row.classList.add('animate__animated', 'animate__fadeOut');
+                    setTimeout(() => row.remove(), 400);
+                }
+            } else {
+                alert(data.message || 'Error deleting message');
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function appendSingleMessage(msg) {
+        const placeholder = document.getElementById('noMessagesPlaceholder');
+        if (placeholder) placeholder.remove();
+
+        const isMe = msg.is_me || (msg.sender_username === currentUsername);
+        const canModify = isMe || isSuperOrAdmin || msg.can_modify;
+        const msgId = msg.id || msg.message_id;
+        const avatarLetter = (msg.sender_name || msg.sender_username || 'U').charAt(0).toUpperCase();
+
+        const row = document.createElement('div');
+        row.className = `chat-message-row d-flex ${isMe ? 'justify-content-end' : 'justify-content-start'}`;
+        row.setAttribute('data-msg-id', msgId);
+
+        let actionMenuHtml = '';
+        if (canModify) {
+            actionMenuHtml = `
+                <div class="dropdown d-inline-block ms-1">
+                    <button class="btn btn-link text-muted p-0 border-0 lh-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 11px;">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-1" style="min-width: 120px;">
+                        <li>
+                            <button class="dropdown-item py-1.5 fs-8 text-primary" onclick="openEditMessageModal(${msgId}, this)">
+                                <i class="fa-solid fa-pen-to-square me-1.5"></i> កែសម្រួល (Edit)
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item py-1.5 fs-8 text-danger" onclick="deleteChatMessage(${msgId})">
+                                <i class="fa-solid fa-trash-can me-1.5"></i> លុបសារ (Delete)
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        row.innerHTML = `
+            <div class="d-flex gap-2 ${isMe ? 'flex-row-reverse' : ''}" style="max-width: 75%;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0 fs-8 ${isMe ? 'bg-success text-white' : 'bg-secondary text-white'}" style="width: 34px; height: 34px;">
+                    ${avatarLetter}
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-1.5 mb-1 fs-8 ${isMe ? 'justify-content-end' : ''}">
+                        <span class="fw-bold text-dark">${msg.sender_name || msg.sender_username}</span>
+                        ${msg.sender_dept ? `<span class="badge bg-secondary bg-opacity-10 text-secondary fs-9 py-0.5 px-1.5">${msg.sender_dept}</span>` : ''}
+                        <span class="text-muted fs-9">${msg.created_at}</span>
+                        ${msg.is_edited ? `<span class="text-muted fs-9" title="សារនេះត្រូវបានកែប្រែ">(បានកែ)</span>` : ''}
+                        ${actionMenuHtml}
+                    </div>
+                    <div class="p-2.5 rounded-4 shadow-xs position-relative ${isMe ? 'bg-success text-white rounded-top-end-0' : 'bg-white text-dark border rounded-top-start-0'}">
+                        <div class="msg-content-text fs-7 text-break" style="white-space: pre-wrap;">${msg.text}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+
+    // Polling function for real-time live chat updates
+    function pollNewMessages() {
+        fetch(`{% url 'get_chat_messages_api' %}?room=${currentRoom}&after_id=${lastMsgId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success' && data.messages && data.messages.length > 0) {
+                let shouldScroll = (container.scrollTop + container.clientHeight >= container.scrollHeight - 60);
+                data.messages.forEach(m => {
+                    if (!document.querySelector(`[data-msg-id="${m.id}"]`)) {
+                        appendSingleMessage(m);
+                        if (m.id > lastMsgId) lastMsgId = m.id;
+                    }
+                });
+                if (shouldScroll) scrollToBottom();
+            }
+        })
+        .catch(err => console.error('Poll error:', err));
+    }
+
+    // Poll every 3 seconds
+    setInterval(pollNewMessages, 3000);
+</script>
+{% endblock %}

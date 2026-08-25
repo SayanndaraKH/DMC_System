@@ -1,0 +1,548 @@
+@import url('https://fonts.googleapis.com/css2?family=Siemreap&family=Moul&family=Battambang:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@font-face {
+    font-family: 'Khmer OS Siemreap';
+    src: local('Khmer OS Siemreap'), local('KhmerOS_siemreap'), local('KhmerOSSiemreap'), local('Siemreap'), url('https://fonts.gstatic.com/s/siemreap/v24/nwpTtK6mgnhKq45-T_4Qp28.woff2') format('woff2');
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: 'Khmer OS Muol Light';
+    src: local('Khmer OS Muol Light'), local('KhmerOS_muollight'), local('KhmerOSMuolLight'), local('Khmer OS Muol'), local('Moul'), url('https://fonts.gstatic.com/s/moul/v24/5bU7ICfZP6S_1t3_fg.woff2') format('woff2');
+    font-weight: 400;
+}
+
+:root {
+    --primary-color: #1a4d2e;
+    --primary-dark: #0f331d;
+    --primary-light: #e8f5e9;
+    --secondary-color: #2e7d32;
+    --accent-color: #d97706;
+    --khmer-font: 'Khmer OS Siemreap', 'Siemreap', 'Times New Roman', Times, serif;
+    --khmer-muol: 'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', 'Times New Roman', serif;
+    --body-bg: #f4f6f9;
+    --card-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+}
+
+body {
+    font-family: var(--khmer-font);
+    background-color: var(--body-bg);
+    color: #2d3748;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Detail & Content Elements Typography (Khmer OS Siemreap / Times New Roman) */
+p, label, table, td, th, input, select, textarea, button,
+.form-control, .form-select, .form-label, .table, .card-body,
+.nav-link span, .submenu-link span, .nav-group-toggle span,
+.badge, .dropdown-item, .alert, .modal-body, .btn,
+.detail-text, .text-muted, .small {
+    font-family: var(--khmer-font);
+}
+
+/* 🎯 Protect and Enforce FontAwesome Icons */
+.fa-solid, .fas {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    display: inline-block;
+}
+
+.fa-regular, .far {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 400 !important;
+    font-style: normal !important;
+    display: inline-block;
+}
+
+.fa-brands, .fab {
+    font-family: "Font Awesome 6 Brands" !important;
+    font-weight: 400 !important;
+    font-style: normal !important;
+    display: inline-block;
+}
+
+.font-monospace {
+    font-family: var(--bs-font-monospace) !important;
+}
+
+/* 👑 Main Titles Typography (Khmer OS Muol Light, Size 24) */
+.main-title,
+.page-title,
+.muol-title,
+.muol-text,
+.sidebar-title,
+.royal-title,
+.content-body h1,
+.content-body h2.fw-bold,
+.content-body h3.fw-bold,
+.content-body > .container-fluid > div:first-child h3,
+.content-body > div > div:first-child h3,
+.modal-title {
+    font-family: var(--khmer-muol) !important;
+    font-size: 24px !important;
+    font-weight: normal !important;
+    letter-spacing: 0.3px;
+    line-height: 1.5;
+}
+
+/* Layout */
+.app-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 270px;
+    background: linear-gradient(180deg, #112d1b 0%, #1a4d2e 100%);
+    color: #ffffff;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.sidebar-header {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.sidebar-logo {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-title {
+    font-family: var(--khmer-muol) !important;
+    font-size: 20px !important;
+    font-weight: normal !important;
+    color: #ffffff;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-subtitle {
+    font-family: var(--khmer-font);
+    font-size: 0.78rem;
+    color: #a7f3d0;
+    margin-top: 0.2rem;
+}
+
+.sidebar-nav {
+    padding: 0.75rem 0.6rem;
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.sidebar-nav .nav-item {
+    margin-bottom: 0.35rem;
+}
+
+.sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.65rem 0.85rem;
+    color: #e2e8f0;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.sidebar-nav .nav-link:hover, 
+.sidebar-nav .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    transform: translateX(2px);
+}
+
+.sidebar-nav .nav-link.active {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.3) 0%, rgba(16, 185, 129, 0.15) 100%);
+    border-left: 3px solid #10b981;
+    color: #ffffff;
+}
+
+/* 📂 Collapsible Menu Groups */
+.nav-group {
+    margin-bottom: 0.4rem;
+}
+
+.nav-group-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.85rem;
+    color: #e2e8f0;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: left;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    user-select: none;
+}
+
+.nav-group-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.09);
+    color: #ffffff;
+}
+
+.nav-group-toggle.active-parent {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #a7f3d0;
+}
+
+.nav-group-toggle .submenu-arrow {
+    font-size: 0.72rem;
+    transition: transform 0.25s ease;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.nav-group-toggle:not(.collapsed) .submenu-arrow,
+.nav-group-toggle[aria-expanded="true"] .submenu-arrow {
+    transform: rotate(180deg);
+    color: #a7f3d0;
+}
+
+/* 🌿 Nav Submenu */
+.nav-submenu {
+    padding: 0.3rem 0 0.3rem 0.5rem;
+    margin: 0.15rem 0 0.25rem 0.75rem;
+    border-left: 2px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.submenu-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.75rem;
+    color: #cbd5e1;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.835rem;
+    font-weight: 500;
+    transition: all 0.18s ease;
+}
+
+.submenu-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    transform: translateX(3px);
+}
+
+.submenu-link.active {
+    background: rgba(16, 185, 129, 0.25);
+    color: #ffffff;
+    font-weight: 600;
+    border-left: 3px solid #10b981;
+    padding-left: 0.6rem;
+}
+
+/* Content Area Nav Pills & Tab Navigation - High Contrast & Clearly Readable */
+.main-content .nav-pills {
+    gap: 0.35rem;
+}
+
+.main-content .nav-pills .nav-link {
+    color: #334155 !important;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.main-content .nav-pills .nav-link:hover {
+    color: #0f172a !important;
+    background-color: #e2e8f0;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.main-content .nav-pills .nav-link.active {
+    border-color: transparent !important;
+    transform: none;
+}
+
+.main-content .nav-pills .nav-link.active.bg-success {
+    background-color: #1a4d2e !important;
+    color: #ffffff !important;
+}
+
+.main-content .nav-pills .nav-link.active.bg-warning {
+    background-color: #f59e0b !important;
+    color: #1e293b !important;
+}
+
+.main-content .nav-pills .nav-link.active.bg-info {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+}
+
+.main-content .nav-pills .nav-link.active.bg-primary {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+.main-content .nav-pills .nav-link.active.bg-dark {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+}
+
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+}
+
+.top-navbar {
+    background: #ffffff;
+    height: 70px;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.top-search-form {
+    width: 380px;
+}
+
+.user-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+/* Notification Dropdown */
+.notif-bell-btn {
+    position: relative;
+    background: #f1f5f9;
+    border: none;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.notif-bell-btn:hover {
+    background: #e2e8f0;
+}
+
+.notif-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background-color: #ef4444;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 10px;
+    border: 2px solid white;
+    animation: pulse-ring 1.5s infinite;
+}
+
+@keyframes pulse-ring {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+.content-body {
+    padding: 2rem;
+    flex-grow: 1;
+}
+
+/* Custom Cards */
+.card-stat {
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: white;
+}
+
+.card-stat:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.stat-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+/* Badges */
+.badge-normal {
+    background-color: #f1f5f9;
+    color: #334155;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 500;
+    border: 1px solid #cbd5e1;
+}
+
+.badge-urgent {
+    background-color: #fef3c7;
+    color: #92400e;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 600;
+    border: 1px solid #fde68a;
+}
+
+.badge-most-urgent {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 700;
+    border: 1px solid #f87171;
+}
+
+.bg-purple {
+    background-color: #7c3aed !important;
+    color: #ffffff !important;
+}
+
+.bg-indigo {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+}
+
+/* Progress Stepper */
+.workflow-stepper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin: 1.5rem 0;
+}
+
+.workflow-stepper::before {
+    content: '';
+    position: absolute;
+    top: 22px;
+    left: 40px;
+    right: 40px;
+    height: 4px;
+    background: #e2e8f0;
+    z-index: 1;
+}
+
+.step-item {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    background: white;
+    padding: 0 12px;
+}
+
+.step-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    border: 3px solid #cbd5e1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+}
+
+.step-item.active .step-circle {
+    background: #1a4d2e;
+    color: white;
+    border-color: #86efac;
+    box-shadow: 0 0 0 4px rgba(26, 77, 46, 0.15);
+}
+
+.step-item.completed .step-circle {
+    background: #16a34a;
+    color: white;
+    border-color: #bbf7d0;
+}
+
+.step-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.step-item.active .step-title {
+    color: #1a4d2e;
+    font-weight: 700;
+}
+
+.step-item.completed .step-title {
+    color: #16a34a;
+    font-weight: 600;
+}
+
+/* Government Print Format */
+.gov-print-header {
+    text-align: center;
+    font-family: 'Kantumruy Pro', serif;
+    margin-bottom: 2rem;
+}
+
+.gov-motto {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.gov-submotto {
+    font-size: 1.1rem;
+    color: #334155;
+    margin-bottom: 1.5rem;
+}
+
+.annotation-box {
+    border: 2px solid #1a4d2e;
+    background-color: #f0fdf4;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+}

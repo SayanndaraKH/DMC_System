@@ -1,0 +1,424 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}{% if is_edit %}កែប្រែពាក្យសុំខ្ចីរថយន្ត/ម៉ូតូ{% else %}បង្កើតពាក្យសុំខ្ចីរថយន្ត/ម៉ូតូថ្មី{% endif %} - ប្រព័ន្ធគ្រប់គ្រងឯកសារ{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 fs-8">
+                    <li class="breadcrumb-item"><a href="{% url 'vehicle_request_list' %}" class="text-decoration-none">ពាក្យសុំខ្ចីរថយន្ត & ម៉ូតូ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{% if is_edit %}កែប្រែពាក្យសុំ{% else %}បង្កើតពាក្យសុំថ្មី{% endif %}</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold m-0 text-dark">
+                {% if is_edit %}
+                <i class="fa-solid fa-pen-to-square text-primary me-2"></i>កែប្រែពាក្យសុំខ្ចីមធ្យោបាយធ្វើដំណើរ
+                {% else %}
+                <i class="fa-solid fa-file-circle-plus text-primary me-2"></i>បង្កើតពាក្យសុំខ្ចីមធ្យោបាយធ្វើដំណើរ (រថយន្ត/ម៉ូតូ)
+                {% endif %}
+            </h4>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'vehicle_request_list' %}" class="btn btn-outline-secondary rounded-pill px-3 py-2 fs-7 shadow-sm">
+                <i class="fa-solid fa-arrow-left me-1"></i> ត្រឡប់ក្រោយ
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert / Messages -->
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fa-solid {% if message.tags == 'success' %}fa-circle-check text-success{% elif message.tags == 'error' or message.tags == 'danger' %}fa-circle-exclamation text-danger{% else %}fa-circle-info text-info{% endif %} me-2 fs-5"></i>
+            <div>{{ message }}</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="POST" id="vehicleRequestForm" enctype="multipart/form-data" class="needs-validation">
+        {% csrf_token %}
+        <div class="row g-4">
+            <!-- Left Column: Form Fields -->
+            <div class="col-lg-8">
+                <!-- 1. Quick Auto-fill Section -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-4 border-primary">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="fa-solid fa-wand-magic-sparkles text-primary fs-5"></i>
+                            <h6 class="fw-bold m-0 text-dark">ជ្រើសរើសមន្ត្រីដើម្បីបំពេញស្វ័យប្រវត្តិ (Quick Auto-fill)</h6>
+                        </div>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-8">
+                                <select id="officerQuickSelect" class="form-select">
+                                    <option value="">-- ជ្រើសរើសមន្ត្រីក្នុងបញ្ជី --</option>
+                                    {% for off in officers %}
+                                    <option value="{{ off.id }}" 
+                                            data-name="{{ off.full_name_kh }}"
+                                            data-gender="{{ off.gender }}"
+                                            data-position="{{ off.current_position_title|default:'មន្ត្រី' }}"
+                                            data-dept-id="{{ off.department_id }}"
+                                            data-dept-name="{{ off.department.name_kh|default:'' }}"
+                                            data-id-num="{{ off.officer_id_number|default:'' }}"
+                                            data-phone="{{ off.phone|default:'' }}">
+                                        {{ off.full_name_kh }} ({{ off.current_position_title|default:'មន្ត្រី' }} - {{ off.department.name_kh|default:'' }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" id="btnFillSelf" class="btn btn-outline-primary w-100 rounded-pill fs-8">
+                                    <i class="fa-solid fa-user-check me-1"></i> បំពេញទិន្នន័យខ្ញុំផ្ទាល់
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. ព័ត៌មានអ្នកស្នើសុំ (Applicant Info) -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-user-tie text-primary fs-5"></i>
+                            <h5 class="fw-bold m-0 text-dark">១. ព័ត៌មានអ្នកស្នើសុំ (Applicant Information)</h5>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">ឈ្មោះអ្នកស្នើសុំ <span class="text-danger">*</span></label>
+                                <input type="text" name="applicant_name" id="applicant_name" value="{% if is_edit %}{{ request_obj.applicant_name }}{% else %}{{ user_profile.user.get_full_name|default:user.get_full_name }}{% endif %}" class="form-control" required placeholder="ឧ. ហ៊ីង សុភា">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold fs-8">ភេទ <span class="text-danger">*</span></label>
+                                <select name="applicant_gender" id="applicant_gender" class="form-select">
+                                    <option value="MALE" {% if is_edit and request_obj.applicant_gender == 'MALE' %}selected{% endif %}>ប្រុស</option>
+                                    <option value="FEMALE" {% if is_edit and request_obj.applicant_gender == 'FEMALE' %}selected{% endif %}>ស្រី</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold fs-8">អត្តលេខមន្ត្រី</label>
+                                <input type="text" name="applicant_id_number" id="applicant_id_number" value="{% if is_edit %}{{ request_obj.applicant_id_number }}{% endif %}" class="form-control" placeholder="ឧ. 1700100234">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">តួនាទី / មុខតំណែង <span class="text-danger">*</span></label>
+                                <input type="text" name="applicant_position" id="applicant_position" value="{% if is_edit %}{{ request_obj.applicant_position }}{% else %}{{ user_profile.position_title|default:'មន្ត្រី' }}{% endif %}" class="form-control" required placeholder="ឧ. អនុប្រធានការិយាល័យ">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">លេខទូរស័ព្ទ</label>
+                                <input type="text" name="applicant_phone" id="applicant_phone" value="{% if is_edit %}{{ request_obj.applicant_phone }}{% else %}{{ user_profile.phone|default:'' }}{% endif %}" class="form-control" placeholder="ឧ. 012 345 678">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">ការិយាល័យ / អង្គភាព <span class="text-danger">*</span></label>
+                                {% if is_admin_or_lead %}
+                                <select name="applicant_department" id="applicant_department" class="form-select">
+                                    <option value="">-- ជ្រើសរើសការិយាល័យ --</option>
+                                    {% for d in departments %}
+                                    <option value="{{ d.id }}" {% if is_edit and request_obj.applicant_department_id == d.id %}selected{% elif not is_edit and dept.id == d.id %}selected{% endif %}>{{ d.name_kh }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% else %}
+                                <input type="text" class="form-control bg-light" value="{{ dept.name_kh|default:'ការិយាល័យជំនាញ' }}" readonly>
+                                <input type="hidden" name="applicant_department" value="{{ dept.id }}">
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-8">ឈ្មោះអង្គភាពបង្ហាញលើទម្រង់ (Optional)</label>
+                                <input type="text" name="applicant_department_name" id="applicant_department_name" value="{% if is_edit %}{{ request_obj.applicant_department_name }}{% else %}{{ dept.name_kh|default:'' }}{% endif %}" class="form-control" placeholder="ឧ. ការិយាល័យកសិកម្ម ធនធានធម្មជាតិ និងបរិស្ថាន">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. ព័ត៌មានមធ្យោបាយធ្វើដំណើរ (Vehicle Details) -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-motorcycle text-primary fs-5"></i>
+                                <h5 class="fw-bold m-0 text-dark">២. ព័ត៌មានមធ្យោបាយស្នើសុំ (Vehicle / Motorbike)</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-bold fs-8 text-primary">ជ្រើសរើសយានយន្តក្នុងប្រព័ន្ធ (Optional Auto-fill)</label>
+                                <select name="vehicle" id="vehicleSelect" class="form-select border-primary bg-primary bg-opacity-10">
+                                    <option value="">-- បំពេញដោយដៃ ឬជ្រើសរើសក្នុងប្រព័ន្ធ --</option>
+                                    {% for v in available_vehicles %}
+                                    <option value="{{ v.id }}"
+                                            data-type="{{ v.vehicle_type }}"
+                                            data-brand="{{ v.brand }}"
+                                            data-color="{{ v.color }}"
+                                            data-year="{{ v.model_year }}"
+                                            data-plate="{{ v.plate_number }}"
+                                            data-chassis="{{ v.chassis_number }}"
+                                            data-engine="{{ v.engine_number }}"
+                                            {% if is_edit and request_obj.vehicle_id == v.id %}selected{% endif %}>
+                                        {{ v.get_vehicle_type_display }} {{ v.brand }} - ស្លាកលេខ: {{ v.plate_number }} ({{ v.color }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">ប្រភេទមធ្យោបាយ <span class="text-danger">*</span></label>
+                                <select name="vehicle_type" id="vehicle_type" class="form-select">
+                                    <option value="MOTORCYCLE" {% if is_edit and request_obj.vehicle_type == 'MOTORCYCLE' %}selected{% endif %}>ម៉ូតូ (Motorcycle)</option>
+                                    <option value="CAR" {% if is_edit and request_obj.vehicle_type == 'CAR' %}selected{% endif %}>រថយន្តទេសចរណ៍ (Car)</option>
+                                    <option value="TRUCK" {% if is_edit and request_obj.vehicle_type == 'TRUCK' %}selected{% endif %}>រថយន្តដឹកទំនិញ/ភីកអាប់ (Pickup/Truck)</option>
+                                    <option value="OTHER" {% if is_edit and request_obj.vehicle_type == 'OTHER' %}selected{% endif %}>ផ្សេងៗ (Other)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">ម៉ាក (Brand / Model) <span class="text-danger">*</span></label>
+                                <input type="text" name="vehicle_brand" id="vehicle_brand" value="{% if is_edit %}{{ request_obj.vehicle_brand }}{% endif %}" class="form-control" required placeholder="ឧ. HONDA C125, Toyota Hilux">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">ពណ៌</label>
+                                <input type="text" name="vehicle_color" id="vehicle_color" value="{% if is_edit %}{{ request_obj.vehicle_color }}{% endif %}" class="form-control" placeholder="ឧ. ខ្មៅ, ក្រហម, ទឹកប្រាក់">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold fs-8">ឆ្នាំផលិត</label>
+                                <input type="text" name="vehicle_model_year" id="vehicle_model_year" value="{% if is_edit %}{{ request_obj.vehicle_model_year }}{% endif %}" class="form-control" placeholder="ឧ. 2024, 2026">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold fs-8">ស្លាកលេខ</label>
+                                <input type="text" name="vehicle_plate_number" id="vehicle_plate_number" value="{% if is_edit %}{{ request_obj.vehicle_plate_number }}{% endif %}" class="form-control" placeholder="ឧ. រដ្ឋ 11 2-1234">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold fs-8">លេខតួ (Chassis No)</label>
+                                <input type="text" name="vehicle_chassis_number" id="vehicle_chassis_number" value="{% if is_edit %}{{ request_obj.vehicle_chassis_number }}{% endif %}" class="form-control" placeholder="ឧ. ND110M-XXXXXX">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold fs-8">លេខម៉ាស៊ីន (Engine No)</label>
+                                <input type="text" name="vehicle_engine_number" id="vehicle_engine_number" value="{% if is_edit %}{{ request_obj.vehicle_engine_number }}{% endif %}" class="form-control" placeholder="ឧ. ND110E-XXXXXX">
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold fs-8">អ្នកប្រើប្រាស់ចុងក្រោយ (Last User)</label>
+                                <input type="text" name="last_user_name" id="last_user_name" value="{% if is_edit %}{{ request_obj.last_user_name }}{% endif %}" class="form-control" placeholder="ឧ. លោក សុខ សាន">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3.1 រូបថតមធ្យោបាយ និងប័ណ្ណសម្គាល់ (Vehicle Photos & Registration Card) -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-camera text-primary fs-5"></i>
+                            <h5 class="fw-bold m-0 text-dark">៣. រូបថតមធ្យោបាយ និងប័ណ្ណសម្គាល់ (Vehicle Photos & Card)</h5>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">រូបថតមើលពីមុខ</label>
+                                {% if is_edit and request_obj.display_photo_front %}
+                                <div class="mb-2">
+                                    <img src="{{ request_obj.display_photo_front.url }}" class="img-thumbnail rounded-3 shadow-xs" style="max-height: 100px; width: 100%; object-fit: cover;" alt="Front">
+                                </div>
+                                {% endif %}
+                                <input type="file" name="photo_front" accept="image/*" class="form-control form-control-sm">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">រូបថតមើលពីចំហៀង</label>
+                                {% if is_edit and request_obj.display_photo_side %}
+                                <div class="mb-2">
+                                    <img src="{{ request_obj.display_photo_side.url }}" class="img-thumbnail rounded-3 shadow-xs" style="max-height: 100px; width: 100%; object-fit: cover;" alt="Side">
+                                </div>
+                                {% endif %}
+                                <input type="file" name="photo_side" accept="image/*" class="form-control form-control-sm">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">ប័ណ្ណសម្គាល់ (កាតគ្រី)</label>
+                                {% if is_edit and request_obj.display_registration_card_photo %}
+                                <div class="mb-2">
+                                    <img src="{{ request_obj.display_registration_card_photo.url }}" class="img-thumbnail rounded-3 shadow-xs" style="max-height: 100px; width: 100%; object-fit: cover;" alt="Card">
+                                </div>
+                                {% endif %}
+                                <input type="file" name="registration_card_photo" accept="image/*" class="form-control form-control-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. រយៈពេល & គោលបំណងនៃការប្រើប្រាស់ (Duration & Purpose) -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-calendar-check text-primary fs-5"></i>
+                            <h5 class="fw-bold m-0 text-dark">៤. រយៈពេល និងគោលបំណងស្នើសុំ (Duration & Purpose)</h5>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">រយៈពេលស្នើសុំ <span class="text-danger">*</span></label>
+                                <input type="text" name="duration_text" value="{% if is_edit %}{{ request_obj.duration_text }}{% else %}១ឆ្នាំ{% endif %}" class="form-control" required placeholder="ឧ. ១ឆ្នាំ, ០៦ខែ, ០៣ថ្ងៃ">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">កាលបរិច្ឆេទចាប់ផ្តើម</label>
+                                <input type="date" name="start_date" value="{% if is_edit and request_obj.start_date %}{{ request_obj.start_date|date:'Y-m-d' }}{% endif %}" class="form-control">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold fs-8">កាលបរិច្ឆេទបញ្ចប់</label>
+                                <input type="date" name="end_date" value="{% if is_edit and request_obj.end_date %}{{ request_obj.end_date|date:'Y-m-d' }}{% endif %}" class="form-control">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold fs-8">គោលបំណង / កម្មវត្ថុនៃការប្រើប្រាស់</label>
+                                <textarea name="purpose" rows="3" class="form-control" placeholder="ឧ. សម្រាប់បំពេញបេសកកម្មការងារចុះពង្រឹងសហគមន៍កសិកម្ម និងតាមដានបច្ចេកទេសដំណាំតាមមូលដ្ឋាន...">{% if is_edit %}{{ request_obj.purpose }}{% endif %}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Official Declaration & Actions -->
+            <div class="col-lg-4">
+                <!-- 4-Point Official Promise Declaration -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4 border-top border-4 border-warning bg-light">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="fa-solid fa-handshake-angle text-warning fs-4"></i>
+                            <h6 class="fw-bold m-0 text-dark">ការសន្យា និងការទទួលខុសត្រូវ (៤ ចំណុច)</h6>
+                        </div>
+                        <p class="fs-8 text-muted mb-3">យោងតាមទម្រង់ផ្លូវការ «ពាក្យសុំខ្ចីទ្រព្យប្រើប្រាស់» អ្នកស្នើសុំសូមសន្យាដូចតទៅ៖</p>
+                        
+                        <div class="d-flex flex-column gap-2.5 fs-8 text-dark">
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-warning text-dark rounded-circle px-2 py-1" style="height: fit-content;">១</span>
+                                <span>ខិតខំថែរក្សាឱ្យបានគង់វង្ស និងការពារមិនឱ្យបាត់បង់ ឬខូចខាត។</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-warning text-dark rounded-circle px-2 py-1" style="height: fit-content;">២</span>
+                                <span>ប្រើប្រាស់សម្រាប់តែបម្រើការងាររដ្ឋ និងសេចក្តីត្រូវការរបស់អង្គភាព។</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-warning text-dark rounded-circle px-2 py-1" style="height: fit-content;">៣</span>
+                                <span>ទទួលខុសត្រូវរាល់ការខូចខាត ឬបាត់បង់ដែលកើតឡើងដោយការធ្វេសប្រហែស។</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-warning text-dark rounded-circle px-2 py-1" style="height: fit-content;">៤</span>
+                                <span>ប្រគល់ជូនអង្គភាពវិញនៅពេលផុតកំណត់ ឬនៅពេលអង្គភាពមានតម្រូវការចាំបាច់។</span>
+                            </div>
+                        </div>
+
+                        <hr class="my-3 text-muted">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="agreeTerms" required checked>
+                            <label class="form-check-label fs-8 fw-semibold text-dark" for="agreeTerms">
+                                ខ្ញុំបាទ/នាងខ្ញុំ សូមសន្យាគោរពតាមលក្ខខណ្ឌខាងលើដោយស្មោះត្រង់។
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Action Card -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4 sticky-top" style="top: 20px; z-index: 10;">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold text-dark mb-3">ប្រតិបត្តិការ</h6>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill fs-7 fw-bold shadow-sm">
+                                <i class="fa-solid fa-paper-plane me-1.5"></i> {% if is_edit %}រក្សាទុកការកែប្រែ{% else %}បញ្ជូនពាក្យសុំប្រើប្រាស់{% endif %}
+                            </button>
+                            <a href="{% url 'vehicle_request_list' %}" class="btn btn-light rounded-pill fs-7">
+                                បោះបង់
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Quick officer fill handler
+    const officerSelect = document.getElementById('officerQuickSelect');
+    if (officerSelect) {
+        officerSelect.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            if (!opt.value) return;
+
+            document.getElementById('applicant_name').value = opt.dataset.name || '';
+            document.getElementById('applicant_gender').value = opt.dataset.gender || 'MALE';
+            document.getElementById('applicant_position').value = opt.dataset.position || '';
+            document.getElementById('applicant_id_number').value = opt.dataset.idNum || '';
+            document.getElementById('applicant_phone').value = opt.dataset.phone || '';
+
+            const deptSelect = document.getElementById('applicant_department');
+            if (deptSelect && opt.dataset.deptId) {
+                deptSelect.value = opt.dataset.deptId;
+            }
+            const deptNameInput = document.getElementById('applicant_department_name');
+            if (deptNameInput && opt.dataset.deptName) {
+                deptNameInput.value = opt.dataset.deptName;
+            }
+        });
+    }
+
+    // Fill Self button
+    const btnFillSelf = document.getElementById('btnFillSelf');
+    if (btnFillSelf) {
+        btnFillSelf.addEventListener('click', function() {
+            document.getElementById('applicant_name').value = "{{ user.get_full_name|default:user.username }}";
+            document.getElementById('applicant_position').value = "{{ user_profile.position_title|default:'មន្ត្រី' }}";
+            document.getElementById('applicant_phone').value = "{{ user_profile.phone|default:'' }}";
+            {% if user_profile.department %}
+            const deptSelect = document.getElementById('applicant_department');
+            if (deptSelect) {
+                deptSelect.value = "{{ user_profile.department.id }}";
+            }
+            const deptNameInput = document.getElementById('applicant_department_name');
+            if (deptNameInput) {
+                deptNameInput.value = "{{ user_profile.department.name_kh }}";
+            }
+            {% endif %}
+        });
+    }
+
+    // Quick vehicle fill handler
+    const vehicleSelect = document.getElementById('vehicleSelect');
+    if (vehicleSelect) {
+        vehicleSelect.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            if (!opt.value) return;
+
+            if (opt.dataset.type) document.getElementById('vehicle_type').value = opt.dataset.type;
+            if (opt.dataset.brand) document.getElementById('vehicle_brand').value = opt.dataset.brand;
+            if (opt.dataset.color) document.getElementById('vehicle_color').value = opt.dataset.color;
+            if (opt.dataset.year) document.getElementById('vehicle_model_year').value = opt.dataset.year;
+            if (opt.dataset.plate) document.getElementById('vehicle_plate_number').value = opt.dataset.plate;
+            if (opt.dataset.chassis) document.getElementById('vehicle_chassis_number').value = opt.dataset.chassis;
+            if (opt.dataset.engine) document.getElementById('vehicle_engine_number').value = opt.dataset.engine;
+        });
+    }
+});
+</script>
+{% endblock %}

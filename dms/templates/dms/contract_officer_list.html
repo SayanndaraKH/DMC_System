@@ -1,0 +1,1265 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}គ្រប់គ្រងមន្ត្រីជាប់កិច្ចសន្យា - ប្រព័ន្ធគ្រប់គ្រងឯកសារ{% endblock %}
+
+{% block content %}
+<style>
+.contract-table-scroll {
+    max-height: 68vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+}
+.contract-table-scroll::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+.contract-table-scroll::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.contract-table-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.contract-table-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+.contract-table-scroll thead th {
+    position: sticky !important;
+    top: 0 !important;
+    background-color: #f8fafc !important;
+    z-index: 10 !important;
+    box-shadow: inset 0 -2px 0 #e2e8f0, 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.dragover {
+    background-color: rgba(13, 110, 253, 0.08) !important;
+    border-color: #0d6efd !important;
+    transform: scale(1.01);
+}
+</style>
+
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Header Banner -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <div class="bg-warning bg-opacity-10 text-dark p-2.5 rounded-3 d-inline-flex align-items-center justify-content-center">
+                    <i class="fa-solid fa-file-signature text-warning fs-4"></i>
+                </div>
+                <div>
+                    <h4 class="fw-bold m-0 text-dark">បញ្ជីជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យា</h4>
+                    <p class="text-muted small m-0">គ្រប់គ្រងទិន្នន័យជីវប្រវត្តិរូបសង្ខេប និងកិច្ចសន្យាការងាររបស់មន្ត្រីជាប់កិច្ចសន្យា</p>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button type="button" class="btn btn-outline-primary rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#importDocxModal">
+                <i class="fa-solid fa-file-word me-1.5 text-primary"></i> នាំចូលពី Word (.docx)
+            </button>
+            <a href="{% url 'contract_officer_export_excel' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-success rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-semibold">
+                <i class="fa-solid fa-file-excel me-1.5 text-success"></i> ទាញយក Excel
+            </a>
+            <a href="{% url 'contract_officer_create' %}" class="btn btn-primary rounded-pill px-4 py-2 fs-7 shadow-sm fw-bold">
+                <i class="fa-solid fa-user-plus me-1.5"></i> បញ្ចូលមន្ត្រីកិច្ចសន្យាថ្មី
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted fs-8 d-block mb-1">សរុបមន្ត្រីកិច្ចសន្យា</span>
+                        <h4 class="fw-bold text-dark m-0">{{ total_officers }} <span class="fs-8 fw-normal text-muted">នាក់</span></h4>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle">
+                        <i class="fa-solid fa-users fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted fs-8 d-block mb-1">ឆ្នាំបច្ចុប្បន្ន ({{ current_year }})</span>
+                        <h4 class="fw-bold text-info m-0">{{ current_year_count }} <span class="fs-8 fw-normal text-muted">នាក់</span></h4>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info p-3 rounded-circle">
+                        <i class="fa-solid fa-calendar-check fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted fs-8 d-block mb-1">កំពុងបម្រើការ</span>
+                        <h4 class="fw-bold text-success m-0">{{ active_count }} <span class="fs-8 fw-normal text-muted">នាក់</span></h4>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle">
+                        <i class="fa-solid fa-circle-check fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-6 col-xl">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted fs-8 d-block mb-1">បានបន្តកិច្ចសន្យា</span>
+                        <h4 class="fw-bold text-warning m-0">{{ renewed_count }} <span class="fs-8 fw-normal text-muted">នាក់</span></h4>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle">
+                        <i class="fa-solid fa-arrows-rotate fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted fs-8 d-block mb-1">ផុតកិច្ចសន្យា</span>
+                        <h4 class="fw-bold text-secondary m-0">{{ expired_count }} <span class="fs-8 fw-normal text-muted">នាក់</span></h4>
+                    </div>
+                    <div class="bg-secondary bg-opacity-10 text-secondary p-3 rounded-circle">
+                        <i class="fa-solid fa-clock-rotate-left fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3 p-md-3.5">
+            <!-- Quick Year Filter Pills -->
+            <div class="d-flex align-items-center flex-wrap gap-2 mb-3 pb-2.5 border-bottom border-light">
+                <span class="fs-8 fw-bold text-muted me-1"><i class="fa-solid fa-calendar-days text-primary me-1"></i> ចម្រាញ់តាមឆ្នាំកិច្ចសន្យា៖</span>
+                <a href="{% url 'contract_officer_list' %}" class="badge text-decoration-none rounded-pill px-3 py-1.5 fs-8 {% if not year_filter %}bg-primary text-white shadow-xs{% else %}bg-light text-dark border{% endif %}">
+                    គ្រប់ឆ្នាំទាំងអស់
+                </a>
+                {% for y in available_years %}
+                <a href="{% url 'contract_officer_list' %}?year={{ y }}{% if dept_filter %}&department={{ dept_filter }}{% endif %}{% if status_filter %}&contract_status={{ status_filter }}{% endif %}" 
+                   class="badge text-decoration-none rounded-pill px-3 py-1.5 fs-8 {% if year_filter == y|stringformat:'s' %}bg-primary text-white shadow-xs{% elif y == current_year %}bg-info bg-opacity-10 text-info border border-info border-opacity-50{% else %}bg-light text-dark border{% endif %}">
+                    ឆ្នាំ {{ y }} {% if y == current_year %}<span class="badge bg-danger rounded-pill ms-1 fs-9">បច្ចុប្បន្ន</span>{% endif %}
+                </a>
+                {% endfor %}
+            </div>
+
+            <form method="GET" action="{% url 'contract_officer_list' %}" class="row g-2.5 align-items-center">
+                <div class="col-12 col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" name="q" value="{{ search_q }}" class="form-control border-start-0 ps-0 fs-7" placeholder="ស្វែងរកតាមឈ្មោះ, ឡាតាំង, អត្តសញ្ញាណប័ណ្ណ...">
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-2">
+                    <select name="year" class="form-select fs-7" onchange="this.form.submit()">
+                        <option value="">-- គ្រប់ឆ្នាំកិច្ចសន្យា --</option>
+                        {% for y in available_years %}
+                        <option value="{{ y }}" {% if year_filter == y|stringformat:"s" %}selected{% endif %}>ឆ្នាំ {{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% if is_admin_or_lead %}
+                <div class="col-6 col-md-2">
+                    <select name="department" class="form-select fs-7" onchange="this.form.submit()">
+                        <option value="">-- គ្រប់ការិយាល័យ/អង្គភាព --</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}" {% if dept_filter == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name_kh }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="col-6 col-md-2">
+                    <select name="contract_status" class="form-select fs-7" onchange="this.form.submit()">
+                        <option value="">-- ស្ថានភាពកិច្ចសន្យា --</option>
+                        <option value="ACTIVE" {% if status_filter == 'ACTIVE' %}selected{% endif %}>កំពុងបម្រើការ</option>
+                        <option value="RENEWED" {% if status_filter == 'RENEWED' %}selected{% endif %}>បានបន្តកិច្ចសន្យា</option>
+                        <option value="EXPIRED" {% if status_filter == 'EXPIRED' %}selected{% endif %}>ផុតកិច្ចសន្យា</option>
+                        <option value="TERMINATED" {% if status_filter == 'TERMINATED' %}selected{% endif %}>បានបញ្ឈប់/ឈប់</option>
+                    </select>
+                </div>
+
+                <div class="col-6 col-md-1">
+                    <select name="gender" class="form-select fs-7" onchange="this.form.submit()">
+                        <option value="">-- ភេទ --</option>
+                        <option value="MALE" {% if gender_filter == 'MALE' %}selected{% endif %}>ប្រុស</option>
+                        <option value="FEMALE" {% if gender_filter == 'FEMALE' %}selected{% endif %}>ស្រី</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-2 d-flex gap-1">
+                    <button type="submit" class="btn btn-primary w-100 fs-7 px-2" title="ស្វែងរក"><i class="fa-solid fa-filter me-1"></i> តម្រង</button>
+                    {% if search_q or year_filter or dept_filter or gender_filter or status_filter %}
+                    <a href="{% url 'contract_officer_list' %}" class="btn btn-outline-secondary fs-7 px-2.5" title="សម្អាតតម្រង"><i class="fa-solid fa-rotate-left"></i></a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Data Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <form method="POST" action="{% url 'contract_officer_bulk_delete' %}" id="bulkActionForm">
+            {% csrf_token %}
+            <div class="card-header bg-white py-3 px-3.5 d-flex align-items-center justify-content-between flex-wrap gap-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary rounded-pill px-3 py-1.5 fs-8">{{ officers.paginator.count|default:total_officers }} នាក់</span>
+                    <span class="text-muted small">
+                        {% if year_filter %}បញ្ជីមន្ត្រីជាប់កិច្ចសន្យា <strong>ប្រចាំឆ្នាំ {{ year_filter }}</strong>{% else %}ទិន្នន័យមន្ត្រីជាប់កិច្ចសន្យាក្នុងប្រព័ន្ធ (គ្រប់ឆ្នាំ){% endif %}
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Batch Renewal Button -->
+                    <button type="button" class="btn btn-warning btn-sm rounded-pill px-3 py-1 fw-bold text-dark d-none shadow-xs" id="batchRenewBtn" data-bs-toggle="modal" data-bs-target="#batchRenewModal">
+                        <i class="fa-solid fa-arrows-rotate me-1"></i> បន្តកិច្ចសន្យាជាក្រុម (<span class="selectedCount">0</span>)
+                    </button>
+                    <!-- Bulk Delete Button (ADMIN ONLY) -->
+                    {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1 d-none" id="bulkDeleteBtn" onclick="return confirm('⚠️ តើលោកអ្នកពិតជាចង់លុបទិន្នន័យមន្ត្រីដែលបានជ្រើសរើសចេញពីប្រព័ន្ធមែនទេ?');">
+                        <i class="fa-solid fa-trash-can me-1"></i> លុបដែលបានជ្រើស (<span class="selectedCount">0</span>)
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="table-responsive contract-table-scroll">
+                <table class="table table-hover align-middle mb-0 text-nowrap fs-7">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center px-3" style="width: 40px;">
+                                <input type="checkbox" class="form-check-input" id="selectAllCheckbox">
+                            </th>
+                            <th class="text-center" style="width: 50px;">ល.រ</th>
+                            <th>រូបថត & ឈ្មោះមន្ត្រី</th>
+                            <th class="text-center">ឆ្នាំកិច្ចសន្យា</th>
+                            <th>អក្សរឡាតាំង</th>
+                            <th class="text-center">ភេទ</th>
+                            <th>ថ្ងៃខែឆ្នាំកំណើត</th>
+                            <th>មុខតំណែង & អង្គភាព</th>
+                            <th>កម្រិតវប្បធម៌ & ជំនាញ</th>
+                            <th>អត្តសញ្ញាណប័ណ្ណ/លិខិតឆ្លងដែន</th>
+                            <th>លេខទូរស័ព្ទ</th>
+                            <th class="text-center">ស្ថានភាព</th>
+                            <th class="text-center" style="width: 140px;">សកម្មភាព</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for officer in officers %}
+                        <tr>
+                            <td class="text-center px-3">
+                                <input type="checkbox" name="selected_officers" value="{{ officer.id }}" class="form-check-input officer-checkbox" 
+                                       data-name="{{ officer.full_name_kh }}" data-year="{{ officer.contract_year }}" data-title="{{ officer.position_title }}" data-salary="{{ officer.salary|default:'' }}">
+                            </td>
+                            <td class="text-center text-muted fw-bold">{{ forloop.counter0|add:officers.start_index }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2.5">
+                                    {% if officer.photo %}
+                                    <img src="{{ officer.photo.url }}" alt="{{ officer.full_name_kh }}" class="rounded-3 border object-fit-cover shadow-xs" style="width: 38px; height: 48px;">
+                                    {% else %}
+                                    <div class="bg-light text-secondary rounded-3 border d-flex align-items-center justify-content-center shadow-xs" style="width: 38px; height: 48px;">
+                                        <i class="fa-solid fa-user fs-7 text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <a href="{% url 'contract_officer_detail' officer.pk %}" class="fw-bold text-decoration-none text-dark d-block">
+                                            {{ officer.full_name_kh }}
+                                        </a>
+                                        <span class="fs-9 text-muted"><i class="fa-solid fa-briefcase me-1"></i>{{ officer.position_title }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1 fw-bold fs-8">
+                                    <i class="fa-solid fa-calendar me-1"></i>ឆ្នាំ {{ officer.contract_year }}
+                                </span>
+                                {% if officer.contract_count_years > 1 %}
+                                <span class="badge bg-warning bg-opacity-25 text-dark rounded-pill px-2 py-0.5 d-block mt-1 fs-9" title="ចំនួនឆ្នាំបន្តសរុប">
+                                    <i class="fa-solid fa-arrows-rotate me-0.5"></i> លើកទី {{ officer.contract_count_years }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="font-monospace text-uppercase text-muted">{{ officer.latin_name|default:"-" }}</td>
+                            <td class="text-center">
+                                {% if officer.gender == 'MALE' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1">ប្រុស</span>
+                                {% else %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-1">ស្រី</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ officer.dob|default:"-" }}</td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ officer.position_title }}</div>
+                                <small class="text-muted">{{ officer.display_working_unit }}</small>
+                            </td>
+                            <td>
+                                <div>{{ officer.general_education|default:"-" }}</div>
+                                {% if officer.skill_specialization %}
+                                <small class="text-primary"><i class="fa-solid fa-graduation-cap me-1"></i>{{ officer.skill_specialization }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if officer.id_number %}
+                                <div class="font-monospace text-dark">{{ officer.id_number }}</div>
+                                <span class="badge bg-light text-secondary border fs-9">{{ officer.get_id_type_display }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if officer.phone %}
+                                <a href="tel:{{ officer.phone }}" class="text-decoration-none text-dark font-monospace">
+                                    <i class="fa-solid fa-phone text-success me-1"></i>{{ officer.phone }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if officer.contract_status == 'ACTIVE' %}
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-1">កំពុងបម្រើការ</span>
+                                {% elif officer.contract_status == 'RENEWED' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1">បានបន្តកិច្ចសន្យា</span>
+                                {% elif officer.contract_status == 'EXPIRED' %}
+                                <span class="badge bg-warning bg-opacity-25 text-dark rounded-pill px-2.5 py-1">ផុតកិច្ចសន្យា</span>
+                                {% else %}
+                                <span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill px-2.5 py-1">បានឈប់/បញ្ឈប់</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm shadow-xs">
+                                    <!-- 🏢 Transfer Department Button -->
+                                    {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+                                    <button type="button" class="btn btn-outline-primary" style="color: #4f46e5; border-color: #c7d2fe;" title="ផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ (Transfer)"
+                                            onclick="openContractTransferModal({{ officer.id }}, '{{ officer.full_name_kh|escapejs }}', '{{ officer.display_working_unit|escapejs }}', '{{ officer.position_title|escapejs }}', '{{ officer.department_id|default:'' }}')">
+                                        <i class="fa-solid fa-right-left"></i>
+                                    </button>
+                                    {% endif %}
+                                    <!-- 1-Click Renewal Button -->
+                                    <button type="button" class="btn btn-outline-warning text-dark" title="បន្តកិច្ចសន្យាឆ្នាំថ្មី"
+                                            onclick="openSingleRenewModal({{ officer.id }}, '{{ officer.full_name_kh }}', {{ officer.contract_year }}, '{{ officer.contract_number|default:'' }}', '{{ officer.position_title }}', '{{ officer.working_unit|default:'' }}', '{{ officer.salary|default:'' }}')">
+                                        <i class="fa-solid fa-arrows-rotate text-warning"></i>
+                                    </button>
+                                    <a href="{% url 'contract_officer_detail' officer.pk %}" class="btn btn-outline-primary" title="មើលលម្អិត">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'contract_officer_print' officer.pk %}" target="_blank" class="btn btn-outline-success" title="បោះពុម្ពទម្រង់ជីវប្រវត្តិ A4">
+                                        <i class="fa-solid fa-print"></i>
+                                    </a>
+                                    <a href="{% url 'contract_officer_edit' officer.pk %}" class="btn btn-outline-secondary" title="កែប្រែ">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+                                    <!-- 🗑️ Delete Button (ADMIN ONLY) -->
+                                    {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+                                    <form method="POST" action="{% url 'contract_officer_delete' officer.pk %}" class="d-inline m-0" onsubmit="return confirm('⚠️ តើលោកអ្នកពិតជាចង់លុបមន្ត្រីជាប់កិច្ចសន្យា «{{ officer.full_name_kh|escapejs }}» (ឆ្នាំ {{ officer.contract_year }}) នេះចេញពីប្រព័ន្ធមែនទេ?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger" title="លុបទិន្នន័យ (ADMIN ប៉ុណ្ណោះ)">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="13" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="fa-solid fa-file-circle-question fa-3x text-secondary opacity-50 mb-3"></i>
+                                    <h5>មិនមានទិន្នន័យមន្ត្រីជាប់កិច្ចសន្យាឡើយ {% if year_filter %}សម្រាប់ឆ្នាំ {{ year_filter }}{% endif %}</h5>
+                                    <p class="small text-muted mb-3">សូមចុចប៊ូតុងខាងក្រោមដើម្បីចាប់ផ្តើមបញ្ចូលទិន្នន័យ ឬនាំចូលពីឯកសារ Word (.docx)</p>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#importDocxModal">
+                                            <i class="fa-solid fa-file-word me-1"></i> នាំចូលពី Word (.docx)
+                                        </button>
+                                        <a href="{% url 'contract_officer_create' %}" class="btn btn-primary btn-sm rounded-pill px-3 py-1.5">
+                                            <i class="fa-solid fa-user-plus me-1"></i> បញ្ចូលដោយដៃ
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+
+        {% if officers.has_other_pages %}
+        <!-- Pagination -->
+        <div class="card-footer bg-white py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2 border-top">
+            <span class="text-muted small">
+                ទំព័រទី <strong>{{ officers.number }}</strong> នៃ <strong>{{ officers.paginator.num_pages }}</strong> (សរុប {{ officers.paginator.count }} នាក់)
+            </span>
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm m-0">
+                    {% if officers.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ officers.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                            <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for p in officers.paginator.page_range %}
+                    {% if p == officers.number %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                    {% elif p > officers.number|add:"-3" and p < officers.number|add:"3" %}
+                    <li class="page-item"><a class="page-link" href="?page={{ p }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ p }}</a></li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if officers.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ officers.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                            បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 🔄 Modal: Single Officer Contract Renewal (បន្តកិច្ចសន្យាឆ្នាំថ្មីទោល) -->
+<div class="modal fade" id="singleRenewModal" tabindex="-1" aria-labelledby="singleRenewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" action="" id="singleRenewForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header bg-warning text-dark px-4 py-3 border-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-arrows-rotate fs-5"></i>
+                        <h6 class="modal-title fw-bold m-0" id="singleRenewModalLabel">អនុម័តបន្តកិច្ចសន្យាការងារឆ្នាំថ្មី</h6>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="bg-light p-3 rounded-3 border mb-3">
+                        <div class="fs-8 text-muted">ឈ្មោះមន្ត្រីជាប់កិច្ចសន្យា៖</div>
+                        <div class="fw-bold fs-6 text-dark" id="renewOfficerName">-</div>
+                        <div class="fs-8 text-muted mt-1">ឆ្នាំកិច្ចសន្យាបច្ចុប្បន្ន៖ <span class="badge bg-primary px-2" id="renewOfficerCurrentYear">-</span></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark required">បន្តទៅឆ្នាំកិច្ចសន្យាថ្មី (Target Year) <span class="text-danger">*</span></label>
+                        <select name="to_year" id="renewToYear" class="form-select fs-7 fw-bold border-warning" required>
+                            {% for y in available_years %}
+                            <option value="{{ y }}">{{ y }}</option>
+                            {% endfor %}
+                            <option value="{{ next_year }}">{{ next_year }}</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">លេខកិច្ចសន្យា/លេខលិខិតថ្មី</label>
+                        <input type="text" name="contract_number" id="renewContractNumber" class="form-control fs-7" placeholder="ឧ. ០៤៥/២៦ សសរ.កស">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-dark">កាលបរិច្ឆេទចាប់ផ្តើម</label>
+                            <input type="date" name="contract_start_date" id="renewStartDate" class="form-control fs-7">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-dark">កាលបរិច្ឆេទផុតកំណត់</label>
+                            <input type="date" name="contract_end_date" id="renewEndDate" class="form-control fs-7">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">ប្រាក់បៀវត្ស/ឧបត្ថម្ភថ្មី (រៀល)</label>
+                        <input type="number" step="0.01" name="salary" id="renewSalary" class="form-control fs-7" placeholder="ឧ. 1200000">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">ឯកសារកិច្ចសន្យាថ្មី (PDF/រូបភាព)</label>
+                        <input type="file" name="renewal_document" class="form-control fs-7" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small text-dark">កំណត់សម្គាល់បន្ថែម</label>
+                        <textarea name="remarks" class="form-control fs-7" rows="2" placeholder="ព័ត៌មានបន្ថែមពីការបន្ត..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-2.5 border-top">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fs-7 fw-bold text-dark shadow-xs">
+                        <i class="fa-solid fa-check me-1"></i> អនុម័តបន្តកិច្ចសន្យា
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 🔄 Modal: Batch Renewal for Selected Officers (បន្តកិច្ចសន្យាជាក្រុម) -->
+<div class="modal fade" id="batchRenewModal" tabindex="-1" aria-labelledby="batchRenewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" action="{% url 'contract_officer_batch_renew' %}" id="batchRenewForm">
+                {% csrf_token %}
+                <div id="batchRenewOfficerIdsContainer"></div>
+                <div class="modal-header bg-warning text-dark px-4 py-3 border-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-arrows-rotate fs-5"></i>
+                        <h6 class="modal-title fw-bold m-0" id="batchRenewModalLabel">បន្តកិច្ចសន្យាការងារជាក្រុម (Batch Renewal)</h6>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning border-0 rounded-3 small mb-3">
+                        <i class="fa-solid fa-circle-info me-1"></i>
+                        កំពុងបន្តកិច្ចសន្យាសម្រាប់មន្ត្រីចំនួន <strong class="selectedCount">0</strong> នាក់ដែលបានជ្រើសរើស។
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark required">បន្តទៅឆ្នាំកិច្ចសន្យាថ្មី (Target Year) <span class="text-danger">*</span></label>
+                        <select name="batch_to_year" class="form-select fs-7 fw-bold border-warning" required>
+                            <option value="{{ next_year }}" selected>ឆ្នាំ {{ next_year }}</option>
+                            <option value="{{ current_year }}">ឆ្នាំ {{ current_year }}</option>
+                            {% for y in available_years %}
+                            <option value="{{ y }}">ឆ្នាំ {{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">បុព្វបទលេខកិច្ចសន្យា (បើមាន)</label>
+                        <input type="text" name="batch_contract_prefix" class="form-control fs-7" placeholder="ឧ. កិច្ចសន្យាឆ្នាំ">
+                        <div class="fs-9 text-muted mt-1">ប្រព័ន្ធនឹងរក្សាទុកលេខកិច្ចសន្យាចាស់បើទុកប្រអប់នេះនៅទំនេរ</div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small text-dark">កំណត់សម្គាល់ការបន្តជាក្រុម</label>
+                        <textarea name="batch_remarks" class="form-control fs-7" rows="2" placeholder="ឧ. បានអនុម័តបន្តកិច្ចសន្យាជាក្រុមប្រចាំឆ្នាំ..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-2.5 border-top">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fs-7 fw-bold text-dark shadow-xs">
+                        <i class="fa-solid fa-check-double me-1"></i> អនុម័តបន្តជាក្រុម
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Batch Multi-File Import Contract Officer CVs from Word (.docx) -->
+<div class="modal fade" id="importDocxModal" tabindex="-1" aria-labelledby="importDocxModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" id="batchModalDialog">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="modal-header bg-primary text-white px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="bg-white bg-opacity-25 p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="fa-solid fa-file-word fs-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0" id="importDocxModalLabel">នាំចូលជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យាពី Word (.docx)</h6>
+                        <span class="fs-8 text-white-50">Auto-Extract & Populate Contract Civil Servant CVs (Drag & Drop)</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-link text-white text-decoration-none p-1 opacity-75 opacity-100-hover" id="batchFullscreenToggleBtn" onclick="toggleBatchFullscreen()" title="ពង្រីកពេញអេក្រង់ / បង្រួមមកវិញ">
+                        <i class="fa-solid fa-expand fs-6" id="batchFullscreenIcon"></i>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" id="batchModalCloseBtn" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                {% csrf_token %}
+                <!-- Info Alert -->
+                <div class="alert alert-info border-0 rounded-3 small mb-3 d-flex align-items-start gap-2.5 shadow-xs">
+                    <i class="fa-solid fa-circle-info fs-5 mt-0.5 text-info"></i>
+                    <div>
+                        <strong>ប្រព័ន្ធស្គាល់ទម្រង់ជីវប្រវត្តិរូបសង្ខេបមន្ត្រីជាប់កិច្ចសន្យា (ចំណុច ១ ដល់ ១១)</strong><br>
+                        លោកអ្នកអាច <strong>ទម្លាក់បញ្ចូល File Word មួយ ឬច្រើនក្នុងពេលតែមួយ (Multi-files)</strong> ដើម្បីឱ្យប្រព័ន្ធស្រង់ទិន្នន័យ និងរូបថត 4x6 ដោយស្វ័យប្រវត្តិ!
+                    </div>
+                </div>
+
+                <!-- Duplicate Handling Option Card -->
+                <div class="card border border-primary border-opacity-25 bg-light rounded-3 p-3 mb-3 shadow-xs" id="duplicateModeCard">
+                    <label class="form-label fw-bold small text-dark d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-code-compare text-primary"></i>
+                        <span>ជម្រើសពេលជួបមន្ត្រីដែលមានក្នុងប្រព័ន្ធរួច (ករណីដូចលេខសម្គាល់ ឬឈ្មោះ)៖</span>
+                    </label>
+                    <div class="d-flex flex-column flex-md-row gap-2 pt-1">
+                        <div class="form-check p-2 bg-white rounded-3 border flex-fill">
+                            <input class="form-check-input ms-1" type="radio" name="batchDuplicateMode" id="dupModeReview" value="review" checked>
+                            <label class="form-check-label small fw-bold text-dark ps-2 cursor-pointer" for="dupModeReview">
+                                🔍 ពិនិត្យទិន្នន័យខុសគ្នាជាមុនសិន
+                                <span class="d-block fs-8 text-muted fw-normal">បើទិន្នន័យដូចគ្នា មិនបញ្ចូលជាន់គ្នាទេ; បើខុសគ្នា ជូនដំណឹងឱ្យផ្ទៀងផ្ទាត់ & Update</span>
+                            </label>
+                        </div>
+                        <div class="form-check p-2 bg-white rounded-3 border flex-fill">
+                            <input class="form-check-input ms-1" type="radio" name="batchDuplicateMode" id="dupModeAutoUpdate" value="auto_update">
+                            <label class="form-check-label small fw-bold text-dark ps-2 cursor-pointer" for="dupModeAutoUpdate">
+                                🔄 Update ស្វ័យប្រវត្តិ
+                                <span class="d-block fs-8 text-muted fw-normal">Update ស្វ័យប្រវត្តិតែពេលមានទិន្នន័យថ្មីខុសពីចាស់</span>
+                            </label>
+                        </div>
+                        <div class="form-check p-2 bg-white rounded-3 border flex-fill">
+                            <input class="form-check-input ms-1" type="radio" name="batchDuplicateMode" id="dupModeSkip" value="skip">
+                            <label class="form-check-label small fw-bold text-dark ps-2 cursor-pointer" for="dupModeSkip">
+                                ⏭️ រំលង (Skip)
+                                <span class="d-block fs-8 text-muted fw-normal">រំលងមន្ត្រីដែលមានរួចហើយ មិនបញ្ចូល ឬកែប្រែអ្វីទាំងអស់</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🏢 Department Selector for Word Import -->
+                {% if is_admin_or_lead %}
+                <div class="card border border-primary border-opacity-25 bg-white rounded-3 p-3 mb-3 shadow-xs" id="batchDeptSelectGroup">
+                    <label class="form-label fw-bold text-dark d-flex align-items-center justify-content-between mb-2">
+                        <span class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-building-user text-primary fs-6"></i>
+                            <span>ជ្រើសរើសការិយាល័យ/អង្គភាពដែលត្រូវដាក់បញ្ចូល (Target Department)៖</span>
+                        </span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1 fs-9">កំណត់ដោយ ADMIN</span>
+                    </label>
+                    <select id="batchGlobalDeptSelect" class="form-select rounded-3 fs-7 fw-semibold border-primary border-opacity-50">
+                        <option value="">-- ស្វែងរកតាមអង្គភាពក្នុងឯកសារនីមួយៗដោយស្វ័យប្រវត្តិ (Auto-Detect) --</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}">
+                            🏢 {{ d.name_kh }} ({{ d.code }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <input type="hidden" id="batchGlobalDeptSelect" value="{{ dept.id }}">
+                <div class="alert alert-light border rounded-3 p-2.5 mb-3 d-flex align-items-center gap-2 fs-8">
+                    <i class="fa-solid fa-building-user text-primary"></i>
+                    <span>អង្គភាពដែលត្រូវដាក់បញ្ចូល៖ <strong class="text-primary">{{ dept.name_kh }}</strong></span>
+                </div>
+                {% endif %}
+
+                <!-- Multi-File Drag-and-Drop Zone -->
+                <div id="batchDropZone" class="border border-2 border-dashed border-primary border-opacity-50 rounded-4 p-4 text-center bg-light position-relative mb-3 cursor-pointer" style="transition: all 0.2s ease;">
+                    <i class="fa-solid fa-cloud-arrow-up fs-1 text-primary mb-2 d-block"></i>
+                    <h6 class="fw-bold text-dark mb-1">ចុចទីនេះ ឬទម្លាក់ File Word ជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យាចូលទីនេះ (.docx)</h6>
+                    <p class="text-muted fs-8 mb-0">លោកអ្នកអាច Select ជ្រើសរើស File Word ម្ដង ១០ ឬ ២០ ឯកសារបានយ៉ាងងាយស្រួល</p>
+                    <input type="file" id="batchDocxFileInput" multiple accept=".docx" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" onchange="handleFilesSelected(this.files)">
+                </div>
+
+                <!-- Live Upload & Progress Container (Hidden until files selected) -->
+                <div id="batchProgressContainer" class="d-none">
+                    <!-- Overall Progress Card -->
+                    <div class="card border-0 bg-light rounded-3 p-3 mb-3 shadow-xs">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-bold fs-7 text-dark">
+                                <i class="fa-solid fa-chart-pie text-primary me-1.5"></i>
+                                វឌ្ឍនភាពសរុប (Overall Progress): <span id="overallProgressText" class="text-primary font-monospace">0 / 0</span>
+                            </span>
+                            <span id="overallPercentBadge" class="badge bg-primary rounded-pill px-2.5 py-1">0%</span>
+                        </div>
+                        <div class="progress rounded-pill" style="height: 10px;">
+                            <div id="overallProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;"></div>
+                        </div>
+
+                        <div class="d-flex flex-wrap align-items-center gap-2 mt-2.5 fs-8">
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border">
+                                <i class="fa-solid fa-files me-1"></i> សរុប៖ <strong id="statTotalFiles">0</strong>
+                            </span>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                <i class="fa-solid fa-circle-plus me-1"></i> បញ្ចូលថ្មី៖ <strong id="statNewFiles">0</strong>
+                            </span>
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">
+                                <i class="fa-solid fa-circle-check me-1"></i> មានរួច (ដូចគ្នា)៖ <strong id="statIdenticalFiles">0</strong>
+                            </span>
+                            <span class="badge bg-warning bg-opacity-15 text-dark border border-warning border-opacity-25">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i> ខុសគ្នា/Update៖ <strong id="statDiffFiles">0</strong>
+                            </span>
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">
+                                <i class="fa-solid fa-circle-xmark me-1"></i> បរាជ័យ៖ <strong id="statErrorFiles">0</strong>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Per-File Live Table Container -->
+                    <div id="batchTableContainer" class="table-responsive rounded-3 border position-relative" style="min-height: 220px; max-height: 460px; overflow-y: auto; resize: vertical;">
+                        <table class="table table-hover align-middle mb-0 fs-8">
+                            <thead class="table-light sticky-top shadow-xs">
+                                <tr>
+                                    <th style="width: 40px;" class="text-center">#</th>
+                                    <th style="min-width: 220px;">ឈ្មោះឯកសារ (File Name)</th>
+                                    <th style="min-width: 180px;">មន្ត្រីដែលស្រង់បាន (Officer)</th>
+                                    <th style="min-width: 200px;">អង្គភាព & មុខតំណែង</th>
+                                    <th style="min-width: 160px;" class="text-center">ស្ថានភាព & សកម្មភាព</th>
+                                    <th style="width: 50px;" class="text-center">លុប</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batchFileTableBody">
+                                <!-- Dynamic rows generated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer bg-light px-4 py-3 border-0 d-flex align-items-center justify-content-between">
+                <div>
+                    <button type="button" id="batchClearBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-none" onclick="resetBatchUpload()">
+                        <i class="fa-solid fa-rotate-left me-1"></i> សម្អាតបញ្ជីទាំងអស់
+                    </button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-light rounded-pill px-3 fs-7" data-bs-dismiss="modal" id="batchCancelBtn">បិទ</button>
+                    <button type="button" id="startBatchUploadBtn" class="btn btn-primary rounded-pill px-4 fs-7 fw-bold shadow-sm d-none" onclick="startBatchProcessing()">
+                        <i class="fa-solid fa-play me-1.5"></i> ចាប់ផ្តើមនាំចូលទាំងអស់
+                    </button>
+                    <button type="button" id="batchDoneBtn" class="btn btn-success rounded-pill px-4 fs-7 fw-bold shadow-sm d-none" onclick="window.location.reload()">
+                        <i class="fa-solid fa-check-double me-1.5"></i> រួចរាល់ & មើលបញ្ជីមន្ត្រីថ្មី
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Diff Review & Decision -->
+<div class="modal fade" id="diffReviewModal" tabindex="-1" aria-labelledby="diffReviewModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" id="diffModalDialog">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header bg-warning text-dark px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation fs-5 text-dark"></i>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0" id="diffReviewModalLabel">ផ្ទៀងផ្ទាត់ទិន្នន័យខុសគ្នា (Data Difference Review)</h6>
+                        <span class="fs-8 text-muted">ប្រៀបធៀបទិន្នន័យបច្ចុប្បន្នក្នុងប្រព័ន្ធ ជាមួយទិន្នន័យថ្មីក្នុងឯកសារ Word</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-3 mb-3 border">
+                    <div>
+                        <strong class="d-block text-dark fs-7" id="diffOfficerName">-</strong>
+                        <span class="text-muted fs-8">លេខសម្គាល់៖ <strong id="diffOfficerId">-</strong></span>
+                    </div>
+                    <span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill fw-bold" id="diffCountBadge">0 ចំណុចខុសគ្នា</span>
+                </div>
+
+                <div class="table-responsive rounded-3 border" style="min-height: 240px; max-height: 460px; overflow-y: auto;">
+                    <table class="table table-bordered align-middle mb-0 fs-8">
+                        <thead class="table-light sticky-top shadow-xs">
+                            <tr>
+                                <th style="width: 25%;">ព័ត៌មាន/ទិន្នន័យ</th>
+                                <th style="width: 37%;" class="bg-secondary bg-opacity-10">ទិន្នន័យបច្ចុប្បន្ន (ក្នុងប្រព័ន្ធ)</th>
+                                <th style="width: 38%;" class="bg-warning bg-opacity-10 text-dark">ទិន្នន័យថ្មី (ក្នុងឯកសារ Word)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="diffTableBody">
+                            <!-- Dynamic Diff Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light px-4 py-3 border-0 d-flex align-items-center justify-content-between">
+                <button type="button" class="btn btn-light rounded-pill px-3 fs-7" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-xmark me-1"></i> រក្សាទុកទិន្នន័យចាស់ដដែល (មិនកែប្រែ)
+                </button>
+                <button type="button" id="confirmDiffUpdateBtn" class="btn btn-success rounded-pill px-4 fs-7 fw-bold shadow-sm" onclick="applyDiffUpdate()">
+                    <i class="fa-solid fa-floppy-disk me-1.5"></i> យល់ព្រម Update ទៅទិន្នន័យថ្មីនេះ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Open Single Officer Renewal Modal
+function openSingleRenewModal(id, name, currentYear, contractNum, positionTitle, workingUnit, salary) {
+    const form = document.getElementById('singleRenewForm');
+    if (!form) return;
+
+    form.action = `/contract-officers/${id}/renew/`;
+    document.getElementById('renewOfficerName').textContent = name || '-';
+    document.getElementById('renewOfficerCurrentYear').textContent = `ឆ្នាំ ${currentYear}`;
+    
+    const targetYear = parseInt(currentYear) + 1;
+    const toYearSelect = document.getElementById('renewToYear');
+    if (toYearSelect) {
+        // If option exists, select it, else add it
+        let found = false;
+        for (let opt of toYearSelect.options) {
+            if (opt.value == targetYear) {
+                opt.selected = true;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            const newOpt = new Option(targetYear, targetYear, true, true);
+            toYearSelect.add(newOpt);
+        }
+    }
+
+    document.getElementById('renewContractNumber').value = contractNum || '';
+    document.getElementById('renewStartDate').value = `${targetYear}-01-01`;
+    document.getElementById('renewEndDate').value = `${targetYear}-12-31`;
+    document.getElementById('renewSalary').value = salary || '';
+
+    const modal = new bootstrap.Modal(document.getElementById('singleRenewModal'));
+    modal.show();
+}
+
+// Selection, Bulk Delete & Batch Renew
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const officerCheckboxes = document.querySelectorAll('.officer-checkbox');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    const batchRenewBtn = document.getElementById('batchRenewBtn');
+    const selectedCountBadges = document.querySelectorAll('.selectedCount');
+
+    function updateBulkButton() {
+        const checkedCheckboxes = document.querySelectorAll('.officer-checkbox:checked');
+        const checkedCount = checkedCheckboxes.length;
+        
+        selectedCountBadges.forEach(el => el.textContent = checkedCount);
+
+        if (checkedCount > 0) {
+            if (bulkDeleteBtn) bulkDeleteBtn.classList.remove('d-none');
+            if (batchRenewBtn) batchRenewBtn.classList.remove('d-none');
+        } else {
+            if (bulkDeleteBtn) bulkDeleteBtn.classList.add('d-none');
+            if (batchRenewBtn) batchRenewBtn.classList.add('d-none');
+        }
+
+        // Populate hidden inputs in batch renew modal
+        const container = document.getElementById('batchRenewOfficerIdsContainer');
+        if (container) {
+            container.innerHTML = '';
+            checkedCheckboxes.forEach(cb => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'selected_officers';
+                hiddenInput.value = cb.value;
+                container.appendChild(hiddenInput);
+            });
+        }
+    }
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            officerCheckboxes.forEach(cb => cb.checked = this.checked);
+            updateBulkButton();
+        });
+    }
+
+    officerCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateBulkButton);
+    });
+
+    // Setup Drag-and-drop on batchDropZone
+    const dropZone = document.getElementById('batchDropZone');
+    if (dropZone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFilesSelected(files);
+        }, false);
+    }
+});
+
+// Batch Word Import Management
+let batchQueue = [];
+let isProcessing = false;
+let currentDiffIndex = null;
+let batchStats = { total: 0, newCount: 0, identical: 0, diffCount: 0, errors: 0 };
+
+function toggleBatchFullscreen() {
+    const dialog = document.getElementById('batchModalDialog');
+    const icon = document.getElementById('batchFullscreenIcon');
+    if (dialog.classList.contains('modal-fullscreen')) {
+        dialog.classList.remove('modal-fullscreen');
+        icon.className = 'fa-solid fa-expand fs-6';
+    } else {
+        dialog.classList.add('modal-fullscreen');
+        icon.className = 'fa-solid fa-compress fs-6';
+    }
+}
+
+function handleFilesSelected(files) {
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        if (!f.name.toLowerCase().endsWith('.docx')) continue;
+        
+        // Prevent exact duplicates in queue
+        if (batchQueue.some(item => item.file.name === f.name && item.file.size === f.size)) continue;
+
+        batchQueue.push({
+            id: 'batch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            file: f,
+            status: 'pending', // pending, processing, created, updated, identical, needs_review, skipped, error
+            officerName: '-',
+            deptPos: '-',
+            diffs: [],
+            message: ''
+        });
+    }
+
+    renderBatchTable();
+}
+
+function renderBatchTable() {
+    const tableBody = document.getElementById('batchFileTableBody');
+    const container = document.getElementById('batchProgressContainer');
+    const dropZone = document.getElementById('batchDropZone');
+    const startBtn = document.getElementById('startBatchUploadBtn');
+    const clearBtn = document.getElementById('batchClearBtn');
+    const doneBtn = document.getElementById('batchDoneBtn');
+
+    if (batchQueue.length === 0) {
+        container.classList.add('d-none');
+        startBtn.classList.add('d-none');
+        clearBtn.classList.add('d-none');
+        doneBtn.classList.add('d-none');
+        dropZone.classList.remove('d-none');
+        tableBody.innerHTML = '';
+        return;
+    }
+
+    container.classList.remove('d-none');
+    clearBtn.classList.remove('d-none');
+    if (!isProcessing && batchQueue.some(i => i.status === 'pending')) {
+        startBtn.classList.remove('d-none');
+    }
+
+    let html = '';
+    batchQueue.forEach((item, idx) => {
+        let statusBadge = '<span class="badge bg-secondary bg-opacity-25 text-dark"><i class="fa-regular fa-clock me-1"></i> រង់ចាំ</span>';
+        
+        if (item.status === 'processing') {
+            statusBadge = '<span class="badge bg-primary"><span class="spinner-border spinner-border-sm me-1"></span> កំពុងដំណើរការ...</span>';
+        } else if (item.status === 'created') {
+            statusBadge = '<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> បញ្ចូលថ្មីជោគជ័យ</span>';
+        } else if (item.status === 'updated') {
+            statusBadge = '<span class="badge bg-primary"><i class="fa-solid fa-rotate me-1"></i> បាន Update</span>';
+        } else if (item.status === 'identical') {
+            statusBadge = '<span class="badge bg-info text-dark"><i class="fa-solid fa-check-double me-1"></i> មានរួច (ដូចគ្នា)</span>';
+        } else if (item.status === 'skipped') {
+            statusBadge = '<span class="badge bg-secondary"><i class="fa-solid fa-forward me-1"></i> បានរំលង</span>';
+        } else if (item.status === 'needs_review') {
+            statusBadge = `<button type="button" class="btn btn-warning btn-sm py-0 px-2 fw-bold fs-9 rounded-pill" onclick="openDiffModal(${idx})"><i class="fa-solid fa-triangle-exclamation me-1"></i> ផ្ទៀងផ្ទាត់ (${item.diffs.length} ខុសគ្នា)</button>`;
+        } else if (item.status === 'error') {
+            statusBadge = `<span class="badge bg-danger text-wrap" title="${item.message}"><i class="fa-solid fa-circle-xmark me-1"></i> បរាជ័យ: ${item.message.substring(0, 30)}</span>`;
+        }
+
+        html += `
+        <tr>
+            <td class="text-center text-muted fw-bold">${idx + 1}</td>
+            <td>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-file-word text-primary fs-6"></i>
+                    <span class="fw-semibold text-dark text-truncate" style="max-width: 250px;" title="${item.file.name}">${item.file.name}</span>
+                </div>
+            </td>
+            <td><strong class="text-primary">${item.officerName}</strong></td>
+            <td><span class="text-muted small">${item.deptPos}</span></td>
+            <td class="text-center">${statusBadge}</td>
+            <td class="text-center">
+                ${item.status === 'pending' ? `<button type="button" class="btn btn-link text-danger p-0 fs-8" onclick="removeQueueItem(${idx})"><i class="fa-solid fa-xmark"></i></button>` : '-'}
+            </td>
+        </tr>
+        `;
+    });
+
+    tableBody.innerHTML = html;
+    updateBatchStats();
+}
+
+function removeQueueItem(idx) {
+    if (isProcessing) return;
+    batchQueue.splice(idx, 1);
+    renderBatchTable();
+}
+
+function resetBatchUpload() {
+    if (isProcessing) return;
+    batchQueue = [];
+    batchStats = { total: 0, newCount: 0, identical: 0, diffCount: 0, errors: 0 };
+    document.getElementById('batchDocxFileInput').value = '';
+    renderBatchTable();
+}
+
+function updateBatchStats() {
+    const total = batchQueue.length;
+    const processed = batchQueue.filter(i => i.status !== 'pending' && i.status !== 'processing').length;
+    const newCount = batchQueue.filter(i => i.status === 'created').length;
+    const identical = batchQueue.filter(i => i.status === 'identical').length;
+    const diffCount = batchQueue.filter(i => i.status === 'updated' || i.status === 'needs_review').length;
+    const errors = batchQueue.filter(i => i.status === 'error').length;
+
+    document.getElementById('statTotalFiles').textContent = total;
+    document.getElementById('statNewFiles').textContent = newCount;
+    document.getElementById('statIdenticalFiles').textContent = identical;
+    document.getElementById('statDiffFiles').textContent = diffCount;
+    document.getElementById('statErrorFiles').textContent = errors;
+
+    document.getElementById('overallProgressText').textContent = `${processed} / ${total}`;
+    const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+    document.getElementById('overallPercentBadge').textContent = percent + '%';
+    document.getElementById('overallProgressBar').style.width = percent + '%';
+}
+
+async function startBatchProcessing() {
+    if (isProcessing) return;
+    isProcessing = true;
+
+    document.getElementById('startBatchUploadBtn').classList.add('d-none');
+    document.getElementById('batchDropZone').classList.add('d-none');
+    document.getElementById('duplicateModeCard').classList.add('d-none');
+    document.getElementById('batchDeptSelectGroup').classList.add('d-none');
+
+    const dupMode = document.querySelector('input[name="batchDuplicateMode"]:checked').value;
+    const globalDept = document.getElementById('batchGlobalDeptSelect').value;
+
+    for (let i = 0; i < batchQueue.length; i++) {
+        const item = batchQueue[i];
+        if (item.status !== 'pending') continue;
+
+        item.status = 'processing';
+        renderBatchTable();
+
+        const formData = new FormData();
+        formData.append('docx_file', item.file);
+        formData.append('duplicate_mode', dupMode);
+        if (globalDept) formData.append('department', globalDept);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        formData.append('format', 'json');
+
+        try {
+            const resp = await fetch("{% url 'contract_officer_import_docx' %}", {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+            const res = await resp.json();
+
+            if (res.success) {
+                item.status = res.action; // created, updated, identical, needs_review, skipped
+                item.officerName = res.officer_name || '-';
+                item.message = res.message || '';
+                if (res.diffs) item.diffs = res.diffs;
+            } else {
+                item.status = 'error';
+                item.message = res.error || 'កំហុសមិនស្គាល់';
+            }
+        } catch (err) {
+            item.status = 'error';
+            item.message = err.message || 'Server error';
+        }
+
+        renderBatchTable();
+    }
+
+    isProcessing = false;
+    document.getElementById('batchDoneBtn').classList.remove('d-none');
+}
+
+function openDiffModal(idx) {
+    currentDiffIndex = idx;
+    const item = batchQueue[idx];
+    if (!item || !item.diffs) return;
+
+    document.getElementById('diffOfficerName').textContent = item.officerName;
+    document.getElementById('diffOfficerId').textContent = item.file.name;
+    document.getElementById('diffCountBadge').textContent = `${item.diffs.length} ចំណុចខុសគ្នា`;
+
+    let html = '';
+    item.diffs.forEach(d => {
+        html += `
+        <tr>
+            <td class="fw-bold text-dark">${d.label}</td>
+            <td class="text-secondary bg-light font-monospace">${d.old_val}</td>
+            <td class="text-success fw-bold bg-warning bg-opacity-10 font-monospace">${d.new_val}</td>
+        </tr>
+        `;
+    });
+    document.getElementById('diffTableBody').innerHTML = html;
+
+    const modal = new bootstrap.Modal(document.getElementById('diffReviewModal'));
+    modal.show();
+}
+
+async function applyDiffUpdate() {
+    if (currentDiffIndex === null) return;
+    const item = batchQueue[currentDiffIndex];
+    const globalDept = document.getElementById('batchGlobalDeptSelect').value;
+
+    const formData = new FormData();
+    formData.append('docx_file', item.file);
+    formData.append('duplicate_mode', 'auto_update');
+    formData.append('confirm_update', 'true');
+    if (globalDept) formData.append('department', globalDept);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    formData.append('format', 'json');
+
+    try {
+        const resp = await fetch("{% url 'contract_officer_import_docx' %}", {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        });
+        const res = await resp.json();
+        if (res.success) {
+            item.status = 'updated';
+            item.message = res.message;
+        } else {
+            item.status = 'error';
+            item.message = res.error;
+        }
+    } catch (e) {
+        item.status = 'error';
+        item.message = e.message;
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('diffReviewModal')).hide();
+    renderBatchTable();
+}
+
+function openContractTransferModal(officerId, officerName, currentUnit, positionTitle, currentDeptId) {
+    document.getElementById('quickTransferOfficerName').textContent = officerName;
+    document.getElementById('quickTransferCurrentUnit').value = currentUnit || 'គ្មាន';
+    document.getElementById('quickTransferWorkingUnit').value = currentUnit || '';
+    document.getElementById('quickTransferPositionTitle').value = positionTitle || 'មន្ត្រីជាប់កិច្ចសន្យា';
+    document.getElementById('quickTransferForm').action = `/contract-officers/${officerId}/transfer/`;
+    
+    const deptSelect = document.getElementById('quickTransferTargetDept');
+    if (deptSelect && currentDeptId) {
+        deptSelect.value = currentDeptId;
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('quickContractTransferModal'));
+    modal.show();
+}
+</script>
+
+<!-- 🏢 Modal: Quick Department Transfer for Contract Staff (ADMIN) -->
+{% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+<div class="modal fade" id="quickContractTransferModal" tabindex="-1" aria-labelledby="quickContractTransferModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" id="quickTransferForm" action="" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header text-white px-4 py-3 border-0" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="bg-white bg-opacity-20 p-2 rounded-circle">
+                            <i class="fa-solid fa-right-left text-white fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold m-0" id="quickContractTransferModalLabel">ផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ (មន្ត្រីជាប់កិច្ចសន្យា)</h5>
+                            <p class="fs-8 text-white text-opacity-75 m-0" id="quickTransferOfficerName">-</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4 bg-white">
+                    <div class="alert alert-primary bg-primary bg-opacity-10 border-0 rounded-3 p-3 mb-4 d-flex align-items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-primary mt-0.5"></i>
+                        <div class="fs-8 text-dark">
+                            <strong>កំណត់ចំណាំរដ្ឋបាល (Admin Transfer):</strong>
+                            ការផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌ នឹងធ្វើបច្ចុប្បន្នភាពទីតាំងបម្រើការងាររបស់មន្ត្រីជាប់កិច្ចសន្យា ហើយរក្សាទុកប្រវត្តិនៃការផ្លាស់ប្តូរ (Transfer Log) ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ការិយាល័យ/ខណ្ឌបច្ចុប្បន្ន</label>
+                            <input type="text" id="quickTransferCurrentUnit" class="form-control bg-light fs-7" readonly disabled>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ទៅកាន់ការិយាល័យ/ខណ្ឌថ្មី <span class="text-danger">*</span></label>
+                            <select name="target_department" id="quickTransferTargetDept" class="form-select fs-7" required>
+                                <option value="">-- សូមជ្រើសរើសការិយាល័យ/ខណ្ឌ --</option>
+                                {% for d in departments %}
+                                <option value="{{ d.id }}">{{ d.name_kh }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ឈ្មោះអង្គភាព/ការិយាល័យថ្មីជាក់ស្តែង (Working Unit)</label>
+                            <input type="text" name="working_unit" id="quickTransferWorkingUnit" class="form-control fs-7" placeholder="ឧ. ការិយាល័យរដ្ឋបាល-បុគ្គលិក">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">មុខតំណែងថ្មី (Position Title)</label>
+                            <input type="text" name="position_title" id="quickTransferPositionTitle" class="form-control fs-7" placeholder="ឧ. មន្ត្រីជាប់កិច្ចសន្យា">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">កាលបរិច្ឆេទចូលកាន់តំណែងថ្មី/ផ្ទេរ <span class="text-danger">*</span></label>
+                            <input type="date" name="transfer_date" class="form-control fs-7" value="{% now 'Y-m-d' %}" required>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">លេខលិខិតផ្ទេរ/បង្គាប់ការ/ចាត់តាំង</label>
+                            <input type="text" name="reference_letter_number" class="form-control fs-7" placeholder="ឧ. ០៤៥/២៦ សជណ...">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-8">ឯកសារលិខិតផ្ទេរភ្ជាប់ (PDF / រូបភាព)</label>
+                            <input type="file" name="transfer_document" class="form-control fs-7" accept=".pdf,image/*,.doc,.docx">
+                            <small class="text-muted fs-9">ភ្ជាប់ឯកសារលិខិតបង្គាប់ការ ឬសេចក្តីសម្រេចផ្ទេរការិយាល័យ</small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-8">មូលហេតុ ឬកំណត់សម្គាល់បន្ថែម</label>
+                            <textarea name="remarks" class="form-control fs-7" rows="2" placeholder="បញ្ជាក់មូលហេតុនៃការផ្លាស់ប្តូរការិយាល័យ..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-top">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fs-7" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fs-7 fw-bold shadow-xs">
+                        <i class="fa-solid fa-check me-1"></i> រក្សាទុក និងផ្លាស់ប្តូរការិយាល័យ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,596 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ប្រព័ន្ធគ្រប់គ្រងឯកសាររដ្ឋបាល (DMS){% endblock %}</title>
+
+    <!-- Google Khmer Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Siemreap&family=Moul&family=Battambang:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Custom Khmer Styling -->
+    <link rel="stylesheet" href="{% static 'dms/css/styles.css' %}">
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-landmark fa-2x text-warning mb-2"></i>
+                <h1 class="sidebar-title">ប្រព័ន្ធគ្រប់គ្រងឯកសារ</h1>
+                <div class="sidebar-subtitle">Document Management System</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <!-- 📊 ផ្ទាំងបញ្ជា -->
+                <div class="nav-item">
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="fa-solid fa-chart-pie text-light"></i>
+                        <span>ផ្ទាំងបញ្ជា (Dashboard)</span>
+                    </a>
+                </div>
+
+                <!-- 📁 គ្រប់គ្រងលិខិត (Collapsible Group) -->
+                {% with is_docs_active=request.resolver_match.url_name|default:'' %}
+                <div class="nav-group">
+                    <button class="nav-group-toggle {% if 'document' in is_docs_active or is_docs_active in 'inbound_documents,outbound_documents,reports' %}active-parent{% else %}collapsed{% endif %}" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#menuDocs" 
+                            aria-expanded="{% if 'document' in is_docs_active or is_docs_active in 'inbound_documents,outbound_documents,reports' %}true{% else %}false{% endif %}" 
+                            aria-controls="menuDocs">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-folder-open text-info"></i>
+                            <span>គ្រប់គ្រងលិខិត</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                    </button>
+                    <div class="collapse {% if 'document' in is_docs_active or is_docs_active in 'inbound_documents,outbound_documents,reports' %}show{% endif %}" id="menuDocs">
+                        <div class="nav-submenu">
+                            <a href="{% url 'inbound_documents' %}" class="submenu-link {% if request.resolver_match.url_name == 'inbound_documents' %}active{% endif %}">
+                                <i class="fa-solid fa-inbox text-info"></i>
+                                <span>លិខិតចូល (Inbound)</span>
+                            </a>
+                            <a href="{% url 'outbound_documents' %}" class="submenu-link {% if request.resolver_match.url_name == 'outbound_documents' %}active{% endif %}">
+                                <i class="fa-solid fa-paper-plane text-success"></i>
+                                <span>លិខិតចេញ (Outbound)</span>
+                            </a>
+                            <a href="{% url 'document_list' %}" class="submenu-link {% if request.resolver_match.url_name in 'document_list,document_create,document_detail,document_edit' %}active{% endif %}">
+                                <i class="fa-solid fa-folder-open text-info"></i>
+                                <span>ឯកសារទាំងអស់ (All)</span>
+                            </a>
+                            {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_view_reports %}
+                            <a href="{% url 'reports' %}" class="submenu-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+                                <i class="fa-solid fa-file-excel text-success"></i>
+                                <span>របាយការណ៍ (Reports)</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+
+                <!-- 👥 គ្រប់គ្រងមន្ត្រី (Collapsible Group) -->
+                {% with is_officer_active=request.resolver_match.url_name|default:'' %}
+                <div class="nav-group">
+                    <button class="nav-group-toggle {% if 'officer_' in is_officer_active or 'promotion' in is_officer_active or 'medal' in is_officer_active or 'retirement' in is_officer_active %}active-parent{% else %}collapsed{% endif %}" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#menuOfficers" 
+                            aria-expanded="{% if 'officer_' in is_officer_active or 'promotion' in is_officer_active or 'medal' in is_officer_active or 'retirement' in is_officer_active %}true{% else %}false{% endif %}" 
+                            aria-controls="menuOfficers">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-id-card-clip text-info"></i>
+                            <span>គ្រប់គ្រងមន្ត្រី</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                    </button>
+                    <div class="collapse {% if 'officer_' in is_officer_active or 'promotion' in is_officer_active or 'medal' in is_officer_active or 'retirement' in is_officer_active %}show{% endif %}" id="menuOfficers">
+                        <div class="nav-submenu">
+                            <a href="{% url 'officer_create' %}" class="submenu-link {% if request.resolver_match.url_name == 'officer_create' %}active{% endif %}">
+                                <i class="fa-solid fa-user-plus text-info"></i>
+                                <span>បញ្ចូលឈ្មោះមន្ត្រីថ្មី</span>
+                            </a>
+                            <a href="{% url 'officer_list' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_list,officer_detail,officer_edit,officer_print' %}active{% endif %}">
+                                <i class="fa-solid fa-id-card-clip text-info"></i>
+                                <span>បញ្ជីមន្ត្រី (Civil Servants)</span>
+                            </a>
+                            <a href="{% url 'officer_retirement' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_retirement,officer_retirement_export_excel' %}active{% endif %}">
+                                <i class="fa-solid fa-person-walking-luggage text-danger"></i>
+                                <span>មន្ត្រីចូលនិវត្តន៍ (Retirement)</span>
+                            </a>
+                            <a href="{% url 'officer_promotion' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_promotion,officer_promotion_export_excel' %}active{% endif %}">
+                                <i class="fa-solid fa-chart-line text-warning"></i>
+                                <span>ស្នើសុំដំឡើងថ្នាក់ & ឋានន្តរស័ក្តិ</span>
+                            </a>
+                            <a href="{% url 'officer_medals' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_medals,officer_medals_export_excel' %}active{% endif %}">
+                                <i class="fa-solid fa-medal text-success"></i>
+                                <span>ស្នើសុំមេដាយ & គ្រឿងឥស្សរិយយស</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+
+                <!-- 📝 មន្ត្រីជាប់កិច្ចសន្យា (Collapsible Group) -->
+                {% if can_view_contract_officers_menu %}
+                {% with is_contract_active=request.resolver_match.url_name|default:'' %}
+                <div class="nav-group">
+                    <button class="nav-group-toggle {% if 'contract_officer' in is_contract_active %}active-parent{% else %}collapsed{% endif %}" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#menuContractStaff" 
+                            aria-expanded="{% if 'contract_officer' in is_contract_active %}true{% else %}false{% endif %}" 
+                            aria-controls="menuContractStaff">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-file-signature text-warning"></i>
+                            <span>មន្ត្រីជាប់កិច្ចសន្យា</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                    </button>
+                    <div class="collapse {% if 'contract_officer' in is_contract_active %}show{% endif %}" id="menuContractStaff">
+                        <div class="nav-submenu">
+                            <a href="{% url 'contract_officer_create' %}" class="submenu-link {% if request.resolver_match.url_name == 'contract_officer_create' %}active{% endif %}">
+                                <i class="fa-solid fa-user-plus text-warning"></i>
+                                <span>បញ្ចូលមន្ត្រីកិច្ចសន្យាថ្មី</span>
+                            </a>
+                            <a href="{% url 'contract_officer_list' %}" class="submenu-link {% if request.resolver_match.url_name in 'contract_officer_list,contract_officer_detail,contract_officer_edit,contract_officer_print' %}active{% endif %}">
+                                <i class="fa-solid fa-file-signature text-warning"></i>
+                                <span>បញ្ជីឈ្មោះមន្ត្រីជាប់កិច្ចសន្យាទាំងអស់</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endif %}
+
+                <!-- 🚗 គ្រប់គ្រងទ្រព្យរដ្ឋ (Collapsible Group) -->
+                {% with is_veh_active=request.resolver_match.url_name|default:'' %}
+                <div class="nav-group">
+                    <button class="nav-group-toggle {% if 'vehicle' in is_veh_active %}active-parent{% else %}collapsed{% endif %}" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#menuVehicles" 
+                            aria-expanded="{% if 'vehicle' in is_veh_active %}true{% else %}false{% endif %}" 
+                            aria-controls="menuVehicles">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-car-side text-info"></i>
+                            <span>គ្រប់គ្រងទ្រព្យរដ្ឋ</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1.5">
+                            {% if pending_vehicle_requests_count > 0 %}
+                            <span class="badge bg-danger rounded-pill fs-9">{{ pending_vehicle_requests_count }}</span>
+                            {% endif %}
+                            <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                        </div>
+                    </button>
+                    <div class="collapse {% if 'vehicle' in is_veh_active %}show{% endif %}" id="menuVehicles">
+                        <div class="nav-submenu">
+                            <a href="{% url 'vehicle_request_list' %}" class="submenu-link {% if 'vehicle_request' in request.resolver_match.url_name %}active{% endif %} d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fa-solid fa-car-side text-info"></i>
+                                    <span>ពាក្យសុំខ្ចីរថយន្ត/ម៉ូតូ</span>
+                                </div>
+                                {% if pending_vehicle_requests_count > 0 %}
+                                <span class="badge bg-danger rounded-pill">{{ pending_vehicle_requests_count }}</span>
+                                {% endif %}
+                            </a>
+                            {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.is_leadership or user_profile.department.code in 'ADMIN,GEN_AFFAIRS,GAD,LEAD' %}
+                            <a href="{% url 'vehicle_list' %}" class="submenu-link {% if request.resolver_match.url_name in 'vehicle_list,vehicle_create,vehicle_edit' %}active{% endif %}">
+                                <i class="fa-solid fa-motorcycle text-success"></i>
+                                <span>បញ្ជីរថយន្ត & ម៉ូតូ</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+
+                <!-- ⚙️ គ្រប់គ្រងទូទៅ (Collapsible Group) -->
+                {% if user.is_superuser or user.username|upper == 'ADMIN' %}
+                {% with is_admin_active=request.resolver_match.url_name|default:'' %}
+                <div class="nav-group">
+                    <button class="nav-group-toggle {% if 'user_' in is_admin_active or 'department' in is_admin_active or is_admin_active == 'officer_audit_trail' or 'geography' in is_admin_active %}active-parent{% else %}collapsed{% endif %}" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#menuAdmin" 
+                            aria-expanded="{% if 'user_' in is_admin_active or 'department' in is_admin_active or is_admin_active == 'officer_audit_trail' or 'geography' in is_admin_active %}true{% else %}false{% endif %}" 
+                            aria-controls="menuAdmin">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-users-gear text-info"></i>
+                            <span>គ្រប់គ្រងទូទៅ</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1.5">
+                            {% if pending_users_count > 0 %}
+                            <span class="badge bg-danger rounded-pill fs-9">{{ pending_users_count }}</span>
+                            {% endif %}
+                            <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                        </div>
+                    </button>
+                    <div class="collapse {% if 'user_' in is_admin_active or 'department' in is_admin_active or is_admin_active == 'officer_audit_trail' or 'geography' in is_admin_active %}show{% endif %}" id="menuAdmin">
+                        <div class="nav-submenu">
+                            <a href="{% url 'user_approvals' %}" class="submenu-link {% if request.resolver_match.url_name in 'user_approvals,user_edit' %}active{% endif %} d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fa-solid fa-users-gear text-info"></i>
+                                    <span>គ្រប់គ្រង User & Password</span>
+                                </div>
+                                {% if pending_users_count > 0 %}
+                                <span class="badge bg-danger rounded-pill">{{ pending_users_count }}</span>
+                                {% endif %}
+                            </a>
+                            <a href="{% url 'department_list_manage' %}" class="submenu-link {% if 'department' in request.resolver_match.url_name %}active{% endif %}">
+                                <i class="fa-solid fa-sitemap text-info"></i>
+                                <span>រចនាសម្ព័ន្ធការិយាល័យ</span>
+                            </a>
+                            <a href="{% url 'officer_audit_trail' %}" class="submenu-link {% if request.resolver_match.url_name == 'officer_audit_trail' %}active{% endif %}">
+                                <i class="fa-solid fa-clock-rotate-left text-warning"></i>
+                                <span>Audit Log មន្ត្រី & ឯកសារ</span>
+                            </a>
+                            <a href="{% url 'geography_manage' %}" class="submenu-link {% if 'geography' in request.resolver_match.url_name %}active{% endif %}">
+                                <i class="fa-solid fa-map-location-dot text-success"></i>
+                                <span>គ្រប់គ្រង ស្រុក-ឃុំ-ភូមិ</span>
+                            </a>
+                            <a href="/admin/" target="_blank" class="submenu-link text-warning">
+                                <i class="fa-solid fa-user-shield text-warning"></i>
+                                <span>ផ្ទាំង Admin (Django)</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endif %}
+
+                <!-- 💬 Live Chat ផ្ទៃក្នុង -->
+                <div class="nav-item mt-1">
+                    <a href="{% url 'live_chat' %}" class="nav-link {% if request.resolver_match.url_name == 'live_chat' %}active{% endif %} d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-comments text-warning"></i>
+                            <span>Live Chat ផ្ទៃក្នុង</span>
+                        </div>
+                        <span id="chatNavBadge" class="badge bg-danger rounded-pill d-none fs-9"></span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="p-3 border-top border-secondary border-opacity-25 fs-8 text-white-50 text-center">
+                <div class="mb-1 text-white-50">អភិវឌ្ឍន៍ដោយ៖ <strong class="text-white">លោក យ៉ន សាយ៉ាន់ដារ៉ា</strong></div>
+                <a href="https://t.me/SayanndaraYornDaffpl" target="_blank" class="badge bg-info text-white text-decoration-none rounded-pill px-2.5 py-1" style="background-color: #229ED9 !important;">
+                    <i class="fa-brands fa-telegram me-1"></i> Telegram: @SayanndaraYornDaffpl
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            {% if is_impersonating %}
+            <!-- 🛠️ Dev Impersonation Active Banner -->
+            <div class="bg-dark text-white px-4 py-2.5 d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom border-warning border-3 shadow-sm" style="background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);">
+                <div class="d-flex align-items-center gap-2 fs-7">
+                    <span class="badge bg-warning text-dark fw-bold px-2 py-1 shadow-xs">
+                        <i class="fa-solid fa-code me-1"></i> DEV MODE
+                    </span>
+                    <span>
+                        កំពុង Switch មើលជា User៖ <strong class="text-warning">{{ user.get_full_name|default:user.username }}</strong> 
+                        <span class="text-white-50 font-monospace">(@{{ user.username }})</span> &bull;
+                        <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-50">{{ user_profile.get_role_display|default:"User" }}</span> &bull;
+                        <span class="text-light">{{ user_profile.department.name_kh|default:"គ្មានការិយាល័យ" }}</span>
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-light dropdown-toggle py-1 px-3 rounded-pill fs-8 shadow-sm" type="button" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-arrow-right-arrow-left me-1 text-warning"></i> ប្តូរ User ផ្សេង (Dev)
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-2 rounded-3" style="min-width: 280px; max-height: 380px; overflow-y: auto;">
+                            <li class="dropdown-header small text-muted px-2 py-1"><i class="fa-solid fa-shuffle me-1"></i> ជ្រើសរើស User ដើម្បី Switch</li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% for u in all_dev_users %}
+                            <li>
+                                <a class="dropdown-item py-1.5 px-2 rounded-2 fs-8 d-flex align-items-center justify-content-between {% if u.id == user.id %}active bg-success text-white{% endif %}" href="{% url 'dev_switch_user' u.id %}">
+                                    <div>
+                                        <div class="fw-bold">{{ u.get_full_name|default:u.username }}</div>
+                                        <small class="{% if u.id == user.id %}text-white-50{% else %}text-muted{% endif %}">@{{ u.username }} &bull; {{ u.profile.get_role_display|default:"User" }}</small>
+                                    </div>
+                                    {% if u.id == user.id %}
+                                    <span class="badge bg-white text-success rounded-pill fs-9 ms-1">Active</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <a href="{% url 'dev_switch_back_admin' %}" class="btn btn-sm btn-warning text-dark fw-bold py-1 px-3 rounded-pill shadow-sm fs-8">
+                        <i class="fa-solid fa-user-shield me-1"></i> ត្រឡប់ទៅ ADMIN វិញ
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <div class="d-flex align-items-center gap-3">
+                    <h5 class="m-0 fw-bold text-success d-none d-md-block">
+                        <i class="fa-solid fa-building-columns me-2"></i>
+                        {{ user_profile.department.name_kh|default:"មន្ទីររដ្ឋបាល" }}
+                    </h5>
+                </div>
+
+                <!-- Right Actions -->
+                <div class="user-nav-actions">
+                    {% if user.is_superuser or user.username|upper == 'ADMIN' or is_impersonating %}
+                    <!-- ⚡ Dev Mode Switch User Button in Header -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1.5 shadow-sm dropdown-toggle d-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" title="Dev: Switch to User">
+                            <i class="fa-solid fa-code text-warning"></i>
+                            <span class="fs-8 fw-bold">Dev: Switch User</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-2 rounded-3" style="min-width: 280px; max-height: 400px; overflow-y: auto;">
+                            <li class="dropdown-header small text-muted px-2 py-1">
+                                <i class="fa-solid fa-shuffle me-1"></i> ជ្រើសរើស User ដើម្បី Switch (Dev)
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% for u in all_dev_users %}
+                            <li>
+                                <a class="dropdown-item py-2 px-2.5 rounded-2 fs-7 d-flex align-items-center justify-content-between {% if u.id == user.id %}active bg-success text-white{% endif %}" href="{% url 'dev_switch_user' u.id %}">
+                                    <div>
+                                        <div class="fw-bold">{{ u.get_full_name|default:u.username }}</div>
+                                        <div class="small {% if u.id == user.id %}text-white-50{% else %}text-muted{% endif %}">@{{ u.username }} &bull; {{ u.profile.get_role_display|default:"User" }}</div>
+                                    </div>
+                                    {% if u.id == user.id %}
+                                    <span class="badge bg-white text-success rounded-pill fs-9 ms-1">Active</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            {% endfor %}
+                            {% if is_impersonating %}
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <a class="dropdown-item py-2 px-2.5 rounded-2 fs-7 text-warning fw-bold bg-dark text-center" href="{% url 'dev_switch_back_admin' %}">
+                                    <i class="fa-solid fa-user-shield me-1"></i> ត្រឡប់ទៅ ADMIN វិញ
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <!-- Notification Bell Dropdown -->
+                    <div class="dropdown">
+                        <button class="notif-bell-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-regular fa-bell text-secondary fs-5"></i>
+                            {% if unread_notifications_count > 0 %}
+                            <span class="notif-badge">{{ unread_notifications_count }}</span>
+                            {% endif %}
+                        </button>
+
+                        <div class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="width: 340px; max-height: 420px; overflow-y: auto;">
+                            <div class="d-flex align-items-center justify-content-between px-2 py-1 border-bottom">
+                                <strong class="fs-6">សារជូនដំណឹង (Notifications)</strong>
+                                {% if unread_notifications_count > 0 %}
+                                <a href="{% url 'mark_all_notifications_read' %}" class="btn btn-sm btn-link text-decoration-none p-0 fs-7">អានទាំងអស់</a>
+                                {% endif %}
+                            </div>
+
+                            {% if recent_notifications %}
+                                {% for n in recent_notifications %}
+                                <a href="{% url 'mark_notification_read' n.pk %}" class="dropdown-item py-2 px-2 border-bottom rounded my-1 text-wrap">
+                                    <div class="fw-bold text-dark fs-7 mb-1">{{ n.title }}</div>
+                                    <div class="text-secondary fs-7">{{ n.message|truncatechars:80 }}</div>
+                                    <div class="text-muted fs-8 mt-1 text-end"><i class="fa-regular fa-clock me-1"></i>{{ n.created_at|timesince }} មុន</div>
+                                </a>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center text-muted py-4 fs-7">គ្មានសារជូនដំណឹងថ្មីឡើយ</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- User Profile Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-light d-flex align-items-center gap-2 border rounded-pill px-3 py-1.5 shadow-sm" type="button" data-bs-toggle="dropdown">
+                            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 34px; height: 34px;">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                            <div class="text-start d-none d-sm-block">
+                                <div class="fw-bold text-dark fs-7">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="text-muted fs-8">{{ user_profile.get_role_display|default:"អ្នកប្រើប្រាស់" }}</div>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-muted fs-8 ms-1"></i>
+                        </button>
+
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3 p-2" style="min-width: 230px;">
+                            <li class="px-3 py-2 border-bottom mb-1">
+                                <div class="fw-bold text-dark fs-7">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="small text-muted">@{{ user.username }}</div>
+                                <div class="badge bg-success bg-opacity-10 text-success mt-1">{{ user_profile.get_role_display|default:"អ្នកប្រើប្រាស់" }}</div>
+                            </li>
+                            {% if is_impersonating %}
+                            <li>
+                                <a class="dropdown-item fs-7 py-2 rounded-2 text-warning bg-dark fw-bold" href="{% url 'dev_switch_back_admin' %}">
+                                    <i class="fa-solid fa-user-shield me-2"></i>ត្រឡប់ទៅ ADMIN វិញ
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% endif %}
+                            {% if user.is_superuser or user.username|upper == 'ADMIN' %}
+                            <li>
+                                <a class="dropdown-item fs-7 py-2 rounded-2" href="{% url 'user_approvals' %}">
+                                    <i class="fa-solid fa-users-gear text-success me-2"></i>គ្រប់គ្រង User & Password
+                                    {% if pending_users_count > 0 %}
+                                    <span class="badge bg-danger rounded-pill float-end">{{ pending_users_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item fs-7 py-2 rounded-2" href="{% url 'department_list_manage' %}">
+                                    <i class="fa-solid fa-sitemap text-primary me-2"></i>រចនាសម្ព័ន្ធការិយាល័យ
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item fs-7 py-2 rounded-2" href="/admin/" target="_blank">
+                                    <i class="fa-solid fa-user-shield text-warning me-2"></i>Django Admin
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% endif %}
+                            <li>
+                                <a class="dropdown-item text-danger fs-7 py-2 rounded-2" href="{% url 'logout' %}">
+                                    <i class="fa-solid fa-right-from-bracket me-2"></i>ចាកចេញពីប្រព័ន្ធ (Logout)
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Alerts Banner -->
+            <div class="px-4 pt-3">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm border-0" role="alert">
+                            <i class="fa-solid fa-circle-check me-2"></i> {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Page Body Content -->
+            <div class="content-body">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Real-time Live Chat Toast Notification Popup Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090;" id="chatLiveToastContainer"></div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Global Real-Time Chat Notification Engine -->
+    {% if user.is_authenticated %}
+    <script>
+        (function() {
+            let lastSeenChatId = parseInt(localStorage.getItem('dms_last_chat_id') || '0');
+            const toastContainer = document.getElementById('chatLiveToastContainer');
+            const chatNavBadge = document.getElementById('chatNavBadge');
+            let isFirstLoad = true;
+
+            // Audio Notification Chime (Web Audio API Synthesizer)
+            function playNotificationSound() {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.35);
+                } catch(e) {}
+            }
+
+            function spawnChatToast(msg) {
+                if (!toastContainer) return;
+
+                // Don't show toast if user is already inside chat room
+                if (window.location.pathname.includes('/chat/')) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const currentRoom = urlParams.get('room') || 'all';
+                    if (msg.room_url && msg.room_url.includes(`room=${currentRoom}`)) {
+                        return;
+                    }
+                }
+
+                const toastEl = document.createElement('div');
+                toastEl.className = 'toast show shadow-lg border-0 rounded-4 overflow-hidden mb-2 animate__animated animate__fadeInUp';
+                toastEl.setAttribute('role', 'alert');
+                toastEl.setAttribute('aria-live', 'assertive');
+                toastEl.setAttribute('aria-atomic', 'true');
+                toastEl.setAttribute('data-bs-autohide', 'false');
+
+                toastEl.innerHTML = `
+                    <div class="toast-header bg-success text-white border-0 py-2">
+                        <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center fw-bold me-2" style="width: 24px; height: 24px; font-size: 11px;">
+                            <i class="fa-solid fa-comments"></i>
+                        </div>
+                        <strong class="me-auto fs-7">សារឆាតពី ${msg.sender_dept}</strong>
+                        <small class="text-white-50">${msg.time}</small>
+                        <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body p-3 bg-white">
+                        <div class="d-flex align-items-center gap-1.5 mb-1.5">
+                            <strong class="text-dark fs-7">${msg.sender_name}</strong>
+                            ${msg.sender_position ? `<span class="badge bg-secondary bg-opacity-10 text-secondary fs-9 py-0.5">${msg.sender_position}</span>` : ''}
+                        </div>
+                        <div class="text-secondary fs-7 text-truncate mb-3" style="max-width: 280px;">${msg.text}</div>
+                        <div class="d-flex gap-2">
+                            <a href="${msg.room_url}" class="btn btn-sm btn-success rounded-pill px-3 fs-8 fw-semibold">
+                                <i class="fa-solid fa-reply me-1"></i> បើកមើល & ឆ្លើយតប
+                            </a>
+                            <button type="button" class="btn btn-sm btn-light rounded-pill px-3 fs-8" data-bs-dismiss="toast">បិទ</button>
+                        </div>
+                    </div>
+                `;
+
+                toastContainer.appendChild(toastEl);
+                playNotificationSound();
+
+                // Auto dismiss toast after 10 seconds
+                setTimeout(() => {
+                    if (toastEl && toastEl.parentElement) {
+                        toastEl.remove();
+                    }
+                }, 10000);
+            }
+
+            function checkChatNotifications() {
+                fetch(`{% url 'check_new_chat_notifications_api' %}?after_id=${lastSeenChatId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (data.new_messages && data.new_messages.length > 0) {
+                            data.new_messages.forEach(msg => {
+                                spawnChatToast(msg);
+                            });
+
+                            if (chatNavBadge) {
+                                chatNavBadge.innerText = data.new_messages.length;
+                                chatNavBadge.classList.remove('d-none');
+                            }
+                        }
+
+                        if (data.latest_id > lastSeenChatId) {
+                            lastSeenChatId = data.latest_id;
+                            localStorage.setItem('dms_last_chat_id', lastSeenChatId.toString());
+                        }
+                    }
+                    isFirstLoad = false;
+                })
+                .catch(err => {});
+            }
+
+            // Check immediately on page load
+            checkChatNotifications();
+
+            // Poll every 4 seconds
+            setInterval(checkChatNotifications, 4000);
+        })();
+    </script>
+    {% endif %}
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

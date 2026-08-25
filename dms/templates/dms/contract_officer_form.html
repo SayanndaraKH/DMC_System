@@ -1,0 +1,799 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}{% if is_edit %}កែប្រែជីវប្រវត្តិកិច្ចសន្យា៖ {{ contract_officer.full_name_kh }}{% else %}បញ្ចូលជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យាថ្មី{% endif %} - ប្រព័ន្ធគ្រប់គ្រងឯកសារ{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Top Action Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% if is_edit %}{% url 'contract_officer_detail' contract_officer.pk %}{% else %}{% url 'contract_officer_list' %}{% endif %}" class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 42px; height: 42px;">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold m-0 text-dark">
+                    {% if is_edit %}
+                    កែប្រែជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យា៖ <span class="text-primary">{{ contract_officer.full_name_kh }}</span>
+                    {% else %}
+                    បញ្ចូលជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យាថ្មី (Contract Staff Profile)
+                    {% endif %}
+                </h4>
+                <p class="text-muted small m-0">បំពេញព័ត៌មានតាមទម្រង់ «ជីវប្រវត្តិរូបសង្ខេប» ស្តង់ដាររដ្ឋបាលផ្លូវការ</p>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button type="submit" form="contractOfficerForm" name="save_action" value="save_and_continue" class="btn btn-primary rounded-pill px-3.5 py-2 fw-bold shadow-sm">
+                <i class="fa-solid fa-floppy-disk me-1.5"></i> រក្សាទុក & បន្តបញ្ចូល
+            </button>
+            <button type="submit" form="contractOfficerForm" name="save_action" value="save_and_close" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm">
+                <i class="fa-solid fa-circle-check me-1.5"></i> រក្សាទុក & បញ្ចប់
+            </button>
+        </div>
+    </div>
+
+    {% if not is_edit %}
+    <!-- Auto-Import from Word Banner -->
+    <div class="card border-primary border-opacity-25 bg-primary bg-opacity-10 rounded-4 p-3 mb-4 shadow-sm">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary text-white p-3 rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 46px; height: 46px;">
+                    <i class="fa-solid fa-file-word fs-4"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-primary m-0 mb-0.5">នាំចូលទិន្នន័យស្វ័យប្រវត្តិពីឯកសារ Word (.docx)</h6>
+                    <p class="text-secondary small m-0">ប្រសិនបើលោកអ្នកមានឯកសារជីវប្រវត្តិរូបសង្ខេបមន្ត្រីកិច្ចសន្យាជា File Word លោកអ្នកអាច Upload ដើម្បីឱ្យប្រព័ន្ធស្រង់ទិន្នន័យ និងរូបថតដោយស្វ័យប្រវត្តិ។</p>
+                </div>
+            </div>
+            <form method="POST" action="{% url 'contract_officer_import_docx' %}" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
+                {% csrf_token %}
+                <input type="file" name="docx_file" accept=".docx" class="form-control form-control-sm rounded-pill fs-8" required style="max-width: 250px;">
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 py-1.5 fw-bold text-nowrap shadow-xs">
+                    <i class="fa-solid fa-bolt me-1"></i> ស្រង់ទិន្នន័យ
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Form Container -->
+    <form method="POST" id="contractOfficerForm" enctype="multipart/form-data" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        <div class="row g-4">
+            <!-- Left Side: Main Form Fields (Sections ក, ខ, គ) -->
+            <div class="col-12 col-lg-8 col-xl-9">
+
+                <!-- Section ក. ព័ត៌មានផ្ទាល់ខ្លួន -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary bg-opacity-10 text-primary p-2 rounded-circle">
+                                <i class="fa-solid fa-user-tag fs-6"></i>
+                            </span>
+                            <h5 class="fw-bold m-0 text-dark">ក. ព័ត៌មានផ្ទាល់ខ្លួន (Personal Information)</h5>
+                        </div>
+                        <span class="badge bg-light text-secondary border fs-8">ចំណុច ១ ដល់ ៨</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <!-- 1. ឈ្មោះ & ភេទ & សញ្ជាតិ -->
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">១. គោត្តនាម (ខ្មែរ) <span class="text-danger">*</span></label>
+                                <input type="text" name="khmer_last_name" value="{% if is_edit %}{{ contract_officer.khmer_last_name }}{% endif %}" class="form-control" placeholder="ឧ. ស៊ុន" required>
+                                <div class="invalid-feedback">សូមបញ្ចូលគោត្តនាម</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">នាមខ្លួន (ខ្មែរ) <span class="text-danger">*</span></label>
+                                <input type="text" name="khmer_first_name" value="{% if is_edit %}{{ contract_officer.khmer_first_name }}{% endif %}" class="form-control" placeholder="ឧ. វណ្ណា" required>
+                                <div class="invalid-feedback">សូមបញ្ចូលនាមខ្លួន</div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label fw-bold small text-dark">ភេទ <span class="text-danger">*</span></label>
+                                <select name="gender" class="form-select" required>
+                                    <option value="MALE" {% if is_edit and contract_officer.gender == 'MALE' %}selected{% endif %}>ប្រុស</option>
+                                    <option value="FEMALE" {% if is_edit and contract_officer.gender == 'FEMALE' %}selected{% endif %}>ស្រី</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label fw-bold small text-dark">សញ្ជាតិ</label>
+                                <input type="text" name="nationality" value="{% if is_edit %}{{ contract_officer.nationality }}{% else %}ខ្មែរ{% endif %}" class="form-control" placeholder="ខ្មែរ">
+                            </div>
+
+                            <!-- 2. អក្សរពុម្ពឡាតាំង & ជនជាតិ -->
+                            <div class="col-12 col-md-8">
+                                <label class="form-label fw-bold small text-dark">២. អក្សរពុម្ពឡាតាំង (Latin Name)</label>
+                                <input type="text" name="latin_name" value="{% if is_edit %}{{ contract_officer.latin_name }}{% endif %}" class="form-control font-monospace text-uppercase" placeholder="ឧ. SUN VANNA">
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">ជនជាតិ (Ethnicity)</label>
+                                <input type="text" name="ethnicity" value="{% if is_edit %}{{ contract_officer.ethnicity }}{% else %}ខ្មែរ{% endif %}" class="form-control" placeholder="ខ្មែរ">
+                            </div>
+
+                            <!-- 3. ថ្ងៃខែឆ្នាំកំណើត -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-dark">៣. ថ្ងៃខែឆ្នាំកំណើត (Date of Birth) <span class="text-danger">*</span></label>
+                                <input type="text" name="dob" value="{% if is_edit %}{{ contract_officer.dob }}{% endif %}" class="form-control" placeholder="ឧ. ០១-០១-១៩៩០ ឬ 15/05/1992" required>
+                                <small class="text-muted fs-9">អាចវាយជាទម្រង់ ថ្ងៃ-ខែ-ឆ្នាំ (ខ្មែរ ឬ អង់គ្លេស)</small>
+                            </div>
+
+                            <!-- 7. ឯកសារសម្គាល់ខ្លួន: អត្តសញ្ញាណប័ណ្ណ ឬ លិខិតឆ្លងដែន -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-dark">៧. ឯកសារសម្គាល់ខ្លួន (ID Card / Passport)</label>
+                                <div class="input-group">
+                                    <select name="id_type" class="form-select flex-grow-0" style="width: 170px;" id="idTypeSelect">
+                                        <option value="NATIONAL_ID" {% if not is_edit or contract_officer.id_type == 'NATIONAL_ID' %}selected{% endif %}>អត្តសញ្ញាណប័ណ្ណ</option>
+                                        <option value="PASSPORT" {% if is_edit and contract_officer.id_type == 'PASSPORT' %}selected{% endif %}>លិខិតឆ្លងដែន</option>
+                                    </select>
+                                    <input type="text" name="id_number" value="{% if is_edit %}{{ contract_officer.id_number }}{% endif %}" class="form-control font-monospace" placeholder="លេខសម្គាល់ ឧ. 012345678">
+                                </div>
+                            </div>
+
+                            <!-- 4. ទីកន្លែងកំណើត (Place of Birth) -->
+                            <div class="col-12">
+                                <div class="p-3 bg-light rounded-4 border">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <label class="form-label fw-bold small text-dark m-0">
+                                            <i class="fa-solid fa-map-pin text-danger me-1"></i> ៤. ទីកន្លែងកំណើត (Place of Birth)
+                                        </label>
+                                        <span class="fs-9 text-muted">ជ្រើសរើសតាមលំដាប់ ខេត្ត > ស្រុក > ឃុំ > ភូមិ</span>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label fs-8 text-muted m-0">រាជធានី/ខេត្ត</label>
+                                            <select name="pob_province_code" id="pob_province_select" class="form-select form-select-sm">
+                                                <option value="">-- ជ្រើសរើសខេត្ត --</option>
+                                                {% for p in provinces %}
+                                                <option value="{{ p.code }}" data-name="{{ p.name_kh }}" {% if is_edit and contract_officer.pob_province_code == p.code %}selected{% endif %}>{{ p.name_kh }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <input type="hidden" name="pob_province" id="pob_province_name" value="{% if is_edit %}{{ contract_officer.pob_province }}{% endif %}">
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label fs-8 text-muted m-0">ក្រុង/ស្រុក/ខណ្ឌ</label>
+                                            <select name="pob_district_code" id="pob_district_select" class="form-select form-select-sm" data-initial-code="{% if is_edit %}{{ contract_officer.pob_district_code|default:'' }}{% endif %}" data-initial-name="{% if is_edit %}{{ contract_officer.pob_district|default:'' }}{% endif %}" {% if not is_edit or not contract_officer.pob_province_code %}disabled{% endif %}>
+                                                <option value="">-- ជ្រើសរើសស្រុក --</option>
+                                                {% if is_edit and contract_officer.pob_district_code %}
+                                                <option value="{{ contract_officer.pob_district_code }}" data-name="{{ contract_officer.pob_district }}" selected>{{ contract_officer.pob_district }}</option>
+                                                {% endif %}
+                                            </select>
+                                            <input type="hidden" name="pob_district" id="pob_district_name" value="{% if is_edit %}{{ contract_officer.pob_district }}{% endif %}">
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label fs-8 text-muted m-0">ឃុំ/សង្កាត់</label>
+                                            <select name="pob_commune_code" id="pob_commune_select" class="form-select form-select-sm" data-initial-code="{% if is_edit %}{{ contract_officer.pob_commune_code|default:'' }}{% endif %}" data-initial-name="{% if is_edit %}{{ contract_officer.pob_commune|default:'' }}{% endif %}" {% if not is_edit or not contract_officer.pob_district_code %}disabled{% endif %}>
+                                                <option value="">-- ជ្រើសរើសឃុំ --</option>
+                                                {% if is_edit and contract_officer.pob_commune_code %}
+                                                <option value="{{ contract_officer.pob_commune_code }}" data-name="{{ contract_officer.pob_commune }}" selected>{{ contract_officer.pob_commune }}</option>
+                                                {% endif %}
+                                            </select>
+                                            <input type="hidden" name="pob_commune" id="pob_commune_name" value="{% if is_edit %}{{ contract_officer.pob_commune }}{% endif %}">
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label fs-8 text-muted m-0">ភូមិ</label>
+                                            <select name="pob_village_code" id="pob_village_select" class="form-select form-select-sm" data-initial-code="{% if is_edit %}{{ contract_officer.pob_village_code|default:'' }}{% endif %}" data-initial-name="{% if is_edit %}{{ contract_officer.pob_village|default:'' }}{% endif %}" {% if not is_edit or not contract_officer.pob_commune_code %}disabled{% endif %}>
+                                                <option value="">-- ជ្រើសរើសភូមិ --</option>
+                                                {% if is_edit and contract_officer.pob_village_code %}
+                                                <option value="{{ contract_officer.pob_village_code }}" data-name="{{ contract_officer.pob_village }}" selected>{{ contract_officer.pob_village }}</option>
+                                                {% endif %}
+                                            </select>
+                                            <input type="hidden" name="pob_village" id="pob_village_name" value="{% if is_edit %}{{ contract_officer.pob_village }}{% endif %}">
+                                        </div>
+                                        <div class="col-12 mt-2">
+                                            <input type="text" name="place_of_birth" id="place_of_birth_custom" value="{% if is_edit %}{{ contract_officer.place_of_birth }}{% endif %}" class="form-control form-control-sm" placeholder="ឬវាយបញ្ចូលទីកន្លែងកំណើតដោយដៃ (ប្រសិនបើខុសពីជម្រើសខាងលើ)...">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 5. កម្រិតវប្បធម៌ទូទៅ -->
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">៥. កម្រិតវប្បធម៌ទូទៅ</label>
+                                <input type="text" name="general_education" list="generalEduList" value="{% if is_edit %}{{ contract_officer.general_education }}{% endif %}" class="form-control" placeholder="ឧ. មធ្យមសិក្សាទុតិយភូមិ">
+                                <datalist id="generalEduList">
+                                    <option value="បឋមសិក្សា">
+                                    <option value="អនុវិទ្យាល័យ">
+                                    <option value="មធ្យមសិក្សាទុតិយភូមិ (បាក់ឌុប)">
+                                    <option value="បរិញ្ញាបត្ររង">
+                                    <option value="បរិញ្ញាបត្រ">
+                                    <option value="អនុបណ្ឌិត">
+                                    <option value="បណ្ឌិត">
+                                </datalist>
+                            </div>
+
+                            <!-- 6. កម្រិតបណ្តុះបណ្តាល & ជំនាញ/ឯកទេស -->
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">៦. កម្រិតបណ្តុះបណ្តាល</label>
+                                <input type="text" name="training_level" list="trainingList" value="{% if is_edit %}{{ contract_officer.training_level }}{% endif %}" class="form-control" placeholder="ឧ. បរិញ្ញាបត្រ ឬ វិញ្ញាបនបត្រ">
+                                <datalist id="trainingList">
+                                    <option value="គ្មាន">
+                                    <option value="វិញ្ញាបនបត្របណ្តុះបណ្តាលវិជ្ជាជីវៈ">
+                                    <option value="បរិញ្ញាបត្ររង">
+                                    <option value="បរិញ្ញាបត្រ">
+                                    <option value="អនុបណ្ឌិត">
+                                    <option value="បណ្ឌិត">
+                                </datalist>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">ជំនាញ / ឯកទេស</label>
+                                <input type="text" name="skill_specialization" value="{% if is_edit %}{{ contract_officer.skill_specialization }}{% endif %}" class="form-control" placeholder="ឧ. ព័ត៌មានវិទ្យា, រដ្ឋបាល, គណនេយ្យ...">
+                            </div>
+
+                            <!-- 8. អង្គភាព/ការិយាល័យបំពេញការងារ -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-dark">
+                                    <i class="fa-solid fa-building text-primary me-1"></i> ៨. ការិយាល័យ/ខណ្ឌក្នុងប្រព័ន្ធ (កំណត់ដោយ ADMIN)
+                                </label>
+                                {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+                                <select name="department" class="form-select border-primary fw-semibold">
+                                    <option value="">-- ជ្រើសរើសការិយាល័យ/ខណ្ឌ --</option>
+                                    {% for d in departments %}
+                                    <option value="{{ d.id }}" {% if is_edit and contract_officer.department_id == d.id %}selected{% elif not is_edit and dept and dept.id == d.id %}selected{% endif %}>{{ d.name_kh }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-primary fs-9">💡 ADMIN អាចផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌបានដោយសេរី</small>
+                                {% else %}
+                                <input type="text" class="form-control bg-light fw-bold text-dark" value="{{ dept.name_kh|default:'(ការិយាល័យបច្ចុប្បន្ន)' }}" readonly>
+                                <input type="hidden" name="department" value="{{ dept.id }}">
+                                {% endif %}
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-dark">អង្គភាព/ការិយាល័យបំពេញការងារ (បង្ហាញលើទម្រង់)</label>
+                                <input type="text" name="working_unit" value="{% if is_edit %}{{ contract_officer.working_unit }}{% endif %}" class="form-control" placeholder="ឧ. មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ ខេត្តប៉ៃលិន">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section ខ. ព័ត៌មានទំនាក់ទំនង -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success bg-opacity-10 text-success p-2 rounded-circle">
+                                <i class="fa-solid fa-address-book fs-6"></i>
+                            </span>
+                            <h5 class="fw-bold m-0 text-dark">ខ. ព័ត៌មានទំនាក់ទំនង (Contact Information)</h5>
+                        </div>
+                        <span class="badge bg-light text-secondary border fs-8">ចំណុច ៩ ដល់ ១១</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <!-- 9. អាសយដ្ឋានបច្ចុប្បន្ន (Current Address) -->
+                            <div class="col-12">
+                                <div class="p-3 bg-light rounded-4 border">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <label class="form-label fw-bold small text-dark m-0">
+                                            <i class="fa-solid fa-house-chimney text-success me-1"></i> ៩. អាសយដ្ឋានបច្ចុប្បន្ន (Current Address)
+                                        </label>
+                                        <span class="fs-9 text-muted">ជ្រើសរើសទីតាំងរស់នៅបច្ចុប្បន្ន</span>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label fs-8 text-muted m-0">រាជធានី/ខេត្ត</label>
+                                            <select name="current_province_code" id="curr_province_select" class="form-select form-select-sm">
+                                                <option value="">-- ជ្រើសរើសខេត្ត --</option>
+                                                {% for p in provinces %}
+                                                <option value="{{ p.code }}" data-name="{{ p.name_kh }}" {% if is_edit and contract_officer.current_province_code == p.code %}selected{% endif %}>{{ p.name_kh }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <input type="hidden" name="current_province" id="curr_province_name" value="{% if is_edit %}{{ contract_officer.current_province }}{% endif %}">
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label fs-8 text-muted m-0">ក្រុង/ស្រុក/ខណ្ឌ</label>
+                                            <select name="current_district_code" id="curr_district_select" class="form-select form-select-sm" data-initial-code="{% if is_edit %}{{ contract_officer.current_district_code|default:'' }}{% endif %}" data-initial-name="{% if is_edit %}{{ contract_officer.current_district|default:'' }}{% endif %}" {% if not is_edit or not contract_officer.current_province_code %}disabled{% endif %}>
+                                                <option value="">-- ជ្រើសរើសស្រុក --</option>
+                                                {% if is_edit and contract_officer.current_district_code %}
+                                                <option value="{{ contract_officer.current_district_code }}" data-name="{{ contract_officer.current_district }}" selected>{{ contract_officer.current_district }}</option>
+                                                {% endif %}
+                                            </select>
+                                            <input type="hidden" name="current_district" id="curr_district_name" value="{% if is_edit %}{{ contract_officer.current_district }}{% endif %}">
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label fs-8 text-muted m-0">ឃុំ/សង្កាត់</label>
+                                            <select name="current_commune_code" id="curr_commune_select" class="form-select form-select-sm" data-initial-code="{% if is_edit %}{{ contract_officer.current_commune_code|default:'' }}{% endif %}" data-initial-name="{% if is_edit %}{{ contract_officer.current_commune|default:'' }}{% endif %}" {% if not is_edit or not contract_officer.current_district_code %}disabled{% endif %}>
+                                                <option value="">-- ជ្រើសរើសឃុំ --</option>
+                                                {% if is_edit and contract_officer.current_commune_code %}
+                                                <option value="{{ contract_officer.current_commune_code }}" data-name="{{ contract_officer.current_commune }}" selected>{{ contract_officer.current_commune }}</option>
+                                                {% endif %}
+                                            </select>
+                                            <input type="hidden" name="current_commune" id="curr_commune_name" value="{% if is_edit %}{{ contract_officer.current_commune }}{% endif %}">
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label fs-8 text-muted m-0">ភូមិ</label>
+                                            <select name="current_village_code" id="curr_village_select" class="form-select form-select-sm" data-initial-code="{% if is_edit %}{{ contract_officer.current_village_code|default:'' }}{% endif %}" data-initial-name="{% if is_edit %}{{ contract_officer.current_village|default:'' }}{% endif %}" {% if not is_edit or not contract_officer.current_commune_code %}disabled{% endif %}>
+                                                <option value="">-- ជ្រើសរើសភូមិ --</option>
+                                                {% if is_edit and contract_officer.current_village_code %}
+                                                <option value="{{ contract_officer.current_village_code }}" data-name="{{ contract_officer.current_village }}" selected>{{ contract_officer.current_village }}</option>
+                                                {% endif %}
+                                            </select>
+                                            <input type="hidden" name="current_village" id="curr_village_name" value="{% if is_edit %}{{ contract_officer.current_village }}{% endif %}">
+                                        </div>
+                                        <div class="col-6 col-md-3 mt-2">
+                                            <input type="text" name="current_house_no" value="{% if is_edit %}{{ contract_officer.current_house_no }}{% endif %}" class="form-control form-control-sm" placeholder="ផ្ទះលេខ (បើមាន)">
+                                        </div>
+                                        <div class="col-6 col-md-3 mt-2">
+                                            <input type="text" name="current_street" value="{% if is_edit %}{{ contract_officer.current_street }}{% endif %}" class="form-control form-control-sm" placeholder="ផ្លូវលេខ (បើមាន)">
+                                        </div>
+                                        <div class="col-12 col-md-6 mt-2">
+                                            <input type="text" name="current_address" id="current_address_custom" value="{% if is_edit %}{{ contract_officer.current_address }}{% endif %}" class="form-control form-control-sm" placeholder="ឬវាយអាសយដ្ឋានពេញលេញដោយដៃ...">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 10. លេខទូរស័ព្ទ & 11. អ៊ីម៉ែល -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-dark">១០. លេខទូរស័ព្ទ <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-phone text-success"></i></span>
+                                    <input type="text" name="phone" value="{% if is_edit %}{{ contract_officer.phone }}{% endif %}" class="form-control font-monospace" placeholder="ឧ. 012 345 678" required>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-dark">១១. អ៊ីម៉ែល (បើមាន)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fa-solid fa-envelope text-primary"></i></span>
+                                    <input type="email" name="email" value="{% if is_edit %}{{ contract_officer.email }}{% endif %}" class="form-control" placeholder="ឧ. vanna@example.com">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section គ. ព័ត៌មានកិច្ចសន្យា និងមុខងារ -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-warning bg-opacity-10 text-dark p-2 rounded-circle">
+                                <i class="fa-solid fa-file-contract text-warning fs-6"></i>
+                            </span>
+                            <h5 class="fw-bold m-0 text-dark">គ. ព័ត៌មានកិច្ចសន្យាការងារ (Contract Details)</h5>
+                        </div>
+                        <span class="badge bg-warning bg-opacity-25 text-dark fs-8">ព័ត៌មានកិច្ចសន្យា</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark required">
+                                    <i class="fa-solid fa-calendar-days text-primary me-1"></i> ឆ្នាំកិច្ចសន្យា (Contract Year) <span class="text-danger">*</span>
+                                </label>
+                                <select name="contract_year" id="contractYearSelect" class="form-select fw-bold border-primary" required>
+                                    {% for y in year_options %}
+                                    <option value="{{ y }}" {% if is_edit and contract_officer.contract_year == y %}selected{% elif not is_edit and y == current_year %}selected{% endif %}>ឆ្នាំ {{ y }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted fs-9">កិច្ចសន្យាមានសុពលភាព ១ឆ្នាំ (០១ មករា ដល់ ៣១ ធ្នូ)</small>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">មុខតំណែង / តួនាទីការងារ <span class="text-danger">*</span></label>
+                                <input type="text" name="position_title" list="positionList" value="{% if is_edit %}{{ contract_officer.position_title }}{% else %}មន្ត្រីជាប់កិច្ចសន្យា{% endif %}" class="form-control" required>
+                                <datalist id="positionList">
+                                    <option value="មន្ត្រីជាប់កិច្ចសន្យា">
+                                    <option value="បុគ្គលិកជាប់កិច្ចសន្យា">
+                                    <option value="មន្ត្រីបច្ចេកទេសកិច្ចសន្យា">
+                                    <option value="អ្នកបើកបរ">
+                                    <option value="ភ្នាក់ងារសន្តិសុខ">
+                                    <option value="អ្នកអនាម័យ">
+                                    <option value="បុគ្គលិកជំនួយការ">
+                                    <option value="ជំនួយការរដ្ឋបាល">
+                                </datalist>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">លេខកិច្ចសន្យា / លេខលិខិត</label>
+                                <input type="text" name="contract_number" value="{% if is_edit %}{{ contract_officer.contract_number }}{% endif %}" class="form-control font-monospace" placeholder="ឧ. 024/26 ក.ស.ន">
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">ថ្ងៃចាប់ផ្តើមកិច្ចសន្យា</label>
+                                <input type="date" name="contract_start_date" id="contractStartDateInput" value="{% if is_edit and contract_officer.contract_start_date %}{{ contract_officer.contract_start_date|date:'Y-m-d' }}{% endif %}" class="form-control">
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">ថ្ងៃផុតកំណត់កិច្ចសន្យា</label>
+                                <input type="date" name="contract_end_date" id="contractEndDateInput" value="{% if is_edit and contract_officer.contract_end_date %}{{ contract_officer.contract_end_date|date:'Y-m-d' }}{% endif %}" class="form-control">
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small text-dark">ប្រាក់បៀវត្ស/ប្រាក់ឧបត្ថម្ភ (រៀល/ខែ)</label>
+                                <div class="input-group">
+                                    <input type="number" step="1000" name="salary" value="{% if is_edit and contract_officer.salary %}{{ contract_officer.salary|stringformat:'f'|slice:':-3' }}{% endif %}" class="form-control font-monospace" placeholder="ឧ. 800000">
+                                    <span class="input-group-text bg-light">៛</span>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-dark">ស្ថានភាពកិច្ចសន្យា <span class="text-danger">*</span></label>
+                                <select name="contract_status" class="form-select" required>
+                                    <option value="ACTIVE" {% if not is_edit or contract_officer.contract_status == 'ACTIVE' %}selected{% endif %}>កំពុងបម្រើការ (Active)</option>
+                                    <option value="RENEWED" {% if is_edit and contract_officer.contract_status == 'RENEWED' %}selected{% endif %}>បានបន្តកិច្ចសន្យា (Renewed)</option>
+                                    <option value="EXPIRED" {% if is_edit and contract_officer.contract_status == 'EXPIRED' %}selected{% endif %}>ផុតកិច្ចសន្យា (Expired)</option>
+                                    <option value="TERMINATED" {% if is_edit and contract_officer.contract_status == 'TERMINATED' %}selected{% endif %}>បានបញ្ឈប់/ឈប់ (Terminated)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-dark">ឯកសារកិច្ចសន្យា (PDF / រូបភាព)</label>
+                                <input type="file" name="contract_file" class="form-control" accept=".pdf,image/*">
+                                {% if is_edit and contract_officer.contract_file %}
+                                <small class="text-success d-block mt-1"><i class="fa-solid fa-circle-check me-1"></i>មានឯកសាររួចហើយ៖ <a href="{{ contract_officer.contract_file.url }}" target="_blank">ទាញយកមើល</a></small>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-dark">កំណត់សម្គាល់បន្ថែម</label>
+                                <textarea name="remarks" rows="2" class="form-control" placeholder="ព័ត៌មានបន្ថែមផ្សេងៗ... (បើមាន)">{% if is_edit %}{{ contract_officer.remarks }}{% endif %}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Side: Photo Card & Actions -->
+            <div class="col-12 col-lg-4 col-xl-3">
+                <!-- Photo Upload Card -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4 text-center overflow-hidden">
+                    <div class="card-header bg-white py-3 px-4 border-bottom">
+                        <h6 class="fw-bold m-0 text-dark"><i class="fa-regular fa-image text-primary me-1.5"></i> រូបថត 4x6</h6>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column align-items-center">
+                        <div class="mb-3 position-relative">
+                            <div id="photoPreviewContainer" class="border rounded-4 shadow-sm d-flex align-items-center justify-content-center bg-light overflow-hidden" style="width: 140px; height: 180px;">
+                                {% if is_edit and contract_officer.photo %}
+                                <img id="photoPreview" src="{{ contract_officer.photo.url }}" alt="Preview" class="w-100 h-100 object-fit-cover">
+                                {% else %}
+                                <div id="photoPlaceholder" class="text-center p-3 text-secondary">
+                                    <i class="fa-solid fa-camera fa-2x mb-2 text-muted opacity-50"></i>
+                                    <div class="fs-9 text-muted">រូបថត 4x6<br>ស្តង់ដារ</div>
+                                </div>
+                                <img id="photoPreview" src="" alt="Preview" class="w-100 h-100 object-fit-cover d-none">
+                                {% endif %}
+                            </div>
+                        </div>
+                        <label for="photoInput" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5 fw-semibold cursor-pointer">
+                            <i class="fa-solid fa-cloud-arrow-up me-1"></i> ជ្រើសរើសរូបថត
+                        </label>
+                        <input type="file" name="photo" id="photoInput" class="d-none" accept="image/*">
+                        <span class="fs-9 text-muted mt-2">គាំទ្រប្រភេទ JPG, PNG, WEBP</span>
+                    </div>
+                </div>
+
+                <!-- Summary Checklist Card -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white py-3 px-4 border-bottom">
+                        <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-list-check text-success me-1.5"></i> ទម្រង់ផ្លូវការ</h6>
+                    </div>
+                    <div class="card-body p-3 fs-8 text-secondary">
+                        <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                            <li><i class="fa-solid fa-circle-check text-success me-2"></i> ក្បាលលិខិតជាតិកម្ពុជា</li>
+                            <li><i class="fa-solid fa-circle-check text-success me-2"></i> ជីវប្រវត្តិរូបសង្ខេប (CV)</li>
+                            <li><i class="fa-solid fa-circle-check text-success me-2"></i> ព័ត៌មានផ្ទាល់ខ្លួន (ចំណុច ១-៨)</li>
+                            <li><i class="fa-solid fa-circle-check text-success me-2"></i> ព័ត៌មានទំនាក់ទំនង (ចំណុច ៩-១១)</li>
+                            <li><i class="fa-solid fa-circle-check text-success me-2"></i> ទីកន្លែងធ្វើ និងហត្ថលេខា</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Bottom Floating Actions -->
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="save_action" value="save_and_close" class="btn btn-success fw-bold py-2.5 rounded-pill shadow-sm">
+                            <i class="fa-solid fa-circle-check me-1.5"></i> រក្សាទុក & បញ្ចប់
+                        </button>
+                        <button type="submit" name="save_action" value="save_and_continue" class="btn btn-primary fw-bold py-2 rounded-pill shadow-sm">
+                            <i class="fa-solid fa-floppy-disk me-1.5"></i> រក្សាទុក & បន្តបញ្ចូល
+                        </button>
+                        <a href="{% if is_edit %}{% url 'contract_officer_detail' contract_officer.pk %}{% else %}{% url 'contract_officer_list' %}{% endif %}" class="btn btn-outline-secondary py-2 rounded-pill">
+                            បោះបង់
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Image Preview logic
+document.getElementById('photoInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const preview = document.getElementById('photoPreview');
+            const placeholder = document.getElementById('photoPlaceholder');
+            preview.src = evt.target.result;
+            preview.classList.remove('d-none');
+            if (placeholder) placeholder.classList.add('d-none');
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+// Global Geo Cache for fast, smooth dropdown responses
+const geoCache = {
+    districts: {},
+    communes: {},
+    villages: {}
+};
+
+async function fetchGeoDistricts(provinceCode, provinceName = '') {
+    const key = provinceCode || provinceName;
+    if (!key) return [];
+    if (geoCache.districts[key]) return geoCache.districts[key];
+    const url = `/api/geo/districts/?province_code=${encodeURIComponent(provinceCode)}&province_name=${encodeURIComponent(provinceName)}`;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.districts)) {
+            geoCache.districts[key] = data.districts;
+            return data.districts;
+        } else if (Array.isArray(data)) {
+            geoCache.districts[key] = data;
+            return data;
+        }
+    } catch (e) {
+        console.error('Error fetching districts:', e);
+    }
+    return [];
+}
+
+async function fetchGeoCommunes(districtCode, districtName = '', provinceCode = '') {
+    const key = districtCode || `${districtName}_${provinceCode}`;
+    if (!key) return [];
+    if (geoCache.communes[key]) return geoCache.communes[key];
+    const url = `/api/geo/communes/?district_code=${encodeURIComponent(districtCode)}&district_name=${encodeURIComponent(districtName)}&province_code=${encodeURIComponent(provinceCode)}`;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.communes)) {
+            geoCache.communes[key] = data.communes;
+            return data.communes;
+        } else if (Array.isArray(data)) {
+            geoCache.communes[key] = data;
+            return data;
+        }
+    } catch (e) {
+        console.error('Error fetching communes:', e);
+    }
+    return [];
+}
+
+async function fetchGeoVillages(communeCode, communeName = '', districtCode = '') {
+    const key = communeCode || `${communeName}_${districtCode}`;
+    if (!key) return [];
+    if (geoCache.villages[key]) return geoCache.villages[key];
+    const url = `/api/geo/villages/?commune_code=${encodeURIComponent(communeCode)}&commune_name=${encodeURIComponent(communeName)}&district_code=${encodeURIComponent(districtCode)}`;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.villages)) {
+            geoCache.villages[key] = data.villages;
+            return data.villages;
+        } else if (Array.isArray(data)) {
+            geoCache.villages[key] = data;
+            return data;
+        }
+    } catch (e) {
+        console.error('Error fetching villages:', e);
+    }
+    return [];
+}
+
+// Setup Cascading Geo Logic
+function setupGeoCascade(prefix) {
+    const provSelect = document.getElementById(prefix + '_province_select');
+    const distSelect = document.getElementById(prefix + '_district_select');
+    const commSelect = document.getElementById(prefix + '_commune_select');
+    const villSelect = document.getElementById(prefix + '_village_select');
+
+    const provNameInput = document.getElementById(prefix + '_province_name');
+    const distNameInput = document.getElementById(prefix + '_district_name');
+    const commNameInput = document.getElementById(prefix + '_commune_name');
+    const villNameInput = document.getElementById(prefix + '_village_name');
+
+    if (!provSelect) return;
+
+    // 1. Province Change Event
+    provSelect.addEventListener('change', async function() {
+        const provCode = this.value;
+        const selectedOpt = this.options[this.selectedIndex];
+        const provName = selectedOpt ? (selectedOpt.getAttribute('data-name') || selectedOpt.text.split(' (')[0].replace('-- ជ្រើសរើសខេត្ត --', '').trim()) : '';
+
+        if (provNameInput) provNameInput.value = provCode ? provName : '';
+        if (distNameInput) distNameInput.value = '';
+        if (commNameInput) commNameInput.value = '';
+        if (villNameInput) villNameInput.value = '';
+
+        distSelect.innerHTML = '<option value="">-- ជ្រើសរើសស្រុក --</option>';
+        commSelect.innerHTML = '<option value="">-- ជ្រើសរើសឃុំ --</option>';
+        villSelect.innerHTML = '<option value="">-- ជ្រើសរើសភូមិ --</option>';
+
+        commSelect.disabled = true;
+        villSelect.disabled = true;
+
+        if (provCode) {
+            distSelect.disabled = false;
+            distSelect.innerHTML = '<option value="">កំពុងទាញទិន្នន័យ...</option>';
+            const districts = await fetchGeoDistricts(provCode, provName);
+            distSelect.innerHTML = '<option value="">-- ជ្រើសរើសស្រុក --</option>';
+            districts.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.code;
+                opt.setAttribute('data-name', d.name_kh);
+                opt.textContent = `${d.name_kh} (${d.code})`;
+                distSelect.appendChild(opt);
+            });
+        } else {
+            distSelect.disabled = true;
+        }
+    });
+
+    // 2. District Change Event
+    distSelect.addEventListener('change', async function() {
+        const distCode = this.value;
+        const selectedOpt = this.options[this.selectedIndex];
+        const distName = selectedOpt ? (selectedOpt.getAttribute('data-name') || selectedOpt.text.split(' (')[0].replace('-- ជ្រើសរើសស្រុក --', '').trim()) : '';
+
+        if (distNameInput) distNameInput.value = distCode ? distName : '';
+        if (commNameInput) commNameInput.value = '';
+        if (villNameInput) villNameInput.value = '';
+
+        commSelect.innerHTML = '<option value="">-- ជ្រើសរើសឃុំ --</option>';
+        villSelect.innerHTML = '<option value="">-- ជ្រើសរើសភូមិ --</option>';
+        villSelect.disabled = true;
+
+        if (distCode) {
+            commSelect.disabled = false;
+            commSelect.innerHTML = '<option value="">កំពុងទាញទិន្នន័យ...</option>';
+            const provCode = provSelect ? provSelect.value : '';
+            const communes = await fetchGeoCommunes(distCode, distName, provCode);
+            commSelect.innerHTML = '<option value="">-- ជ្រើសរើសឃុំ --</option>';
+            communes.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.code;
+                opt.setAttribute('data-name', c.name_kh);
+                opt.textContent = `${c.name_kh} (${c.code})`;
+                commSelect.appendChild(opt);
+            });
+        } else {
+            commSelect.disabled = true;
+        }
+    });
+
+    // 3. Commune Change Event
+    commSelect.addEventListener('change', async function() {
+        const commCode = this.value;
+        const selectedOpt = this.options[this.selectedIndex];
+        const commName = selectedOpt ? (selectedOpt.getAttribute('data-name') || selectedOpt.text.split(' (')[0].replace('-- ជ្រើសរើសឃុំ --', '').trim()) : '';
+
+        if (commNameInput) commNameInput.value = commCode ? commName : '';
+        if (villNameInput) villNameInput.value = '';
+
+        villSelect.innerHTML = '<option value="">-- ជ្រើសរើសភូមិ --</option>';
+
+        if (commCode) {
+            villSelect.disabled = false;
+            villSelect.innerHTML = '<option value="">កំពុងទាញទិន្នន័យ...</option>';
+            const distCode = distSelect ? distSelect.value : '';
+            const villages = await fetchGeoVillages(commCode, commName, distCode);
+            villSelect.innerHTML = '<option value="">-- ជ្រើសរើសភូមិ --</option>';
+            villages.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.code;
+                opt.setAttribute('data-name', v.name_kh);
+                opt.textContent = `${v.name_kh} (${v.code})`;
+                villSelect.appendChild(opt);
+            });
+        } else {
+            villSelect.disabled = true;
+        }
+    });
+
+    // 4. Village Change Event
+    villSelect.addEventListener('change', function() {
+        const villCode = this.value;
+        const selectedOpt = this.options[this.selectedIndex];
+        const villName = selectedOpt ? (selectedOpt.getAttribute('data-name') || selectedOpt.text.split(' (')[0].replace('-- ជ្រើសរើសភូមិ --', '').trim()) : '';
+        if (villNameInput) villNameInput.value = villCode ? villName : '';
+    });
+
+    // Auto Preloader for Edit Mode (or when values already present)
+    async function initPreloadedValues() {
+        const pCode = provSelect.value;
+        const initialDistCode = distSelect.getAttribute('data-initial-code') || distSelect.value;
+        const initialCommCode = commSelect.getAttribute('data-initial-code') || commSelect.value;
+        const initialVillCode = villSelect.getAttribute('data-initial-code') || villSelect.value;
+
+        if (pCode) {
+            distSelect.disabled = false;
+            const districts = await fetchGeoDistricts(pCode, provNameInput ? provNameInput.value : '');
+            distSelect.innerHTML = '<option value="">-- ជ្រើសរើសស្រុក --</option>';
+            let matchedD = '';
+            districts.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.code;
+                opt.setAttribute('data-name', d.name_kh);
+                opt.textContent = `${d.name_kh} (${d.code})`;
+                if (d.code === initialDistCode || (distNameInput && distNameInput.value && d.name_kh.trim() === distNameInput.value.trim())) {
+                    opt.selected = true;
+                    matchedD = d.code;
+                    if (distNameInput) distNameInput.value = d.name_kh;
+                }
+                distSelect.appendChild(opt);
+            });
+
+            const activeD = matchedD || initialDistCode;
+            if (activeD) {
+                commSelect.disabled = false;
+                const communes = await fetchGeoCommunes(activeD, distNameInput ? distNameInput.value : '', pCode);
+                commSelect.innerHTML = '<option value="">-- ជ្រើសរើសឃុំ --</option>';
+                let matchedC = '';
+                communes.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.code;
+                    opt.setAttribute('data-name', c.name_kh);
+                    opt.textContent = `${c.name_kh} (${c.code})`;
+                    if (c.code === initialCommCode || (commNameInput && commNameInput.value && c.name_kh.trim() === commNameInput.value.trim())) {
+                        opt.selected = true;
+                        matchedC = c.code;
+                        if (commNameInput) commNameInput.value = c.name_kh;
+                    }
+                    commSelect.appendChild(opt);
+                });
+
+                const activeC = matchedC || initialCommCode;
+                if (activeC) {
+                    villSelect.disabled = false;
+                    const villages = await fetchGeoVillages(activeC, commNameInput ? commNameInput.value : '', activeD);
+                    villSelect.innerHTML = '<option value="">-- ជ្រើសរើសភូមិ --</option>';
+                    villages.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.code;
+                        opt.setAttribute('data-name', v.name_kh);
+                        opt.textContent = `${v.name_kh} (${v.code})`;
+                        if (v.code === initialVillCode || (villNameInput && villNameInput.value && v.name_kh.trim() === villNameInput.value.trim())) {
+                            opt.selected = true;
+                            if (villNameInput) villNameInput.value = v.name_kh;
+                        }
+                        villSelect.appendChild(opt);
+                    });
+                }
+            }
+        }
+    }
+
+    initPreloadedValues();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupGeoCascade('pob');
+    setupGeoCascade('curr');
+
+    // Auto-update dates when contract year changes
+    const yearSelect = document.getElementById('contractYearSelect');
+    const startInput = document.getElementById('contractStartDateInput');
+    const endInput = document.getElementById('contractEndDateInput');
+
+    if (yearSelect && startInput && endInput) {
+        yearSelect.addEventListener('change', function() {
+            const yr = this.value;
+            if (yr) {
+                if (!startInput.value || startInput.value.endsWith('-01-01')) {
+                    startInput.value = `${yr}-01-01`;
+                }
+                if (!endInput.value || endInput.value.endsWith('-12-31')) {
+                    endInput.value = `${yr}-12-31`;
+                }
+            }
+        });
+        // If creating new and inputs are empty, initialize default
+        {% if not is_edit %}
+        if (!startInput.value && yearSelect.value) {
+            startInput.value = `${yearSelect.value}-01-01`;
+        }
+        if (!endInput.value && yearSelect.value) {
+            endInput.value = `${yearSelect.value}-12-31`;
+        }
+        {% endif %}
+    }
+});
+</script>
+{% endblock %}

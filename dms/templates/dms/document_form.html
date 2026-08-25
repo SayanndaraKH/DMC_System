@@ -1,0 +1,616 @@
+{% extends 'dms/base.html' %}
+{% load dms_tags %}
+
+{% block title %}{{ title|default:"ចុះបញ្ជីលិខិតចេញ" }} - DMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{% url 'document_list' %}" class="text-decoration-none text-muted fs-7 mb-1 d-inline-block">
+                <i class="fa-solid fa-arrow-left me-1"></i> ត្រឡប់ទៅបញ្ជីលិខិត
+            </a>
+            <h3 class="fw-bold m-0 text-dark">
+                <i class="fa-solid {% if doc_type == 'INBOUND' %}fa-inbox text-info{% else %}fa-file-circle-plus text-success{% endif %} me-2"></i>{{ title|default:"ចុះបញ្ជីលិខិតចេញ (New Outbound Document)" }}
+            </h3>
+            <div class="text-muted small mt-0.5">បំពេញព័ត៌មានលិខិត និងអាចមើលឯកសារផ្ទាល់ (Live Preview) មុនពេលរក្សាទុក</div>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="documentForm">
+        {% csrf_token %}
+        <div class="row g-4">
+            
+            <!-- Left Column: Form Fields -->
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold text-dark mb-3 border-bottom pb-2">
+                            <i class="fa-solid fa-pen-to-square text-success me-2"></i>ព័ត៌មានលម្អិតនៃលិខិត
+                        </h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark fs-7">ប្រភេទលិខិត <span class="text-danger">*</span></label>
+                                {{ form.doc_type }}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark fs-7">លេខចុះលិខិត (Registry Code) <span class="text-danger">*</span></label>
+                                {{ form.registry_number }}
+                                <small class="form-text text-muted fs-8">ទុកទំនេរដើម្បីឲ្យប្រព័ន្ធបង្កើតស្វ័យប្រវត្តិ</small>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-dark fs-7">កម្មវត្ថុ / ចំណងជើងលិខិត <span class="text-danger">*</span></label>
+                                {{ form.title }}
+                            </div>
+
+                            <!-- Auto Routing / Destination Office (Optional) -->
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold text-dark fs-7">
+                                    <i class="fa-solid fa-paper-plane text-success me-1"></i> បញ្ជូនទៅកាន់ការិយាល័យណា (Auto Route - មិនបាច់ជ្រើសក៏បាន)
+                                </label>
+                                {{ form.initial_route_dept }}
+                                <small class="form-text text-muted fs-8">ជ្រើសរើសការិយាល័យដែលត្រូវទទួលលិខិតនេះភ្លាមៗ ឬទុកទំនេរដើម្បីចាត់ចែងពេលក្រោយ</small>
+                            </div>
+
+                            <div class="col-md-4 d-flex align-items-center pt-md-3">
+                                <div class="form-check form-switch mt-2">
+                                    {{ form.initial_send_to_all }}
+                                    <label class="form-check-label fw-bold fs-7 text-dark ms-1" for="{{ form.initial_send_to_all.id_for_label }}">
+                                        បញ្ជូនគ្រប់ការិយាល័យ
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark fs-7">កម្រិតប្រញាប់ <span class="text-danger">*</span></label>
+                                {{ form.urgency }}
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark fs-7">កម្រិតសម្ងាត់</label>
+                                {{ form.secrecy }}
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark fs-7">ថ្ងៃខែឆ្នាំលើលិខិត</label>
+                                {{ form.issue_date }}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark fs-7">ថ្ងៃខែឆ្នាំ ចុះចូលប្រព័ន្ធ</label>
+                                {{ form.received_date }}
+                            </div>
+
+                            <div class="col-md-6 d-flex align-items-end">
+                                <button class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 fs-8 text-muted w-100" type="button" data-bs-toggle="collapse" data-bs-target="#optionalOrgFields">
+                                    <i class="fa-solid fa-sliders me-1"></i> បន្ថែមប្រភព/អ្នកទទួលខាងក្រៅ (បើមាន)
+                                </button>
+                            </div>
+
+                            <!-- Optional External Source/Destination Collapse -->
+                            <div class="col-12 collapse" id="optionalOrgFields">
+                                <div class="p-3 bg-light rounded-3 border row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label text-dark fs-8 fw-semibold">ប្រភពលិខិត (មកពីណា)</label>
+                                        {{ form.origin_org }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-dark fs-8 fw-semibold">អ្នកទទួលលិខិត (ផ្ញើទៅណា)</label>
+                                        {{ form.destination_org }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-dark fs-7">សង្ខេបខ្លឹមសារលិខិត/បរិយាយ</label>
+                                {{ form.summary }}
+                            </div>
+
+                            <!-- File Upload Picker with Live Preview Trigger -->
+                            <div class="col-12">
+                                <div class="p-3 bg-light rounded-3 border border-2 border-dashed border-secondary border-opacity-25">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <label class="form-label fw-bold text-dark m-0 fs-7">
+                                            <i class="fa-solid fa-file-arrow-up text-success me-1"></i> ភ្ជាប់ឯកសារស្កេន (Scan PDF / រូបភាព)
+                                        </label>
+                                        <span class="badge bg-success bg-opacity-10 text-success fs-8">មាន Live Preview</span>
+                                    </div>
+                                    
+                                    <input type="file" name="file" id="documentFileInput" class="form-control bg-white fs-7" accept=".pdf,.jpg,.jpeg,.png,.docx,.doc" onchange="handleLiveFilePreview(this)">
+                                    <small class="text-muted fs-8 d-block mt-1">គាំទ្រប្រភេទ PDF, រូបភាព JPG/PNG, និង Word DOCX (ពិនិត្យមើលផ្ទាល់នៅផ្ទាំងខាងស្តាំ)</small>
+                                </div>
+                            </div>
+
+                            <div class="col-12 d-flex align-items-center justify-content-between mt-4 pt-2 border-top">
+                                <a href="{% url 'document_list' %}" class="btn btn-light rounded-pill px-4">បោះបង់</a>
+                                <button type="submit" class="btn btn-success px-5 rounded-pill shadow fw-bold">
+                                    <i class="fa-solid fa-check me-1.5"></i> រក្សាទុក និងចុះលេខបញ្ជី
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Live Document Preview Panel -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 80px; z-index: 10;">
+                    <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
+                        <h6 class="fw-bold m-0 text-dark">
+                            <i class="fa-solid fa-eye text-primary me-2"></i>ផ្ទាំងមើលឯកសារផ្ទាល់ (Live Preview)
+                        </h6>
+                        <div id="previewBadge" class="badge bg-light text-muted border fs-8">
+                            មិនទាន់ជ្រើសរើស File
+                        </div>
+                    </div>
+
+                    <div class="card-body p-3 bg-light bg-opacity-50" style="min-height: 560px;">
+                        
+                        <!-- 1. Placeholder Empty State -->
+                        <div id="previewPlaceholder" class="text-center text-muted py-5 my-5">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                                <i class="fa-solid fa-file-magnifying-glass fa-2x"></i>
+                            </div>
+                            <h6 class="fw-bold text-dark">មិនទាន់មានឯកសារសម្រាប់ Preview</h6>
+                            <p class="small text-muted px-4 mb-0">
+                                សូមជ្រើសរើស File ភ្ជាប់ (PDF ឬ រូបភាព) ខាងឆ្វេង ដើម្បីផ្ទៀងផ្ទាត់ និងអានខ្លឹមសារឯកសារផ្ទាល់នៅទីនេះមុនពេលចុះលេខ!
+                            </p>
+                        </div>
+
+                        <!-- 2. Interactive PDF Live Viewer -->
+                        <div id="pdfViewerContainer" class="d-none h-100">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="badge bg-danger bg-opacity-10 text-danger fs-8 fw-semibold">
+                                    <i class="fa-solid fa-file-pdf me-1"></i> ឯកសារ PDF
+                                </span>
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 fs-8" onclick="openFullscreenPreview()">
+                                    <i class="fa-solid fa-up-right-and-down-left-from-center me-1"></i> ពង្រីកពេញអេក្រង់
+                                </button>
+                            </div>
+                            <iframe id="livePdfFrame" class="w-100 rounded-3 border bg-white shadow-xs" style="height: 520px;" src=""></iframe>
+                        </div>
+
+                        <!-- 3. Image Live Viewer -->
+                        <div id="imageViewerContainer" class="d-none text-center">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                <div>
+                                    <span class="badge bg-success bg-opacity-10 text-success fs-8 fw-semibold">
+                                        <i class="fa-solid fa-file-image me-1"></i> រូបភាពឯកសារស្កេន
+                                    </span>
+                                    <span id="liveImageBadgeSuccess" class="badge bg-primary text-white fs-9 d-none ms-1">
+                                        <i class="fa-solid fa-scissors me-1"></i> បានកាត់តម្រឹមរួច (Cropped)
+                                    </span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-success rounded-pill px-3 fs-8 fw-bold shadow-xs" onclick="openFullscreenPreview()">
+                                    <i class="fa-solid fa-crop-simple me-1"></i> Zoom & កាត់តម្រឹម (Crop Studio)
+                                </button>
+                            </div>
+
+                            <!-- Image Preview Frame with Quick Controls -->
+                            <div class="position-relative p-2 bg-white rounded-3 border text-center overflow-hidden shadow-xs">
+                                <div class="position-absolute top-0 end-0 m-3 d-flex gap-1 z-3">
+                                    <button type="button" class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle p-1.5 shadow" style="width:32px; height:32px;" onclick="inlineZoom(0.15)" title="Zoom In">
+                                        <i class="fa-solid fa-plus fs-8"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle p-1.5 shadow" style="width:32px; height:32px;" onclick="inlineZoom(-0.15)" title="Zoom Out">
+                                        <i class="fa-solid fa-minus fs-8"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle p-1.5 shadow" style="width:32px; height:32px;" onclick="inlineRotate(90)" title="បង្វិល 90°">
+                                        <i class="fa-solid fa-rotate-right fs-8"></i>
+                                    </button>
+                                </div>
+
+                                <div id="inlineImageWrapper" style="max-height: 480px; overflow: auto; cursor: zoom-in;" onclick="openFullscreenPreview()">
+                                    <img id="liveImagePreview" src="" class="img-fluid rounded transition-all" style="max-height: 460px; object-fit: contain; transform-origin: center center;" alt="Preview">
+                                </div>
+                            </div>
+                            <div class="text-muted fs-9 mt-1">
+                                <i class="fa-solid fa-circle-info me-1"></i> ចុចលើរូបភាព ឬចុច «Crop Studio» ខាងលើ ដើម្បីកាត់តម្រឹម ឬ Zoom ដោយសេរី
+                            </div>
+                        </div>
+
+                        <!-- 4. DOCX / Other File Details -->
+                        <div id="otherFileContainer" class="d-none text-center py-5">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                                <i class="fa-solid fa-file-word fa-2x"></i>
+                            </div>
+                            <h6 class="fw-bold text-dark" id="otherFileName">document.docx</h6>
+                            <p class="small text-muted mb-2" id="otherFileSize">ទំហំ៖ 0 KB</p>
+                            <span class="badge bg-info text-white rounded-pill px-3 py-1">ឯកសាររួចរាល់សម្រាប់ចុះលេខបញ្ជី</span>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<!-- Cropper.js CDN Stylesheet -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+<style>
+    .cropper-view-box,
+    .cropper-face {
+        border-radius: 0;
+    }
+    .cropper-line, .cropper-point {
+        background-color: #10b981;
+    }
+    .cropper-point.point-se {
+        width: 10px;
+        height: 10px;
+    }
+</style>
+
+<!-- Fullscreen Preview & Crop Studio Modal -->
+<div class="modal fade" id="fullscreenPreviewModal" tabindex="-1" aria-labelledby="fullscreenPreviewModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 92vw;">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <!-- Modal Header Toolbar -->
+            <div class="modal-header bg-dark text-white border-0 py-2.5 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <h6 class="modal-title fw-bold m-0 text-white fs-7">
+                        <i class="fa-solid fa-crop-simple text-success me-1.5"></i> ឧបករណ៍មើល & កាត់តម្រឹមឯកសារស្កេន (Crop & Zoom Studio)
+                    </h6>
+                </div>
+
+                <!-- Studio Toolbar Controls -->
+                <div id="modalStudioToolbar" class="d-flex flex-wrap align-items-center gap-1.5">
+                    <!-- Zoom Tools -->
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-light px-2.5" onclick="studioZoom(0.1)" title="Zoom In (+)">
+                            <i class="fa-solid fa-magnifying-glass-plus me-1"></i> ពង្រីក
+                        </button>
+                        <button type="button" class="btn btn-outline-light px-2.5" onclick="studioZoom(-0.1)" title="Zoom Out (-)">
+                            <i class="fa-solid fa-magnifying-glass-minus me-1"></i> បង្រួម
+                        </button>
+                        <button type="button" class="btn btn-outline-light px-2" onclick="studioReset()" title="Reset / Fit Screen">
+                            <i class="fa-solid fa-arrows-rotate me-1"></i> ដើម
+                        </button>
+                    </div>
+
+                    <!-- Rotate Tools -->
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-light px-2" onclick="studioRotate(-90)" title="បង្វិលឆ្វេង 90°">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-light px-2" onclick="studioRotate(90)" title="បង្វិលស្តាំ 90°">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Drag / Crop Mode Toggle -->
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" id="btnModeCrop" class="btn btn-success px-2.5 active" onclick="setStudioDragMode('crop')" title="របៀបកាត់តម្រឹម (Crop Mode)">
+                            <i class="fa-solid fa-crop me-1"></i> កាត់តម្រឹម (Crop)
+                        </button>
+                        <button type="button" id="btnModeMove" class="btn btn-outline-light px-2.5" onclick="setStudioDragMode('move')" title="របៀបរំកិលមើល (Pan/Move Mode)">
+                            <i class="fa-solid fa-arrows-up-down-left-right me-1"></i> ទាញមើល (Pan)
+                        </button>
+                    </div>
+
+                    <!-- Apply & Save Crop Button -->
+                    <button type="button" class="btn btn-sm btn-primary fw-bold px-3 rounded-pill shadow-sm" onclick="applyStudioCrop()">
+                        <i class="fa-solid fa-check me-1"></i> អនុវត្តការកាត់ (Apply Crop)
+                    </button>
+
+                    <!-- Revert Original -->
+                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-2.5" onclick="revertStudioOriginal()" title="ស្តាររូបដើមវិញ">
+                        <i class="fa-solid fa-arrow-rotate-left"></i> រូបដើម
+                    </button>
+                </div>
+
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Modal Body Studio Workspace -->
+            <div class="modal-body p-0 bg-dark position-relative d-flex align-items-center justify-content-center" style="height: 76vh; overflow: hidden;">
+                <!-- PDF Viewer inside modal -->
+                <iframe id="modalPdfFrame" class="w-100 h-100 border-0 d-none bg-white" src=""></iframe>
+
+                <!-- Image Cropper Container inside modal -->
+                <div id="modalImageContainer" class="w-100 h-100 d-none d-flex align-items-center justify-content-center p-2">
+                    <img id="studioCropperImage" src="" style="max-width: 100%; max-height: 72vh; display: block;" alt="Scanned Document">
+                </div>
+            </div>
+
+            <!-- Modal Footer Instructions -->
+            <div class="modal-footer bg-dark border-0 py-2 px-3 d-flex align-items-center justify-content-between text-muted fs-8">
+                <div class="text-white-50">
+                    <i class="fa-solid fa-circle-info text-info me-1"></i>
+                    <strong>របៀបប្រើប្រាស់៖</strong> ប្រើ <strong>Mouse Wheel (រំកិលកង់កណ្តាល)</strong> ដើម្បី Zoom In / Zoom Out ដោយសេរី | ទាញជ្រុងនៃប្រអប់ដើម្បីកាត់តម្រឹមគែមខ្មៅ ឬផ្ទៃមិនត្រូវការ | ចុច <strong>«អនុវត្តការកាត់»</strong> ដើម្បីបញ្ចប់។
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">រួចរាល់</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cropper.js CDN Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<script>
+    let currentPreviewUrl = null;
+    let originalRawFile = null;
+    let cropperInstance = null;
+    let inlineScale = 1.0;
+    let inlineRotation = 0;
+
+    function handleLiveFilePreview(input) {
+        const placeholder = document.getElementById('previewPlaceholder');
+        const pdfContainer = document.getElementById('pdfViewerContainer');
+        const pdfFrame = document.getElementById('livePdfFrame');
+        const imgContainer = document.getElementById('imageViewerContainer');
+        const imgPreview = document.getElementById('liveImagePreview');
+        const otherContainer = document.getElementById('otherFileContainer');
+        const badge = document.getElementById('previewBadge');
+
+        // Reset
+        placeholder.classList.remove('d-none');
+        pdfContainer.classList.add('d-none');
+        imgContainer.classList.add('d-none');
+        otherContainer.classList.add('d-none');
+        inlineScale = 1.0;
+        inlineRotation = 0;
+        updateInlineTransform();
+
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            originalRawFile = file;
+            const ext = file.name.split('.').pop().toLowerCase();
+            const fileSizeKb = Math.round(file.size / 1024);
+
+            badge.innerText = `${file.name} (${fileSizeKb} KB)`;
+            badge.className = 'badge bg-success text-white border-0 fs-8';
+
+            // Revoke old blob url
+            if (currentPreviewUrl) {
+                URL.revokeObjectURL(currentPreviewUrl);
+            }
+            currentPreviewUrl = URL.createObjectURL(file);
+
+            placeholder.classList.add('d-none');
+
+            if (ext === 'pdf') {
+                pdfFrame.src = currentPreviewUrl;
+                pdfContainer.classList.remove('d-none');
+                document.getElementById('modalPdfFrame').src = currentPreviewUrl;
+            } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                imgPreview.src = currentPreviewUrl;
+                imgContainer.classList.remove('d-none');
+                document.getElementById('studioCropperImage').src = currentPreviewUrl;
+            } else {
+                document.getElementById('otherFileName').innerText = file.name;
+                document.getElementById('otherFileSize').innerText = `ទំហំ៖ ${fileSizeKb} KB | ប្រភេទ៖ .${ext}`;
+                otherContainer.classList.remove('d-none');
+            }
+        } else {
+            badge.innerText = 'មិនទាន់ជ្រើសរើស File';
+            badge.className = 'badge bg-light text-muted border fs-8';
+        }
+    }
+
+    // Inline quick zoom and rotate in the right sidebar preview
+    function inlineZoom(delta) {
+        inlineScale = Math.max(0.3, Math.min(3.0, inlineScale + delta));
+        updateInlineTransform();
+    }
+
+    function inlineRotate(deg) {
+        inlineRotation = (inlineRotation + deg) % 360;
+        updateInlineTransform();
+    }
+
+    function updateInlineTransform() {
+        const img = document.getElementById('liveImagePreview');
+        if (img) {
+            img.style.transform = `scale(${inlineScale}) rotate(${inlineRotation}deg)`;
+        }
+    }
+
+    // Open Fullscreen & Crop Studio Modal
+    function openFullscreenPreview() {
+        const fileInput = document.getElementById('documentFileInput');
+        if (!fileInput.files || !fileInput.files[0]) return;
+
+        const file = fileInput.files[0];
+        const ext = file.name.split('.').pop().toLowerCase();
+        const modalPdf = document.getElementById('modalPdfFrame');
+        const modalImgContainer = document.getElementById('modalImageContainer');
+        const studioToolbar = document.getElementById('modalStudioToolbar');
+
+        if (ext === 'pdf') {
+            modalPdf.classList.remove('d-none');
+            modalImgContainer.classList.add('d-none');
+            studioToolbar.classList.add('d-none');
+        } else {
+            modalPdf.classList.add('d-none');
+            modalImgContainer.classList.remove('d-none');
+            studioToolbar.classList.remove('d-none');
+
+            // Initialize Cropper when modal opens
+            const modalEl = document.getElementById('fullscreenPreviewModal');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+
+            modalEl.addEventListener('shown.bs.modal', function onShown() {
+                modalEl.removeEventListener('shown.bs.modal', onShown);
+                initStudioCropper();
+            });
+            return;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('fullscreenPreviewModal'));
+        modal.show();
+    }
+
+    function initStudioCropper() {
+        const imgElem = document.getElementById('studioCropperImage');
+        if (!imgElem) return;
+
+        if (cropperInstance) {
+            cropperInstance.destroy();
+            cropperInstance = null;
+        }
+
+        cropperInstance = new Cropper(imgElem, {
+            viewMode: 1,
+            dragMode: 'crop',
+            autoCropArea: 0.96,
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: true,
+            wheelZoomRatio: 0.1,
+            background: false,
+            responsive: true,
+            ready: function() {
+                setStudioDragMode('crop');
+            }
+        });
+    }
+
+    function studioZoom(ratio) {
+        if (cropperInstance) {
+            cropperInstance.zoom(ratio);
+        }
+    }
+
+    function studioRotate(deg) {
+        if (cropperInstance) {
+            cropperInstance.rotate(deg);
+        }
+    }
+
+    function studioReset() {
+        if (cropperInstance) {
+            cropperInstance.reset();
+        }
+    }
+
+    function setStudioDragMode(mode) {
+        if (cropperInstance) {
+            cropperInstance.setDragMode(mode);
+            const btnCrop = document.getElementById('btnModeCrop');
+            const btnMove = document.getElementById('btnModeMove');
+            if (mode === 'move') {
+                btnMove.className = 'btn btn-success px-2.5 active';
+                btnCrop.className = 'btn btn-outline-light px-2.5';
+            } else {
+                btnCrop.className = 'btn btn-success px-2.5 active';
+                btnMove.className = 'btn btn-outline-light px-2.5';
+            }
+        }
+    }
+
+    // Apply Crop and attach new File to the Django form
+    function applyStudioCrop() {
+        if (!cropperInstance) return;
+
+        const canvas = cropperInstance.getCroppedCanvas({
+            maxWidth: 4096,
+            maxHeight: 4096,
+            fillColor: '#ffffff',
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high',
+        });
+
+        if (!canvas) {
+            alert('⚠️ មិនអាចទាញទិន្នន័យកាត់តម្រឹមបានឡើយ!');
+            return;
+        }
+
+        const mimeType = (originalRawFile && originalRawFile.type) ? originalRawFile.type : 'image/jpeg';
+        const fileName = (originalRawFile && originalRawFile.name) ? originalRawFile.name : 'scanned_document.jpg';
+
+        canvas.toBlob(function(blob) {
+            if (!blob) return;
+
+            const croppedFile = new File([blob], fileName, { type: mimeType, lastModified: Date.now() });
+
+            // Update file input in Django form using DataTransfer API
+            const fileInput = document.getElementById('documentFileInput');
+            const dt = new DataTransfer();
+            dt.items.add(croppedFile);
+            fileInput.files = dt.files;
+
+            // Update live preview image
+            if (currentPreviewUrl) {
+                URL.revokeObjectURL(currentPreviewUrl);
+            }
+            currentPreviewUrl = URL.createObjectURL(croppedFile);
+            document.getElementById('liveImagePreview').src = currentPreviewUrl;
+            document.getElementById('studioCropperImage').src = currentPreviewUrl;
+            document.getElementById('liveImageBadgeSuccess').classList.remove('d-none');
+
+            const croppedSizeKb = Math.round(blob.size / 1024);
+            const badge = document.getElementById('previewBadge');
+            badge.innerText = `${fileName} (កាត់រួច ${croppedSizeKb} KB)`;
+            badge.className = 'badge bg-primary text-white border-0 fs-8';
+
+            // Close modal
+            const modalEl = document.getElementById('fullscreenPreviewModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+
+            // Destroy cropper instance until next open
+            if (cropperInstance) {
+                cropperInstance.destroy();
+                cropperInstance = null;
+            }
+
+            // Show Toast / Banner Notification
+            const alertBanner = document.createElement('div');
+            alertBanner.className = 'alert alert-success alert-dismissible fade show mt-3 shadow-sm rounded-3';
+            alertBanner.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fa-solid fa-circle-check fs-5 me-2"></i>
+                    <div>
+                        <strong>✅ បានកាត់តម្រឹម និងរក្សាទុកក្នុងទម្រង់ជោគជ័យ!</strong>
+                        <div class="small">រូបភាពដែលបានកាត់រួចនឹងត្រូវបញ្ជូនទៅរក្សាទុកក្នុងប្រព័ន្ធពេលចុចប៊ូតុង «រក្សាទុក និងចុះលេខបញ្ជី»។</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            const formBody = document.querySelector('.card-body');
+            if (formBody) {
+                formBody.prepend(alertBanner);
+                setTimeout(() => alertBanner.remove(), 6000);
+            }
+        }, mimeType, 0.95);
+    }
+
+    function revertStudioOriginal() {
+        if (!originalRawFile) return;
+
+        const fileInput = document.getElementById('documentFileInput');
+        const dt = new DataTransfer();
+        dt.items.add(originalRawFile);
+        fileInput.files = dt.files;
+
+        if (currentPreviewUrl) {
+            URL.revokeObjectURL(currentPreviewUrl);
+        }
+        currentPreviewUrl = URL.createObjectURL(originalRawFile);
+        document.getElementById('liveImagePreview').src = currentPreviewUrl;
+        document.getElementById('studioCropperImage').src = currentPreviewUrl;
+        document.getElementById('liveImageBadgeSuccess').classList.add('d-none');
+
+        const fileSizeKb = Math.round(originalRawFile.size / 1024);
+        const badge = document.getElementById('previewBadge');
+        badge.innerText = `${originalRawFile.name} (${fileSizeKb} KB)`;
+        badge.className = 'badge bg-success text-white border-0 fs-8';
+
+        initStudioCropper();
+    }
+</script>
+{% endblock %}

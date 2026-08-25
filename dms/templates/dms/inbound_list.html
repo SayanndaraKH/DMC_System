@@ -1,0 +1,254 @@
+{% extends 'dms/base.html' %}
+{% load dms_tags %}
+
+{% block title %}គ្រប់គ្រងលិខិតចូល (Inbound Documents) - DMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                {% if dept %}
+                <span class="badge bg-info bg-opacity-10 text-info px-3 py-1 rounded-pill fw-bold fs-8">
+                    <i class="fa-solid fa-building me-1"></i> {{ dept.name_kh }}
+                </span>
+                {% else %}
+                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill fw-bold fs-8">
+                    <i class="fa-solid fa-layer-group me-1"></i> ទូទាំងមន្ទីរ (All Offices)
+                </span>
+                {% endif %}
+                <span class="badge bg-light text-muted border px-2.5 py-1 rounded-pill fs-8">
+                    {% if inbound_source == 'external' %}លិខិតចូលពីខាងក្រៅ{% elif inbound_source == 'internal' %}លិខិតចូលផ្ទៃក្នុង{% else %}លិខិតចូលទាំងអស់{% endif %}
+                </span>
+            </div>
+            <h3 class="fw-bold text-dark m-0">
+                <i class="fa-solid fa-inbox text-info me-2"></i>ផ្ទាំងគ្រប់គ្រងលិខិតចូល (Inbound Documents)
+            </h3>
+            <div class="text-muted small mt-1">
+                រួមមានលិខិតចូលពីខាងក្រៅ និងលិខិតចូលផ្ទៃក្នុងដែលការិយាល័យផ្សេង ឬថ្នាក់ដឹកនាំបញ្ជូនមក (មិនបាច់ចុះចូលម្តងទៀតឡើយ)
+            </div>
+        </div>
+
+        {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_create_document %}
+        <a href="{% url 'document_create' %}?doc_type=INBOUND" class="btn btn-info text-white rounded-pill px-4 shadow-sm fw-semibold">
+            <i class="fa-solid fa-file-circle-plus me-1.5"></i> ចុះលេខលិខិតចូលថ្មី (ពីខាងក្រៅ)
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Source Selection Pills -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <ul class="nav nav-pills gap-2 border-bottom pb-2 mb-3">
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-7 px-3.5 {% if inbound_source == 'all' or not inbound_source %}active bg-info text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?source=all{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}">
+                        <i class="fa-solid fa-inbox me-1.5"></i> លិខិតចូលទាំងអស់ <span class="badge {% if inbound_source == 'all' or not inbound_source %}bg-white text-info{% else %}bg-secondary{% endif %} rounded-pill ms-1">{{ stats.total }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-7 px-3.5 {% if inbound_source == 'external' %}active bg-info text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?source=external{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}">
+                        <i class="fa-solid fa-globe me-1.5"></i> លិខិតចូលពីខាងក្រៅ <span class="badge {% if inbound_source == 'external' %}bg-white text-info{% else %}bg-secondary{% endif %} rounded-pill ms-1">{{ stats.external }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill fs-7 px-3.5 {% if inbound_source == 'internal' %}active bg-info text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="?source=internal{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}">
+                        <i class="fa-solid fa-share-from-square me-1.5"></i> លិខិតចូលផ្ទៃក្នុង (បញ្ជូនមក) <span class="badge {% if inbound_source == 'internal' %}bg-white text-info{% else %}bg-secondary{% endif %} rounded-pill ms-1">{{ stats.internal }}</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Filter & Search Form -->
+            <form method="GET" class="row g-2 align-items-center">
+                <input type="hidden" name="source" value="{{ inbound_source }}">
+                
+                <div class="col-md-4 col-12">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-search"></i></span>
+                        <input type="text" name="q" value="{{ search_q }}" class="form-control bg-light border-start-0 fs-7" placeholder="ស្វែងរកលេខកូដ, ចំណងជើង, ប្រភពលិខិត...">
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-6">
+                    <select name="status" class="form-select bg-light fs-7">
+                        <option value="">-- ស្ថានភាពទាំងអស់ --</option>
+                        <option value="PENDING_LEADERSHIP" {% if status_filter == 'PENDING_LEADERSHIP' %}selected{% endif %}>រង់ចាំចំណារថ្នាក់ដឹកនាំ</option>
+                        <option value="PENDING_ADMIN" {% if status_filter == 'PENDING_ADMIN' %}selected{% endif %}>រដ្ឋបាលពិនិត្យ</option>
+                        <option value="ROUTED" {% if status_filter == 'ROUTED' %}selected{% endif %}>បានបញ្ជូនទៅជំនាញ</option>
+                        <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>ចាត់ចែងរួចរាល់</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3 col-6">
+                    <select name="urgency" class="form-select bg-light fs-7">
+                        <option value="">-- កម្រិតប្រញាប់ --</option>
+                        <option value="NORMAL" {% if urgency_filter == 'NORMAL' %}selected{% endif %}>ធម្មតា</option>
+                        <option value="URGENT" {% if urgency_filter == 'URGENT' %}selected{% endif %}>ប្រញាប់</option>
+                        <option value="VERY_URGENT" {% if urgency_filter == 'VERY_URGENT' %}selected{% endif %}>ប្រញាប់ណាស់</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 col-12 d-flex gap-1">
+                    <button type="submit" class="btn btn-info text-white rounded-pill w-100 fs-7 fw-semibold">
+                        <i class="fa-solid fa-filter me-1"></i> ចម្រាញ់
+                    </button>
+                    {% if search_q or status_filter or urgency_filter or inbound_source != 'all' %}
+                    <a href="{% url 'inbound_documents' %}" class="btn btn-light rounded-pill px-2.5" title="សម្អាត Filter"><i class="fa-solid fa-rotate-left"></i></a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Metric Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-info border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold">លិខិតចូលសរុប</div>
+                        <h3 class="fw-bold text-info m-0 mt-1">{{ stats.total }}</h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
+                        <i class="fa-solid fa-inbox fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-primary border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold">លិខិតចូលផ្ទៃក្នុង (បញ្ជូនមក)</div>
+                        <h3 class="fw-bold text-primary m-0 mt-1">{{ stats.internal }}</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
+                        <i class="fa-solid fa-share-nodes fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-warning border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold">កំពុងដំណើរការ / រង់ចាំ</div>
+                        <h3 class="fw-bold text-warning m-0 mt-1">{{ stats.pending }}</h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
+                        <i class="fa-solid fa-clock fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold">ចាត់ចែងរួចរាល់</div>
+                        <h3 class="fw-bold text-success m-0 mt-1">{{ stats.completed }}</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
+                        <i class="fa-solid fa-circle-check fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4 py-3">លេខកូដចុះបញ្ជី</th>
+                        <th class="py-3">ប្រភពលិខិតចូល</th>
+                        <th class="py-3">កម្មវត្ថុ / ចំណងជើងលិខិត</th>
+                        <th class="py-3">ប្រភពដើម</th>
+                        <th class="py-3">កម្រិតប្រញាប់</th>
+                        <th class="py-3">ស្ថានភាព</th>
+                        <th class="pe-4 py-3 text-end">សកម្មភាព</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in documents %}
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <a href="{% url 'document_detail' doc.pk %}" class="fw-bold text-info font-monospace text-decoration-none">
+                                {{ doc.registry_number }}
+                            </a>
+                            <div class="text-muted fs-8">{{ doc.received_date|date:"d/m/Y" }}</div>
+                        </td>
+
+                        <td class="py-3">
+                            {% if doc.origin_department and doc.origin_department != dept %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 fs-8">
+                                <i class="fa-solid fa-building me-1"></i> ផ្ទៃក្នុងពី {{ doc.origin_department.name_kh }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-info bg-opacity-10 text-info px-2 py-1 fs-8">
+                                <i class="fa-solid fa-globe me-1"></i> ចូលពីក្រៅ
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="py-3">
+                            <div class="fw-bold text-dark fs-7 mb-0.5">{{ doc.title }}</div>
+                            <div class="text-muted fs-8 text-truncate" style="max-width: 280px;">{{ doc.summary|default:"(គ្មានការសង្ខេប)" }}</div>
+                        </td>
+
+                        <td class="py-3 fs-7 text-dark fw-medium">
+                            <i class="fa-solid fa-building-circle-arrow-right text-muted me-1"></i>{{ doc.origin_org }}
+                        </td>
+
+                        <td class="py-3">
+                            <span class="badge {{ doc.urgency|urgency_badge_class }} px-2 py-1">
+                                {{ doc.get_urgency_display }}
+                            </span>
+                        </td>
+
+                        <td class="py-3">
+                            <span class="badge {{ doc.status|status_badge_class }} px-2.5 py-1">
+                                {{ doc.get_status_display }}
+                            </span>
+                        </td>
+
+                        <td class="pe-4 py-3 text-end">
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <a href="{% url 'document_detail' doc.pk %}" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-semibold">
+                                    <i class="fa-solid fa-eye me-1"></i> មើល & ចាត់ចែង
+                                </a>
+                                {% if user.is_superuser or user.username|upper == 'ADMIN' or profile.can_delete_document %}
+                                <form method="POST" action="{% url 'document_delete' doc.pk %}" class="d-inline" onsubmit="return confirm('⚠️ តើអ្នកពិតជាចង់លុបឯកសារលេខ «{{ doc.registry_number }}» នេះចេញពីប្រព័ន្ធមែនទេ?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2.5" title="លុបឯកសារ">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <div class="text-muted">
+                                <div class="bg-info bg-opacity-10 text-info rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                    <i class="fa-solid fa-inbox fa-2x"></i>
+                                </div>
+                                <h5>មិនមានលិខិតចូលក្នុងបញ្ជីនេះឡើយ</h5>
+                                <p class="small mb-0">រាល់លិខិតដែលការិយាល័យផ្សេង ឬថ្នាក់ដឹកនាំបញ្ជូនមក នឹងបង្ហាញនៅទីនេះដោយស្វ័យប្រវត្តិ។</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

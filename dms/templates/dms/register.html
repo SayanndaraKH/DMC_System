@@ -1,0 +1,314 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ចុះឈ្មោះគណនីថ្មី - DMS</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Siemreap&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'dms/css/styles.css' %}">
+    <style>
+        body {
+            font-family: 'Kantumruy Pro', 'Siemreap', sans-serif;
+            background: linear-gradient(135deg, #092012 0%, #123e20 50%, #1b5e30 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+        }
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+        .register-landscape-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 26px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45);
+            width: 100%;
+            max-width: 1100px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+        .brand-panel {
+            background: linear-gradient(145deg, #0a2e16 0%, #144925 100%);
+            color: #ffffff;
+            padding: 2.2rem 1.8rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #1a4d2e;
+            box-shadow: 0 0 0 0.25rem rgba(26, 77, 46, 0.15);
+            background-color: #ffffff;
+        }
+        .btn-gov {
+            background: linear-gradient(135deg, #1a4d2e 0%, #2e7d32 100%);
+            color: #fff;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .btn-gov:hover {
+            background: linear-gradient(135deg, #143d24 0%, #256629 100%);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(26, 77, 46, 0.3);
+        }
+        .section-tag {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #1a4d2e;
+            background: #eef7f1;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 0.75rem;
+        }
+        .info-card-left {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-landscape-card">
+        <div class="row g-0">
+            <!-- Left Side: Purpose & Developer Ownership Information -->
+            <div class="col-lg-4 brand-panel">
+                <div>
+                    <!-- Brand Header -->
+                    <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom border-white border-opacity-10">
+                        <div class="bg-white bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                            <i class="fa-solid fa-landmark fa-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold text-white m-0 fs-6">ប្រព័ន្ធគ្រប់គ្រងឯកសាររដ្ឋបាល</h5>
+                            <div class="text-white-50 fs-8">Document Management System (DMS)</div>
+                        </div>
+                    </div>
+
+                    <!-- គោលបំណងនៃការបង្កើតកម្មវិធី -->
+                    <div class="info-card-left">
+                        <div class="small fw-bold text-warning text-uppercase mb-2">
+                            <i class="fa-solid fa-bullseye me-1"></i> គោលបំណងនៃការបង្កើតកម្មវិធី
+                        </div>
+                        <ul class="text-white-50 small mb-0 ps-3" style="line-height: 1.6; font-size: 0.82rem;">
+                            <li>ធ្វើទំនើបកម្ម និងលើកកម្ពស់ប្រសិទ្ធភាពគ្រប់គ្រងលិខិតរដ្ឋបាល</li>
+                            <li>តាមដានលំហូរឯកសារ ចុះបញ្ជី និងផ្តល់ចំណារឆាប់រហ័ស</li>
+                            <li>ធានានូវតម្លាភាព សុវត្ថិភាព និងភាពងាយស្រួលក្នុងការស្រាវជ្រាវ</li>
+                        </ul>
+                    </div>
+
+                    <!-- កម្មសិទ្ធិ និងអ្នកបង្កើតកម្មវិធី -->
+                    <div class="info-card-left mb-0">
+                        <div class="small fw-bold text-warning text-uppercase mb-2">
+                            <i class="fa-solid fa-user-shield me-1"></i> កម្មសិទ្ធិ និងអ្នកបង្កើតកម្មវិធី
+                        </div>
+                        <div class="d-flex align-items-start gap-2 text-white">
+                            <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0 mt-0.5" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </div>
+                            <div style="font-size: 0.83rem;">
+                                <strong class="d-block text-white fs-7">លោក យ៉ន សាយ៉ាន់ដារ៉ា</strong>
+                                <div class="text-white-50 mt-0.5">
+                                    <i class="fa-solid fa-briefcase me-1 text-warning fs-8"></i> មន្ត្រីបច្ចេកទេសទទួលបន្ទុកការងារធនធានមនុស្ស
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                    <span class="text-warning fw-semibold font-monospace" style="font-size: 0.8rem;">
+                                        <i class="fa-solid fa-phone me-1"></i> ០៩៣ ៧៨២ ០០០
+                                    </span>
+                                    <a href="https://t.me/SayanndaraYornDaffpl" target="_blank" class="badge bg-info text-white text-decoration-none rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1 shadow-sm" style="background-color: #229ED9 !important;">
+                                        <i class="fa-brands fa-telegram fs-6"></i> Telegram
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-top border-white border-opacity-10 mt-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-white-50 small">មានគណនីរួចហើយ?</span>
+                        <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold">
+                            <i class="fa-solid fa-right-to-bracket me-1"></i> ចូលប្រព័ន្ធ (Login)
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Clean Horizontal Registration Form -->
+            <div class="col-lg-8 p-4 p-md-5 bg-white">
+                <div class="mb-3">
+                    <h4 class="fw-bold text-dark m-0">
+                        <i class="fa-solid fa-user-plus text-success me-2"></i>ចុះឈ្មោះគណនីប្រើប្រាស់ថ្មី
+                    </h4>
+                    <div class="text-muted small mt-1">សូមបំពេញព័ត៌មានខាងក្រោមដើម្បីចុះឈ្មោះគណនី និងផ្ទៀងផ្ទាត់លេខកូដ</div>
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show small py-2" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% if form.errors %}
+                    <div class="alert alert-danger alert-dismissible fade show small py-2 mb-3">
+                        <strong><i class="fa-solid fa-triangle-exclamation me-1"></i> សូមពិនិត្យព័ត៌មានឡើងវិញ៖</strong>
+                        <ul class="mb-0 mt-1 ps-3">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endif %}
+
+                <form method="POST" action="{% url 'register' %}">
+                    {% csrf_token %}
+
+                    <!-- ១. ព័ត៌មានផ្ទាល់ខ្លួន & ទំនាក់ទំនង -->
+                    <div class="section-tag"><i class="fa-solid fa-user me-1"></i> ១. ព័ត៌មានផ្ទាល់ខ្លួន & ទំនាក់ទំនង</div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4 col-12">
+                            <label class="form-label small fw-semibold text-dark mb-1">ឈ្មោះពេញ (Full Name) *</label>
+                            <input type="text" name="full_name" class="form-control bg-light fs-7 py-2" required value="{{ form.full_name.value|default:'' }}" placeholder="ឧ. ចាន់ សុខា">
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="form-label small fw-semibold text-dark mb-1">អ៊ីមែលពិត (Email) * <span class="text-success"><i class="fa-solid fa-envelope"></i></span></label>
+                            <input type="email" name="email" class="form-control bg-light fs-7 py-2" required value="{{ form.email.value|default:'' }}" placeholder="name@gov.kh">
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="form-label small fw-semibold text-dark mb-1">លេខទូរស័ព្ទ *</label>
+                            <input type="tel" name="phone" class="form-control bg-light fs-7 py-2" required value="{{ form.phone.value|default:'' }}" placeholder="012 345 678">
+                        </div>
+                    </div>
+
+                    <!-- ២. អង្គភាព និងមុខតំណែង -->
+                    <div class="section-tag"><i class="fa-solid fa-building me-1"></i> ២. ឈ្មោះអង្គភាព & មុខតំណែង</div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6 col-12">
+                            <label class="form-label small fw-semibold text-dark mb-1">ឈ្មោះអង្គភាព / ការិយាល័យ *</label>
+                            <select name="department" class="form-select bg-light fs-7 py-2" required>
+                                <option value="">-- ជ្រើសរើសការិយាល័យ/អង្គភាព --</option>
+                                {% for dept in form.fields.department.queryset %}
+                                    <option value="{{ dept.id }}" {% if form.department.value|stringformat:"s" == dept.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ dept.name_kh }} ({{ dept.code }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <label class="form-label small fw-semibold text-dark mb-1">មុខតំណែងជាក់ស្តែង (Position) *</label>
+                            <select name="position_title" class="form-select bg-light fs-7 py-2" required>
+                                <option value="">-- ជ្រើសរើសមុខតំណែង --</option>
+                                {% for code, label in form.fields.position_title.choices %}
+                                    <option value="{{ code }}" {% if form.position_title.value == code %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- ៣. គណនី និងពាក្យសម្ងាត់ -->
+                    <div class="section-tag"><i class="fa-solid fa-lock me-1"></i> ៣. ឈ្មោះគណនី & ពាក្យសម្ងាត់</div>
+                    <div class="row g-2 mb-4">
+                        <div class="col-md-4 col-12">
+                            <label class="form-label small fw-semibold text-dark mb-1">ឈ្មោះគណនី (Username) *</label>
+                            <input type="text" name="username" class="form-control bg-light fs-7 py-2" required value="{{ form.username.value|default:'' }}" placeholder="ឧ. chan_sokha">
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="form-label small fw-semibold text-dark mb-1">ពាក្យសម្ងាត់ (យ៉ាងតិច ៨ ខ្ទង់) *</label>
+                            <div class="input-group">
+                                <input type="password" id="regPassword" name="password" class="form-control bg-light fs-7 py-2" required minlength="8" placeholder="យ៉ាងតិច ៨ ខ្ទង់ឡើងទៅ...">
+                                <button class="btn btn-light border" type="button" onclick="toggleRegPassword('regPassword', 'eye1')">
+                                    <i class="fa-solid fa-eye text-muted fs-8" id="eye1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="form-label small fw-semibold text-dark mb-1">ផ្ទៀងផ្ទាត់ពាក្យសម្ងាត់ *</label>
+                            <div class="input-group">
+                                <input type="password" id="regConfirmPassword" name="confirm_password" class="form-control bg-light fs-7 py-2" required minlength="8" placeholder="វាយពាក្យសម្ងាត់ម្តងទៀត...">
+                                <button class="btn btn-light border" type="button" onclick="toggleRegPassword('regConfirmPassword', 'eye2')">
+                                    <i class="fa-solid fa-eye text-muted fs-8" id="eye2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-2 border-top">
+                        <div class="text-muted small">
+                            <i class="fa-solid fa-shield-halved text-success me-1"></i> ប្រព័ន្ធនឹងផ្ញើលេខកូដ <strong>OTP (៦ ខ្ទង់)</strong> ទៅកាន់ Email របស់អ្នក
+                        </div>
+                        <button type="submit" class="btn btn-gov px-4 py-2.5 rounded-pill fw-bold shadow-sm">
+                            <i class="fa-solid fa-arrow-right-to-bracket me-2"></i> ចុះឈ្មោះ និងទទួលលេខកូដ OTP
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleRegPassword(fieldId, iconId) {
+            const pwd = document.getElementById(fieldId);
+            const icon = document.getElementById(iconId);
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                pwd.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Auto-select 'ថ្នាក់ដឹកនាំមន្ទីរ' for 'ប្រធានមន្ទីរ' and 'អនុប្រធានមន្ទីរ'
+        document.addEventListener('DOMContentLoaded', function() {
+            const posSelect = document.querySelector('select[name="position_title"]');
+            const deptSelect = document.querySelector('select[name="department"]');
+            if (posSelect && deptSelect) {
+                posSelect.addEventListener('change', function() {
+                    const val = this.value.trim();
+                    if (val === 'ប្រធានមន្ទីរ' || val === 'អនុប្រធានមន្ទីរ') {
+                        for (let i = 0; i < deptSelect.options.length; i++) {
+                            const optText = deptSelect.options[i].text;
+                            if (optText.includes('ថ្នាក់ដឹកនាំ') || optText.includes('LEAD')) {
+                                deptSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

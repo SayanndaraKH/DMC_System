@@ -1,0 +1,221 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ចូលប្រើប្រាស់ប្រព័ន្ធ - DMS</title>
+    <!-- Google Font Khmer OS Battambang / Kantumruy Pro -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Siemreap&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'dms/css/styles.css' %}">
+    <style>
+        body {
+            font-family: 'Kantumruy Pro', 'Siemreap', sans-serif;
+            background: linear-gradient(135deg, #092012 0%, #123e20 50%, #1b5e30 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+        }
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+        .login-landscape-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 26px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45);
+            width: 100%;
+            max-width: 980px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+        .brand-panel {
+            background: linear-gradient(145deg, #0a2e16 0%, #144925 100%);
+            color: #ffffff;
+            padding: 2.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .form-control:focus {
+            border-color: #1a4d2e;
+            box-shadow: 0 0 0 0.25rem rgba(26, 77, 46, 0.15);
+            background-color: #ffffff;
+        }
+        .btn-gov {
+            background: linear-gradient(135deg, #1a4d2e 0%, #2e7d32 100%);
+            color: #fff;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .btn-gov:hover {
+            background: linear-gradient(135deg, #143d24 0%, #256629 100%);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(26, 77, 46, 0.3);
+        }
+        .info-card-left {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-landscape-card">
+        <div class="row g-0">
+            <!-- Left Side: Brand, Purpose & Developer Info Panel (Horizontal Style) -->
+            <div class="col-lg-5 brand-panel">
+                <div>
+                    <!-- Brand Header -->
+                    <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom border-white border-opacity-10">
+                        <div class="bg-white bg-opacity-10 text-warning rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 52px; height: 52px;">
+                            <i class="fa-solid fa-landmark fa-xl"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold text-white m-0 fs-6">ប្រព័ន្ធគ្រប់គ្រងឯកសាររដ្ឋបាល</h5>
+                            <div class="text-white-50 fs-8">Document Management System (DMS)</div>
+                        </div>
+                    </div>
+
+                    <!-- គោលបំណងនៃការបង្កើតកម្មវិធី -->
+                    <div class="info-card-left">
+                        <div class="small fw-bold text-warning text-uppercase mb-2">
+                            <i class="fa-solid fa-bullseye me-1"></i> គោលបំណងនៃការបង្កើតកម្មវិធី
+                        </div>
+                        <ul class="text-white-50 small mb-0 ps-3" style="line-height: 1.6; font-size: 0.82rem;">
+                            <li>ធ្វើទំនើបកម្ម និងលើកកម្ពស់ប្រសិទ្ធភាពគ្រប់គ្រងលិខិតរដ្ឋបាល</li>
+                            <li>តាមដានលំហូរឯកសារ ចុះបញ្ជី និងផ្តល់ចំណារឆាប់រហ័ស</li>
+                            <li>ធានានូវតម្លាភាព សុវត្ថិភាព និងភាពងាយស្រួលក្នុងការស្រាវជ្រាវ</li>
+                        </ul>
+                    </div>
+
+                    <!-- កម្មសិទ្ធិ និងអ្នកបង្កើតកម្មវិធី -->
+                    <div class="info-card-left mb-0">
+                        <div class="small fw-bold text-warning text-uppercase mb-2">
+                            <i class="fa-solid fa-user-shield me-1"></i> កម្មសិទ្ធិ និងអ្នកបង្កើតកម្មវិធី
+                        </div>
+                        <div class="d-flex align-items-start gap-2 text-white">
+                            <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0 mt-0.5" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </div>
+                            <div style="font-size: 0.83rem;">
+                                <strong class="d-block text-white fs-7">លោក យ៉ន សាយ៉ាន់ដារ៉ា</strong>
+                                <div class="text-white-50 mt-0.5">
+                                    <i class="fa-solid fa-briefcase me-1 text-warning fs-8"></i> មន្ត្រីបច្ចេកទេសទទួលបន្ទុកការងារធនធានមនុស្ស
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                    <span class="text-warning fw-semibold font-monospace" style="font-size: 0.8rem;">
+                                        <i class="fa-solid fa-phone me-1"></i> ០៩៣ ៧៨២ ០០០
+                                    </span>
+                                    <a href="https://t.me/SayanndaraYornDaffpl" target="_blank" class="badge bg-info text-white text-decoration-none rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1 shadow-sm" style="background-color: #229ED9 !important;">
+                                        <i class="fa-brands fa-telegram fs-6"></i> Telegram
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-top border-white border-opacity-10 mt-3">
+                    <div class="text-white-50 small text-center">
+                        &copy; 2026 Government Document Management System
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Clean Login Form -->
+            <div class="col-lg-7 p-4 p-md-5 bg-white d-flex flex-column justify-content-center">
+                <div class="mb-4">
+                    <div class="d-inline-flex align-items-center gap-2 bg-success bg-opacity-10 text-success px-3 py-1 rounded-pill small fw-bold mb-2">
+                        <i class="fa-solid fa-shield-halved"></i> សុវត្ថិភាពខ្ពស់
+                    </div>
+                    <h3 class="fw-bold text-dark m-0">ចូលប្រើប្រាស់ប្រព័ន្ធ</h3>
+                    <div class="text-muted small mt-1">សូមបញ្ចូលព័ត៌មានគណនីរបស់អ្នកដើម្បីចូលទៅកាន់ផ្ទាំងបញ្ជា</div>
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show small py-2 mb-3" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Login Form -->
+                <form method="POST" action="{% url 'login' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">ឈ្មោះគណនី / Email / លេខទូរស័ព្ទ៖</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-user-circle"></i></span>
+                            <input type="text" name="identifier" class="form-control bg-light border-start-0 py-2.5 fs-7" required placeholder="Username, Email ឬ លេខទូរស័ព្ទ..." autofocus>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-semibold text-dark small m-0">ពាក្យសម្ងាត់ (Password)៖</label>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-lock"></i></span>
+                            <input type="password" id="passwordInput" name="password" class="form-control bg-light border-start-0 border-end-0 py-2.5 fs-7" required placeholder="បញ្ចូលពាក្យសម្ងាត់...">
+                            <button class="btn btn-light border border-start-0 text-muted" type="button" onclick="togglePassword()">
+                                <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-gov w-100 py-2.5 rounded-pill fw-bold shadow-sm mb-3">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i> ចូលប្រព័ន្ធ (Login)
+                    </button>
+                </form>
+
+                <hr class="my-3 text-muted opacity-25">
+
+                <!-- Register Link -->
+                <div class="text-center">
+                    <span class="text-muted small">មិនទាន់មានគណនីប្រើប្រាស់នៅឡើយ?</span>
+                    <a href="{% url 'register' %}" class="btn btn-outline-success w-100 py-2 rounded-pill fw-semibold small mt-2">
+                        <i class="fa-solid fa-user-plus me-1"></i> ចុះឈ្មោះគណនីថ្មី (Register New Account)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword() {
+            const pwd = document.getElementById('passwordInput');
+            const icon = document.getElementById('eyeIcon');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                pwd.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    </script>
+</body>
+</html>

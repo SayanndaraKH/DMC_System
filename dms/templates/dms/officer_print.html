@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ជីវប្រវត្តិមន្ត្រីរាជការ - {{ officer.full_name_kh }}</title>
+    <!-- Google Khmer Fonts & Local Fallback -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Kantumruy+Pro:wght@400;600;700&family=Siemreap&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        @font-face {
+            font-family: 'Khmer OS Battambang';
+            src: local('Khmer OS Battambang'), local('KhmerOS_battambang'), local('KhmerOSBattambang'), local('Battambang');
+        }
+        @font-face {
+            font-family: 'Khmer OS Muol Light';
+            src: local('Khmer OS Muol Light'), local('KhmerOS_muollight'), local('KhmerOSMuolLight'), local('Khmer OS Muol'), local('Moul');
+        }
+        @page {
+            size: A4 portrait;
+            margin: 8mm 10mm 8mm 10mm;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        body {
+            font-family: 'Khmer OS Battambang', 'Battambang', 'Khmer OS', 'Siemreap', sans-serif;
+            font-size: 9.2pt;
+            line-height: 1.35;
+            color: #000;
+            background-color: #525659;
+            margin: 0;
+            padding: 15px 0;
+        }
+        
+        /* A4 Page Container on Screen */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm 12mm 10mm 12mm;
+            margin: 0 auto 20px auto;
+            background: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.35);
+            position: relative;
+            box-sizing: border-box;
+            page-break-after: always;
+            break-after: page;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ddd;
+        }
+
+        .a4-page:last-child {
+            margin-bottom: 0;
+            page-break-after: auto;
+            break-after: auto;
+        }
+
+        .page-content {
+            flex-grow: 1;
+        }
+
+        /* Typography */
+        .muol-text {
+            font-family: 'Khmer OS Muol Light', 'Khmer OS Muol', serif;
+            font-weight: normal;
+        }
+        .bold-text {
+            font-weight: bold;
+        }
+
+        /* Top Royal Header */
+        .royal-header {
+            text-align: center;
+            margin-bottom: 3px;
+        }
+        .royal-title {
+            font-family: 'Khmer OS Muol Light', serif;
+            font-size: 11.5pt;
+            letter-spacing: 0.5px;
+            margin: 0 0 1px 0;
+        }
+        .royal-sub {
+            font-family: 'Khmer OS Muol Light', serif;
+            font-size: 10.5pt;
+            margin: 0 0 2px 0;
+        }
+        .tactical-line {
+            font-size: 9pt;
+            letter-spacing: 3px;
+            margin: 0 0 3px 0;
+        }
+
+        /* Ministry & Photo Table */
+        table.header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+            margin-bottom: 4px;
+        }
+        table.header-table td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            vertical-align: middle;
+        }
+        .ministry-title {
+            font-family: 'Khmer OS Muol Light', serif;
+            font-size: 9.8pt;
+            margin: 0 0 2px 0;
+            line-height: 1.35;
+        }
+        .department-title {
+            font-family: 'Khmer OS Battambang', serif;
+            font-weight: bold;
+            font-size: 9.2pt;
+            margin: 0;
+            line-height: 1.35;
+        }
+
+        /* Photo Frame 4x6 */
+        .photo-box {
+            width: 32mm;
+            height: 40mm;
+            border: 1px solid #000;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            overflow: hidden;
+        }
+        .photo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .photo-blank {
+            text-align: center;
+            color: #777;
+            font-size: 8pt;
+            line-height: 1.2;
+        }
+
+        /* Document Title */
+        .doc-title-container {
+            text-align: center;
+            margin: 3px 0 6px 0;
+        }
+        .doc-title-text {
+            font-family: 'Khmer OS Muol Light', serif;
+            font-size: 12pt;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+        .doc-title-line {
+            font-size: 8pt;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+
+        /* Section Titles */
+        .section-header {
+            font-family: 'Khmer OS Battambang', serif;
+            font-weight: bold;
+            font-size: 9.2pt;
+            background-color: #f0f0f0;
+            padding: 2.5px 5px;
+            border: 1px solid #000;
+            margin-top: 4px;
+            margin-bottom: 0;
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+        .subsection-header {
+            font-family: 'Khmer OS Battambang', serif;
+            font-weight: bold;
+            font-size: 9pt;
+            background-color: #f7f7f7;
+            padding: 2px 5px;
+            border: 1px solid #000;
+            border-top: none;
+            margin: 0;
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+
+        /* Form Tables */
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8.8pt;
+            margin-bottom: 0;
+            page-break-inside: auto;
+        }
+        table.data-table tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        table.data-table td, table.data-table th {
+            border: 1px solid #000;
+            padding: 2.5px 5px;
+            vertical-align: middle;
+        }
+        table.data-table th {
+            background-color: #f4f5f7;
+            font-weight: bold;
+            text-align: center;
+            font-size: 8.5pt;
+        }
+        .field-label {
+            width: 25%;
+            font-weight: normal;
+        }
+
+        /* Checkbox Icon */
+        .cb {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border: 1px solid #000;
+            text-align: center;
+            line-height: 9px;
+            font-size: 9px;
+            font-weight: bold;
+            margin-right: 3px;
+            vertical-align: middle;
+        }
+
+        /* Signatures Block */
+        table.sign-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4px;
+            font-size: 8.5pt;
+            text-align: center;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        table.sign-table td {
+            border: 1px solid #000;
+            padding: 5px;
+            vertical-align: top;
+            width: 33.33%;
+            height: 145px;
+        }
+
+        /* Page Number Footer */
+        .page-footer-center {
+            margin-top: 6px;
+            text-align: center;
+            font-size: 8.5pt;
+            font-family: 'Khmer OS Battambang', sans-serif;
+        }
+
+        /* Floating Controls */
+        .no-print {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            gap: 8px;
+        }
+        .btn-print {
+            background: #198754;
+            color: #fff;
+            padding: 9px 20px;
+            border: none;
+            border-radius: 30px;
+            font-family: 'Khmer OS Battambang', sans-serif;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-print:hover {
+            background: #157347;
+        }
+        .btn-close-win {
+            background: #495057;
+            color: #fff;
+            padding: 9px 16px;
+            border: none;
+            border-radius: 30px;
+            font-family: 'Khmer OS Battambang', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Print Media CSS */
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+                margin: 0;
+            }
+            .a4-page {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                margin: 0;
+                width: 100%;
+                min-height: auto;
+                page-break-after: always;
+                break-after: page;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating Action Buttons -->
+    <div class="no-print">
+        <button class="btn-print" onclick="window.print()">
+            <i class="fa-solid fa-print"></i> បោះពុម្ពឯកសារ (Print A4)
+        </button>
+        <button class="btn-close-win" onclick="window.close()">
+            <i class="fa-solid fa-xmark me-1"></i> បិទ
+        </button>
+    </div>
+
+    <!-- =======================================================
+         ទំព័រទី ១ (PAGE 1: Header + Personal + Family + Children)
+         ======================================================= -->
+    <div class="a4-page">
+        <div class="page-content">
+            
+            <!-- Top Royal Header -->
+            <div class="royal-header">
+                <div class="royal-title">ព្រះរាជាណាចក្រកម្ពុជា</div>
+                <div class="royal-sub">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                <div class="tactical-line">-------</div>
+            </div>
+
+            <!-- Ministry & Photo Row -->
+            <table class="header-table">
+                <tr>
+                    <td style="width: 72%;">
+                        <div class="ministry-title">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
+                        <div class="department-title">
+                            {% if officer.department %}
+                            {{ officer.department.name_kh }}
+                            {% else %}
+                            មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="width: 28%; text-align: center; padding: 3px;">
+                        <div class="photo-box">
+                            {% if officer.photo %}
+                            <img src="{{ officer.photo.url }}" alt="{{ officer.full_name_kh }}">
+                            {% else %}
+                            <div class="photo-blank">
+                                <i class="fa-regular fa-image fa-2x mb-1" style="color: #bbb; display: block;"></i>
+                                រូបថត 4x6
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Document Title -->
+            <div class="doc-title-container">
+                <div class="doc-title-text">ជីវប្រវត្តិមន្ត្រីរាជការ</div>
+                <div class="doc-title-line">-------</div>
+            </div>
+
+            <!-- ក- ព័ត៌មានផ្ទាល់ខ្លួន -->
+            <div class="section-header">ក-ព័ត៌មានផ្ទាល់ខ្លួន</div>
+            <table class="data-table">
+                <tr>
+                    <td class="field-label">- ឈ្មោះជាភាសាខ្មែរ</td>
+                    <td>
+                        គោត្តនាម: <strong>{{ officer.khmer_last_name }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        នាមខ្លួន: <strong>{{ officer.khmer_first_name }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        ភេទ: <strong>{{ officer.get_gender_display }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ឈ្មោះជាអក្សរពុម្ពឡាតាំង</td>
+                    <td>
+                        គោត្តនាម: <strong>{{ officer.latin_last_name|default:"-" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        នាមខ្លួន: <strong>{{ officer.latin_first_name|default:"-" }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ថ្ងៃខែឆ្នាំកំណើត</td>
+                    <td>
+                        <strong>{{ officer_dob_kh }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        ជនជាតិ: <strong>{{ officer.ethnicity|default:"ខ្មែរ" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        សញ្ជាតិ: <strong>{{ officer.nationality|default:"ខ្មែរ" }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ទីកន្លែងកំណើត</td>
+                    <td>
+                        ភូមិ <strong>{{ officer.pob_village|default:"..." }}</strong> ឃុំ/សង្កាត់ <strong>{{ officer.pob_commune|default:"..." }}</strong> ស្រុក/ខណ្ឌ <strong>{{ officer.pob_district|default:"..." }}</strong> រាជធានី/ខេត្ត <strong>{{ officer.pob_province|default:"..." }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- អាសយដ្ឋានបច្ចុប្បន្ន</td>
+                    <td>
+                        # <strong>{{ officer.current_house_no|default:".............." }}</strong> ផ្លូវ <strong>{{ officer.current_street|default:"............" }}</strong> ភូមិ <strong>{{ officer.current_village|default:"..." }}</strong> ឃុំ/សង្កាត់ <strong>{{ officer.current_commune|default:"..." }}</strong> ស្រុក/ខណ្ឌ <strong>{{ officer.current_district|default:"..." }}</strong> រាជធានី/ខេត្ត <strong>{{ officer.current_province|default:"..." }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label" rowspan="2">- អាសយដ្ឋានអចិន្ត្រៃយ៍</td>
+                    <td>
+                        <span class="cb">{% if officer.perm_same_as_current %}&#10003;{% endif %}</span> ដូចអាសយដ្ឋានបច្ចុប្បន្ន &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <span class="cb">{% if not officer.perm_same_as_current %}&#10003;{% endif %}</span> មិនដូចអាសយដ្ឋានបច្ចុប្បន្ន
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        # <strong>{% if not officer.perm_same_as_current %}{{ officer.perm_house_no|default:".............." }}{% else %}{{ officer.current_house_no|default:".............." }}{% endif %}</strong>
+                        ផ្លូវ <strong>{% if not officer.perm_same_as_current %}{{ officer.perm_street|default:"............" }}{% else %}{{ officer.current_street|default:"............" }}{% endif %}</strong>
+                        ភូមិ <strong>{% if not officer.perm_same_as_current %}{{ officer.perm_village|default:"..." }}{% else %}{{ officer.current_village|default:"..." }}{% endif %}</strong>
+                        ឃុំ/សង្កាត់ <strong>{% if not officer.perm_same_as_current %}{{ officer.perm_commune|default:"..." }}{% else %}{{ officer.current_commune|default:"..." }}{% endif %}</strong>
+                        ស្រុក/ខណ្ឌ <strong>{% if not officer.perm_same_as_current %}{{ officer.perm_district|default:"..." }}{% else %}{{ officer.current_district|default:"..." }}{% endif %}</strong>
+                        រាជធានី/ខេត្ត <strong>{% if not officer.perm_same_as_current %}{{ officer.perm_province|default:"..." }}{% else %}{{ officer.current_province|default:"..." }}{% endif %}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- លេខទូរស័ព្ទ</td>
+                    <td>
+                        <strong>{{ officer.phone|default:"-" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        អ៊ីម៉ែល: <strong>{{ officer.email|default:"-" }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- អត្តលេខមន្ត្រីរាជការ</td>
+                    <td><strong>{{ officer.officer_id_number|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- លេខអត្តសញ្ញាណប័ណ្ណសញ្ជាតិខ្មែរ</td>
+                    <td>
+                        <strong>{{ officer.national_id_number|default:"-" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        សុពលភាព: <strong>{{ officer_nid_valid_from }}</strong> ដល់ថ្ងៃ: <strong>{{ officer_nid_valid_to }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- កាយសម្បទា</td>
+                    <td>
+                        <span class="cb">{% if officer.physical_condition == 'គ្រប់គ្រាន់' %}&#10003;{% endif %}</span> គ្រប់គ្រាន់ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <span class="cb">{% if officer.physical_condition == 'ពិការភាព' %}&#10003;{% endif %}</span> ពិការភាព &nbsp;&nbsp;&nbsp;&nbsp;
+                        ប្រភេទពិការ: <strong>{{ officer.disability_detail|default:"......" }}</strong>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- ខ- ព័ត៌មានគ្រួសារ -->
+            <div class="section-header">
+                ខ-ព័ត៌មានគ្រួសារ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="cb">{% if officer.marital_status == 'SINGLE' %}&#10003;{% endif %}</span> នៅលីវ &nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="cb">{% if officer.marital_status == 'MARRIED' %}&#10003;{% endif %}</span> រៀបការហើយ &nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="cb">{% if officer.marital_status == 'DIVORCED' %}&#10003;{% endif %}</span> មេម៉ាយ/ពោះម៉ាយ
+            </div>
+
+            <div class="subsection-header">ខ.១-ព័ត៌មានប្រពន្ធឬប្តី</div>
+            <table class="data-table">
+                <tr>
+                    <td class="field-label">- លេខសំបុត្រអាពាហ៍ពិពាហ៍</td>
+                    <td><strong>{{ officer.spouse_marriage_cert_no|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ឈ្មោះប្រពន្ធឬប្តី</td>
+                    <td>
+                        <strong>{{ officer.spouse_name_kh|default:"-" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <span class="cb">{% if officer.spouse_is_alive %}&#10003;{% endif %}</span> រស់ &nbsp;&nbsp;&nbsp;&nbsp;
+                        <span class="cb">{% if not officer.spouse_is_alive and officer.spouse_name_kh %}&#10003;{% endif %}</span> ស្លាប់
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ឈ្មោះជាអក្សរពុម្ពឡាតាំង</td>
+                    <td><strong>{{ officer.spouse_name_latin|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ថ្ងៃខែឆ្នាំកំណើត</td>
+                    <td><strong>{{ spouse_dob_kh }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- លេខអត្តសញ្ញាណប័ណ្ណសញ្ជាតិខ្មែរ</td>
+                    <td><strong>{{ officer.spouse_national_id|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ទីកន្លែងកំណើត</td>
+                    <td><strong>{{ officer.spouse_pob|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- មុខរបរបច្ចុប្បន្ន</td>
+                    <td><strong>{{ officer.spouse_occupation|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- អាសយដ្ឋានបច្ចុប្បន្ន</td>
+                    <td><strong>{{ officer.spouse_current_address|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ឈ្មោះអង្គភាព</td>
+                    <td><strong>{{ officer.spouse_organization|default:"" }}</strong></td>
+                </tr>
+            </table>
+
+            <!-- ខ.២- ព័ត៌មានកូន -->
+            <div class="subsection-header">
+                ខ.២-ព័ត៌មានកូន &nbsp;&nbsp;&nbsp;&nbsp;
+                (មានកូនចំនួន <strong>{{ total_children_kh }}</strong> នាក់ &nbsp;&nbsp; ស្រីចំនួន <strong>{{ female_children_kh }}</strong> នាក់)
+            </div>
+            <table class="data-table">
+                <tbody>
+                    {% for c in children_list %}
+                    <tr>
+                        <td style="width: 38%;">{{ c.counter_kh }} - គោត្តនាម និងនាមខ្លួន: <strong>{{ c.name }}</strong></td>
+                        <td style="width: 14%;">ភេទ: <strong>{{ c.gender_kh }}</strong></td>
+                        <td style="width: 32%;">ថ្ងៃខែឆ្នាំកំណើត: <strong>{{ c.dob_kh }}</strong></td>
+                        <td style="width: 16%;">មុខរបរ: <strong>{{ c.occupation|default:"ក្នុងបន្ទុក" }}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #777; padding: 4px;">គ្មាន</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+        <div class="page-footer-center">-១-</div>
+    </div>
+
+
+    <!-- =======================================================
+         ទំព័រទី ២ (PAGE 2: Parents + Emergency + Education + Languages + Framework + Positions)
+         ======================================================= -->
+    <div class="a4-page">
+        <div class="page-content">
+
+            <!-- ខ.៣- ព័ត៌មានឪពុក និងម្តាយបង្កើត -->
+            <div class="section-header">ខ.៣-ព័ត៌មានឪពុក និងម្តាយបង្កើត</div>
+            <table class="data-table">
+                <tr>
+                    <td class="field-label">- ឪពុកឈ្មោះ:</td>
+                    <td>
+                        <strong>{{ officer.father_name|default:"-" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <span class="cb">{% if officer.father_is_alive %}&#10003;{% endif %}</span> រស់ &nbsp;&nbsp;&nbsp;&nbsp;
+                        <span class="cb">{% if not officer.father_is_alive and officer.father_name %}&#10003;{% endif %}</span> ស្លាប់
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ទីកន្លែងកំណើត</td>
+                    <td><strong>{{ officer.father_pob|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- មុខរបរបច្ចុប្បន្ន</td>
+                    <td><strong>{{ officer.father_occupation|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ម្តាយឈ្មោះ:</td>
+                    <td>
+                        <strong>{{ officer.mother_name|default:"-" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <span class="cb">{% if officer.mother_is_alive %}&#10003;{% endif %}</span> រស់ &nbsp;&nbsp;&nbsp;&nbsp;
+                        <span class="cb">{% if not officer.mother_is_alive and officer.mother_name %}&#10003;{% endif %}</span> ស្លាប់
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ទីកន្លែងកំណើត</td>
+                    <td><strong>{{ officer.mother_pob|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- មុខរបរបច្ចុប្បន្ន</td>
+                    <td><strong>{{ officer.mother_occupation|default:"-" }}</strong></td>
+                </tr>
+            </table>
+
+            <!-- គ- ព័ត៌មានទំនាក់ទំនងក្នុងករណីមានអាសន្ន -->
+            <div class="section-header">គ-ព័ត៌មានទំនាក់ទំនងក្នុងករណីមានអាសន្ន</div>
+            <table class="data-table">
+                <tr>
+                    <td class="field-label">- ឈ្មោះជាភាសាខ្មែរ</td>
+                    <td>
+                        គោត្តនាម: <strong>{{ officer.emergency_last_name|default:"-" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        នាមខ្លួន: <strong>{{ officer.emergency_first_name|default:"-" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        ភេទ: <strong>{{ officer.get_emergency_gender_display|default:"-" }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- ទំនាក់ទំនងត្រូវជា</td>
+                    <td>
+                        <strong>{{ officer.emergency_relationship|default:"-" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        មុខរបរ: <strong>{{ officer.emergency_occupation|default:"-" }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="field-label">- អាសយដ្ឋានបច្ចុប្បន្ន</td>
+                    <td><strong>{{ officer.emergency_address|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="field-label">- លេខទូរស័ព្ទ</td>
+                    <td>
+                        <strong>{{ officer.emergency_phone|default:"-" }}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+                        អ៊ីម៉ែល: <strong>{{ officer.emergency_email|default:"-" }}</strong>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- ឃ- កម្រិតវប្បធម៌ទូទៅ ការបណ្តុះបណ្តាលមុខវិជ្ជាជីវៈ និងការបណ្តុះបណ្តាលបន្ត -->
+            <div class="section-header">ឃ-កម្រិតវប្បធម៌ទូទៅ ការបណ្តុះបណ្តាលមុខវិជ្ជាជីវៈ និងការបណ្តុះបណ្តាលបន្ត</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 85px;">វគ្គ<br>ឬកម្រិតសិក្សា</th>
+                        <th>គ្រឹះស្ថានសិក្សា<br>បណ្តុះបណ្តាល</th>
+                        <th style="width: 95px;">រាជធានី<br>ខេត្ត/ប្រទេស</th>
+                        <th style="width: 90px;">សញ្ញាបត្រ</th>
+                        <th>ជំនាញ</th>
+                        <th style="width: 70px;">ថ្ងៃខែឆ្នាំ<br>ចូលសិក្សា</th>
+                        <th style="width: 70px;">ថ្ងៃខែឆ្នាំ<br>បញ្ចប់</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background-color: #fafafa; font-weight: bold;">
+                        <td colspan="7">១-កម្រិតវប្បធម៌ទូទៅ (សូមបំពេញកម្រិតចុងក្រោយ)</td>
+                    </tr>
+                    {% for e in edu_general %}
+                    <tr>
+                        <td style="text-align: center;">{{ e.level_label|default:"បាក់ឌុប" }}</td>
+                        <td>{{ e.school|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.location|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.degree|default:"-" }}</td>
+                        <td>{{ e.skill|default:"ចំណេះទូទៅ" }}</td>
+                        <td style="text-align: center;">{{ e.start_date|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.end_date|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+
+                    <tr style="background-color: #fafafa; font-weight: bold;">
+                        <td colspan="7">២-កម្រិតបណ្តុះបណ្តាលវិជ្ជាជីវៈមូលដ្ឋាន និងក្រោយមូលដ្ឋាន (សូមបំពេញតាមលំដាប់ពីថ្មីទៅចាស់)</td>
+                    </tr>
+                    {% for e in edu_vocational %}
+                    <tr>
+                        <td style="text-align: center;">{{ e.level_label|default:"ឧត្តមសិក្សា" }}</td>
+                        <td>{{ e.school|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.location|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.degree|default:"-" }}</td>
+                        <td>{{ e.skill|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.start_date|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.end_date|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+
+                    <tr style="background-color: #fafafa; font-weight: bold;">
+                        <td colspan="7">៣-វគ្គបណ្តុះបណ្តាលបន្ត និងវគ្គសិក្សា (សូមបំពេញវគ្គសិក្សាដែលថ្មី សំខាន់ៗ និងចាំបាច់)</td>
+                    </tr>
+                    {% for e in edu_continuous %}
+                    <tr>
+                        <td style="text-align: center;">{{ e.level_label|default:"វគ្គខ្លី" }}</td>
+                        <td>{{ e.school|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.location|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.degree|default:"វិញ្ញាបនបត្រ" }}</td>
+                        <td>{{ e.skill|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.start_date|default:"-" }}</td>
+                        <td style="text-align: center;">{{ e.end_date|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- ង- ភាសាបរទេស -->
+            <div class="section-header">ង-ភាសាបរទេស (សូមបំពេញកម្រិតចំណេះដឹងភាសាបរទេស ពីល្អ មធ្យម ខ្សោយ)</div>
+            <table class="data-table" style="text-align: center;">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">ភាសាបរទេស</th>
+                        <th style="width: 25%;">ការអាន</th>
+                        <th style="width: 25%;">ការសន្ទនា</th>
+                        <th style="width: 25%;">ការសរសេរ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in languages_list %}
+                    <tr>
+                        <td><strong>{{ l.language }}</strong></td>
+                        <td>{{ l.reading }}</td>
+                        <td>{{ l.speaking }}</td>
+                        <td>{{ l.writing }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" style="color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- ច- ក្របខ័ណ្ឌការងារ -->
+            <div class="section-header">ច-ក្របខ័ណ្ឌការងារ</div>
+            <table class="data-table">
+                <tr>
+                    <td style="width: 25%;">- ថ្ងៃខែឆ្នាំចូលបម្រើក្របខ័ណ្ឌរដ្ឋ:</td>
+                    <td style="width: 25%;"><strong>{{ officer.civil_service_start_date|default:"-" }}</strong></td>
+                    <td style="width: 25%;">- ថ្ងៃខែឆ្នាំតាំងស៊ប់ក្នុងក្របខ័ណ្ឌរដ្ឋ:</td>
+                    <td style="width: 25%;"><strong>{{ officer.civil_service_permanent_date|default:"-" }}</strong></td>
+                </tr>
+                <tr>
+                    <td>- ឈ្មោះក្របខ័ណ្ឌ:</td>
+                    <td><strong>{{ officer.framework_name|default:"-" }}</strong></td>
+                    <td>- ក្របខណ្ឌ ឋានន្តរស័ក្តិ និងថ្នាក់បច្ចុប្បន្ន:</td>
+                    <td><strong>{{ officer.current_rank_and_step|default:"-" }}</strong></td>
+                </tr>
+            </table>
+
+            <!-- ឆ- មុខតំណែង (ឆ.១.១ & ឆ.១.២) -->
+            <div class="section-header">ឆ-មុខតំណែង (សូមបំពេញតាមលំដាប់ ពីថ្មីទៅចាស់)</div>
+            <div class="subsection-header">ឆ.១.១-ក្នុងវិស័យសាធារណៈ</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 85px;">ថ្ងៃខែឆ្នាំ<br>ចូលបម្រើ</th>
+                        <th style="width: 85px;">ថ្ងៃខែឆ្នាំ<br>បញ្ចប់</th>
+                        <th>ក្រសួង-ស្ថាប័ន</th>
+                        <th>នាយកដ្ឋាន-អង្គភាព</th>
+                        <th>មុខតំណែង</th>
+                        <th>ជំនាញ/បច្ចេកទេស<br>ក្នុងមុខតំណែង</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in pub_history_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ h.start_date }}</td>
+                        <td style="text-align: center;">{{ h.end_date }}</td>
+                        <td>{{ h.ministry }}</td>
+                        <td>{{ h.department }}</td>
+                        <td><strong>{{ h.position }}</strong></td>
+                        <td>{{ h.skill }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="subsection-header">ឆ.១.២-ក្នុងវិស័យឯកជន</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 90px;">ថ្ងៃខែឆ្នាំ<br>ចូលបម្រើ</th>
+                        <th style="width: 90px;">ថ្ងៃខែឆ្នាំ<br>បញ្ចប់</th>
+                        <th>គ្រឹះស្ថាន-អង្គភាព</th>
+                        <th>តួនាទី</th>
+                        <th>ជំនាញ/បច្ចេកទេស</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in priv_history_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ h.start_date }}</td>
+                        <td style="text-align: center;">{{ h.end_date }}</td>
+                        <td>{{ h.org }}</td>
+                        <td><strong>{{ h.role }}</strong></td>
+                        <td>{{ h.skill }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+        <div class="page-footer-center">-២-</div>
+    </div>
+
+
+    <!-- =======================================================
+         ទំព័រទី ៣ (PAGE 3: Promotions + Leaves + Awards + Sanctions + Signatures)
+         ======================================================= -->
+    <div class="a4-page">
+        <div class="page-content">
+
+            <!-- ឆ.២- ការដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់តាមវេនជ្រើសរើស -->
+            <div class="section-header">ឆ.២-ការដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់តាមវេនជ្រើសរើស អតីតភាព ឬប្រឡងប្រជែងត្រួតពិនិត្យ (សូមបំពេញតាមលំដាប់ ពីថ្មីទៅចាស់)</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ថ្ងៃខែឆ្នាំ<br>សុពលភាព</th>
+                        <th>ក្រសួង-ស្ថាប័ន</th>
+                        <th>នាយកដ្ឋាន-អង្គភាព</th>
+                        <th>ការិយាល័យ-<br>ផ្នែក</th>
+                        <th>ក្របខ័ណ្ឌ ឋានន្តរស័ក្តិ<br>និងថ្នាក់ចាស់</th>
+                        <th>ក្របខ័ណ្ឌ ឋានន្តរស័ក្តិ<br>និងថ្នាក់ថ្មី</th>
+                        <th style="width: 80px;">ប្រភេទ<br>ដំឡើង/ប្តូរ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in promo_seniority_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ p.effective_date }}</td>
+                        <td>{{ p.ministry }}</td>
+                        <td>{{ p.department }}</td>
+                        <td>{{ p.office }}</td>
+                        <td style="text-align: center;">{{ p.old_rank_step }}</td>
+                        <td style="text-align: center;"><strong>{{ p.new_rank_step }}</strong></td>
+                        <td style="text-align: center;">{{ p.promo_type }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- ឆ.៣- ការដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់តាមសញ្ញាបត្រ -->
+            <div class="subsection-header">ឆ.៣-ការដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់តាមសញ្ញាបត្រ (សូមបំពេញតាមលំដាប់ ពីថ្មីទៅចាស់)</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ថ្ងៃខែឆ្នាំ<br>សុពលភាព</th>
+                        <th>គ្រឹះស្ថានបណ្តុះបណ្តាល</th>
+                        <th>ទីកន្លែងសិក្សា</th>
+                        <th>សញ្ញាបត្រទទួលបាន</th>
+                        <th>ក្របខ័ណ្ឌ ឋានន្តរស័ក្តិ<br>និងថ្នាក់ចាស់</th>
+                        <th>ក្របខ័ណ្ឌ ឋានន្តរស័ក្តិ<br>និងថ្នាក់ថ្មី</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in promo_degree_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ p.effective_date }}</td>
+                        <td>{{ p.school }}</td>
+                        <td>{{ p.location }}</td>
+                        <td>{{ p.degree }}</td>
+                        <td style="text-align: center;">{{ p.old_rank_step }}</td>
+                        <td style="text-align: center;"><strong>{{ p.new_rank_step }}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- ឆ.៤- ស្ថានភាពស្ថិតនៅក្រៅក្របខ័ណ្ឌដើម -->
+            <div class="subsection-header">ឆ.៤-ស្ថានភាពស្ថិតនៅក្រៅក្របខ័ណ្ឌដើម (សូមបំពេញតាមលំដាប់ ពីថ្មីទៅចាស់)</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 90px;">ថ្ងៃខែឆ្នាំ<br>ចាប់ផ្តើម</th>
+                        <th style="width: 90px;">ថ្ងៃខែឆ្នាំ<br>បញ្ចប់</th>
+                        <th>ក្រសួង/ស្ថាប័ន</th>
+                        <th>មុខតំណែង</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in outside_fw_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ o.start_date }}</td>
+                        <td style="text-align: center;">{{ o.end_date }}</td>
+                        <td>{{ o.ministry }}</td>
+                        <td>{{ o.position }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- ឆ.៥- ស្ថានភាពស្ថិតក្នុងភាពទំនេរគ្មានបៀវត្ស -->
+            <div class="subsection-header">ឆ.៥-ស្ថានភាពស្ថិតក្នុងភាពទំនេរគ្មានបៀវត្ស (សូមបំពេញតាមលំដាប់ ពីថ្មីទៅចាស់)</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 90px;">ថ្ងៃខែឆ្នាំ<br>ចាប់ផ្តើម</th>
+                        <th style="width: 90px;">ថ្ងៃខែឆ្នាំ<br>បញ្ចប់</th>
+                        <th>ក្រសួង/ស្ថាប័ន</th>
+                        <th>ចំនួន(ខែ/ឆ្នាំ)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in unpaid_leave_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ u.start_date }}</td>
+                        <td style="text-align: center;">{{ u.end_date }}</td>
+                        <td>{{ u.ministry }}</td>
+                        <td style="text-align: center;">{{ u.duration }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- ជ- ការលើកសរសើរ ឬទណ្ឌកម្មវិន័យ -->
+            <div class="section-header">ជ-ការលើកសរសើរ ឬទណ្ឌកម្មវិន័យ</div>
+            <div class="subsection-header">ជ.១-ការលើកសរសើរ (គ្រឿងឥស្សរិយយស មេដាយ ប័ណ្ណសរសើរ)</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 110px;">លេខលិខិត</th>
+                        <th style="width: 90px;">កាលបរិច្ឆេទ</th>
+                        <th>ក្រសួង/ស្ថាប័ន/រាជធានី-ខេត្ត (ស្នើសុំ)</th>
+                        <th>បរិយាយ</th>
+                        <th style="width: 100px;">ប្រភេទ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in awards_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ a.doc_number }}</td>
+                        <td style="text-align: center;">{{ a.date }}</td>
+                        <td>{{ a.ministry }}</td>
+                        <td>{{ a.description }}</td>
+                        <td style="text-align: center;"><strong>{{ a.type }}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="subsection-header">ជ.២-ការដាក់ពិន័យ</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 110px;">លេខលិខិត</th>
+                        <th style="width: 90px;">កាលបរិច្ឆេទ</th>
+                        <th>ក្រសួង/ស្ថាប័ន/រាជធានី-ខេត្ត</th>
+                        <th>បរិយាយ</th>
+                        <th style="width: 100px;">ប្រភេទ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sanctions_list %}
+                    <tr>
+                        <td style="text-align: center;">{{ s.doc_number }}</td>
+                        <td style="text-align: center;">{{ s.date }}</td>
+                        <td>{{ s.ministry }}</td>
+                        <td>{{ s.description }}</td>
+                        <td style="text-align: center;">{{ s.type }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Signatures & Verification Block -->
+            <table class="sign-table">
+                <tr>
+                    <td>
+                        <div style="text-align: left; font-weight: bold; margin-bottom: 4px;">*នាយកដ្ឋានបុគ្គលិក</div>
+                        <div style="font-weight: bold; margin-bottom: 2px;">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
+                        <div style="font-size: 8pt;">ថ្ងៃ................ខែ.............ឆ្នាំមមែ ព.ស.២៥៧០</div>
+                        <div style="font-size: 8pt; margin-bottom: 20px;">............., ថ្ងៃទី........ខែ...........ឆ្នាំ២០......</div>
+                        <div style="font-weight: bold; font-size: 8pt;">ប្រធាននាយកដ្ឋានបុគ្គលិកនិងអភិវឌ្ឍន៍ធនធានមនុស្ស</div>
+                    </td>
+                    <td>
+                        <div style="text-align: left; font-weight: bold; margin-bottom: 4px;">*មន្ទីររាជធានី ខេត្ត</div>
+                        <div style="font-size: 8pt; line-height: 1.25;">
+                            ខ្ញុំសូមធានាទទួលខុសត្រូវចំពោះមុខច្បាប់ថា ព័ត៌មាន រូបថត និងហត្ថលេខា ក្នុងជីវប្រវត្តិមន្ត្រីរាជការនេះ ពិតជារបស់លោក <strong>{{ officer.full_name_kh }}</strong> ដែលជាមន្ត្រីកំពុងបំពេញការងារនៅក្នុង មន្ទីរ និងអង្គភាពក្រោមឱវាទរបស់ក្រសួង/ស្ថាប័នប្រាកដមែន។
+                        </div>
+                        <div style="font-size: 8pt; margin-top: 3px;">ថ្ងៃ................ខែ.............ឆ្នាំមមែ ព.ស.២៥៧០</div>
+                        <div style="font-size: 8pt; margin-bottom: 16px;">............., ថ្ងៃទី........ខែ...........ឆ្នាំ២០......</div>
+                        <div style="font-weight: bold; font-size: 8.5pt;">ប្រធានមន្ទីរ</div>
+                    </td>
+                    <td>
+                        <div style="text-align: left; font-weight: bold; margin-bottom: 4px;">*សាមីខ្លួន</div>
+                        <div style="font-size: 8pt; line-height: 1.25;">
+                            ខ្ញុំសូមធានាទទួលខុសត្រូវចំពោះមុខច្បាប់ថា ព័ត៌មានបានបំពេញក្នុងជីវប្រវត្តិមន្ត្រីរាជការនេះ ពិតជាត្រឹមត្រូវប្រាកដមែន។
+                        </div>
+                        <div style="font-size: 8pt; margin-top: 3px;">ថ្ងៃ................ខែ.............ឆ្នាំមមែ ព.ស.២៥៧០</div>
+                        <div style="font-size: 8pt; margin-bottom: 6px;">............., ថ្ងៃទី {{ print_day_kh }} ខែ {{ print_month_kh }} ឆ្នាំ {{ print_year_kh }}</div>
+                        <div style="font-weight: bold; font-size: 8.5pt; margin-bottom: 20px;">ហត្ថលេខា (សាមីខ្លួន)</div>
+                        <div style="font-weight: bold; font-size: 9.5pt;">{{ officer.full_name_kh }}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="height: 110px; text-align: center; padding-top: 6px;">
+                        <div style="font-weight: bold; font-size: 10pt; margin-bottom: 2px;">បានឃើញ និងឯកភាព</div>
+                        <div style="font-size: 8.5pt;">ថ្ងៃ.....................ខែ..................ឆ្នាំមមែ ព.ស.២៥៧០</div>
+                        <div style="font-size: 8.5pt; margin-bottom: 14px;">....................., ថ្ងៃទី..........ខែ...........ឆ្នាំ២០......</div>
+                        <div class="muol-text" style="font-size: 11pt;">រដ្ឋមន្ត្រី</div>
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+        <div class="page-footer-center">-៣-</div>
+    </div>
+
+</body>
+</html>

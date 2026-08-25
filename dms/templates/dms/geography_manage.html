@@ -1,0 +1,774 @@
+{% extends 'dms/base.html' %}
+{% load static %}
+
+{% block title %}គ្រប់គ្រងភូមិសាស្ត្ររដ្ឋបាល (ស្រុក-ឃុំ-ភូមិ) | DMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-map-location-dot text-success me-2"></i>
+                គ្រប់គ្រងភូមិសាស្ត្ររដ្ឋបាល (ស្រុក-ឃុំ-ភូមិ)
+            </h4>
+            <p class="text-muted fs-7 mb-0">
+                ប្រព័ន្ធគ្រប់គ្រង បន្ថែម និងកែប្រែទិន្នន័យ ក្រុង/ស្រុក/ខណ្ឌ ឃុំ/សង្កាត់ និងភូមិ ព្រមទាំងលេខកូដសម្គាល់ (ID)
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'officer_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-xs">
+                <i class="fa-solid fa-arrow-left me-1"></i> ត្រឡប់ទៅបញ្ជីមន្ត្រី
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-primary border-4 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-bold text-uppercase">រាជធានី/ខេត្ត</div>
+                        <h3 class="fw-bold text-primary mb-0 mt-1">{{ total_provinces }}</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle fs-5">
+                        <i class="fa-solid fa-city"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-success border-4 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-bold text-uppercase">ក្រុង/ស្រុក/ខណ្ឌ</div>
+                        <h3 class="fw-bold text-success mb-0 mt-1">{{ total_districts }}</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle fs-5">
+                        <i class="fa-solid fa-building"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-warning border-4 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-bold text-uppercase">ឃុំ/សង្កាត់</div>
+                        <h3 class="fw-bold text-warning mb-0 mt-1">{{ total_communes }}</h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle fs-5">
+                        <i class="fa-solid fa-tree-city"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-info border-4 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-bold text-uppercase">ភូមិ</div>
+                        <h3 class="fw-bold text-info mb-0 mt-1">{{ total_villages }}</h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info p-3 rounded-circle fs-5">
+                        <i class="fa-solid fa-house-chimney-window"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <div class="card border-0 shadow-sm rounded-3 bg-white mb-4">
+        <div class="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <ul class="nav nav-pills card-header-pills gap-1">
+                <li class="nav-item">
+                    <a class="nav-link px-3 py-2 fw-bold fs-7 {% if level == 'district' %}active bg-success text-white{% else %}text-dark{% endif %}" 
+                       href="?level=district{% if selected_p_code %}&province_code={{ selected_p_code }}{% endif %}">
+                        <i class="fa-solid fa-building me-1.5"></i> ក្រុង/ស្រុក/ខណ្ឌ (Districts)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3 py-2 fw-bold fs-7 {% if level == 'commune' %}active bg-success text-white{% else %}text-dark{% endif %}" 
+                       href="?level=commune{% if selected_p_code %}&province_code={{ selected_p_code }}{% endif %}{% if selected_d_code %}&district_code={{ selected_d_code }}{% endif %}">
+                        <i class="fa-solid fa-tree-city me-1.5"></i> ឃុំ/សង្កាត់ (Communes)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3 py-2 fw-bold fs-7 {% if level == 'village' %}active bg-success text-white{% else %}text-dark{% endif %}" 
+                       href="?level=village{% if selected_p_code %}&province_code={{ selected_p_code }}{% endif %}{% if selected_d_code %}&district_code={{ selected_d_code }}{% endif %}{% if selected_c_code %}&commune_code={{ selected_c_code }}{% endif %}">
+                        <i class="fa-solid fa-house-chimney-window me-1.5"></i> ភូមិ (Villages)
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Add Buttons -->
+            <div>
+                {% if level == 'district' %}
+                <button class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-bold" onclick="openDistrictModal(false)">
+                    <i class="fa-solid fa-plus me-1"></i> បន្ថែម ក្រុង/ស្រុក/ខណ្ឌ ថ្មី
+                </button>
+                {% elif level == 'commune' %}
+                <button class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-bold" onclick="openCommuneModal(false)">
+                    <i class="fa-solid fa-plus me-1"></i> បន្ថែម ឃុំ/សង្កាត់ ថ្មី
+                </button>
+                {% elif level == 'village' %}
+                <button class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-bold" onclick="openVillageModal(false)">
+                    <i class="fa-solid fa-plus me-1"></i> បន្ថែម ភូមិ ថ្មី
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="card-body p-3 bg-light border-bottom">
+            <form method="GET" class="row g-2 align-items-center">
+                <input type="hidden" name="level" value="{{ level }}">
+
+                <!-- Province Filter -->
+                <div class="col-12 col-md-3">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">រាជធានី/ខេត្ត</label>
+                    <select name="province_code" id="filter_prov" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">-- គ្រប់រាជធានី/ខេត្ត --</option>
+                        {% for p in provinces %}
+                        <option value="{{ p.code }}" {% if selected_p_code == p.code %}selected{% endif %}>{{ p.name_kh }} ({{ p.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- District Filter (for commune and village) -->
+                {% if level == 'commune' or level == 'village' %}
+                <div class="col-12 col-md-3">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ក្រុង/ស្រុក/ខណ្ឌ</label>
+                    <select name="district_code" id="filter_dist" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">-- គ្រប់ក្រុង/ស្រុក/ខណ្ឌ --</option>
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Commune Filter (for village) -->
+                {% if level == 'village' %}
+                <div class="col-12 col-md-3">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ឃុំ/សង្កាត់</label>
+                    <select name="commune_code" id="filter_comm" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">-- គ្រប់ឃុំ/សង្កាត់ --</option>
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Keyword Search -->
+                <div class="col-12 col-md-3">
+                    <label class="form-label fs-8 fw-bold text-muted mb-1">ស្វែងរកតាមឈ្មោះ ឬកូដ</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="វាយឈ្មោះ ឬកូដ ID...">
+                        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-auto ms-auto d-flex align-items-end pt-3">
+                    <a href="?level={{ level }}" class="btn btn-outline-secondary btn-sm" title="Reset Filters">
+                        <i class="fa-solid fa-rotate-left me-1"></i> កំណត់ឡើងវិញ
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table Listing -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary fs-8 text-uppercase border-bottom">
+                    <tr>
+                        <th class="ps-3" style="width: 60px;">ល.រ</th>
+                        <th style="width: 140px;">លេខកូដ (ID)</th>
+                        <th>ឈ្មោះជាភាសាខ្មែរ</th>
+                        <th>ឈ្មោះជាអក្សរឡាតាំង</th>
+                        <th>ចំណុះរដ្ឋបាល (Hierarchy)</th>
+                        <th class="text-end pe-3" style="width: 130px;">សកម្មភាព</th>
+                    </tr>
+                </thead>
+                <tbody class="fs-7">
+                    {% if page_obj %}
+                        {% for item in page_obj %}
+                        <tr>
+                            <td class="ps-3 text-muted fw-semibold">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                            <td>
+                                <span class="badge bg-light text-primary border border-primary border-opacity-25 px-2.5 py-1 font-monospace fw-bold fs-8">
+                                    <i class="fa-solid fa-hashtag me-1"></i>{{ item.code }}
+                                </span>
+                            </td>
+                            <td>
+                                <strong class="text-dark">{{ item.name_kh }}</strong>
+                            </td>
+                            <td class="text-muted">{{ item.name_en|default:"-" }}</td>
+                            <td>
+                                {% if level == 'district' %}
+                                <span class="badge bg-secondary bg-opacity-10 text-dark">
+                                    <i class="fa-solid fa-city me-1 text-primary"></i> {{ item.province.name_kh }}
+                                </span>
+                                {% elif level == 'commune' %}
+                                <span class="badge bg-secondary bg-opacity-10 text-dark me-1">
+                                    <i class="fa-solid fa-city me-1 text-primary"></i> {{ item.province.name_kh }}
+                                </span>
+                                <span class="badge bg-secondary bg-opacity-10 text-dark">
+                                    <i class="fa-solid fa-building me-1 text-success"></i> {{ item.district.name_kh }}
+                                </span>
+                                {% elif level == 'village' %}
+                                <span class="badge bg-secondary bg-opacity-10 text-dark me-1">
+                                    <i class="fa-solid fa-city me-1 text-primary"></i> {{ item.province.name_kh }}
+                                </span>
+                                <span class="badge bg-secondary bg-opacity-10 text-dark me-1">
+                                    <i class="fa-solid fa-building me-1 text-success"></i> {{ item.district.name_kh }}
+                                </span>
+                                <span class="badge bg-secondary bg-opacity-10 text-dark">
+                                    <i class="fa-solid fa-tree-city me-1 text-warning"></i> {{ item.commune.name_kh }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-3">
+                                <div class="btn-group btn-group-sm">
+                                    {% if level == 'district' %}
+                                    <button class="btn btn-outline-primary btn-sm" title="កែប្រែ" 
+                                            onclick="openDistrictModal(true, '{{ item.code }}', '{{ item.province_id }}', '{{ item.name_kh|escapejs }}', '{{ item.name_en|escapejs }}')">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" title="លុប" 
+                                            onclick="deleteGeoItem('district', '{{ item.code }}', '{{ item.name_kh|escapejs }}')">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                    {% elif level == 'commune' %}
+                                    <button class="btn btn-outline-primary btn-sm" title="កែប្រែ" 
+                                            onclick="openCommuneModal(true, '{{ item.code }}', '{{ item.province_id }}', '{{ item.district_id }}', '{{ item.name_kh|escapejs }}', '{{ item.name_en|escapejs }}')">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" title="លុប" 
+                                            onclick="deleteGeoItem('commune', '{{ item.code }}', '{{ item.name_kh|escapejs }}')">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                    {% elif level == 'village' %}
+                                    <button class="btn btn-outline-primary btn-sm" title="កែប្រែ" 
+                                            onclick="openVillageModal(true, '{{ item.id }}', '{{ item.code }}', '{{ item.province_id }}', '{{ item.district_id }}', '{{ item.commune_id }}', '{{ item.name_kh|escapejs }}', '{{ item.name_en|escapejs }}')">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" title="លុប" 
+                                            onclick="deleteGeoItem('village', '{{ item.code }}', '{{ item.name_kh|escapejs }}', '{{ item.id }}')">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-magnifying-glass mb-2 fs-3 text-secondary opacity-50 d-block"></i>
+                                មិនមានទិន្នន័យដែលត្រូវនឹងការស្វែងរកឡើយ។
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj and page_obj.paginator.num_pages > 1 %}
+        <div class="card-footer bg-white border-top p-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span class="text-muted fs-8">
+                បង្ហាញពីទំព័រ <strong>{{ page_obj.number }}</strong> នៃ <strong>{{ page_obj.paginator.num_pages }}</strong> (សរុប {{ page_obj.paginator.count }} កំណត់ត្រា)
+            </span>
+            <nav>
+                <ul class="pagination pagination-sm m-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?level={{ level }}&page=1{% if selected_p_code %}&province_code={{ selected_p_code }}{% endif %}{% if selected_d_code %}&district_code={{ selected_d_code }}{% endif %}{% if selected_c_code %}&commune_code={{ selected_c_code }}{% endif %}{% if q %}&q={{ q }}{% endif %}">
+                            <i class="fa-solid fa-angles-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?level={{ level }}&page={{ page_obj.previous_page_number }}{% if selected_p_code %}&province_code={{ selected_p_code }}{% endif %}{% if selected_d_code %}&district_code={{ selected_d_code }}{% endif %}{% if selected_c_code %}&commune_code={{ selected_c_code }}{% endif %}{% if q %}&q={{ q }}{% endif %}">
+                            <i class="fa-solid fa-angle-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li class="page-item active"><span class="page-link bg-success border-success">{{ page_obj.number }}</span></li>
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?level={{ level }}&page={{ page_obj.next_page_number }}{% if selected_p_code %}&province_code={{ selected_p_code }}{% endif %}{% if selected_d_code %}&district_code={{ selected_d_code }}{% endif %}{% if selected_c_code %}&commune_code={{ selected_c_code }}{% endif %}{% if q %}&q={{ q }}{% endif %}">
+                            <i class="fa-solid fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?level={{ level }}&page={{ page_obj.paginator.num_pages }}{% if selected_p_code %}&province_code={{ selected_p_code }}{% endif %}{% if selected_d_code %}&district_code={{ selected_d_code }}{% endif %}{% if selected_c_code %}&commune_code={{ selected_c_code }}{% endif %}{% if q %}&q={{ q }}{% endif %}">
+                            <i class="fa-solid fa-angles-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 1. DISTRICT MODAL (ADD / EDIT) -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="districtModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold" id="distModalTitle"><i class="fa-solid fa-building me-2"></i>បន្ថែម ក្រុង/ស្រុក/ខណ្ឌ ថ្មី</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="districtForm" onsubmit="saveDistrict(event)">
+                <input type="hidden" id="dist_is_edit" value="false">
+                <input type="hidden" id="dist_orig_code" value="">
+
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">រាជធានី/ខេត្ត <span class="text-danger">*</span></label>
+                        <select id="dist_province_code" class="form-select" required>
+                            <option value="">-- ជ្រើសរើសរាជធានី/ខេត្ត --</option>
+                            {% for p in provinces %}
+                            <option value="{{ p.code }}">{{ p.name_kh }} ({{ p.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">លេខកូដស្រុក/ក្រុង (District Code ID) <span class="text-danger">*</span></label>
+                        <input type="text" id="dist_code" class="form-control font-monospace" placeholder="ឧ. 0201 ឬ 201" required>
+                        <small class="text-muted fs-8">លេខកូដសម្គាល់តាមតារាងរដ្ឋបាលជាតិ (e.g. 102, 1201...)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">ឈ្មោះជាភាសាខ្មែរ <span class="text-danger">*</span></label>
+                        <input type="text" id="dist_name_kh" class="form-control" placeholder="ឧ. ស្រុកបាណន់ ឬ ក្រុងប៉ោយប៉ែត" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">ឈ្មោះជាអក្សរឡាតាំង (Latin Name)</label>
+                        <input type="text" id="dist_name_en" class="form-control" placeholder="ឧ. Banan ឬ Poipet">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-success btn-sm rounded-pill px-4 fw-bold" id="distSubmitBtn">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> រក្សាទុក
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 2. COMMUNE MODAL (ADD / EDIT) -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="communeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold" id="commModalTitle"><i class="fa-solid fa-tree-city me-2"></i>បន្ថែម ឃុំ/សង្កាត់ ថ្មី</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="communeForm" onsubmit="saveCommune(event)">
+                <input type="hidden" id="comm_is_edit" value="false">
+                <input type="hidden" id="comm_orig_code" value="">
+
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">រាជធានី/ខេត្ត <span class="text-danger">*</span></label>
+                        <select id="comm_prov_select" class="form-select" onchange="loadDistrictsForCommModal(this.value)" required>
+                            <option value="">-- ជ្រើសរើសរាជធានី/ខេត្ត --</option>
+                            {% for p in provinces %}
+                            <option value="{{ p.code }}">{{ p.name_kh }} ({{ p.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">ក្រុង/ស្រុក/ខណ្ឌ <span class="text-danger">*</span></label>
+                        <select id="comm_dist_select" class="form-select" required disabled>
+                            <option value="">-- ជ្រើសរើសក្រុង/ស្រុក/ខណ្ឌ --</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">លេខកូដឃុំ/សង្កាត់ (Commune Code ID) <span class="text-danger">*</span></label>
+                        <input type="text" id="comm_code" class="form-control font-monospace" placeholder="ឧ. 020101 ឬ 20101" required>
+                        <small class="text-muted fs-8">លេខកូដសម្គាល់តាមតារាងរដ្ឋបាលជាតិ (e.g. 10201, 120101...)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">ឈ្មោះជាភាសាខ្មែរ <span class="text-danger">*</span></label>
+                        <input type="text" id="comm_name_kh" class="form-control" placeholder="ឧ. ឃុំកន្ទឺ ១ ឬ សង្កាត់ប៉ោយប៉ែត" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">ឈ្មោះជាអក្សរឡាតាំង (Latin Name)</label>
+                        <input type="text" id="comm_name_en" class="form-control" placeholder="ឧ. Kantue 1 ឬ Poipet">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-warning text-dark btn-sm rounded-pill px-4 fw-bold" id="commSubmitBtn">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> រក្សាទុក
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 3. VILLAGE MODAL (ADD / EDIT) -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="villageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title fw-bold" id="villModalTitle"><i class="fa-solid fa-house-chimney-window me-2"></i>បន្ថែម ភូមិ ថ្មី</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="villageForm" onsubmit="saveVillage(event)">
+                <input type="hidden" id="vill_is_edit" value="false">
+                <input type="hidden" id="vill_id" value="">
+
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">រាជធានី/ខេត្ត <span class="text-danger">*</span></label>
+                        <select id="vill_prov_select" class="form-select" onchange="loadDistrictsForVillModal(this.value)" required>
+                            <option value="">-- ជ្រើសរើសរាជធានី/ខេត្ត --</option>
+                            {% for p in provinces %}
+                            <option value="{{ p.code }}">{{ p.name_kh }} ({{ p.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">ក្រុង/ស្រុក/ខណ្ឌ <span class="text-danger">*</span></label>
+                        <select id="vill_dist_select" class="form-select" onchange="loadCommunesForVillModal(this.value)" required disabled>
+                            <option value="">-- ជ្រើសរើសក្រុង/ស្រុក/ខណ្ឌ --</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">ឃុំ/សង្កាត់ <span class="text-danger">*</span></label>
+                        <select id="vill_comm_select" class="form-select" required disabled>
+                            <option value="">-- ជ្រើសរើសឃុំ/សង្កាត់ --</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">លេខកូដភូមិ (Village Code ID) <span class="text-danger">*</span></label>
+                        <input type="text" id="vill_code" class="form-control font-monospace" placeholder="ឧ. 02010105 ឬ 2010105" required>
+                        <small class="text-muted fs-8">លេខកូដសម្គាល់តាមតារាងរដ្ឋបាលជាតិ (e.g. 1020101, 12010101...)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">ឈ្មោះជាភាសាខ្មែរ <span class="text-danger">*</span></label>
+                        <input type="text" id="vill_name_kh" class="form-control" placeholder="ឧ. ភូមិកំពង់អំពិល ឬ ភូមិ ១" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">ឈ្មោះជាអក្សរឡាតាំង (Latin Name)</label>
+                        <input type="text" id="vill_name_en" class="form-control" placeholder="ឧ. Kampong Ampil ឬ Phum 1">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-info text-white btn-sm rounded-pill px-4 fw-bold" id="villSubmitBtn">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> រក្សាទុក
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const csrfToken = "{{ csrf_token }}";
+
+// Load Filter Dropdowns on page load
+document.addEventListener('DOMContentLoaded', async function() {
+    const selP = "{{ selected_p_code }}";
+    const selD = "{{ selected_d_code }}";
+    const selC = "{{ selected_c_code }}";
+
+    if (selP && document.getElementById('filter_dist')) {
+        const res = await fetch("{% url 'api_geo_districts' %}?province_code=" + selP);
+        const data = await res.json();
+        if (data.success) {
+            const distSelect = document.getElementById('filter_dist');
+            distSelect.innerHTML = '<option value="">-- គ្រប់ក្រុង/ស្រុក/ខណ្ឌ --</option>';
+            data.districts.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.code;
+                opt.textContent = `${d.name_kh} (${d.code})`;
+                if (d.code === selD) opt.selected = true;
+                distSelect.appendChild(opt);
+            });
+        }
+    }
+
+    if (selD && document.getElementById('filter_comm')) {
+        const res = await fetch("{% url 'api_geo_communes' %}?district_code=" + selD);
+        const data = await res.json();
+        if (data.success) {
+            const commSelect = document.getElementById('filter_comm');
+            commSelect.innerHTML = '<option value="">-- គ្រប់ឃុំ/សង្កាត់ --</option>';
+            data.communes.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.code;
+                opt.textContent = `${c.name_kh} (${c.code})`;
+                if (c.code === selC) opt.selected = true;
+                commSelect.appendChild(opt);
+            });
+        }
+    }
+});
+
+// 1. DISTRICT MODAL LOGIC
+function openDistrictModal(isEdit, code='', provCode='', nameKh='', nameEn='') {
+    document.getElementById('dist_is_edit').value = isEdit ? 'true' : 'false';
+    document.getElementById('dist_orig_code').value = code;
+    document.getElementById('distModalTitle').innerHTML = isEdit ? 
+        '<i class="fa-solid fa-pen-to-square me-2"></i>កែប្រែ ក្រុង/ស្រុក/ខណ្ឌ' : 
+        '<i class="fa-solid fa-building me-2"></i>បន្ថែម ក្រុង/ស្រុក/ខណ្ឌ ថ្មី';
+    
+    document.getElementById('dist_province_code').value = provCode || "{{ selected_p_code }}";
+    document.getElementById('dist_code').value = code;
+    document.getElementById('dist_name_kh').value = nameKh;
+    document.getElementById('dist_name_en').value = nameEn;
+
+    new bootstrap.Modal(document.getElementById('districtModal')).show();
+}
+
+async function saveDistrict(e) {
+    e.preventDefault();
+    const btn = document.getElementById('distSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> កំពុងរក្សាទុក...';
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    formData.append('is_edit', document.getElementById('dist_is_edit').value);
+    formData.append('orig_code', document.getElementById('dist_orig_code').value);
+    formData.append('province_code', document.getElementById('dist_province_code').value);
+    formData.append('code', document.getElementById('dist_code').value);
+    formData.append('name_kh', document.getElementById('dist_name_kh').value);
+    formData.append('name_en', document.getElementById('dist_name_en').value);
+
+    try {
+        const res = await fetch("{% url 'api_geo_district_save' %}", { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('⚠️ ' + data.error);
+        }
+    } catch (err) {
+        alert('មានបញ្ហាក្នុងការរក្សាទុក៖ ' + err);
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> រក្សាទុក';
+}
+
+// 2. COMMUNE MODAL LOGIC
+async function loadDistrictsForCommModal(provCode, selectedDistCode='') {
+    const distSelect = document.getElementById('comm_dist_select');
+    distSelect.innerHTML = '<option value="">-- ជ្រើសរើសក្រុង/ស្រុក/ខណ្ឌ --</option>';
+    if (!provCode) {
+        distSelect.disabled = true;
+        return;
+    }
+    distSelect.disabled = false;
+    const res = await fetch("{% url 'api_geo_districts' %}?province_code=" + provCode);
+    const data = await res.json();
+    if (data.success) {
+        data.districts.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.code;
+            opt.textContent = `${d.name_kh} (${d.code})`;
+            if (d.code === selectedDistCode) opt.selected = true;
+            distSelect.appendChild(opt);
+        });
+    }
+}
+
+async function openCommuneModal(isEdit, code='', provCode='', distCode='', nameKh='', nameEn='') {
+    document.getElementById('comm_is_edit').value = isEdit ? 'true' : 'false';
+    document.getElementById('comm_orig_code').value = code;
+    document.getElementById('commModalTitle').innerHTML = isEdit ? 
+        '<i class="fa-solid fa-pen-to-square me-2"></i>កែប្រែ ឃុំ/សង្កាត់' : 
+        '<i class="fa-solid fa-tree-city me-2"></i>បន្ថែម ឃុំ/សង្កាត់ ថ្មី';
+    
+    const pCode = provCode || "{{ selected_p_code }}";
+    document.getElementById('comm_prov_select').value = pCode;
+    await loadDistrictsForCommModal(pCode, distCode || "{{ selected_d_code }}");
+
+    document.getElementById('comm_code').value = code;
+    document.getElementById('comm_name_kh').value = nameKh;
+    document.getElementById('comm_name_en').value = nameEn;
+
+    new bootstrap.Modal(document.getElementById('communeModal')).show();
+}
+
+async function saveCommune(e) {
+    e.preventDefault();
+    const btn = document.getElementById('commSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> កំពុងរក្សាទុក...';
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    formData.append('is_edit', document.getElementById('comm_is_edit').value);
+    formData.append('orig_code', document.getElementById('comm_orig_code').value);
+    formData.append('province_code', document.getElementById('comm_prov_select').value);
+    formData.append('district_code', document.getElementById('comm_dist_select').value);
+    formData.append('code', document.getElementById('comm_code').value);
+    formData.append('name_kh', document.getElementById('comm_name_kh').value);
+    formData.append('name_en', document.getElementById('comm_name_en').value);
+
+    try {
+        const res = await fetch("{% url 'api_geo_commune_save' %}", { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('⚠️ ' + data.error);
+        }
+    } catch (err) {
+        alert('មានបញ្ហាក្នុងការរក្សាទុក៖ ' + err);
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> រក្សាទុក';
+}
+
+// 3. VILLAGE MODAL LOGIC
+async function loadDistrictsForVillModal(provCode, selectedDistCode='') {
+    const distSelect = document.getElementById('vill_dist_select');
+    distSelect.innerHTML = '<option value="">-- ជ្រើសរើសក្រុង/ស្រុក/ខណ្ឌ --</option>';
+    document.getElementById('vill_comm_select').innerHTML = '<option value="">-- ជ្រើសរើសឃុំ/សង្កាត់ --</option>';
+    document.getElementById('vill_comm_select').disabled = true;
+
+    if (!provCode) {
+        distSelect.disabled = true;
+        return;
+    }
+    distSelect.disabled = false;
+    const res = await fetch("{% url 'api_geo_districts' %}?province_code=" + provCode);
+    const data = await res.json();
+    if (data.success) {
+        data.districts.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.code;
+            opt.textContent = `${d.name_kh} (${d.code})`;
+            if (d.code === selectedDistCode) opt.selected = true;
+            distSelect.appendChild(opt);
+        });
+    }
+}
+
+async function loadCommunesForVillModal(distCode, selectedCommCode='') {
+    const commSelect = document.getElementById('vill_comm_select');
+    commSelect.innerHTML = '<option value="">-- ជ្រើសរើសឃុំ/សង្កាត់ --</option>';
+    if (!distCode) {
+        commSelect.disabled = true;
+        return;
+    }
+    commSelect.disabled = false;
+    const res = await fetch("{% url 'api_geo_communes' %}?district_code=" + distCode);
+    const data = await res.json();
+    if (data.success) {
+        data.communes.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.code;
+            opt.textContent = `${c.name_kh} (${c.code})`;
+            if (c.code === selectedCommCode) opt.selected = true;
+            commSelect.appendChild(opt);
+        });
+    }
+}
+
+async function openVillageModal(isEdit, id='', code='', provCode='', distCode='', commCode='', nameKh='', nameEn='') {
+    document.getElementById('vill_is_edit').value = isEdit ? 'true' : 'false';
+    document.getElementById('vill_id').value = id;
+    document.getElementById('villModalTitle').innerHTML = isEdit ? 
+        '<i class="fa-solid fa-pen-to-square me-2"></i>កែប្រែ ភូមិ' : 
+        '<i class="fa-solid fa-house-chimney-window me-2"></i>បន្ថែម ភូមិ ថ្មី';
+
+    const pCode = provCode || "{{ selected_p_code }}";
+    const dCode = distCode || "{{ selected_d_code }}";
+    const cCode = commCode || "{{ selected_c_code }}";
+
+    document.getElementById('vill_prov_select').value = pCode;
+    if (pCode) {
+        await loadDistrictsForVillModal(pCode, dCode);
+        if (dCode) {
+            await loadCommunesForVillModal(dCode, cCode);
+        }
+    }
+
+    document.getElementById('vill_code').value = code;
+    document.getElementById('vill_name_kh').value = nameKh;
+    document.getElementById('vill_name_en').value = nameEn;
+
+    new bootstrap.Modal(document.getElementById('villageModal')).show();
+}
+
+async function saveVillage(e) {
+    e.preventDefault();
+    const btn = document.getElementById('villSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> កំពុងរក្សាទុក...';
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    formData.append('is_edit', document.getElementById('vill_is_edit').value);
+    formData.append('id', document.getElementById('vill_id').value);
+    formData.append('province_code', document.getElementById('vill_prov_select').value);
+    formData.append('district_code', document.getElementById('vill_dist_select').value);
+    formData.append('commune_code', document.getElementById('vill_comm_select').value);
+    formData.append('code', document.getElementById('vill_code').value);
+    formData.append('name_kh', document.getElementById('vill_name_kh').value);
+    formData.append('name_en', document.getElementById('vill_name_en').value);
+
+    try {
+        const res = await fetch("{% url 'api_geo_village_save' %}", { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('⚠️ ' + data.error);
+        }
+    } catch (err) {
+        alert('មានបញ្ហាក្នុងការរក្សាទុក៖ ' + err);
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> រក្សាទុក';
+}
+
+// 4. DELETE LOGIC
+async function deleteGeoItem(level, code, nameKh, id='') {
+    const levelLabel = level === 'district' ? 'ស្រុក/ក្រុង' : (level === 'commune' ? 'ឃុំ/សង្កាត់' : 'ភូមិ');
+    if (!confirm(`តើលោកអ្នកពិតជាចង់លុប ${levelLabel} «${nameKh}» (កូដ: ${code}) នេះមែនឬទេ?`)) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    formData.append('level', level);
+    formData.append('code', code);
+    if (id) formData.append('id', id);
+
+    try {
+        const res = await fetch("{% url 'api_geo_item_delete' %}", { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('⚠️ ' + data.error);
+        }
+    } catch (err) {
+        alert('មានបញ្ហាក្នុងការលុប៖ ' + err);
+    }
+}
+</script>
+{% endblock %}

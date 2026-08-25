@@ -1,0 +1,279 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}គ្រប់គ្រងអ្នកប្រើប្រាស់ និងលេខសម្ងាត់ - DMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold text-dark m-0">
+                <i class="fa-solid fa-users-gear text-success me-2"></i>គ្រប់គ្រងអ្នកប្រើប្រាស់ & លេខសម្ងាត់ (User Management)
+            </h3>
+            <div class="text-muted small mt-1">ADMIN មានសិទ្ធិពេញលេញក្នុងការត្រួតពិនិត្យ មើល/Copy ពាក្យសម្ងាត់ កែប្រែទិន្នន័យ Switch User, អនុម័ត ឬលុប User</div>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center">
+            <!-- Dev Quick Switcher Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-dark btn-sm rounded-pill px-3 shadow-sm dropdown-toggle d-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-code text-warning"></i>
+                    <span class="fw-semibold">Dev: Switch to User</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2 rounded-3" style="min-width: 270px; max-height: 380px; overflow-y: auto;">
+                    <li class="dropdown-header small text-muted px-2 py-1"><i class="fa-solid fa-shuffle me-1"></i> ជ្រើសរើស User ដើម្បី Switch (Dev)</li>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    {% for u in all_dev_users %}
+                    <li>
+                        <a class="dropdown-item py-2 px-2 rounded-2 fs-7 d-flex align-items-center justify-content-between {% if u.id == user.id %}active bg-success text-white{% endif %}" href="{% url 'dev_switch_user' u.id %}">
+                            <div>
+                                <div class="fw-bold">{{ u.get_full_name|default:u.username }}</div>
+                                <div class="small {% if u.id == user.id %}text-white-50{% else %}text-muted{% endif %}">@{{ u.username }} &bull; {{ u.profile.get_role_display|default:"User" }}</div>
+                            </div>
+                            {% if u.id == user.id %}
+                            <span class="badge bg-white text-success rounded-pill fs-9 ms-2">Active</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <a href="/admin/auth/user/" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                <i class="fa-solid fa-user-shield me-1"></i> Django Admin
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show small py-2" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Filter Tabs -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-2">
+            <ul class="nav nav-pills gap-1">
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill px-4 {% if status_filter == 'pending' %}active bg-warning text-dark fw-bold{% else %}text-dark bg-light{% endif %}" href="{% url 'user_approvals' %}?status=pending">
+                        <i class="fa-solid fa-clock me-1"></i> រង់ចាំការអនុម័ត 
+                        <span class="badge {% if status_filter == 'pending' %}bg-dark text-white{% else %}bg-danger text-white{% endif %} rounded-pill ms-1">{{ pending_count }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill px-4 {% if status_filter == 'approved' %}active bg-success text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="{% url 'user_approvals' %}?status=approved">
+                        <i class="fa-solid fa-circle-check me-1"></i> បានអនុម័តរួច 
+                        <span class="badge {% if status_filter == 'approved' %}bg-white text-success{% else %}bg-secondary text-white{% endif %} rounded-pill ms-1">{{ approved_count }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill px-4 {% if status_filter == 'all' %}active bg-dark text-white fw-bold{% else %}text-dark bg-light{% endif %}" href="{% url 'user_approvals' %}?status=all">
+                        <i class="fa-solid fa-list me-1"></i> អ្នកប្រើប្រាស់ទាំងអស់ 
+                        <span class="badge bg-secondary rounded-pill ms-1">{{ pending_count|add:approved_count }}</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- User Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4 py-3">ឈ្មោះ & គណនី (User)</th>
+                        <th class="py-3">ទំនាក់ទំនង (Email / Phone)</th>
+                        <th class="py-3">ការិយាល័យ & មុខតំណែង</th>
+                        <th class="py-3">🔑 លេខសម្ងាត់ (Password)</th>
+                        <th class="py-3 text-center">ស្ថានភាព</th>
+                        <th class="pe-4 py-3 text-end">សកម្មភាព (Actions)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in profiles %}
+                    <tr>
+                        <!-- User Name & Username -->
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center fw-bold fs-6 flex-shrink-0" style="width: 44px; height: 44px;">
+                                    {{ p.user.first_name|first|default:p.user.username|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark fs-7">
+                                        {{ p.user.last_name }} {{ p.user.first_name }}
+                                        {% if not p.user.first_name and not p.user.last_name %}{{ p.user.username }}{% endif %}
+                                    </div>
+                                    <div class="text-muted small font-monospace">@{{ p.user.username }}</div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Contact -->
+                        <td class="py-3">
+                            <div class="small text-dark">
+                                <i class="fa-solid fa-envelope text-muted me-1"></i> {{ p.user.email|default:"-" }}
+                            </div>
+                            <div class="small text-muted mt-0.5 font-monospace">
+                                <i class="fa-solid fa-phone text-muted me-1"></i> {{ p.phone|default:"-" }}
+                            </div>
+                        </td>
+
+                        <!-- Department & Position -->
+                        <td class="py-3">
+                            <div class="fw-semibold text-dark fs-7">
+                                {{ p.department.name_kh|default:"មិនទាន់កំណត់" }}
+                            </div>
+                            <div class="mt-1 d-flex flex-wrap gap-1">
+                                {% if p.position_title %}
+                                    <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1">
+                                        <i class="fa-solid fa-id-badge me-1 fs-8"></i> {{ p.position_title }}
+                                    </span>
+                                {% endif %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary fw-medium px-2 py-1">
+                                    {{ p.get_role_display }}
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- Password with Copy & View Toggle -->
+                        <td class="py-3">
+                            {% if p.raw_password_display %}
+                            <div class="d-inline-flex align-items-center gap-1.5 bg-light border px-2 py-1 rounded-3">
+                                <span class="font-monospace fw-bold text-dark fs-8 password-display" id="pwd_{{ p.id }}" data-raw="{{ p.raw_password_display }}" data-masked="••••••••">••••••••</span>
+                                
+                                <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1 text-decoration-none" title="បង្ហាញ/លាក់" onclick="togglePwdVisibility('{{ p.id }}')">
+                                    <i class="fa-solid fa-eye fs-8" id="eye_{{ p.id }}"></i>
+                                </button>
+                                
+                                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-1.5 rounded-2 fs-8 shadow-sm" title="Copy Password" onclick="copyPasswordText('{{ p.raw_password_display }}', this)">
+                                    <i class="fa-solid fa-copy me-1"></i> Copy
+                                </button>
+                            </div>
+                            {% else %}
+                            <span class="text-muted small font-monospace">(Encrypted)</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Status -->
+                        <td class="py-3 text-center">
+                            {% if p.is_approved %}
+                                <span class="badge bg-success px-3 py-1.5 rounded-pill shadow-xs">
+                                    <i class="fa-solid fa-circle-check me-1"></i> បានអនុម័ត
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill fw-bold">
+                                    <i class="fa-solid fa-clock me-1"></i> រង់ចាំអនុម័ត
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions (Approve, Revoke, Edit, Delete, Switch to User) -->
+                        <td class="pe-4 py-3 text-end">
+                            <div class="d-inline-flex align-items-center gap-1.5">
+                                <!-- Dev: Switch to User button -->
+                                <a href="{% url 'dev_switch_user' p.user.id %}" class="btn btn-dark btn-sm rounded-pill px-2.5 shadow-xs d-inline-flex align-items-center gap-1" title="Switch ចូលប្រើជា @{{ p.user.username }} ភ្លាមៗ (Dev Mode)">
+                                    <i class="fa-solid fa-arrow-right-arrow-left text-warning fs-8"></i>
+                                    <span class="fs-8 fw-semibold text-warning">Switch</span>
+                                </a>
+
+                                <!-- Approve / Revoke button -->
+                                {% if not p.is_approved %}
+                                    <a href="{% url 'user_approve_action' p.user.id %}" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-semibold">
+                                        <i class="fa-solid fa-check me-1"></i> អនុម័ត
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'user_revoke_action' p.user.id %}" class="btn btn-outline-warning btn-sm rounded-pill px-2.5" title="ផ្អាកសិទ្ធិ (Revoke)" onclick="return confirm('⚠️ តើអ្នកចង់ផ្អាកសិទ្ធិគណនី @{{ p.user.username }} មែនទេ?')">
+                                        <i class="fa-solid fa-user-slash"></i> ផ្អាក
+                                    </a>
+                                {% endif %}
+
+                                <!-- Edit user details & password -->
+                                <a href="{% url 'user_edit' p.user.id %}" class="btn btn-outline-primary btn-sm rounded-pill px-2.5" title="កែប្រែទិន្នន័យ & ពាក្យសម្ងាត់">
+                                    <i class="fa-solid fa-pen-to-square me-1"></i> កែប្រែ
+                                </a>
+
+                                <!-- Delete user -->
+                                <a href="{% url 'user_delete_action' p.user.id %}" class="btn btn-outline-danger btn-sm rounded-pill px-2.5" title="លុបគណនី" onclick="return confirm('⚠️ តើអ្នកប្រាកដជាចង់លុបគណនី @{{ p.user.username }} ({{ p.user.get_full_name }}) ចេញពីប្រព័ន្ធ?')">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="text-muted">
+                                <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                    <i class="fa-solid fa-user-check fa-2x"></i>
+                                </div>
+                                <h5>មិនមានគណនីក្នុងបញ្ជីនេះឡើយ</h5>
+                                <p class="small mb-0">នៅពេលមានអ្នកប្រើប្រាស់ចុះឈ្មោះថ្មី ឈ្មោះរបស់ពួកគេនឹងបង្ហាញនៅទីនេះ។</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container for Copy Notification -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090;">
+    <div id="copyToast" class="toast align-items-center text-white bg-dark border-0 rounded-3 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fa-solid fa-circle-check text-success me-2"></i>
+                <span id="copyToastText">បាន Copy ពាក្យសម្ងាត់ដោយជោគជ័យ!</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePwdVisibility(id) {
+        const el = document.getElementById('pwd_' + id);
+        const eye = document.getElementById('eye_' + id);
+        const raw = el.getAttribute('data-raw');
+        const masked = el.getAttribute('data-masked');
+
+        if (el.innerText === masked) {
+            el.innerText = raw;
+            eye.classList.remove('fa-eye');
+            eye.classList.add('fa-eye-slash');
+        } else {
+            el.innerText = masked;
+            eye.classList.remove('fa-eye-slash');
+            eye.classList.add('fa-eye');
+        }
+    }
+
+    function copyPasswordText(text, btn) {
+        navigator.clipboard.writeText(text).then(function() {
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check text-success me-1"></i> Copied!';
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('btn-success', 'text-white');
+
+            const toastEl = document.getElementById('copyToast');
+            const toast = new bootstrap.Toast(toastEl, { delay: 2500 });
+            document.getElementById('copyToastText').innerText = `បាន Copy ពាក្យសម្ងាត់ (${text}) រួចរាល់!`;
+            toast.show();
+
+            setTimeout(function() {
+                btn.innerHTML = originalHtml;
+                btn.classList.remove('btn-success', 'text-white');
+                btn.classList.add('btn-outline-primary');
+            }, 1800);
+        }).catch(function(err) {
+            alert('ពាក្យសម្ងាត់៖ ' + text);
+        });
+    }
+</script>
+{% endblock %}

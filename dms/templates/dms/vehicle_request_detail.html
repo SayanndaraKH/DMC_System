@@ -1,0 +1,686 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}លម្អិតពាក្យសុំខ្ចីមធ្យោបាយ {{ request_obj.applicant_name }} - ប្រព័ន្ធគ្រប់គ្រងឯកសារ{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 fs-8">
+                    <li class="breadcrumb-item"><a href="{% url 'vehicle_request_list' %}" class="text-decoration-none">ពាក្យសុំខ្ចីរថយន្ត & ម៉ូតូ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ request_obj.request_number|default:"ពាក្យសុំ" }}</li>
+                </ol>
+            </nav>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h4 class="fw-bold m-0 text-dark">
+                    <i class="fa-solid fa-file-contract text-primary me-2"></i>សំណើសុំខ្ចីមធ្យោបាយ៖ {{ request_obj.applicant_name }}
+                </h4>
+                <span class="badge {{ request_obj.status_badge_class }} rounded-pill px-3 py-1.5 fs-8">
+                    {{ request_obj.get_status_display }}
+                </span>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{% url 'vehicle_request_list' %}" class="btn btn-outline-secondary rounded-pill px-3 py-2 fs-7 shadow-sm">
+                <i class="fa-solid fa-arrow-left me-1"></i> បញ្ជីពាក្យសុំ
+            </a>
+
+            <!-- Print Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-outline-dark rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fa-solid fa-print me-1.5"></i> បោះពុម្ពទម្រង់ផ្លូវការ
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-2 rounded-3">
+                    <li>
+                        <a class="dropdown-item py-2 px-3 rounded-2 fs-8" href="{% url 'vehicle_request_print' request_obj.pk %}?page=all" target="_blank">
+                            <i class="fa-solid fa-file-pdf me-2 text-danger"></i> បោះពុម្ពទាំងពីរទំព័រ (Complete Dossier)
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li>
+                        <a class="dropdown-item py-2 px-3 rounded-2 fs-8" href="{% url 'vehicle_request_print' request_obj.pk %}?page=1" target="_blank">
+                            <i class="fa-solid fa-file-lines me-2 text-primary"></i> ទំព័រទី១៖ លិខិតសុំប្រើប្រាស់មធ្យោបាយ
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item py-2 px-3 rounded-2 fs-8" href="{% url 'vehicle_request_print' request_obj.pk %}?page=2" target="_blank">
+                            <i class="fa-solid fa-clipboard-list me-2 text-success"></i> ទំព័រទី២៖ កំណត់ហេតុប្រគល់-ទទួល
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            {% if can_edit %}
+            <a href="{% url 'vehicle_request_edit' request_obj.pk %}" class="btn btn-outline-primary rounded-pill px-3 py-2 fs-7 shadow-sm">
+                <i class="fa-solid fa-pen-to-square me-1"></i> កែប្រែ
+            </a>
+            <button type="button" class="btn btn-outline-info rounded-pill px-3 py-2 fs-7 shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadPhotosModal">
+                <i class="fa-solid fa-camera me-1"></i> បញ្ចូល/ប្តូររូបថត
+            </button>
+            {% endif %}
+
+            <!-- Admin / Leadership Quick Actions -->
+            {% if is_admin_or_lead %}
+                {% if request_obj.status == 'PENDING' %}
+                <button type="button" class="btn btn-success rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#approveModal">
+                    <i class="fa-solid fa-check me-1.5"></i> អនុម័ត
+                </button>
+                <button type="button" class="btn btn-danger rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                    <i class="fa-solid fa-xmark me-1.5"></i> បដិសេធ
+                </button>
+                {% elif request_obj.status == 'APPROVED' %}
+                <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fs-7 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#handoverModal">
+                    <i class="fa-solid fa-key me-1.5"></i> បំពេញកំណត់ហេតុប្រគល់-ទទួល
+                </button>
+                {% elif request_obj.status == 'HANDED_OVER' %}
+                <button type="button" class="btn btn-info text-white rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#handoverModal">
+                    <i class="fa-solid fa-pen me-1.5"></i> កែប្រែកំណត់ហេតុ
+                </button>
+                <button type="button" class="btn btn-success rounded-pill px-4 py-2 fs-7 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#returnModal">
+                    <i class="fa-solid fa-arrow-rotate-left me-1.5"></i> កត់ត្រាការប្រគល់ជូនវិញ
+                </button>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fa-solid {% if message.tags == 'success' %}fa-circle-check text-success{% elif message.tags == 'error' or message.tags == 'danger' %}fa-circle-exclamation text-danger{% else %}fa-circle-info text-info{% endif %} me-2 fs-5"></i>
+            <div>{{ message }}</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Status Progression Workflow Bar -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 overflow-hidden">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center position-relative">
+                <div class="text-center position-relative" style="z-index: 2; width: 25%;">
+                    <div class="btn btn-primary rounded-circle p-0 d-inline-flex align-items-center justify-content-center mb-2" style="width: 42px; height: 42px;">
+                        <i class="fa-solid fa-file-signature"></i>
+                    </div>
+                    <div class="fw-bold fs-8 text-dark">១. បានស្នើសុំ</div>
+                    <div class="text-muted fs-9">{{ request_obj.created_at|date:"d/m/Y H:i" }}</div>
+                </div>
+
+                <div class="text-center position-relative" style="z-index: 2; width: 25%;">
+                    <div class="btn {% if request_obj.status in 'APPROVED,HANDED_OVER,RETURNED' %}btn-info text-white{% elif request_obj.status == 'REJECTED' %}btn-danger text-white{% else %}btn-light text-muted{% endif %} rounded-circle p-0 d-inline-flex align-items-center justify-content-center mb-2" style="width: 42px; height: 42px;">
+                        <i class="fa-solid {% if request_obj.status == 'REJECTED' %}fa-circle-xmark{% else %}fa-check-double{% endif %}"></i>
+                    </div>
+                    <div class="fw-bold fs-8 {% if request_obj.status in 'APPROVED,HANDED_OVER,RETURNED' %}text-info{% elif request_obj.status == 'REJECTED' %}text-danger{% else %}text-muted{% endif %}">
+                        {% if request_obj.status == 'REJECTED' %}២. បានបដិសេធ{% else %}២. ការពិនិត្យ/អនុម័ត{% endif %}
+                    </div>
+                    <div class="text-muted fs-9">
+                        {% if request_obj.approval_date %}{{ request_obj.approval_date|date:"d/m/Y" }}{% else %}រង់ចាំពិនិត្យ{% endif %}
+                    </div>
+                </div>
+
+                <div class="text-center position-relative" style="z-index: 2; width: 25%;">
+                    <div class="btn {% if request_obj.status in 'HANDED_OVER,RETURNED' %}btn-primary{% else %}btn-light text-muted{% endif %} rounded-circle p-0 d-inline-flex align-items-center justify-content-center mb-2" style="width: 42px; height: 42px;">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                    <div class="fw-bold fs-8 {% if request_obj.status in 'HANDED_OVER,RETURNED' %}text-primary{% else %}text-muted{% endif %}">៣. ប្រគល់-ទទួល</div>
+                    <div class="text-muted fs-9">
+                        {% if request_obj.handover_datetime %}{{ request_obj.handover_datetime|date:"d/m/Y H:i" }}{% else %}មិនទាន់ប្រគល់{% endif %}
+                    </div>
+                </div>
+
+                <div class="text-center position-relative" style="z-index: 2; width: 25%;">
+                    <div class="btn {% if request_obj.status == 'RETURNED' %}btn-success{% else %}btn-light text-muted{% endif %} rounded-circle p-0 d-inline-flex align-items-center justify-content-center mb-2" style="width: 42px; height: 42px;">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div class="fw-bold fs-8 {% if request_obj.status == 'RETURNED' %}text-success{% else %}text-muted{% endif %}">៤. ប្រគល់ជូនវិញ</div>
+                    <div class="text-muted fs-9">
+                        {% if request_obj.return_datetime %}{{ request_obj.return_datetime|date:"d/m/Y H:i" }}{% else %}កំពុងប្រើប្រាស់{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Cards -->
+    <div class="row g-4 mb-4">
+        <!-- Left: Applicant & Vehicle Details -->
+        <div class="col-lg-8">
+            <!-- 1. Applicant Details -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-user-tie text-primary fs-5"></i>
+                        <h5 class="fw-bold m-0 text-dark">ព័ត៌មានអ្នកស្នើសុំ (Applicant Profile)</h5>
+                    </div>
+                </div>
+                <div class="card-body px-4 pb-4 pt-2">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">ឈ្មោះអ្នកស្នើសុំ</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.applicant_name }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">ភេទ</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{% if request_obj.applicant_gender == 'FEMALE' %}ស្រី{% else %}ប្រុស{% endif %}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">អត្តលេខមន្ត្រី</div>
+                                <div class="fs-6 fw-bold text-dark mt-1 font-monospace">{{ request_obj.applicant_id_number|default:"-" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">តួនាទី / មុខតំណែង</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.applicant_position|default:"មន្ត្រី" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">ការិយាល័យ / អង្គភាព</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.applicant_department_name|default:request_obj.applicant_department.name_kh|default:"-" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">លេខទូរស័ព្ទ</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.applicant_phone|default:"-" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">គណនីក្នុងប្រព័ន្ធ</div>
+                                <div class="fs-6 fw-bold text-dark mt-1 font-monospace">@{{ request_obj.applicant.username|default:"N/A" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Vehicle Specifications -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-motorcycle text-primary fs-5"></i>
+                            <h5 class="fw-bold m-0 text-dark">លក្ខណៈបច្ចេកទេសមធ្យោបាយ (Vehicle Specifications)</h5>
+                        </div>
+                        {% if request_obj.vehicle %}
+                        <a href="{% url 'vehicle_edit' request_obj.vehicle.pk %}" class="badge bg-light text-dark border text-decoration-none px-2.5 py-1.5">
+                            <i class="fa-solid fa-link me-1"></i> មើលក្នុងសារពើភណ្ឌ
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body px-4 pb-4 pt-2">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">ប្រភេទមធ្យោបាយ</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.display_vehicle_type_kh }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">ម៉ាក (Brand / Model)</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.display_brand }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">ស្លាកលេខ (License Plate)</div>
+                                <div class="fs-6 fw-bold text-primary mt-1 font-monospace">{{ request_obj.display_plate_number }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">ពណ៌</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.display_color }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">ឆ្នាំផលិត</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.display_model_year }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">លេខតួ (Chassis No)</div>
+                                <div class="fs-6 fw-bold text-dark mt-1 font-monospace">{{ request_obj.display_chassis_number }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">លេខម៉ាស៊ីន (Engine No)</div>
+                                <div class="fs-6 fw-bold text-dark mt-1 font-monospace">{{ request_obj.display_engine_number }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Duration & Purpose -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-calendar-check text-primary fs-5"></i>
+                        <h5 class="fw-bold m-0 text-dark">រយៈពេល និងគោលបំណងនៃការប្រើប្រាស់</h5>
+                    </div>
+                </div>
+                <div class="card-body px-4 pb-4 pt-2">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">រយៈពេលស្នើសុំ</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.duration_text|default:"-" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">កាលបរិច្ឆេទចាប់ផ្តើម</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.start_date|date:"d/m/Y"|default:"-" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">កាលបរិច្ឆេទបញ្ចប់</div>
+                                <div class="fs-6 fw-bold text-dark mt-1">{{ request_obj.end_date|date:"d/m/Y"|default:"-" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted fs-9 text-uppercase">គោលបំណង / កម្មវត្ថុនៃការប្រើប្រាស់</div>
+                                <div class="fs-7 text-dark mt-1 lh-base">{{ request_obj.purpose|default:"គ្មានកំណត់សម្គាល់"|linebreaksbr }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Handover, Return, Approval & Photos -->
+        <div class="col-lg-4">
+            <!-- Approval Dossier Card -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-stamp text-info fs-5"></i>
+                        <h6 class="fw-bold m-0 text-dark">ការសម្រេចរបស់ថ្នាក់ដឹកនាំ</h6>
+                    </div>
+                </div>
+                <div class="card-body px-4 pb-4 pt-2">
+                    {% if request_obj.approved_by %}
+                    <div class="p-3 bg-light rounded-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge {{ request_obj.status_badge_class }} rounded-pill px-2.5 py-1 fs-9">{{ request_obj.get_status_display }}</span>
+                            <span class="text-muted fs-9">{{ request_obj.approval_date|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="fw-bold text-dark fs-8">អនុម័តដោយ៖ {{ request_obj.approved_by.get_full_name|default:request_obj.approved_by.username }}</div>
+                        {% if request_obj.approval_comments %}
+                        <div class="text-muted fs-8 mt-2 fst-italic">"{{ request_obj.approval_comments }}"</div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning border-0 p-3 fs-8 mb-0">
+                        <i class="fa-solid fa-clock me-1"></i> កំពុងរង់ចាំការពិនិត្យ និងអនុម័តពីថ្នាក់ដឹកនាំ។
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Handover Minutes Summary (កំណត់ហេតុប្រគល់-ទទួល) -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-file-lines text-success fs-5"></i>
+                            <h6 class="fw-bold m-0 text-dark">កំណត់ហេតុប្រគល់-ទទួល (Page 2)</h6>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body px-4 pb-4 pt-2">
+                    {% if request_obj.handover_datetime %}
+                    <div class="d-flex flex-column gap-2 fs-8">
+                        <div><strong class="text-muted">កាលបរិច្ឆេទ & ម៉ោង៖</strong> {{ request_obj.handover_datetime|date:"d/m/Y វេលាម៉ោង H:i" }}</div>
+                        <div><strong class="text-muted">អ្នកប្រគល់៖</strong> {{ request_obj.handover_officer_name|default:"-" }} ({{ request_obj.handover_officer_position|default:"មន្ត្រី" }})</div>
+                        <div><strong class="text-muted">អ្នកទទួល៖</strong> <span class="fw-bold text-dark">{{ request_obj.recipient_name|default:request_obj.applicant_name }}</span></div>
+                        <div><strong class="text-muted">អ្នកប្រើចុងក្រោយ៖</strong> {{ request_obj.last_user_name|default:"-" }}</div>
+                        <div><strong class="text-muted">កុងទ័រពេលប្រគល់៖</strong> <span class="badge bg-light text-dark border font-monospace">{{ request_obj.odometer_at_handover|default:"-" }} Km</span></div>
+                        <div><strong class="text-muted">ស្ថានភាពជាក់ស្តែង៖</strong> {{ request_obj.vehicle_condition_handover|default:"-"|linebreaksbr }}</div>
+                    </div>
+
+                    <!-- Photos Grid -->
+                    <div class="mt-3 pt-3 border-top">
+                        <div class="fw-bold fs-9 text-muted text-uppercase mb-2">រូបថតយានយន្តពេលប្រគល់-ទទួល</div>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                {% if request_obj.display_photo_front %}
+                                <a href="{{ request_obj.display_photo_front.url }}" target="_blank">
+                                    <img src="{{ request_obj.display_photo_front.url }}" class="img-thumbnail w-100 rounded-3 shadow-xs" style="height: 75px; object-fit: cover;" alt="Front">
+                                </a>
+                                <div class="text-muted fs-9 text-center mt-1">មើលពីមុខ</div>
+                                {% else %}
+                                <div class="bg-light border text-center p-2 rounded-3 text-muted fs-9" style="height: 75px; display: flex; align-items: center; justify-content: center;">
+                                    គ្មានរូបមុខ
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-4">
+                                {% if request_obj.display_photo_side %}
+                                <a href="{{ request_obj.display_photo_side.url }}" target="_blank">
+                                    <img src="{{ request_obj.display_photo_side.url }}" class="img-thumbnail w-100 rounded-3 shadow-xs" style="height: 75px; object-fit: cover;" alt="Side">
+                                </a>
+                                <div class="text-muted fs-9 text-center mt-1">ពីចំហៀង</div>
+                                {% else %}
+                                <div class="bg-light border text-center p-2 rounded-3 text-muted fs-9" style="height: 75px; display: flex; align-items: center; justify-content: center;">
+                                    គ្មានរូបចំហៀង
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-4">
+                                {% if request_obj.display_registration_card_photo %}
+                                <a href="{{ request_obj.display_registration_card_photo.url }}" target="_blank">
+                                    <img src="{{ request_obj.display_registration_card_photo.url }}" class="img-thumbnail w-100 rounded-3 shadow-xs" style="height: 75px; object-fit: cover;" alt="Card">
+                                </a>
+                                <div class="text-muted fs-9 text-center mt-1">កាតគ្រី</div>
+                                {% else %}
+                                <div class="bg-light border text-center p-2 rounded-3 text-muted fs-9" style="height: 75px; display: flex; align-items: center; justify-content: center;">
+                                    គ្មានរូបកាតគ្រី
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-muted fs-8 text-center py-3">
+                        <i class="fa-solid fa-clipboard-question fs-3 text-secondary opacity-50 mb-2"></i>
+                        <p class="m-0">មិនទាន់បានបំពេញកំណត់ហេតុប្រគល់-ទទួលនៅឡើយ</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Return Record Summary (ការប្រគល់ជូនវិញ) -->
+            {% if request_obj.return_datetime %}
+            <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-4 border-success">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                        <h6 class="fw-bold m-0 text-dark">ព័ត៌មានការប្រគល់ជូនវិញ (Returned)</h6>
+                    </div>
+                </div>
+                <div class="card-body px-4 pb-4 pt-2">
+                    <div class="d-flex flex-column gap-2 fs-8">
+                        <div><strong class="text-muted">កាលបរិច្ឆេទ & ម៉ោង៖</strong> {{ request_obj.return_datetime|date:"d/m/Y វេលាម៉ោង H:i" }}</div>
+                        <div><strong class="text-muted">អ្នកទទួលមកវិញ៖</strong> {{ request_obj.received_by.get_full_name|default:request_obj.received_by.username }}</div>
+                        <div><strong class="text-muted">កុងទ័រពេលប្រគល់មកវិញ៖</strong> <span class="badge bg-light text-dark border font-monospace">{{ request_obj.odometer_at_return|default:"-" }} Km</span></div>
+                        <div><strong class="text-muted">ស្ថានភាពជាក់ស្តែង៖</strong> {{ request_obj.return_condition|default:"-"|linebreaksbr }}</div>
+                        {% if request_obj.return_notes %}
+                        <div><strong class="text-muted">កំណត់សម្គាល់៖</strong> {{ request_obj.return_notes|linebreaksbr }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODALS (Approve, Reject, Handover, Return) -->
+<!-- ========================================== -->
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-check-circle me-2"></i> អនុម័តពាក្យសុំខ្ចីមធ្យោបាយ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'vehicle_request_approve' request_obj.pk %}">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <p class="fs-8 text-muted">តើអ្នកពិតជាចង់អនុម័តពាក្យសុំខ្ចីមធ្យោបាយរបស់លោក/លោកស្រី <strong>«{{ request_obj.applicant_name }}»</strong> មែនដែរឬទេ?</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-8">ចាត់ចែងយានយន្តក្នុងប្រព័ន្ធ (Optional Vehicle Assignment)</label>
+                        <select name="assigned_vehicle" class="form-select">
+                            <option value="">-- រក្សាទុកតាមការស្នើសុំ ឬជ្រើសរើសថ្មី --</option>
+                            {% for v in available_vehicles %}
+                            <option value="{{ v.id }}" {% if request_obj.vehicle_id == v.id %}selected{% endif %}>
+                                {{ v.get_vehicle_type_display }} {{ v.brand }} - ស្លាកលេខ: {{ v.plate_number }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-8">មតិយោបល់ថ្នាក់ដឹកនាំ</label>
+                        <textarea name="approval_comments" rows="3" class="form-control" placeholder="ឧ. យល់ព្រមអនុញ្ញាតឱ្យប្រើប្រាស់តាមការស្នើសុំ..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4">យល់ព្រមអនុម័ត</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-circle-xmark me-2"></i> បដិសេធពាក្យសុំ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'vehicle_request_reject' request_obj.pk %}">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <p class="fs-8 text-muted">សូមបញ្ជាក់មូលហេតុនៃការបដិសេធពាក្យសុំខ្ចីមធ្យោបាយរបស់លោក/លោកស្រី <strong>«{{ request_obj.applicant_name }}»</strong>៖</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-8">មូលហេតុនៃការបដិសេធ <span class="text-danger">*</span></label>
+                        <textarea name="approval_comments" rows="3" class="form-control" required placeholder="ឧ. មធ្យោបាយកំពុងជាប់បេសកកម្មចាំបាច់ ឬមិនទាន់ទំនេរ..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-danger rounded-pill px-4">យល់ព្រមបដិសេធ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Handover Modal (Page 2 Form) -->
+<div class="modal fade" id="handoverModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-handshake me-2"></i> កំណត់ហេតុ ស្តីពីការប្រគល់-ទទួលមធ្យោបាយ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'vehicle_request_handover' request_obj.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 fs-8 mb-3">
+                        <i class="fa-solid fa-info-circle me-1"></i> កំណត់ហេតុនេះនឹងត្រូវបង្ហាញលើទំព័រទី២ នៃទម្រង់បោះពុម្ពផ្លូវការ A4។
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold fs-8">កាលបរិច្ឆេទ និងវេលាម៉ោងប្រគល់-ទទួល <span class="text-danger">*</span></label>
+                            <input type="datetime-local" name="handover_datetime" value="{% if request_obj.handover_datetime %}{{ request_obj.handover_datetime|date:'Y-m-d\TH:i' }}{% endif %}" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold fs-8">កុងទ័រគីឡូម៉ែត្រពេលប្រគល់ (Km)</label>
+                            <input type="text" name="odometer_at_handover" value="{{ request_obj.odometer_at_handover|default:'' }}" class="form-control" placeholder="ឧ. 12500">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold fs-8">ឈ្មោះអ្នកប្រគល់ / មន្ត្រីទទួលបន្ទុកទ្រព្យសម្បត្តិ <span class="text-danger">*</span></label>
+                            <input type="text" name="handover_officer_name" value="{{ request_obj.handover_officer_name|default:user.get_full_name|default:user.username }}" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold fs-8">តួនាទីអ្នកប្រគល់</label>
+                            <input type="text" name="handover_officer_position" value="{{ request_obj.handover_officer_position|default:user_profile.position_title|default:'មន្ត្រីទទួលបន្ទុកទ្រព្យសម្បត្តិ' }}" class="form-control">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold fs-8">ឈ្មោះអ្នកទទួល <span class="text-danger">*</span></label>
+                            <input type="text" name="recipient_name" value="{{ request_obj.recipient_name|default:request_obj.applicant_name }}" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold fs-8">អ្នកប្រើប្រាស់ចុងក្រោយ (Last User)</label>
+                            <input type="text" name="last_user_name" value="{{ request_obj.last_user_name|default:'' }}" class="form-control" placeholder="ឧ. លោក សុខ សាន">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold fs-8">ស្ថានភាពជាក់ស្តែងពេលប្រគល់-ទទួល</label>
+                            <textarea name="vehicle_condition_handover" rows="2" class="form-control" placeholder="ឧ. ម៉ាស៊ីនដំណើរការល្អ សំបកកង់នៅល្អ ប្រព័ន្ធហ្វ្រាំង និងភ្លើងបំភ្លឺដំណើរការធម្មតា...">{{ request_obj.vehicle_condition_handover|default:'' }}</textarea>
+                        </div>
+
+                        <!-- Photos upload -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold fs-8">រូបថតមើលពីមុខ</label>
+                            <input type="file" name="photo_front" accept="image/*" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold fs-8">រូបថតមើលពីចំហៀង</label>
+                            <input type="file" name="photo_side" accept="image/*" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold fs-8">ប័ណ្ណសម្គាល់ (កាតគ្រី)</label>
+                            <input type="file" name="registration_card_photo" accept="image/*" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">រក្សាទុកកំណត់ហេតុ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Return Modal -->
+<div class="modal fade" id="returnModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-arrow-rotate-left me-2"></i> កត់ត្រាការប្រគល់យានយន្តជូនអង្គភាពវិញ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'vehicle_request_return' request_obj.pk %}">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold fs-8">កាលបរិច្ឆេទ និងវេលាម៉ោងប្រគល់មកវិញ <span class="text-danger">*</span></label>
+                            <input type="datetime-local" name="return_datetime" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold fs-8">កុងទ័រគីឡូម៉ែត្រពេលប្រគល់មកវិញ (Km)</label>
+                            <input type="text" name="odometer_at_return" class="form-control" placeholder="ឧ. 13800">
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold fs-8">ស្ថានភាពជាក់ស្តែងពេលប្រគល់មកវិញ</label>
+                            <textarea name="return_condition" rows="2" class="form-control" placeholder="ឧ. ម៉ូតូនៅដំណើរការល្អ គ្មានការខូចខាត..."></textarea>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold fs-8">កំណត់សម្គាល់បន្ថែម</label>
+                            <textarea name="return_notes" rows="2" class="form-control" placeholder="កំណត់សម្គាល់ផ្សេងៗ..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4">យល់ព្រមទទួលយានយន្ត</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Upload / Change Photos Modal -->
+<div class="modal fade" id="uploadPhotosModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-camera me-2"></i> បញ្ចូល ឬផ្លាស់ប្តូររូបថតយានយន្ត</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'vehicle_request_upload_photos' request_obj.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold fs-8">អ្នកប្រើប្រាស់ចុងក្រោយ (Last User)</label>
+                            <input type="text" name="last_user_name" value="{{ request_obj.last_user_name|default:'' }}" class="form-control" placeholder="ឧ. លោក សុខ សាន">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold fs-8">រូបថតមើលពីមុខ</label>
+                            {% if request_obj.display_photo_front %}
+                            <div class="mb-2">
+                                <img src="{{ request_obj.display_photo_front.url }}" class="img-thumbnail rounded-3 shadow-xs" style="max-height: 100px; width: 100%; object-fit: cover;" alt="Front">
+                            </div>
+                            {% endif %}
+                            <input type="file" name="photo_front" accept="image/*" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold fs-8">រូបថតមើលពីចំហៀង</label>
+                            {% if request_obj.display_photo_side %}
+                            <div class="mb-2">
+                                <img src="{{ request_obj.display_photo_side.url }}" class="img-thumbnail rounded-3 shadow-xs" style="max-height: 100px; width: 100%; object-fit: cover;" alt="Side">
+                            </div>
+                            {% endif %}
+                            <input type="file" name="photo_side" accept="image/*" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold fs-8">ប័ណ្ណសម្គាល់ (កាតគ្រី)</label>
+                            {% if request_obj.display_registration_card_photo %}
+                            <div class="mb-2">
+                                <img src="{{ request_obj.display_registration_card_photo.url }}" class="img-thumbnail rounded-3 shadow-xs" style="max-height: 100px; width: 100%; object-fit: cover;" alt="Card">
+                            </div>
+                            {% endif %}
+                            <input type="file" name="registration_card_photo" accept="image/*" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-info text-white rounded-pill px-4">រក្សាទុករូបថត</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
