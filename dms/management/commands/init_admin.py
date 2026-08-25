@@ -91,9 +91,29 @@ class Command(BaseCommand):
             officers_file = base_path / 'initial_officers.json'
 
             if CambodiaProvince.objects.count() == 0 and geo_file.exists():
-                self.stdout.write("Loading initial Cambodia geography data...")
-                call_command('loaddata', str(geo_file))
-                self.stdout.write(self.style.SUCCESS(f"Loaded {CambodiaProvince.objects.count()} provinces."))
+                self.stdout.write("Loading initial Cambodia geography data (ultra-fast bulk mode)...")
+                import json
+                from dms.models import CambodiaDistrict, CambodiaCommune, CambodiaVillage
+                with open(geo_file, 'r', encoding='utf-8') as f:
+                    geo_items = json.load(f)
+                provs, dists, comms, vils = [], [], [], []
+                for item in geo_items:
+                    m = item.get('model')
+                    pk = item.get('pk')
+                    flds = item.get('fields', {})
+                    if m == 'dms.cambodiaprovince':
+                        provs.append(CambodiaProvince(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en','')))
+                    elif m == 'dms.cambodiadistrict':
+                        dists.append(CambodiaDistrict(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en',''), province_id=flds.get('province')))
+                    elif m == 'dms.cambodiacommune':
+                        comms.append(CambodiaCommune(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en',''), province_id=flds.get('province'), district_id=flds.get('district')))
+                    elif m == 'dms.cambodiavillage':
+                        vils.append(CambodiaVillage(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en',''), province_id=flds.get('province'), district_id=flds.get('district'), commune_id=flds.get('commune')))
+                CambodiaProvince.objects.bulk_create(provs)
+                CambodiaDistrict.objects.bulk_create(dists, batch_size=2000)
+                CambodiaCommune.objects.bulk_create(comms, batch_size=2000)
+                CambodiaVillage.objects.bulk_create(vils, batch_size=2000)
+                self.stdout.write(self.style.SUCCESS(f"Loaded {len(provs)} provinces, {len(dists)} districts, {len(comms)} communes, {len(vils)} villages."))
 
             if CivilServantProfile.objects.count() == 0 and officers_file.exists():
                 self.stdout.write("Loading initial civil servants data (56 officers)...")
