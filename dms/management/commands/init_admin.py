@@ -96,23 +96,23 @@ class Command(BaseCommand):
                 from dms.models import CambodiaDistrict, CambodiaCommune, CambodiaVillage
                 with open(geo_file, 'r', encoding='utf-8') as f:
                     geo_items = json.load(f)
-                provs, dists, comms, vils = [], [], [], []
+                provs, dists, comms, vils = {}, {}, {}, {}
                 for item in geo_items:
                     m = item.get('model')
                     pk = item.get('pk')
                     flds = item.get('fields', {})
                     if m == 'dms.cambodiaprovince':
-                        provs.append(CambodiaProvince(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en','')))
+                        provs[pk] = CambodiaProvince(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en',''))
                     elif m == 'dms.cambodiadistrict':
-                        dists.append(CambodiaDistrict(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en',''), province_id=flds.get('province')))
+                        dists[pk] = CambodiaDistrict(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en',''), province_id=flds.get('province'))
                     elif m == 'dms.cambodiacommune':
-                        comms.append(CambodiaCommune(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en',''), province_id=flds.get('province'), district_id=flds.get('district')))
+                        comms[pk] = CambodiaCommune(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en',''), province_id=flds.get('province'), district_id=flds.get('district'))
                     elif m == 'dms.cambodiavillage':
-                        vils.append(CambodiaVillage(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en',''), province_id=flds.get('province'), district_id=flds.get('district'), commune_id=flds.get('commune')))
-                CambodiaProvince.objects.bulk_create(provs)
-                CambodiaDistrict.objects.bulk_create(dists, batch_size=2000)
-                CambodiaCommune.objects.bulk_create(comms, batch_size=2000)
-                CambodiaVillage.objects.bulk_create(vils, batch_size=2000)
+                        vils[pk] = CambodiaVillage(code=pk, name_kh=flds.get('name_kh',''), name_en=flds.get('name_en',''), province_id=flds.get('province'), district_id=flds.get('district'), commune_id=flds.get('commune'))
+                CambodiaProvince.objects.bulk_create(provs.values())
+                CambodiaDistrict.objects.bulk_create(dists.values(), batch_size=2000)
+                CambodiaCommune.objects.bulk_create(comms.values(), batch_size=2000)
+                CambodiaVillage.objects.bulk_create(vils.values(), batch_size=2000)
                 self.stdout.write(self.style.SUCCESS(f"Loaded {len(provs)} provinces, {len(dists)} districts, {len(comms)} communes, {len(vils)} villages."))
 
             if CivilServantProfile.objects.count() == 0 and officers_file.exists():
@@ -140,4 +140,3 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"Auto-synced status and cadre fields for {updated_count} profiles."))
         except Exception as e:
             self.stdout.write(self.style.WARNING(f"Bootstrap note: {e}"))
-

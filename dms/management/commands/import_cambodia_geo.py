@@ -116,7 +116,7 @@ class Command(BaseCommand):
             v_kh_idx = header_vil.index('village_kh')
             v_en_idx = header_vil.index('village_en') if 'village_en' in header_vil else -1
 
-            villages_to_create = []
+            villages_dict = {}
             for r in vil_rows[1:]:
                 if not r[v_code_idx]:
                     continue
@@ -134,7 +134,7 @@ class Command(BaseCommand):
                 if c_code not in communes_dict:
                     communes_dict[c_code] = CambodiaCommune(code=c_code, district_id=d_code, province_id=p_code, name_kh=f"ឃុំ/សង្កាត់ ({c_code})", name_en='')
 
-                villages_to_create.append(CambodiaVillage(code=code, commune_id=c_code, district_id=d_code, province_id=p_code, name_kh=name_kh, name_en=name_en))
+                villages_dict[code] = CambodiaVillage(code=code, commune_id=c_code, district_id=d_code, province_id=p_code, name_kh=name_kh, name_en=name_en)
 
             # Database write
             self.stdout.write("Writing to database...")
@@ -152,7 +152,7 @@ class Command(BaseCommand):
             CambodiaCommune.objects.bulk_create(communes_dict.values(), batch_size=2000)
             self.stdout.write(self.style.SUCCESS(f"  -> Saved {len(communes_dict)} Communes"))
 
-            CambodiaVillage.objects.bulk_create(villages_to_create, batch_size=2000)
-            self.stdout.write(self.style.SUCCESS(f"  -> Saved {len(villages_to_create)} Villages"))
+            CambodiaVillage.objects.bulk_create(villages_dict.values(), batch_size=2000)
+            self.stdout.write(self.style.SUCCESS(f"  -> Saved {len(villages_dict)} Villages"))
 
         self.stdout.write(self.style.SUCCESS("[OK] Successfully imported all Cambodia 2025 geographic data!"))
