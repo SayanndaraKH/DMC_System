@@ -337,7 +337,10 @@
                         <td>
                             <div class="d-flex align-items-center gap-3">
                                 {% if o.photo %}
-                                <img src="{{ o.photo.url }}" alt="{{ o.full_name_kh }}" class="rounded-3 shadow-xs object-fit-cover" style="width: 44px; height: 54px;">
+                                <img src="{{ o.photo.url }}" alt="{{ o.full_name_kh }}" class="rounded-3 shadow-xs object-fit-cover" style="width: 44px; height: 54px;" onerror="this.style.display='none'; if (this.nextElementSibling) { this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('d-flex'); }">
+                                <div class="bg-light text-secondary rounded-3 d-none align-items-center justify-content-center fw-bold shadow-xs" style="width: 44px; height: 54px; font-size: 18px;">
+                                    <i class="fa-solid fa-user"></i>
+                                </div>
                                 {% else %}
                                 <div class="bg-light text-secondary rounded-3 d-flex align-items-center justify-content-center fw-bold shadow-xs" style="width: 44px; height: 54px; font-size: 18px;">
                                     <i class="fa-solid fa-user"></i>
