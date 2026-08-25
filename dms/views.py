@@ -2561,28 +2561,28 @@ def officer_sync_initial_data_view(request):
         messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តមុខងារនេះឡើយ!")
         return redirect('officer_list')
 
-    geo_file = Path(settings.BASE_DIR) / 'Cambodia All List2025.xlsx'
+    geo_dump = Path(settings.BASE_DIR) / 'initial_geo.json'
     officers_dump = Path(settings.BASE_DIR) / 'initial_officers.json'
-    dump_path = Path(settings.BASE_DIR) / 'initial_data.json'
+    geo_file = Path(settings.BASE_DIR) / 'Cambodia All List2025.xlsx'
 
-    # 1. First ensure Geography exists (from Excel)
-    if CambodiaProvince.objects.count() == 0 and geo_file.exists():
+    # 1. Load Geography
+    if geo_dump.exists():
+        try:
+            call_command('loaddata', str(geo_dump))
+        except Exception as e:
+            messages.warning(request, f"Geo fixture note: {e}")
+    elif geo_file.exists() and CambodiaProvince.objects.count() == 0:
         try:
             call_command('import_cambodia_geo', file=str(geo_file))
         except Exception as e:
-            messages.warning(request, f"Excel geo import note: {e}")
+            messages.warning(request, f"Excel geo note: {e}")
 
-    # 2. Then load officers and departments
+    # 2. Load Officers & Departments
     if officers_dump.exists():
         try:
             call_command('loaddata', str(officers_dump))
         except Exception as e:
             messages.warning(request, f"Officers load note: {e}")
-    elif dump_path.exists():
-        try:
-            call_command('loaddata', str(dump_path))
-        except Exception as e:
-            messages.warning(request, f"Fixture load note: {e}")
 
     provinces_count = CambodiaProvince.objects.count()
     districts_count = CambodiaDistrict.objects.count()

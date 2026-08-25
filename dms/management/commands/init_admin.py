@@ -37,27 +37,25 @@ class Command(BaseCommand):
             }
         )
 
-        # 2. Check and import Cambodia Geography from Excel FIRST
-        try:
-            if CambodiaProvince.objects.count() == 0:
-                geo_file = Path(settings.BASE_DIR) / 'Cambodia All List2025.xlsx'
-                if geo_file.exists():
-                    self.stdout.write("Database has 0 provinces. Importing Cambodia geography from Excel...")
-                    call_command('import_cambodia_geo', file=str(geo_file))
-                    self.stdout.write(self.style.SUCCESS("Successfully imported 25 provinces, 210 districts, 1662 communes, 14576 villages!"))
-        except Exception as e:
-            self.stdout.write(self.style.WARNING(f"Geography import note: {e}"))
+        # 2. Check and auto-load geo if count is 0
+        if CambodiaProvince.objects.count() == 0:
+            geo_dump = Path(settings.BASE_DIR) / 'initial_geo.json'
+            if geo_dump.exists():
+                try:
+                    call_command('loaddata', str(geo_dump))
+                    self.stdout.write(self.style.SUCCESS("Loaded initial_geo.json"))
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"Geo load note: {e}"))
 
-        # 3. Check and load initial officers & department data
-        try:
-            if CivilServantProfile.objects.count() == 0:
-                officers_dump = Path(settings.BASE_DIR) / 'initial_officers.json'
-                if officers_dump.exists():
-                    self.stdout.write("Database has 0 officers. Auto-loading initial_officers.json...")
+        # 3. Check and auto-load officers if count is 0
+        if CivilServantProfile.objects.count() == 0:
+            officers_dump = Path(settings.BASE_DIR) / 'initial_officers.json'
+            if officers_dump.exists():
+                try:
                     call_command('loaddata', str(officers_dump))
-                    self.stdout.write(self.style.SUCCESS("Successfully imported 56 civil servants & 14 contract staff!"))
-        except Exception as e:
-            self.stdout.write(self.style.WARNING(f"Initial officers load note: {e}"))
+                    self.stdout.write(self.style.SUCCESS("Loaded initial_officers.json"))
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"Officers load note: {e}"))
 
         # 4. Create or update ADMIN account (both uppercase ADMIN and lowercase admin)
         for uname in [admin_username, 'admin']:
