@@ -29,13 +29,13 @@ git commit -m "%commit_msg%"
 
 echo.
 echo [4/4] កំពុង Push ឡើងទៅកាន់ GitHub (Git Push origin main)...
-git push -u origin main
+git push -u origin main --force
 
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo ====================================================================
-    echo  [ជោគជ័យ] បាន Push ឡើង GitHub រួចរាល់ដោយជោគជ័យ!
-    echo  Railway.com នឹងចាប់ផ្តើម Auto-Deploy កំណែថ្មីនេះដោយស្វ័យប្រវត្តិ។
+    echo  [ជោគជ័យ] បាន Push កូដទាំងអស់ឡើង GitHub រួចរាល់ដោយជោគជ័យ!
+    echo  Railway.com នឹងចាប់ផ្តើម Auto-Deploy កូដពេញលេញនេះឡើងវិញ។
     echo ====================================================================
 ) else (
     echo.
