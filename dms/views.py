@@ -695,11 +695,11 @@ def document_delete(request, pk):
 
 
 
-@login_required
 def logout_view(request):
     request.session.pop('original_admin_id', None)
-    logout(request)
-    messages.info(request, "បានចាកចេញពីប្រព័ន្ធដោយជោគជ័យ!")
+    if request.user.is_authenticated:
+        logout(request)
+        messages.info(request, "បានចាកចេញពីប្រព័ន្ធដោយជោគជ័យ!")
     return redirect('login')
 
 
