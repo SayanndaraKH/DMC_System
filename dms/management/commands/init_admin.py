@@ -1,10 +1,13 @@
 import os
+from pathlib import Path
 from django.core.management.base import BaseCommand
+from django.core.management import call_command
+from django.conf import settings
 from django.contrib.auth.models import User
-from dms.models import Department, UserProfile
+from dms.models import Department, UserProfile, CivilServantProfile
 
 class Command(BaseCommand):
-    help = 'Ensures default ADMIN superuser and official departments exist on startup.'
+    help = 'Ensures default ADMIN superuser, departments, and seed data exist on startup.'
 
     def handle(self, *args, **options):
         admin_username = os.environ.get('ADMIN_USERNAME', 'ADMIN').strip()
@@ -34,7 +37,18 @@ class Command(BaseCommand):
             }
         )
 
-        # 2. Create or update ADMIN account (both uppercase ADMIN and lowercase admin)
+        # 2. Check and auto-load initial data if officers count is 0
+        try:
+            if CivilServantProfile.objects.count() == 0:
+                dump_path = Path(settings.BASE_DIR) / 'initial_data.json'
+                if dump_path.exists():
+                    self.stdout.write("Database has 0 officers. Auto-loading initial_data.json...")
+                    call_command('loaddata', str(dump_path))
+                    self.stdout.write(self.style.SUCCESS("Successfully imported all initial officers and data!"))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"Initial data load note: {e}"))
+
+        # 3. Create or update ADMIN account (both uppercase ADMIN and lowercase admin)
         for uname in [admin_username, 'admin']:
             user = User.objects.filter(username__iexact=uname).first()
             if not user:
