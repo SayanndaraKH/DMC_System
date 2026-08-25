@@ -116,53 +116,41 @@ def register_view(request):
             lead_dept = Department.objects.filter(Q(code='LEAD') | Q(name_kh='ថ្នាក់ដឹកនាំមន្ទីរ')).first()
             if pos in ['ប្រធានមន្ទីរ', 'អនុប្រធានមន្ទីរ']:
                 user_role = 'LEADERSHIP'
-                dept_id = lead_dept.id if lead_dept else (admin_pers_dept.id if admin_pers_dept else data['department'].id)
+                target_dept = lead_dept or (admin_pers_dept if admin_pers_dept else data['department'])
             elif data['department'].code in ['ADMIN', 'ADMIN_PERS'] or (admin_pers_dept and data['department'].id == admin_pers_dept.id):
                 user_role = 'ADMIN'
-                dept_id = data['department'].id
+                target_dept = data['department']
             else:
                 user_role = 'SPECIALIZED'
-                dept_id = data['department'].id
+                target_dept = data['department']
 
-            payload = {
-                'full_name': full_name,
-                'first_name': first_name,
-                'last_name': last_name,
-                'username': data['username'],
-                'email': data['email'],
-                'phone': data['phone'],
-                'department_id': dept_id,
-                'role': user_role,
-                'position_title': pos,
-                'password': data['password'],
-            }
+            # Direct User Creation without OTP - Waiting for Admin Approval
+            try:
+                user = User.objects.create_user(
+                    username=data['username'],
+                    email=data.get('email', ''),
+                    password=data['password'],
+                    first_name=first_name,
+                    last_name=last_name
+                )
 
-            # Generate 6-digit OTP
-            otp_record = OTPVerification.generate_otp(
-                identifier=data['email'],
-                purpose='REGISTER',
-                payload_data=payload,
-                expiry_minutes=10
-            )
+                UserProfile.objects.create(
+                    user=user,
+                    department=target_dept,
+                    role=user_role,
+                    position_title=pos,
+                    phone=data.get('phone', ''),
+                    raw_password_display=data['password'],
+                    is_approved=False
+                )
 
-            # Send Email / SMS notification
-            send_otp_notification(
-                identifier=data['email'],
-                otp_code=otp_record.otp_code,
-                purpose='REGISTER',
-                full_name=full_name
-            )
-
-            # Store OTP in session for verification
-            request.session['pending_otp_id'] = otp_record.id
-            request.session['pending_otp_identifier'] = data['email']
-            request.session['pending_otp_phone'] = data['phone']
-
-            messages.info(
-                request,
-                f"ប្រព័ន្ធបានផ្ញើលេខកូដសម្ងាត់ ៦ ខ្ទង់ (OTP) ទៅកាន់អ៊ីមែល {data['email']}។"
-            )
-            return redirect('otp_verify')
+                messages.success(
+                    request,
+                    f"🎉 ការចុះឈ្មោះគណនី «{user.username}» ទទួលបានជោគជ័យ! ដោយសារប្រព័ន្ធតម្រូវឱ្យមានការត្រួតពិនិត្យសុវត្ថិភាព គណនីរបស់អ្នកត្រូវ «រង់ចាំការអនុម័តពី ADMIN» ជាមុនសិន ទើបអាចចូលប្រើប្រាស់បាន។"
+                )
+                return redirect('login')
+            except Exception as e:
+                messages.error(request, f"មានបញ្ហាក្នុងការបង្កើតគណនី៖ {e}")
     else:
         form = UserRegistrationForm()
 
