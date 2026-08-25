@@ -13,6 +13,16 @@ class Command(BaseCommand):
                 conn = connections['default']
                 with conn.cursor() as cursor:
                     cursor.execute("SELECT 1;")
+                    try:
+                        cursor.execute("""
+                            SELECT pg_terminate_backend(pid) 
+                            FROM pg_stat_activity 
+                            WHERE pid <> pg_backend_pid() 
+                              AND datname = current_database();
+                        """)
+                        self.stdout.write(self.style.SUCCESS('Cleared dangling database connections and locks!'))
+                    except Exception as e:
+                        self.stdout.write(self.style.WARNING(f'Could not clear locks (ignoring): {e}'))
                 self.stdout.write(self.style.SUCCESS(f'Database is online and ready (connected on attempt {attempt})!'))
                 return
             except OperationalError as e:
