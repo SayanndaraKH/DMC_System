@@ -1,1 +1,1 @@
-web: python manage.py wait_for_db && python manage.py migrate && python manage.py init_admin && python manage.py collectstatic --noinput && gunicorn dms_project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120
+web: bash start.sh
