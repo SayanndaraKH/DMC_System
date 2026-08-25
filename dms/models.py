@@ -1031,7 +1031,7 @@ class CambodiaCommune(models.Model):
 
 
 class CambodiaVillage(models.Model):
-    code = models.CharField(max_length=30, db_index=True, verbose_name="កូដភូមិ")
+    code = models.CharField(max_length=30, primary_key=True, verbose_name="កូដភូមិ")
     commune = models.ForeignKey(CambodiaCommune, on_delete=models.CASCADE, related_name='villages', verbose_name="ឃុំ/សង្កាត់")
     district = models.ForeignKey(CambodiaDistrict, on_delete=models.CASCADE, related_name='villages', verbose_name="ក្រុង/ស្រុក/ខណ្ឌ")
     province = models.ForeignKey(CambodiaProvince, on_delete=models.CASCADE, related_name='villages', verbose_name="រាជធានី/ខេត្ត")
