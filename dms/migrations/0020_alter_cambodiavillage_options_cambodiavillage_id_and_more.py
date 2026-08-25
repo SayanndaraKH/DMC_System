@@ -10,18 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelOptions(
-            name='cambodiavillage',
-            options={'ordering': ['code', 'name_kh'], 'verbose_name': 'ភូមិ', 'verbose_name_plural': 'បញ្ជីភូមិ'},
-        ),
-        migrations.AddField(
-            model_name='cambodiavillage',
-            name='id',
-            field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
-        ),
-        migrations.AlterField(
-            model_name='cambodiavillage',
-            name='code',
-            field=models.CharField(db_index=True, max_length=30, verbose_name='កូដភូមិ'),
-        ),
     ]
