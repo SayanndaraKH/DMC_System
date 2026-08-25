@@ -1,5 +1,4 @@
 @echo off
-chcp 65001 >nul
 title DMC System - Push to GitHub
 color 0b
 
@@ -10,37 +9,38 @@ echo.
 
 cd /d "%~dp0"
 
-echo [1/4] ពិនិត្យមើលស្ថានភាព File ដែលបានកែប្រែ (Checking Git Status)...
+echo [1/4] Checking Git Status...
 git status -s
 echo.
 
-set /p commit_msg=">> បញ្ចូលចំណាំនៃការកែប្រែ (Commit message) [ចុច Enter យក Default]: "
+set commit_msg=
+set /p commit_msg=Enter commit message (Press Enter for auto timestamp): 
 if "%commit_msg%"=="" (
     set commit_msg=Update DMC System: %date% %time%
 )
 
 echo.
-echo [2/4] កំពុងរៀបចំឯកសារ (Git Add)...
+echo [2/4] Adding all files to Git (git add .)...
 git add .
 
 echo.
-echo [3/4] កំពុងរក្សាទុកការកែប្រែ (Git Commit: "%commit_msg%")...
+echo [3/4] Committing changes (git commit)...
 git commit -m "%commit_msg%"
 
 echo.
-echo [4/4] កំពុង Push ឡើងទៅកាន់ GitHub (Git Push origin main)...
+echo [4/4] Pushing to GitHub (git push origin main)...
 git push -u origin main --force
 
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo ====================================================================
-    echo  [ជោគជ័យ] បាន Push កូដទាំងអស់ឡើង GitHub រួចរាល់ដោយជោគជ័យ!
-    echo  Railway.com នឹងចាប់ផ្តើម Auto-Deploy កូដពេញលេញនេះឡើងវិញ។
+    echo  [SUCCESS] Code pushed to GitHub successfully!
+    echo  Railway.com will auto-deploy the full project now.
     echo ====================================================================
 ) else (
     echo.
     echo ====================================================================
-    echo  [បរាជ័យ] មានបញ្ហាក្នុងការ Push! សូមពិនិត្យមើល Error ខាងលើ។
+    echo  [FAILED] Push encountered an error! Check the output above.
     echo ====================================================================
 )
 
