@@ -1,13 +1,10 @@
 import os
-from pathlib import Path
 from django.core.management.base import BaseCommand
-from django.core.management import call_command
-from django.conf import settings
 from django.contrib.auth.models import User
-from dms.models import Department, UserProfile, CivilServantProfile, CambodiaProvince
+from dms.models import Department, UserProfile
 
 class Command(BaseCommand):
-    help = 'Ensures default ADMIN superuser, departments, geography, and seed data exist on startup.'
+    help = 'Ensures default ADMIN superuser and core departments exist on startup.'
 
     def handle(self, *args, **options):
         admin_username = os.environ.get('ADMIN_USERNAME', 'ADMIN').strip()
@@ -37,27 +34,7 @@ class Command(BaseCommand):
             }
         )
 
-        # 2. Check and auto-load geo if count is 0
-        if CambodiaProvince.objects.count() == 0:
-            geo_dump = Path(settings.BASE_DIR) / 'initial_geo.json'
-            if geo_dump.exists():
-                try:
-                    call_command('loaddata', str(geo_dump))
-                    self.stdout.write(self.style.SUCCESS("Loaded initial_geo.json"))
-                except Exception as e:
-                    self.stdout.write(self.style.WARNING(f"Geo load note: {e}"))
-
-        # 3. Check and auto-load officers if count is 0
-        if CivilServantProfile.objects.count() == 0:
-            officers_dump = Path(settings.BASE_DIR) / 'initial_officers.json'
-            if officers_dump.exists():
-                try:
-                    call_command('loaddata', str(officers_dump))
-                    self.stdout.write(self.style.SUCCESS("Loaded initial_officers.json"))
-                except Exception as e:
-                    self.stdout.write(self.style.WARNING(f"Officers load note: {e}"))
-
-        # 4. Create or update ADMIN account (both uppercase ADMIN and lowercase admin)
+        # 2. Create or update ADMIN account (both uppercase ADMIN and lowercase admin)
         for uname in [admin_username, 'admin']:
             user = User.objects.filter(username__iexact=uname).first()
             if not user:
