@@ -1889,4 +1889,220 @@ class VehicleRequestAttachment(models.Model):
         return f"{self.title} ({self.vehicle_request.applicant_name})"
 
 
+# =========================================================================
+# 📋 ម៉ូឌុលគ្រប់គ្រងវត្តមានមន្ត្រី និងមន្ត្រីជាប់កិច្ចសន្យា (Attendance Module)
+# រៀបចំតាមគំរូ AttendendA.xlsx
+# =========================================================================
+
+def get_attendance_position_sort_weight(title, is_contract=False):
+    """
+    Computes priority weight for attendance rosters:
+    For Cantons (ខណ្ឌ):
+    1. នាយខណ្ឌ (Canton Chief) -> 10
+    2. នាយរងខណ្ឌ (Deputy Canton Chief) -> 20
+    3. នាយផ្នែក / ប្រធានផ្នែក (Division Chief) -> 30
+    4. នាយរងផ្នែក / អនុប្រធានផ្នែក (Deputy Division Chief) -> 40
+    5. មន្ត្រី / មន្ត្រីជំនាញ (Officer) -> 50
+    6. មន្ត្រីជាប់កិច្ចសន្យា (Contract Staff: ជំនួយការ, អ្នកបើកបរ, អ្នកអនាម័យ) -> 80+
+
+    For Offices (ការិយាល័យ):
+    1. ប្រធានការិយាល័យ (Office Chief) -> 15
+    2. អនុប្រធានការិយាល័យ (Deputy Office Chief) -> 25
+    3. នាយផ្នែក / ប្រធានផ្នែក (បើមាន) -> 30
+    4. នាយរងផ្នែក / អនុប្រធានផ្នែក (បើមាន) -> 40
+    5. មន្ត្រី / មន្ត្រីការិយាល័យ (Officer) -> 50
+    6. មន្ត្រីជាប់កិច្ចសន្យា (Contract Staff) -> 80+
+    """
+    if is_contract:
+        base = 80
+        t = str(title or "").strip()
+        if 'ជំនួយការ' in t:
+            return base + 1
+        elif 'បើកបរ' in t:
+            return base + 2
+        elif 'អនាម័យ' in t:
+            return base + 3
+        return base + 5
+
+    t = normalize_khmer_role(title)
+    if 'ប្រធានមន្ទីរ' in t and 'អនុ' not in t:
+        return 5
+    elif 'អនុប្រធានមន្ទីរ' in t:
+        return 8
+    elif 'នាយខណ្ឌ' in t and 'នាយរង' not in t and 'អនុ' not in t:
+        return 10
+    elif 'ប្រធានការិយាល័យ' in t and 'អនុ' not in t:
+        return 15
+    elif 'នាយរងខណ្ឌ' in t:
+        return 20
+    elif 'អនុប្រធានការិយាល័យ' in t:
+        return 25
+    elif ('នាយផ្នែក' in t or 'ប្រធានផ្នែក' in t) and 'នាយរង' not in t and 'អនុ' not in t:
+        return 30
+    elif 'នាយរងផ្នែក' in t or 'អនុប្រធានផ្នែក' in t or 'នាយផ្នែករង' in t:
+        return 40
+    elif 'មន្ត្រី' in t:
+        return 50
+    return 70
+
+
+
+class AttendanceRecord(models.Model):
+    STATUS_CHOICES = [
+        ('PRESENT', 'វត្តមាន (Present)'),
+        ('MISSION', 'M - បេសកកម្ម (Mission)'),
+        ('LEAVE_PERMISSION', 'P - មានច្បាប់ (Leave with Permission)'),
+        ('ABSENT_NO_LEAVE', 'A - អត់ច្បាប់ (Absent without Leave)'),
+        ('UNPAID_LEAVE', 'ទំនេរគ្មានបៀវត្ស (Unpaid Leave)'),
+    ]
+
+    LEAVE_TYPE_CHOICES = [
+        ('', '--- គ្មាន / មិនបានឈប់ ---'),
+        ('ANNUAL', '១-ច្បាប់ឈប់ប្រចាំឆ្នាំ (១៥ថ្ងៃ/១ឆ្នាំ)'),
+        ('SHORT', '២-ច្បាប់ឈប់រយៈពេលខ្លី (១៥ថ្ងៃ/១ឆ្នាំ)'),
+        ('MATERNITY', '៣-ច្បាប់ឈប់សម្រាកលំហែមាតុភាព (៣ខែ)'),
+        ('SICK', '៤-ច្បាប់ឈប់សម្រាកព្យាបាលជំងឺ (១២ខែ)'),
+        ('PERSONAL', '៥-ច្បាប់ឈប់សម្រាកដោយមានកិច្ចការផ្ទាល់ខ្លួន (៣ខែ)'),
+        ('OTHER', 'ផ្សេងៗ'),
+    ]
+
+    PERSON_TYPE_CHOICES = [
+        ('CIVIL_SERVANT', 'មន្ត្រីរាជការ'),
+        ('CONTRACT_OFFICER', 'មន្ត្រីជាប់កិច្ចសន្យា'),
+    ]
+
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.CASCADE,
+        related_name='attendance_records',
+        verbose_name="ការិយាល័យ/ខណ្ឌ"
+    )
+    date = models.DateField(verbose_name="កាលបរិច្ឆេទ")
+
+    person_type = models.CharField(
+        max_length=20,
+        choices=PERSON_TYPE_CHOICES,
+        default='CIVIL_SERVANT',
+        verbose_name="ប្រភេទបុគ្គលិក"
+    )
+    officer = models.ForeignKey(
+        CivilServantProfile,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='attendance_records',
+        verbose_name="មន្ត្រីរាជការ"
+    )
+    contract_officer = models.ForeignKey(
+        ContractOfficer,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='attendance_records',
+        verbose_name="មន្ត្រីជាប់កិច្ចសន្យា"
+    )
+
+    # Position title snapshot at the time of recording
+    position_title = models.CharField(max_length=150, blank=True, verbose_name="មុខតំណែង/តួនាទី")
+
+    # Morning & Afternoon Check-in / Out
+    morning_in = models.BooleanField(default=True, verbose_name="ព្រឹក ចូល")
+    morning_out = models.BooleanField(default=True, verbose_name="ព្រឹក ចេញ")
+    afternoon_in = models.BooleanField(default=True, verbose_name="ល្ងាច ចូល")
+    afternoon_out = models.BooleanField(default=True, verbose_name="ល្ងាច ចេញ")
+
+    # Overall Status
+    status = models.CharField(
+        max_length=30,
+        choices=STATUS_CHOICES,
+        default='PRESENT',
+        verbose_name="ស្ថានភាពវត្តមាន"
+    )
+
+    is_late = models.BooleanField(default=False, verbose_name="មកយឺត")
+    is_early_out = models.BooleanField(default=False, verbose_name="ចេញមុន")
+
+    leave_type = models.CharField(
+        max_length=30,
+        choices=LEAVE_TYPE_CHOICES,
+        blank=True,
+        default='',
+        verbose_name="ប្រភេទច្បាប់ឈប់សម្រាក"
+    )
+    reference_doc = models.CharField(max_length=255, blank=True, verbose_name="លិខិតបញ្ជាក់/យោង")
+    disciplinary_measure = models.CharField(max_length=255, blank=True, verbose_name="វិធានការ/ទណ្ឌកម្មវិន័យ")
+    remarks = models.TextField(blank=True, verbose_name="ផ្សេងៗ/កំណត់សម្គាល់")
+
+    recorded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='recorded_attendances',
+        verbose_name="អ្នកកត់ត្រា"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "កំណត់ត្រាវត្តមាន"
+        verbose_name_plural = "បញ្ជីកំណត់ត្រាវត្តមាន"
+        ordering = ['-date', 'department']
+
+    def __str__(self):
+        name = self.person_name
+        return f"{self.date} - {name} ({self.get_status_display()})"
+
+    @property
+    def person_name(self):
+        if self.officer:
+            return self.officer.full_name_kh
+        if self.contract_officer:
+            return self.contract_officer.full_name_kh
+        return "គ្មានឈ្មោះ"
+
+    @property
+    def person_gender(self):
+        if self.officer:
+            return 'ប' if self.officer.gender == 'MALE' else 'ស'
+        if self.contract_officer:
+            return 'ប' if self.contract_officer.gender == 'MALE' else 'ស'
+        return 'ប'
+
+    @property
+    def display_position(self):
+        if self.position_title:
+            return self.position_title
+        if self.officer:
+            return self.officer.current_position_title or "មន្ត្រី"
+        if self.contract_officer:
+            return self.contract_officer.position_title or "មន្ត្រីជាប់កិច្ចសន្យា"
+        return "មន្ត្រី"
+
+    @property
+    def status_code(self):
+        if self.status == 'PRESENT':
+            return '✓'
+        elif self.status == 'MISSION':
+            return 'M'
+        elif self.status == 'LEAVE_PERMISSION':
+            return 'P'
+        elif self.status == 'ABSENT_NO_LEAVE':
+            return 'A'
+        elif self.status == 'UNPAID_LEAVE':
+            return 'U'
+        return '✓'
+
+    @property
+    def status_badge_class(self):
+        badges = {
+            'PRESENT': 'bg-success text-white',
+            'MISSION': 'bg-primary text-white',
+            'LEAVE_PERMISSION': 'bg-warning text-dark',
+            'ABSENT_NO_LEAVE': 'bg-danger text-white',
+            'UNPAID_LEAVE': 'bg-secondary text-white',
+        }
+        return badges.get(self.status, 'bg-success text-white')
+
+
 

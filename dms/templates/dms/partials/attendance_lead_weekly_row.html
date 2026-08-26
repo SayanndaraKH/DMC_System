@@ -1,0 +1,41 @@
+{% with p=item.person %}
+<tr>
+    <td class="text-center fw-bold text-muted">{{ p.index }}</td>
+    <td>
+        <strong class="text-dark">{{ p.name }}</strong>
+        {% if p.is_acting %}
+        <span class="badge bg-info-subtle text-info fs-9 ms-1">ស្តីទី / តំណាង</span>
+        {% endif %}
+    </td>
+    <td class="text-center">
+        {% if p.gender == 'ស' %}
+        <span class="text-danger fw-bold">ស</span>
+        {% else %}
+        <span class="text-secondary fw-bold">ប</span>
+        {% endif %}
+    </td>
+    <td>
+        <span class="badge bg-light text-dark border text-start text-wrap py-1.5 px-2">
+            {{ p.position }}
+        </span>
+    </td>
+    <td class="text-center {% if item.leave > 0 %}text-warning fw-bold bg-warning-subtle{% endif %}">
+        {% if item.leave > 0 %}{{ item.leave }}{% else %}-{% endif %}
+    </td>
+    <td class="text-center {% if item.absent > 0 %}text-danger fw-bold bg-danger-subtle{% endif %}">
+        {% if item.absent > 0 %}{{ item.absent }}{% else %}-{% endif %}
+    </td>
+    <td class="text-center {% if item.late_or_early > 0 %}text-secondary fw-bold bg-light{% endif %}">
+        {% if item.late_or_early > 0 %}{{ item.late_or_early }}{% else %}-{% endif %}
+    </td>
+    <td class="text-center">
+        {% if item.disciplinary %}<span class="badge bg-danger">{{ item.disciplinary }}</span>{% else %}-{% endif %}
+    </td>
+    <td>
+        {% if item.leave_type %}<span class="small text-muted">{{ item.leave_type }}</span>{% else %}-{% endif %}
+    </td>
+    <td>
+        {% if item.remarks %}<span class="small text-muted">{{ item.remarks }}</span>{% else %}-{% endif %}
+    </td>
+</tr>
+{% endwith %}

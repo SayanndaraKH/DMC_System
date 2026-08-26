@@ -1,0 +1,466 @@
+{% extends "dms/base.html" %}
+{% load static %}
+
+{% block title %}បញ្ចូលវត្តមានប្រចាំថ្ងៃ - ប្រព័ន្ធគ្រប់គ្រងឯកសារ (DMS){% endblock %}
+
+{% block extra_css %}
+<style>
+    .attendance-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0,0,0,0.08);
+        background: #fff;
+    }
+    .status-select-PRESENT { background-color: #d1e7dd; color: #0f5132; font-weight: 600; }
+    .status-select-MISSION { background-color: #cfe2ff; color: #084298; font-weight: 600; }
+    .status-select-LEAVE_PERMISSION { background-color: #fff3cd; color: #664d03; font-weight: 600; }
+    .status-select-ABSENT_NO_LEAVE { background-color: #f8d7da; color: #842029; font-weight: 600; }
+    .status-select-UNPAID_LEAVE { background-color: #e2e3e5; color: #41464b; font-weight: 600; }
+
+    .sticky-actions-bar {
+        position: sticky;
+        bottom: 0;
+        z-index: 1020;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-top: 2px solid #0d6efd;
+        padding: 12px 20px;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        border-radius: 0 0 12px 12px;
+    }
+    .roster-row:hover {
+        background-color: #f8faff !important;
+    }
+    .checkin-switch .form-check-input {
+        width: 2.2em;
+        height: 1.2em;
+        cursor: pointer;
+    }
+    .badge-civil {
+        background-color: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+    }
+    .badge-contract {
+        background-color: #fef3c7;
+        color: #b45309;
+        border: 1px solid #fde68a;
+    }
+    .badge-pos {
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <!-- Header Title & Breadcrumb -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
+        <div>
+            <h3 class="fw-bold text-primary mb-1">
+                <i class="fa-solid fa-calendar-check text-success me-2"></i>បញ្ចូលវត្តមានមន្ត្រីប្រចាំថ្ងៃ
+            </h3>
+            <p class="text-muted mb-0 small">
+                កត់ត្រាវត្តមានមន្ត្រីរាជការ និងមន្ត្រីជាប់កិច្ចសន្យា តាមការិយាល័យ និងខណ្ឌនីមួយៗ
+            </p>
+        </div>
+        <div class="d-flex gap-2 mt-2 mt-md-0">
+            <a href="{% url 'attendance_monthly_sheet' %}?department={{ dept.id|default:'' }}&year={{ target_date.year }}&month={{ target_date.month }}" class="btn btn-outline-info">
+                <i class="fa-solid fa-table-cells me-1"></i>តារាងវត្តមានប្រចាំខែ
+            </a>
+            {% if is_admin %}
+            <a href="{% url 'attendance_summary_report' %}?year={{ target_date.year }}&month={{ target_date.month }}" class="btn btn-outline-primary">
+                <i class="fa-solid fa-chart-pie me-1"></i>របាយការណ៍សង្ខេប
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filter & Date Navigation Card -->
+    <div class="card attendance-card mb-4 border-0">
+        <div class="card-body p-3 p-md-4">
+            <form method="GET" action="{% url 'attendance_daily_entry' %}" id="filterForm" class="row g-3 align-items-end">
+                <!-- Department Selection -->
+                <div class="col-12 col-md-5">
+                    <label class="form-label fw-bold text-secondary small">
+                        <i class="fa-solid fa-building me-1"></i>ការិយាល័យ / ខណ្ឌ
+                    </label>
+                    {% if is_admin %}
+                    <select name="department" class="form-select select2" onchange="document.getElementById('filterForm').submit();">
+                        {% for d in departments %}
+                        <option value="{{ d.id }}" {% if dept and dept.id == d.id %}selected{% endif %}>
+                            {{ d.name_kh }} ({{ d.code }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-lock"></i></span>
+                        <input type="text" class="form-control bg-light fw-bold text-dark" value="{{ dept.name_kh|default:'គ្មានអង្គភាព' }}" readonly>
+                    </div>
+                    <input type="hidden" name="department" value="{{ dept.id|default:'' }}">
+                    {% endif %}
+                </div>
+
+                <!-- Date Picker & Quick Navigation -->
+                <div class="col-12 col-md-4">
+                    <label class="form-label fw-bold text-secondary small">
+                        <i class="fa-solid fa-calendar-day me-1"></i>កាលបរិច្ឆេទវត្តមាន
+                    </label>
+                    <div class="input-group">
+                        <a href="{% url 'attendance_daily_entry' %}?department={{ dept.id|default:'' }}&date={{ prev_date_str }}" class="btn btn-outline-secondary" title="ថ្ងៃម្សិលមិញ">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
+                        <input type="date" name="date" class="form-control text-center fw-bold" value="{{ target_date_str }}" onchange="document.getElementById('filterForm').submit();">
+                        <a href="{% url 'attendance_daily_entry' %}?department={{ dept.id|default:'' }}&date={{ next_date_str }}" class="btn btn-outline-secondary" title="ថ្ងៃស្អែក">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Today Button -->
+                <div class="col-12 col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="fa-solid fa-filter me-1"></i>ទាញយកបញ្ជី
+                    </button>
+                    {% if not is_today %}
+                    <a href="{% url 'attendance_daily_entry' %}?department={{ dept.id|default:'' }}" class="btn btn-outline-success" title="ត្រឡប់មកថ្ងៃនេះ">
+                        ថ្ងៃនេះ
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if dept %}
+    <!-- Roster Overview Stats Cards -->
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="p-3 bg-white rounded-3 border d-flex align-items-center justify-content-between shadow-sm">
+                <div>
+                    <div class="text-muted small">បុគ្គលិកសរុប</div>
+                    <div class="fs-4 fw-bold text-dark">{{ total_staff }} <span class="fs-7 text-muted fw-normal">នាក់ (ស្រី {{ female_count }})</span></div>
+                </div>
+                <div class="rounded-circle bg-light p-3 text-primary">
+                    <i class="fa-solid fa-users fa-lg"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 bg-white rounded-3 border d-flex align-items-center justify-content-between shadow-sm border-start border-success border-4">
+                <div>
+                    <div class="text-muted small">វត្តមាន (Present)</div>
+                    <div class="fs-4 fw-bold text-success">{{ present_count }} <span class="fs-7 text-muted fw-normal">នាក់</span></div>
+                </div>
+                <div class="rounded-circle bg-success-subtle p-3 text-success">
+                    <i class="fa-solid fa-check-double fa-lg"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 bg-white rounded-3 border d-flex align-items-center justify-content-between shadow-sm border-start border-info border-4">
+                <div>
+                    <div class="text-muted small">បេសកកម្ម (Mission)</div>
+                    <div class="fs-4 fw-bold text-info">{{ mission_count }} <span class="fs-7 text-muted fw-normal">នាក់</span></div>
+                </div>
+                <div class="rounded-circle bg-info-subtle p-3 text-info">
+                    <i class="fa-solid fa-briefcase fa-lg"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 bg-white rounded-3 border d-flex align-items-center justify-content-between shadow-sm border-start border-warning border-4">
+                <div>
+                    <div class="text-muted small">មានច្បាប់/អវត្តមាន</div>
+                    <div class="fs-4 fw-bold text-warning">{{ leave_count|add:absent_count }} <span class="fs-7 text-muted fw-normal">(ច្បាប់ {{ leave_count }} / អត់ {{ absent_count }})</span></div>
+                </div>
+                <div class="rounded-circle bg-warning-subtle p-3 text-warning">
+                    <i class="fa-solid fa-user-clock fa-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Action Bar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center bg-light p-3 rounded-3 mb-3 border">
+        <div class="d-flex align-items-center gap-2 mb-2 mb-md-0">
+            <span class="fw-bold text-secondary small me-1">ឧបករណ៍កំណត់រហ័ស (Bulk Actions):</span>
+            <button type="button" class="btn btn-sm btn-success" onclick="bulkSetStatus('PRESENT')">
+                <i class="fa-solid fa-check me-1"></i>វត្តមានទាំងអស់
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="bulkToggleCheckins(true)">
+                <i class="fa-solid fa-toggle-on me-1"></i>បើកចូល-ចេញទាំងអស់
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="bulkResetDefaults()">
+                <i class="fa-solid fa-rotate-left me-1"></i>កំណត់ដើម
+            </button>
+        </div>
+        <div class="text-muted small">
+            <i class="fa-solid fa-circle-info text-info me-1"></i>មន្ត្រីរាជការ: <strong>{{ civil_count }}</strong> នាក់ | មន្ត្រីកិច្ចសន្យា: <strong>{{ contract_count }}</strong> នាក់
+        </div>
+    </div>
+
+    <!-- Main Attendance Table Form -->
+    <form method="POST" action="{% url 'attendance_daily_entry' %}" id="attendanceEntryForm">
+        {% csrf_token %}
+        <input type="hidden" name="target_date" value="{{ target_date_str }}">
+        <input type="hidden" name="department_id" value="{{ dept.id }}">
+
+        <div class="card attendance-card mb-4 border-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle mb-0" id="attendanceTable">
+                    <thead class="table-dark text-center align-middle" style="font-family: 'Siemreap', sans-serif;">
+                        <tr>
+                            <th style="width: 45px;">ល.រ</th>
+                            <th style="min-width: 220px;" class="text-start">គោត្តនាម និងនាម</th>
+                            <th style="width: 50px;">ភេទ</th>
+                            <th style="min-width: 180px;" class="text-start">មុខតំណែង / តួនាទី</th>
+                            <th style="min-width: 180px;">ស្ថានភាពវត្តមាន</th>
+                            <th style="width: 120px;">ព្រឹក (ចូល-ចេញ)</th>
+                            <th style="width: 120px;">ល្ងាច (ចូល-ចេញ)</th>
+                            <th style="width: 120px;">យឺត / មុន</th>
+                            <th style="min-width: 200px;">ប្រភេទច្បាប់ឈប់សម្រាក</th>
+                            <th style="min-width: 200px;">លិខិតយោង & កំណត់សម្គាល់</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if roster_with_records %}
+                            {% for item in roster_with_records %}
+                            {% with p=item.person k=item.pkey %}
+                            <tr class="roster-row" id="row_{{ k }}">
+                                <!-- Index -->
+                                <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
+
+                                <!-- Name & ID -->
+                                <td>
+                                    <input type="hidden" name="person_keys" value="{{ k }}">
+                                    <input type="hidden" name="pos_{{ k }}" value="{{ p.position }}">
+                                    <div class="fw-bold text-dark">{{ p.name }}</div>
+                                    <div class="small d-flex align-items-center gap-1 mt-0.5">
+                                        {% if p.is_contract %}
+                                        <span class="badge badge-contract rounded-pill px-2">មន្ត្រីកិច្ចសន្យា</span>
+                                        {% else %}
+                                        <span class="badge badge-civil rounded-pill px-2">មន្ត្រីរាជការ</span>
+                                        {% endif %}
+                                        {% if p.officer_id_number %}
+                                        <span class="text-muted fs-8">({{ p.officer_id_number }})</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+
+                                <!-- Gender -->
+                                <td class="text-center">
+                                    {% if p.gender == 'ស' %}
+                                    <span class="badge bg-danger-subtle text-danger rounded-pill">ស្រី</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill">ប្រុស</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Position -->
+                                <td>
+                                    <span class="badge bg-light text-dark border badge-pos text-start text-wrap py-1.5 px-2">
+                                        {{ p.position }}
+                                    </span>
+                                </td>
+
+                                <!-- Status Dropdown -->
+                                <td>
+                                    <select name="status_{{ k }}" id="status_{{ k }}" class="form-select form-select-sm status-select status-select-{{ item.status }}" onchange="handleStatusChange('{{ k }}')">
+                                        <option value="PRESENT" {% if item.status == 'PRESENT' %}selected{% endif %}>✓ វត្តមាន (Present)</option>
+                                        <option value="MISSION" {% if item.status == 'MISSION' %}selected{% endif %}>M - បេសកកម្ម (Mission)</option>
+                                        <option value="LEAVE_PERMISSION" {% if item.status == 'LEAVE_PERMISSION' %}selected{% endif %}>P - មានច្បាប់ (Leave)</option>
+                                        <option value="ABSENT_NO_LEAVE" {% if item.status == 'ABSENT_NO_LEAVE' %}selected{% endif %}>A - អត់ច្បាប់ (Absent)</option>
+                                        <option value="UNPAID_LEAVE" {% if item.status == 'UNPAID_LEAVE' %}selected{% endif %}>U - គ្មានបៀវត្ស (Unpaid)</option>
+                                    </select>
+                                </td>
+
+                                <!-- Morning In / Out -->
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center align-items-center gap-2">
+                                        <div class="form-check form-switch checkin-switch m-0" title="ព្រឹក ចូល">
+                                            <input class="form-check-input morning-in-chk" type="checkbox" name="morning_in_{{ k }}" id="min_{{ k }}" value="1" {% if item.morning_in %}checked{% endif %}>
+                                        </div>
+                                        <div class="form-check form-switch checkin-switch m-0" title="ព្រឹក ចេញ">
+                                            <input class="form-check-input morning-out-chk" type="checkbox" name="morning_out_{{ k }}" id="mout_{{ k }}" value="1" {% if item.morning_out %}checked{% endif %}>
+                                        </div>
+                                    </div>
+                                    <div class="fs-9 text-muted mt-1">ចូល | ចេញ</div>
+                                </td>
+
+                                <!-- Afternoon In / Out -->
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center align-items-center gap-2">
+                                        <div class="form-check form-switch checkin-switch m-0" title="ល្ងាច ចូល">
+                                            <input class="form-check-input afternoon-in-chk" type="checkbox" name="afternoon_in_{{ k }}" id="ain_{{ k }}" value="1" {% if item.afternoon_in %}checked{% endif %}>
+                                        </div>
+                                        <div class="form-check form-switch checkin-switch m-0" title="ល្ងាច ចេញ">
+                                            <input class="form-check-input afternoon-out-chk" type="checkbox" name="afternoon_out_{{ k }}" id="aout_{{ k }}" value="1" {% if item.afternoon_out %}checked{% endif %}>
+                                        </div>
+                                    </div>
+                                    <div class="fs-9 text-muted mt-1">ចូល | ចេញ</div>
+                                </td>
+
+                                <!-- Late / Early Out -->
+                                <td>
+                                    <div class="d-flex flex-column gap-1">
+                                        <label class="form-check-label small d-flex align-items-center gap-1 cursor-pointer">
+                                            <input class="form-check-input m-0" type="checkbox" name="is_late_{{ k }}" value="1" {% if item.is_late %}checked{% endif %}>
+                                            <span class="fs-8 text-danger">មកយឺត</span>
+                                        </label>
+                                        <label class="form-check-label small d-flex align-items-center gap-1 cursor-pointer">
+                                            <input class="form-check-input m-0" type="checkbox" name="is_early_out_{{ k }}" value="1" {% if item.is_early_out %}checked{% endif %}>
+                                            <span class="fs-8 text-warning">ចេញមុន</span>
+                                        </label>
+                                    </div>
+                                </td>
+
+                                <!-- Leave Type -->
+                                <td>
+                                    <select name="leave_type_{{ k }}" id="leave_type_{{ k }}" class="form-select form-select-sm" {% if item.status not in 'LEAVE_PERMISSION,UNPAID_LEAVE' %}disabled{% endif %}>
+                                        {% for val, label in leave_choices %}
+                                        <option value="{{ val }}" {% if item.leave_type == val %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+
+                                <!-- Remarks & Reference Doc -->
+                                <td>
+                                    <div class="d-flex flex-column gap-1">
+                                        <input type="text" name="reference_doc_{{ k }}" class="form-control form-control-sm" placeholder="លិខិតយោង/ច្បាប់..." value="{{ item.reference_doc }}">
+                                        <input type="text" name="remarks_{{ k }}" class="form-control form-control-sm" placeholder="កំណត់សម្គាល់ផ្សេងៗ..." value="{{ item.remarks }}">
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endwith %}
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center py-5 text-muted">
+                                    <i class="fa-solid fa-folder-open fa-3x mb-3 text-secondary"></i>
+                                    <p class="fs-6 mb-0">មិនមានទិន្នន័យមន្ត្រីក្នុងអង្គភាពនេះឡើយ!</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if roster_with_records %}
+            <!-- Sticky Bottom Action Bar -->
+            <div class="sticky-actions-bar d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary fs-7 px-3 py-2">
+                        <i class="fa-solid fa-calendar me-1"></i>{{ target_date|date:"d/m/Y" }}
+                    </span>
+                    <span class="text-secondary small d-none d-md-inline">
+                        អង្គភាព៖ <strong>{{ dept.name_kh }}</strong>
+                    </span>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'attendance_monthly_sheet' %}?department={{ dept.id }}&year={{ target_date.year }}&month={{ target_date.month }}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-xmark me-1"></i>បោះបង់
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm" id="btnSaveAttendance">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>រក្សាទុកវត្តមានប្រចាំថ្ងៃ
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function handleStatusChange(pkey) {
+        const select = document.getElementById('status_' + pkey);
+        const val = select.value;
+        const leaveSelect = document.getElementById('leave_type_' + pkey);
+        const minChk = document.getElementById('min_' + pkey);
+        const moutChk = document.getElementById('mout_' + pkey);
+        const ainChk = document.getElementById('ain_' + pkey);
+        const aoutChk = document.getElementById('aout_' + pkey);
+
+        // Update classes
+        select.className = 'form-select form-select-sm status-select status-select-' + val;
+
+        if (val === 'PRESENT') {
+            minChk.checked = true;
+            moutChk.checked = true;
+            ainChk.checked = true;
+            aoutChk.checked = true;
+            if (leaveSelect) {
+                leaveSelect.disabled = true;
+                leaveSelect.value = '';
+            }
+        } else if (val === 'MISSION') {
+            minChk.checked = true;
+            moutChk.checked = true;
+            ainChk.checked = true;
+            aoutChk.checked = true;
+            if (leaveSelect) {
+                leaveSelect.disabled = true;
+                leaveSelect.value = '';
+            }
+        } else if (val === 'LEAVE_PERMISSION' || val === 'UNPAID_LEAVE') {
+            minChk.checked = false;
+            moutChk.checked = false;
+            ainChk.checked = false;
+            aoutChk.checked = false;
+            if (leaveSelect) {
+                leaveSelect.disabled = false;
+            }
+        } else if (val === 'ABSENT_NO_LEAVE') {
+            minChk.checked = false;
+            moutChk.checked = false;
+            ainChk.checked = false;
+            aoutChk.checked = false;
+            if (leaveSelect) {
+                leaveSelect.disabled = true;
+                leaveSelect.value = '';
+            }
+        }
+    }
+
+    function bulkSetStatus(statusVal) {
+        document.querySelectorAll('.status-select').forEach(select => {
+            select.value = statusVal;
+            const pkey = select.id.replace('status_', '');
+            handleStatusChange(pkey);
+        });
+    }
+
+    function bulkToggleCheckins(isChecked) {
+        document.querySelectorAll('.morning-in-chk, .morning-out-chk, .afternoon-in-chk, .afternoon-out-chk').forEach(chk => {
+            chk.checked = isChecked;
+        });
+    }
+
+    function bulkResetDefaults() {
+        bulkSetStatus('PRESENT');
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            if (input.name.startsWith('reference_doc_') || input.name.startsWith('remarks_')) {
+                input.value = '';
+            }
+        });
+        document.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+            if (chk.name.startsWith('is_late_') || chk.name.startsWith('is_early_out_')) {
+                chk.checked = false;
+            }
+        });
+    }
+
+    document.getElementById('attendanceEntryForm')?.addEventListener('submit', function() {
+        const btn = document.getElementById('btnSaveAttendance');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>កំពុងរក្សាទុក...';
+        }
+    });
+</script>
+{% endblock %}

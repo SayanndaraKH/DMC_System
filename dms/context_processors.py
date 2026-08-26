@@ -72,6 +72,18 @@ def dms_context(request):
         else:
             pending_vehicle_requests_count = 0
 
+        # Leadership Attendance (Attendend B) permission:
+        # Strictly for ADMIN or Administration & Personnel Office (ការិយាល័យរដ្ឋបាល-បុគ្គលិក)
+        is_admin_user = request.user.is_superuser or request.user.username.upper() == 'ADMIN'
+        is_admin_personnel_office = False
+        if profile and profile.department:
+            dept_code = (profile.department.code or '').strip().upper()
+            dept_name = (profile.department.name_kh or '').strip()
+            if dept_code in ['ADMIN_PERS', 'ADMIN_PERSONNEL'] or ('រដ្ឋបាល' in dept_name and 'បុគ្គលិក' in dept_name):
+                is_admin_personnel_office = True
+
+        can_manage_leadership_attendance = is_admin_user or is_admin_personnel_office
+
         return {
             'user_profile': profile,
             'unread_notifications_count': unread_notifications_count,
@@ -82,6 +94,7 @@ def dms_context(request):
             'all_dev_users': all_dev_users,
             'is_dev_mode': settings.DEBUG,
             'can_view_contract_officers_menu': can_view_contract_officers_menu,
+            'can_manage_leadership_attendance': can_manage_leadership_attendance,
         }
     return {
         'user_profile': None,

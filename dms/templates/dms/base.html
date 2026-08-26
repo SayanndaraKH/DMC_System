@@ -3,7 +3,7 @@
 <html lang="km">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.5, user-scalable=yes">
     <title>{% block title %}ប្រព័ន្ធគ្រប់គ្រងឯកសាររដ្ឋបាល (DMS){% endblock %}</title>
 
     <!-- Google Khmer Fonts & Icons -->
@@ -24,7 +24,10 @@
     <div class="app-wrapper">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
-            <div class="sidebar-header">
+            <div class="sidebar-header d-flex flex-column align-items-center position-relative">
+                <button class="btn btn-sm btn-outline-light position-absolute top-0 end-0 m-2 d-lg-none rounded-circle sidebar-close-btn" id="sidebarCloseBtn" type="button" aria-label="បិទម៉ឺនុយ">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
                 <i class="fa-solid fa-landmark fa-2x text-warning mb-2"></i>
                 <h1 class="sidebar-title">ប្រព័ន្ធគ្រប់គ្រងឯកសារ</h1>
                 <div class="sidebar-subtitle">Document Management System</div>
@@ -156,6 +159,65 @@
                 </div>
                 {% endwith %}
                 {% endif %}
+
+                <!-- 📋 គ្រប់គ្រងវត្តមាន (Collapsible Group) -->
+                {% with is_att_active=request.resolver_match.url_name|default:'' %}
+                <div class="nav-group">
+                    <button class="nav-group-toggle {% if 'attendance' in is_att_active %}active-parent{% else %}collapsed{% endif %}" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#menuAttendance" 
+                            aria-expanded="{% if 'attendance' in is_att_active %}true{% else %}false{% endif %}" 
+                            aria-controls="menuAttendance">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-clipboard-user text-success"></i>
+                            <span>គ្រប់គ្រងវត្តមាន</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                    </button>
+                    <div class="collapse {% if 'attendance' in is_att_active %}show{% endif %}" id="menuAttendance">
+                        <div class="nav-submenu">
+                            <a href="{% url 'attendance_daily_entry' %}" class="submenu-link {% if request.resolver_match.url_name == 'attendance_daily_entry' %}active{% endif %}">
+                                <i class="fa-solid fa-calendar-check text-success"></i>
+                                <span>បញ្ចូលវត្តមានប្រចាំថ្ងៃ</span>
+                            </a>
+                            <a href="{% url 'attendance_weekly_sheet' %}" class="submenu-link {% if request.resolver_match.url_name in 'attendance_weekly_sheet,attendance_weekly_print' %}active{% endif %}">
+                                <i class="fa-solid fa-calendar-week text-primary"></i>
+                                <span>របាយការណ៍ប្រចាំសប្តាហ៍</span>
+                            </a>
+                            <a href="{% url 'attendance_monthly_sheet' %}" class="submenu-link {% if request.resolver_match.url_name in 'attendance_monthly_sheet,attendance_monthly_print' %}active{% endif %}">
+                                <i class="fa-solid fa-table-cells text-info"></i>
+                                <span>តារាងវត្តមានប្រចាំខែ</span>
+                            </a>
+                            {% if user.is_superuser or user.username|upper == 'ADMIN' %}
+                            <a href="{% url 'attendance_summary_report' %}" class="submenu-link {% if request.resolver_match.url_name == 'attendance_summary_report' %}active{% endif %}">
+                                <i class="fa-solid fa-chart-pie text-warning"></i>
+                                <span>របាយការណ៍សង្ខេប (ADMIN)</span>
+                            </a>
+                            {% endif %}
+
+                            {% if can_manage_leadership_attendance %}
+                            <div class="dropdown-divider my-1 border-secondary-subtle"></div>
+                            <div class="px-3 py-1 text-warning-emphasis fs-9 text-uppercase fw-bold">
+                                <i class="fa-solid fa-crown text-warning me-1"></i>វត្តមានថ្នាក់ដឹកនាំ (Attendend B)
+                            </div>
+                            <a href="{% url 'attendance_leadership_daily' %}" class="submenu-link {% if request.resolver_match.url_name == 'attendance_leadership_daily' %}active{% endif %}">
+                                <i class="fa-solid fa-user-shield text-warning"></i>
+                                <span>បញ្ចូលវត្តមានថ្នាក់ដឹកនាំ</span>
+                            </a>
+                            <a href="{% url 'attendance_leadership_weekly' %}" class="submenu-link {% if request.resolver_match.url_name in 'attendance_leadership_weekly,attendance_leadership_weekly_print' %}active{% endif %}">
+                                <i class="fa-solid fa-file-signature text-warning"></i>
+                                <span>សប្តាហ៍ (ថ្នាក់ដឹកនាំ)</span>
+                            </a>
+                            <a href="{% url 'attendance_leadership_monthly' %}" class="submenu-link {% if request.resolver_match.url_name in 'attendance_leadership_monthly,attendance_leadership_monthly_print' %}active{% endif %}">
+                                <i class="fa-solid fa-calendar-check text-warning"></i>
+                                <span>ប្រចាំខែ (ថ្នាក់ដឹកនាំ)</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
 
                 <!-- 🚗 គ្រប់គ្រងទ្រព្យរដ្ឋ (Collapsible Group) -->
                 {% with is_veh_active=request.resolver_match.url_name|default:'' %}
@@ -321,8 +383,11 @@
 
             <!-- Top Navbar -->
             <header class="top-navbar">
-                <div class="d-flex align-items-center gap-3">
-                    <h5 class="m-0 fw-bold text-success d-none d-md-block">
+                <div class="d-flex align-items-center gap-2 gap-md-3">
+                    <button class="btn btn-outline-success d-lg-none p-1.5 px-2.5 rounded-3 shadow-xs sidebar-toggle-btn" id="sidebarToggle" type="button" aria-label="បើកម៉ឺនុយ">
+                        <i class="fa-solid fa-bars fs-5"></i>
+                    </button>
+                    <h5 class="m-0 fw-bold text-success d-none d-sm-block text-truncate" style="max-width: 280px;">
                         <i class="fa-solid fa-building-columns me-2"></i>
                         {{ user_profile.department.name_kh|default:"មន្ទីររដ្ឋបាល" }}
                     </h5>
@@ -473,6 +538,22 @@
                 {% block content %}{% endblock %}
             </div>
         </main>
+
+        <!-- Mobile Sidebar Backdrop Overlay -->
+        <div class="sidebar-backdrop d-lg-none" id="sidebarBackdrop"></div>
+    </div>
+
+    <!-- Floating Responsive Zoom Control Assistant -->
+    <div class="zoom-assistant d-flex align-items-center gap-1 shadow-lg" id="zoomAssistant" title="ឧបករណ៍ជំនួយការពង្រីក/ពង្រួមអេក្រង់">
+        <button class="btn btn-sm btn-zoom-action" id="zoomOutBtn" title="ពង្រួម (Zoom Out)" aria-label="Zoom Out">
+            <i class="fa-solid fa-magnifying-glass-minus"></i>
+        </button>
+        <button class="btn btn-sm btn-zoom-level" id="zoomResetBtn" title="ទំហំដើម 100% (ចុចដើម្បី Reset)" aria-label="Reset Zoom">
+            <span id="zoomLevelText">100%</span>
+        </button>
+        <button class="btn btn-sm btn-zoom-action" id="zoomInBtn" title="ពង្រីក (Zoom In)" aria-label="Zoom In">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
+        </button>
     </div>
 
     <!-- Real-time Live Chat Toast Notification Popup Container -->
@@ -596,6 +677,88 @@
         })();
     </script>
     {% endif %}
+
+    <!-- Mobile Navigation & Screen Zoom Engine -->
+    <script>
+        (function() {
+            // 📱 Mobile Offcanvas Sidebar Handler
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+            const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+            function openSidebar() {
+                if (sidebar) sidebar.classList.add('show');
+                if (sidebarBackdrop) sidebarBackdrop.classList.add('show');
+                document.body.classList.add('sidebar-open');
+            }
+
+            function closeSidebar() {
+                if (sidebar) sidebar.classList.remove('show');
+                if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            }
+
+            if (sidebarToggle) sidebarToggle.addEventListener('click', openSidebar);
+            if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
+            if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', closeSidebar);
+
+            // Close sidebar automatically when mobile user clicks any link (except dropdown group toggles)
+            document.querySelectorAll('.sidebar-nav .nav-link:not(.nav-group-toggle), .sidebar-nav .submenu-link').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 992) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            // 🔍 On-Screen Zoom / Scale Assistant for Mobile & Tablet
+            let currentZoom = parseFloat(localStorage.getItem('dms_user_zoom') || '1.0');
+            const zoomInBtn = document.getElementById('zoomInBtn');
+            const zoomOutBtn = document.getElementById('zoomOutBtn');
+            const zoomResetBtn = document.getElementById('zoomResetBtn');
+            const zoomLevelText = document.getElementById('zoomLevelText');
+            const mainContent = document.querySelector('.main-content');
+
+            function applyZoom(zoom) {
+                currentZoom = Math.min(Math.max(parseFloat(zoom.toFixed(2)), 0.70), 1.80);
+                localStorage.setItem('dms_user_zoom', currentZoom.toFixed(2));
+                if (zoomLevelText) {
+                    zoomLevelText.innerText = Math.round(currentZoom * 100) + '%';
+                }
+                if (mainContent) {
+                    if (Math.abs(currentZoom - 1.0) < 0.01) {
+                        mainContent.style.zoom = '';
+                    } else {
+                        if ('zoom' in mainContent.style) {
+                            mainContent.style.zoom = currentZoom;
+                        }
+                    }
+                }
+            }
+
+            if (zoomInBtn) {
+                zoomInBtn.addEventListener('click', function() {
+                    applyZoom(currentZoom + 0.1);
+                });
+            }
+            if (zoomOutBtn) {
+                zoomOutBtn.addEventListener('click', function() {
+                    applyZoom(currentZoom - 0.1);
+                });
+            }
+            if (zoomResetBtn) {
+                zoomResetBtn.addEventListener('click', function() {
+                    applyZoom(1.0);
+                });
+            }
+
+            // Restore saved zoom level if set
+            if (Math.abs(currentZoom - 1.0) >= 0.01) {
+                applyZoom(currentZoom);
+            }
+        })();
+    </script>
 
     {% block scripts %}{% endblock %}
     {% block extra_js %}{% endblock %}

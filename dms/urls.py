@@ -168,4 +168,26 @@ urlpatterns = [
     path('vehicle-requests/<int:pk>/upload-photos/', views.vehicle_request_upload_photos, name='vehicle_request_upload_photos'),
     path('vehicle-requests/export/excel/', views.vehicle_request_export_excel, name='vehicle_request_export_excel'),
     path('api/vehicle-requests/officer-info/', views.api_get_officer_info, name='api_get_officer_info'),
+
+    # 📋 Attendance Management Module (ម៉ូឌុលគ្រប់គ្រងវត្តមានមន្ត្រី និងមន្ត្រីជាប់កិច្ចសន្យា - Attendend A)
+    path('attendance/', views.attendance_daily_entry, name='attendance_index'),
+    path('attendance/daily/', views.attendance_daily_entry, name='attendance_daily_entry'),
+    path('attendance/weekly/', views.attendance_weekly_sheet, name='attendance_weekly_sheet'),
+    path('attendance/weekly/print/', views.attendance_weekly_print, name='attendance_weekly_print'),
+    path('attendance/weekly/export/excel/', views.attendance_weekly_export_excel, name='attendance_weekly_export_excel'),
+    path('attendance/monthly/', views.attendance_monthly_sheet, name='attendance_monthly_sheet'),
+    path('attendance/monthly/print/', views.attendance_monthly_print, name='attendance_monthly_print'),
+    path('attendance/monthly/export/excel/', views.attendance_monthly_export_excel, name='attendance_monthly_export_excel'),
+    path('attendance/reports/', views.attendance_summary_report, name='attendance_summary_report'),
+    path('attendance/api/quick-toggle/', views.api_attendance_quick_toggle, name='api_attendance_quick_toggle'),
+
+    # 👑 Leadership Attendance Module (វត្តមានថ្នាក់ដឹកនាំ ខណ្ឌ និងប្រធានការិយាល័យ - Attendend B)
+    path('attendance/leadership/daily/', views.attendance_leadership_daily, name='attendance_leadership_daily'),
+    path('attendance/leadership/weekly/', views.attendance_leadership_weekly, name='attendance_leadership_weekly'),
+    path('attendance/leadership/weekly/print/', views.attendance_leadership_weekly_print, name='attendance_leadership_weekly_print'),
+    path('attendance/leadership/weekly/export/excel/', views.attendance_leadership_weekly_export_excel, name='attendance_leadership_weekly_export_excel'),
+    path('attendance/leadership/monthly/', views.attendance_leadership_monthly, name='attendance_leadership_monthly'),
+    path('attendance/leadership/monthly/print/', views.attendance_leadership_monthly_print, name='attendance_leadership_monthly_print'),
+    path('attendance/leadership/monthly/export/excel/', views.attendance_leadership_monthly_export_excel, name='attendance_leadership_monthly_export_excel'),
 ]
+

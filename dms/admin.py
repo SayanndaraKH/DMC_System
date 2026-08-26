@@ -143,3 +143,23 @@ class VehicleRequestAttachmentAdmin(admin.ModelAdmin):
     list_filter = ('file_type', 'created_at')
     search_fields = ('title', 'vehicle_request__applicant_name', 'vehicle_request__request_number')
 
+
+from .models import AttendanceRecord
+
+@admin.register(AttendanceRecord)
+class AttendanceRecordAdmin(admin.ModelAdmin):
+    list_display = (
+        'date', 'person_name', 'person_type', 'department',
+        'display_position', 'status', 'morning_in', 'morning_out',
+        'afternoon_in', 'afternoon_out', 'is_late', 'is_early_out',
+        'leave_type', 'recorded_by'
+    )
+    list_filter = ('date', 'status', 'person_type', 'department', 'leave_type', 'is_late', 'is_early_out')
+    search_fields = (
+        'officer__khmer_last_name', 'officer__khmer_first_name',
+        'contract_officer__khmer_last_name', 'contract_officer__khmer_first_name',
+        'position_title', 'reference_doc', 'remarks'
+    )
+    date_hierarchy = 'date'
+
+

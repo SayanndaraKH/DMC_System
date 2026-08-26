@@ -27,6 +27,8 @@ from .models import (
     ContractOfficer, ContractOfficerAttachment, ContractOfficerRenewalHistory,
     ContractOfficerTransferHistory,
     Vehicle, VehicleRequest, VehicleRequestAttachment,
+    AttendanceRecord, get_attendance_position_sort_weight, get_rank_step_sort_weight,
+    normalize_khmer_role,
     to_arabic_digits
 )
 from .forms import (
@@ -10247,6 +10249,7 @@ def vehicle_request_edit(request, pk):
             v_req.purpose = purpose
 
             v_req.save()
+
             messages.success(request, f"បានកែប្រែពាក្យសុំ «{v_req.display_vehicle_type_kh} {v_req.display_brand}» ដោយជោគជ័យ!")
             return redirect('vehicle_request_detail', pk=v_req.pk)
         except Exception as e:
@@ -10816,5 +10819,2195 @@ def api_get_officer_info(request):
             'phone': officer.phone or '',
         }
     })
+
+
+# ==============================================================================
+# 📋 ATTENDANCE MANAGEMENT MODULE (ម៉ូឌុលគ្រប់គ្រងវត្តមានមន្ត្រី និងមន្ត្រីជាប់កិច្ចសន្យា)
+# ==============================================================================
+from django.urls import reverse
+
+def _is_admin_user(user):
+    """
+    Strict Admin Check: Only User 'ADMIN' or superusers have multi-department viewing rights.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    return user.is_superuser or user.username.upper() == 'ADMIN'
+
+
+def _is_chief_position_to_exclude(title):
+    """
+    Excludes Canton Chief (នាយខណ្ឌ) and Office Chief (ប្រធានការិយាល័យ) as well as
+    Department Directors from the department/canton staff attendance rosters.
+    """
+    if not title:
+        return False
+    t = normalize_khmer_role(title)
+    # Exclude Department Director & Deputy Director
+    if 'ប្រធានមន្ទីរ' in t or 'អនុប្រធានមន្ទីរ' in t:
+        return True
+    # Exclude Canton Chief (នាយខណ្ឌ, នាយខណ្ឌរដ្ឋបាល - keep នាយរងខណ្ឌ)
+    if 'នាយខណ្ឌ' in t and 'នាយរង' not in t and 'អនុ' not in t:
+        return True
+    # Exclude Office Chief (ប្រធានការិយាល័យ, ប្រធានការិយាល័យ... - keep អនុប្រធានការិយាល័យ)
+    if 'ប្រធានការិយាល័យ' in t and 'អនុ' not in t:
+        return True
+    return False
+
+
+def _get_department_roster(dept):
+    """
+    Returns sorted list of civil servants & contract officers for attendance roster.
+    Excludes Canton Chief (នាយខណ្ឌ) and Office Chief (ប្រធានការិយាល័យ).
+    Hierarchy:
+    For Cantons (ខណ្ឌ):
+    1. នាយរងខណ្ឌ (Deputy Canton Chief) -> 20
+    2. នាយផ្នែក / ប្រធានផ្នែក (Division Chief) -> 30
+    3. នាយរងផ្នែក / អនុប្រធានផ្នែក (Deputy Division Chief) -> 40
+    4. មន្ត្រី / មន្ត្រីជំនាញ (Officer) -> 50
+    5. មន្ត្រីជាប់កិច្ចសន្យា (Contract Staff) -> 80+
+
+    For Offices (ការិយាល័យ):
+    1. អនុប្រធានការិយាល័យ (Deputy Office Chief) -> 25
+    2. នាយផ្នែក / ប្រធានផ្នែក (បើមាន) -> 30
+    3. នាយរងផ្នែក / អនុប្រធានផ្នែក (បើមាន) -> 40
+    4. មន្ត្រី / មន្ត្រីការិយាល័យ (Officer) -> 50
+    5. មន្ត្រីជាប់កិច្ចសន្យា (Contract Staff) -> 80+
+    """
+    roster = []
+    if not dept:
+        return roster
+
+    # 1. Civil Servants (Excluding Canton Chief & Office Chief)
+    officers = CivilServantProfile.objects.filter(
+        department=dept
+    ).exclude(
+        officer_status__in=['DISMISSED', 'RETIRED', 'TRANSFERRED_OUT']
+    ).select_related('department')
+
+    for o in officers:
+        pos = o.current_position_title or "មន្ត្រី"
+        if _is_chief_position_to_exclude(pos):
+            continue  # Exclude Chiefs from lower-rank roster
+
+        sort_w = get_attendance_position_sort_weight(pos, is_contract=False)
+        rank_w = get_rank_step_sort_weight(o.current_rank_and_step)
+        name = o.full_name_kh
+        gender = 'ប' if o.gender == 'MALE' else 'ស'
+
+        roster.append({
+            'person_type': 'CIVIL_SERVANT',
+            'person_id': o.id,
+            'officer': o,
+            'contract_officer': None,
+            'name': name,
+            'gender': gender,
+            'position': pos,
+            'officer_id_number': o.officer_id_number or '',
+            'sort_weight': sort_w,
+            'rank_weight': rank_w,
+            'is_contract': False,
+        })
+
+    # 2. Contract Officers
+    contract_officers = ContractOfficer.objects.filter(
+        department=dept,
+        is_active=True
+    ).exclude(
+        contract_status__in=['EXPIRED', 'TERMINATED']
+    ).select_related('department')
+
+    for c in contract_officers:
+        pos = c.position_title or "មន្ត្រីជាប់កិច្ចសន្យា"
+        sort_w = get_attendance_position_sort_weight(pos, is_contract=True)
+        name = c.full_name_kh
+        gender = 'ប' if c.gender == 'MALE' else 'ស'
+
+        roster.append({
+            'person_type': 'CONTRACT_OFFICER',
+            'person_id': c.id,
+            'officer': None,
+            'contract_officer': c,
+            'name': name,
+            'gender': gender,
+            'position': pos,
+            'officer_id_number': c.id_number or '',
+            'sort_weight': sort_w,
+            'rank_weight': (99, 99, 99),
+            'is_contract': True,
+        })
+
+    roster.sort(key=lambda item: (item['sort_weight'], item['rank_weight'], item['name']))
+    return roster
+
+
+@login_required
+def attendance_daily_entry(request):
+    """
+    Daily attendance entry interface for Officers and Contract Staff.
+    Strict Department Isolation: Only user ADMIN can switch departments;
+    all other users are locked to their own department/canton.
+    """
+    profile = getattr(request.user, 'profile', None)
+    user_dept = profile.department if profile else None
+    is_admin = _is_admin_user(request.user)
+
+    # Date handling
+    date_str = request.GET.get('date', '').strip()
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except Exception:
+            target_date = timezone.now().date()
+    else:
+        target_date = timezone.now().date()
+
+    # Department Isolation
+    if is_admin:
+        dept_id = request.GET.get('department', '').strip()
+        if dept_id:
+            dept = Department.objects.filter(id=dept_id, is_active=True).first()
+        else:
+            dept = user_dept or Department.objects.filter(is_active=True).order_by('order_index').first()
+        departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh')
+    else:
+        dept = user_dept
+        departments = Department.objects.filter(id=dept.id) if dept else []
+
+    if not dept:
+        messages.warning(request, '⚠️ គណនីរបស់អ្នកពុំទាន់ត្រូវបានភ្ជាប់ទៅកាន់ការិយាល័យ/ខណ្ឌណាមួយឡើយ! សូមទាក់ទង ADMIN។')
+
+    # POST: Save / Update Daily Attendance
+    if request.method == 'POST':
+        if not is_admin:
+            dept = user_dept
+            if not dept:
+                messages.error(request, '⚠️ លោកអ្នកគ្មានការិយាល័យ/ខណ្ឌសម្រាប់កត់ត្រាវត្តមានឡើយ!')
+                return redirect('dashboard')
+        else:
+            posted_dept_id = request.POST.get('department_id', '').strip()
+            if posted_dept_id:
+                dept = Department.objects.filter(id=posted_dept_id).first() or dept
+
+        posted_date_str = request.POST.get('target_date', '').strip()
+        if posted_date_str:
+            try:
+                target_date = datetime.strptime(posted_date_str, '%Y-%m-%d').date()
+            except Exception:
+                pass
+
+        person_keys = request.POST.getlist('person_keys')
+        saved_count = 0
+
+        for pkey in person_keys:
+            parts = pkey.split('_')
+            if len(parts) < 3:
+                continue
+            ptype = f"{parts[0]}_{parts[1]}"
+            pid = int(parts[2])
+
+            status = request.POST.get(f'status_{pkey}', 'PRESENT')
+            morning_in = request.POST.get(f'morning_in_{pkey}') == '1'
+            morning_out = request.POST.get(f'morning_out_{pkey}') == '1'
+            afternoon_in = request.POST.get(f'afternoon_in_{pkey}') == '1'
+            afternoon_out = request.POST.get(f'afternoon_out_{pkey}') == '1'
+            is_late = request.POST.get(f'is_late_{pkey}') == '1'
+            is_early_out = request.POST.get(f'is_early_out_{pkey}') == '1'
+            leave_type = request.POST.get(f'leave_type_{pkey}', '').strip()
+            reference_doc = request.POST.get(f'reference_doc_{pkey}', '').strip()
+            disciplinary_measure = request.POST.get(f'disciplinary_measure_{pkey}', '').strip()
+            remarks = request.POST.get(f'remarks_{pkey}', '').strip()
+            pos_title = request.POST.get(f'pos_{pkey}', '').strip()
+
+            if status not in ['LEAVE_PERMISSION', 'UNPAID_LEAVE']:
+                leave_type = ''
+
+            if ptype == 'CIVIL_SERVANT':
+                AttendanceRecord.objects.update_or_create(
+                    department=dept,
+                    date=target_date,
+                    person_type='CIVIL_SERVANT',
+                    officer_id=pid,
+                    defaults={
+                        'contract_officer': None,
+                        'position_title': pos_title,
+                        'morning_in': morning_in,
+                        'morning_out': morning_out,
+                        'afternoon_in': afternoon_in,
+                        'afternoon_out': afternoon_out,
+                        'status': status,
+                        'is_late': is_late,
+                        'is_early_out': is_early_out,
+                        'leave_type': leave_type,
+                        'reference_doc': reference_doc,
+                        'disciplinary_measure': disciplinary_measure,
+                        'remarks': remarks,
+                        'recorded_by': request.user,
+                    }
+                )
+                saved_count += 1
+            elif ptype == 'CONTRACT_OFFICER':
+                AttendanceRecord.objects.update_or_create(
+                    department=dept,
+                    date=target_date,
+                    person_type='CONTRACT_OFFICER',
+                    contract_officer_id=pid,
+                    defaults={
+                        'officer': None,
+                        'position_title': pos_title,
+                        'morning_in': morning_in,
+                        'morning_out': morning_out,
+                        'afternoon_in': afternoon_in,
+                        'afternoon_out': afternoon_out,
+                        'status': status,
+                        'is_late': is_late,
+                        'is_early_out': is_early_out,
+                        'leave_type': leave_type,
+                        'reference_doc': reference_doc,
+                        'disciplinary_measure': disciplinary_measure,
+                        'remarks': remarks,
+                        'recorded_by': request.user,
+                    }
+                )
+                saved_count += 1
+
+        dept_name = dept.name_kh if dept else "អង្គភាព"
+        messages.success(request, f"✅ បានរក្សាទុកវត្តមានមន្ត្រីចំនួន {saved_count} នាក់ សម្រាប់ «{dept_name}» កាលបរិច្ឆេទ {target_date.strftime('%d/%m/%Y')} ដោយជោគជ័យ!")
+        redirect_url = f"{reverse('attendance_daily_entry')}?date={target_date.strftime('%Y-%m-%d')}"
+        if is_admin and dept:
+            redirect_url += f"&department={dept.id}"
+        return redirect(redirect_url)
+
+    # Build Roster & Existing Records
+    roster = _get_department_roster(dept) if dept else []
+    existing_records = AttendanceRecord.objects.filter(
+        department=dept,
+        date=target_date
+    ) if dept else []
+
+    record_map = {}
+    for r in existing_records:
+        if r.person_type == 'CIVIL_SERVANT' and r.officer_id:
+            record_map[f"CIVIL_SERVANT_{r.officer_id}"] = r
+        elif r.person_type == 'CONTRACT_OFFICER' and r.contract_officer_id:
+            record_map[f"CONTRACT_OFFICER_{r.contract_officer_id}"] = r
+
+    roster_with_records = []
+    civil_count = 0
+    contract_count = 0
+    female_count = 0
+    present_count = 0
+    mission_count = 0
+    leave_count = 0
+    absent_count = 0
+
+    for item in roster:
+        pkey = f"{item['person_type']}_{item['person_id']}"
+        rec = record_map.get(pkey)
+
+        if item['is_contract']:
+            contract_count += 1
+        else:
+            civil_count += 1
+
+        if item['gender'] == 'ស':
+            female_count += 1
+
+        if rec:
+            status = rec.status
+            morning_in = rec.morning_in
+            morning_out = rec.morning_out
+            afternoon_in = rec.afternoon_in
+            afternoon_out = rec.afternoon_out
+            is_late = rec.is_late
+            is_early_out = rec.is_early_out
+            leave_type = rec.leave_type
+            reference_doc = rec.reference_doc
+            disciplinary_measure = rec.disciplinary_measure
+            remarks = rec.remarks
+            is_recorded = True
+        else:
+            status = 'PRESENT'
+            morning_in = True
+            morning_out = True
+            afternoon_in = True
+            afternoon_out = True
+            is_late = False
+            is_early_out = False
+            leave_type = ''
+            reference_doc = ''
+            disciplinary_measure = ''
+            remarks = ''
+            is_recorded = False
+
+        if status == 'PRESENT':
+            present_count += 1
+        elif status == 'MISSION':
+            mission_count += 1
+        elif status in ['LEAVE_PERMISSION', 'UNPAID_LEAVE']:
+            leave_count += 1
+        elif status == 'ABSENT_NO_LEAVE':
+            absent_count += 1
+
+        roster_with_records.append({
+            'person': item,
+            'pkey': pkey,
+            'status': status,
+            'morning_in': morning_in,
+            'morning_out': morning_out,
+            'afternoon_in': afternoon_in,
+            'afternoon_out': afternoon_out,
+            'is_late': is_late,
+            'is_early_out': is_early_out,
+            'leave_type': leave_type,
+            'reference_doc': reference_doc,
+            'disciplinary_measure': disciplinary_measure,
+            'remarks': remarks,
+            'is_recorded': is_recorded,
+        })
+
+    prev_date = target_date - timedelta(days=1)
+    next_date = target_date + timedelta(days=1)
+    is_today = (target_date == timezone.now().date())
+
+    context = {
+        'dept': dept,
+        'departments': departments,
+        'target_date': target_date,
+        'target_date_str': target_date.strftime('%Y-%m-%d'),
+        'prev_date_str': prev_date.strftime('%Y-%m-%d'),
+        'next_date_str': next_date.strftime('%Y-%m-%d'),
+        'is_today': is_today,
+        'roster_with_records': roster_with_records,
+        'total_staff': len(roster),
+        'civil_count': civil_count,
+        'contract_count': contract_count,
+        'female_count': female_count,
+        'present_count': present_count,
+        'mission_count': mission_count,
+        'leave_count': leave_count,
+        'absent_count': absent_count,
+        'is_admin': is_admin,
+        'status_choices': AttendanceRecord.STATUS_CHOICES,
+        'leave_choices': AttendanceRecord.LEAVE_TYPE_CHOICES,
+    }
+    return render(request, 'dms/attendance_daily_entry.html', context)
+
+
+def _build_attendance_monthly_context(request):
+    """
+    Common helper to build the monthly attendance matrix data with strict department isolation.
+    """
+    profile = getattr(request.user, 'profile', None)
+    user_dept = profile.department if profile else None
+    is_admin = _is_admin_user(request.user)
+
+    now = timezone.now()
+    year_str = request.GET.get('year', str(now.year)).strip()
+    month_str = request.GET.get('month', str(now.month)).strip()
+
+    try:
+        year = int(to_arabic_digits(year_str))
+    except Exception:
+        year = now.year
+
+    try:
+        month = int(to_arabic_digits(month_str))
+        if month < 1 or month > 12:
+            month = now.month
+    except Exception:
+        month = now.month
+
+    # Strict Department Isolation: Only ADMIN can view other departments
+    if is_admin:
+        dept_id = request.GET.get('department', '').strip()
+        if dept_id:
+            dept = Department.objects.filter(id=dept_id, is_active=True).first()
+        else:
+            dept = user_dept or Department.objects.filter(is_active=True).order_by('order_index').first()
+        departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh')
+    else:
+        dept = user_dept
+        departments = Department.objects.filter(id=dept.id) if dept else []
+
+    num_days = calendar.monthrange(year, month)[1]
+    days_meta = []
+    khmer_weekday_names = {
+        0: 'ចន្ទ', 1: 'អង្គារ', 2: 'ពុធ', 3: 'ព្រហ', 4: 'សុក្រ', 5: 'សៅរ៍', 6: 'អាទិត្យ'
+    }
+
+    for d in range(1, num_days + 1):
+        cur_date = date(year, month, d)
+        wday = cur_date.weekday()
+        days_meta.append({
+            'day': d,
+            'date': cur_date,
+            'date_str': cur_date.strftime('%Y-%m-%d'),
+            'weekday_num': wday,
+            'weekday_name': khmer_weekday_names.get(wday, ''),
+            'is_weekend': (wday in [5, 6]),
+            'is_today': (cur_date == timezone.now().date()),
+        })
+
+    roster = _get_department_roster(dept) if dept else []
+
+    records = AttendanceRecord.objects.filter(
+        department=dept,
+        date__year=year,
+        date__month=month
+    ) if dept else []
+
+    rec_by_person = {}
+    for r in records:
+        if r.person_type == 'CIVIL_SERVANT' and r.officer_id:
+            pkey = f"CIVIL_SERVANT_{r.officer_id}"
+        elif r.person_type == 'CONTRACT_OFFICER' and r.contract_officer_id:
+            pkey = f"CONTRACT_OFFICER_{r.contract_officer_id}"
+        else:
+            continue
+        rec_by_person.setdefault(pkey, []).append(r)
+
+    rows_civil = []
+    rows_contract = []
+    civil_idx = 1
+    contract_idx = 1
+
+    for person in roster:
+        pkey = f"{person['person_type']}_{person['person_id']}"
+        recs = rec_by_person.get(pkey, [])
+
+        present = sum(1 for r in recs if r.status == 'PRESENT')
+        mission = sum(1 for r in recs if r.status == 'MISSION')
+        leave = sum(1 for r in recs if r.status in ['LEAVE_PERMISSION', 'UNPAID_LEAVE'])
+        absent = sum(1 for r in recs if r.status == 'ABSENT_NO_LEAVE')
+        late_or_early = sum(1 for r in recs if r.is_late or r.is_early_out)
+
+        leave_types = list(set([r.get_leave_type_display() for r in recs if r.leave_type]))
+        leave_type_str = ', '.join(leave_types) if leave_types else ''
+
+        remarks_list = list(set([r.remarks for r in recs if r.remarks]))
+        remarks_str = ', '.join(remarks_list) if remarks_list else ''
+
+        disciplinary_list = list(set([r.disciplinary_measure for r in recs if r.disciplinary_measure]))
+        disciplinary_str = ', '.join(disciplinary_list) if disciplinary_list else ''
+
+        if person['person_type'] == 'CIVIL_SERVANT':
+            person_copy = dict(person)
+            person_copy['index'] = civil_idx
+            rows_civil.append({
+                'person': person_copy,
+                'pkey': pkey,
+                'present': present,
+                'mission': mission,
+                'leave': leave,
+                'absent': absent,
+                'late_or_early': late_or_early,
+                'disciplinary': disciplinary_str,
+                'leave_type': leave_type_str,
+                'remarks': remarks_str,
+            })
+            civil_idx += 1
+        else:
+            person_copy = dict(person)
+            person_copy['index'] = contract_idx
+            rows_contract.append({
+                'person': person_copy,
+                'pkey': pkey,
+                'present': present,
+                'mission': mission,
+                'leave': leave,
+                'absent': absent,
+                'late_or_early': late_or_early,
+                'disciplinary': disciplinary_str,
+                'leave_type': leave_type_str,
+                'remarks': remarks_str,
+            })
+            contract_idx += 1
+
+    all_rows = rows_civil + rows_contract
+    total_staff = len(all_rows)
+    tot_present = sum(r['present'] for r in all_rows)
+    tot_mission = sum(r['mission'] for r in all_rows)
+    tot_leave = sum(r['leave'] for r in all_rows)
+    tot_absent = sum(r['absent'] for r in all_rows)
+    tot_late_early = sum(r['late_or_early'] for r in all_rows)
+
+    khmer_month_names = {
+        1: 'មករា', 2: 'កុម្ភៈ', 3: 'មីនា', 4: 'មេសា',
+        5: 'ឧសភា', 6: 'មិថុនា', 7: 'កក្កដា', 8: 'សីហា',
+        9: 'កញ្ញា', 10: 'តុលា', 11: 'វិច្ឆិកា', 12: 'ធ្នូ'
+    }
+
+    year_options = [2025, 2026, 2027, 2028, 2029, 2030]
+    month_options = [(i, khmer_month_names[i]) for i in range(1, 13)]
+
+    return {
+        'dept': dept,
+        'departments': departments,
+        'year': year,
+        'month': month,
+        'month_name_kh': khmer_month_names.get(month, ''),
+        'num_days': num_days,
+        'days_meta': days_meta,
+        'rows_civil': rows_civil,
+        'rows_contract': rows_contract,
+        'all_rows': all_rows,
+        'total_staff': total_staff,
+        'tot_present': tot_present,
+        'tot_mission': tot_mission,
+        'tot_leave': tot_leave,
+        'tot_absent': tot_absent,
+        'tot_late_early': tot_late_early,
+        'year_options': year_options,
+        'month_options': month_options,
+        'is_admin': is_admin,
+    }
+
+
+def _build_attendance_weekly_context(request):
+    """
+    Builds weekly attendance roster matrix data for an office/canton.
+    Calculates Monday to Friday (standard 5 working days) for the selected week.
+    Strict Department Isolation: Non-admin is restricted to user_dept only.
+    """
+    profile = getattr(request.user, 'profile', None)
+    user_dept = profile.department if profile else None
+    is_admin = _is_admin_user(request.user)
+
+    now = timezone.now()
+    date_str = request.GET.get('date', '').strip()
+    if date_str:
+        try:
+            base_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except Exception:
+            base_date = now.date()
+    else:
+        base_date = now.date()
+
+    # Calculate Monday of this week
+    monday = base_date - timedelta(days=base_date.weekday())
+    friday = monday + timedelta(days=4)
+    prev_week_monday = monday - timedelta(days=7)
+    next_week_monday = monday + timedelta(days=7)
+    is_current_week = (monday <= now.date() <= monday + timedelta(days=6))
+
+    # Department Isolation: Only ADMIN can view other departments
+    if is_admin:
+        dept_id = request.GET.get('department', '').strip()
+        if dept_id:
+            dept = Department.objects.filter(id=dept_id, is_active=True).first()
+        else:
+            dept = user_dept or Department.objects.filter(is_active=True).order_by('order_index').first()
+        departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh')
+    else:
+        dept = user_dept
+        departments = Department.objects.filter(id=dept.id) if dept else []
+
+    roster = _get_department_roster(dept) if dept else []
+
+    records = AttendanceRecord.objects.filter(
+        department=dept,
+        date__gte=monday,
+        date__lte=friday
+    ) if dept else []
+
+    rec_by_person = {}
+    for r in records:
+        if r.person_type == 'CIVIL_SERVANT' and r.officer_id:
+            pkey = f"CIVIL_SERVANT_{r.officer_id}"
+        elif r.person_type == 'CONTRACT_OFFICER' and r.contract_officer_id:
+            pkey = f"CONTRACT_OFFICER_{r.contract_officer_id}"
+        else:
+            continue
+        rec_by_person.setdefault(pkey, []).append(r)
+
+    rows_civil = []
+    rows_contract = []
+    civil_idx = 1
+    contract_idx = 1
+
+    for person in roster:
+        pkey = f"{person['person_type']}_{person['person_id']}"
+        recs = rec_by_person.get(pkey, [])
+
+        present = sum(1 for r in recs if r.status == 'PRESENT')
+        mission = sum(1 for r in recs if r.status == 'MISSION')
+        leave = sum(1 for r in recs if r.status in ['LEAVE_PERMISSION', 'UNPAID_LEAVE'])
+        absent = sum(1 for r in recs if r.status == 'ABSENT_NO_LEAVE')
+        late_or_early = sum(1 for r in recs if r.is_late or r.is_early_out)
+
+        leave_types = list(set([r.get_leave_type_display() for r in recs if r.leave_type]))
+        leave_type_str = ', '.join(leave_types) if leave_types else ''
+
+        remarks_list = list(set([r.remarks for r in recs if r.remarks]))
+        remarks_str = ', '.join(remarks_list) if remarks_list else ''
+
+        disciplinary_list = list(set([r.disciplinary_measure for r in recs if r.disciplinary_measure]))
+        disciplinary_str = ', '.join(disciplinary_list) if disciplinary_list else ''
+
+        if person['person_type'] == 'CIVIL_SERVANT':
+            person_copy = dict(person)
+            person_copy['index'] = civil_idx
+            rows_civil.append({
+                'person': person_copy,
+                'pkey': pkey,
+                'present': present,
+                'mission': mission,
+                'leave': leave,
+                'absent': absent,
+                'late_or_early': late_or_early,
+                'disciplinary': disciplinary_str,
+                'leave_type': leave_type_str,
+                'remarks': remarks_str,
+            })
+            civil_idx += 1
+        else:
+            person_copy = dict(person)
+            person_copy['index'] = contract_idx
+            rows_contract.append({
+                'person': person_copy,
+                'pkey': pkey,
+                'present': present,
+                'mission': mission,
+                'leave': leave,
+                'absent': absent,
+                'late_or_early': late_or_early,
+                'disciplinary': disciplinary_str,
+                'leave_type': leave_type_str,
+                'remarks': remarks_str,
+            })
+            contract_idx += 1
+
+    all_rows = rows_civil + rows_contract
+    total_staff = len(all_rows)
+    tot_present = sum(r['present'] for r in all_rows)
+    tot_mission = sum(r['mission'] for r in all_rows)
+    tot_leave = sum(r['leave'] for r in all_rows)
+    tot_absent = sum(r['absent'] for r in all_rows)
+    tot_late_early = sum(r['late_or_early'] for r in all_rows)
+
+    # Week number
+    iso_year, iso_week, _ = monday.isocalendar()
+
+    return {
+        'dept': dept,
+        'departments': departments,
+        'base_date': base_date,
+        'base_date_str': base_date.strftime('%Y-%m-%d'),
+        'monday': monday,
+        'friday': friday,
+        'monday_str': monday.strftime('%Y-%m-%d'),
+        'friday_str': friday.strftime('%Y-%m-%d'),
+        'prev_week_monday_str': prev_week_monday.strftime('%Y-%m-%d'),
+        'next_week_monday_str': next_week_monday.strftime('%Y-%m-%d'),
+        'is_current_week': is_current_week,
+        'iso_year': iso_year,
+        'iso_week': iso_week,
+        'rows_civil': rows_civil,
+        'rows_contract': rows_contract,
+        'all_rows': all_rows,
+        'total_staff': total_staff,
+        'tot_present': tot_present,
+        'tot_mission': tot_mission,
+        'tot_leave': tot_leave,
+        'tot_absent': tot_absent,
+        'tot_late_early': tot_late_early,
+        'is_admin': is_admin,
+    }
+
+
+@login_required
+def attendance_weekly_sheet(request):
+    """
+    Weekly Attendance Report (របាយការណ៍វត្តមានប្រចាំសប្តាហ៍) for Offices and Cantons.
+    Displays 5 working days (Monday-Friday) with status, checkins, leaves, and totals.
+    """
+    context = _build_attendance_weekly_context(request)
+    return render(request, 'dms/attendance_weekly_sheet.html', context)
+
+
+@login_required
+def attendance_weekly_print(request):
+    """
+    Official A4 Landscape / Portrait print format for Weekly Attendance Report.
+    """
+    context = _build_attendance_weekly_context(request)
+    return render(request, 'dms/attendance_weekly_print.html', context)
+
+
+@login_required
+def attendance_weekly_export_excel(request):
+    """
+    Exports the Weekly Attendance Report for the selected office/canton to Excel (.xlsx).
+    """
+    context = _build_attendance_weekly_context(request)
+    dept = context.get('dept')
+    monday = context.get('monday')
+    friday = context.get('friday')
+    iso_week = context.get('iso_week')
+    iso_year = context.get('iso_year')
+    days_meta = context.get('days_meta', [])
+    matrix_rows = context.get('matrix_rows', [])
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"វត្តមាន_សប្តាហ៍_{iso_week}"
+
+    # Styles
+    font_title = Font(name="Khmer OS Muol Light", size=13, bold=True, color="1E3A8A")
+    font_sub = Font(name="Khmer OS Battambang", size=10, bold=True)
+    font_header = Font(name="Khmer OS Battambang", size=9, bold=True, color="FFFFFF")
+    font_cell = Font(name="Khmer OS Battambang", size=9)
+    font_cell_bold = Font(name="Khmer OS Battambang", size=9, bold=True)
+    font_code = Font(name="Arial", size=9, bold=True)
+
+    fill_header = PatternFill(start_color="1E40AF", end_color="1E40AF", fill_type="solid")
+    fill_zebra = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+    fill_summary = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    align_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    dept_title = dept.name_kh if dept else "គ្រប់អង្គភាព"
+    last_col_letter = openpyxl.utils.get_column_letter(4 + 5 + 7)
+
+    ws.merge_cells(f'A1:{last_col_letter}1')
+    ws['A1'] = f"របាយការណ៍វត្តមានមន្ត្រីរាជការ និងមន្ត្រីជាប់កិច្ចសន្យាប្រចាំសប្តាហ៍ (សប្តាហ៍ទី {iso_week} ឆ្នាំ {iso_year})"
+    ws['A1'].font = font_title
+    ws['A1'].alignment = align_center
+
+    ws.merge_cells(f'A2:{last_col_letter}2')
+    ws['A2'] = f"{dept_title} - ចាប់ពីថ្ងៃទី {monday.strftime('%d/%m/%Y')} ដល់ {friday.strftime('%d/%m/%Y')}"
+    ws['A2'].font = font_sub
+    ws['A2'].alignment = align_center
+
+    # Header Rows (Row 4 & 5)
+    ws.merge_cells('A4:A5')
+    ws['A4'] = "ល.រ"
+    ws.merge_cells('B4:B5')
+    ws['B4'] = "គោត្តនាម និងនាម"
+    ws.merge_cells('C4:C5')
+    ws['C4'] = "ភេទ"
+    ws.merge_cells('D4:D5')
+    ws['D4'] = "មុខតំណែង"
+
+    for col in ['A4', 'B4', 'C4', 'D4', 'A5', 'B5', 'C5', 'D5']:
+        ws[col].font = font_header
+        ws[col].fill = fill_header
+        ws[col].alignment = align_center
+        ws[col].border = thin_border
+
+    # Days Columns (Row 4 = Day Number & Date, Row 5 = Weekday)
+    for idx, d_meta in enumerate(days_meta, 1):
+        col_num = 4 + idx
+        col_let = openpyxl.utils.get_column_letter(col_num)
+
+        c4 = ws[f'{col_let}4']
+        c4.value = d_meta['date'].strftime('%d/%m')
+        c4.font = font_header
+        c4.fill = fill_header
+        c4.alignment = align_center
+        c4.border = thin_border
+
+        c5 = ws[f'{col_let}5']
+        c5.value = d_meta['weekday_short']
+        c5.font = font_header
+        c5.fill = fill_header
+        c5.alignment = align_center
+        c5.border = thin_border
+
+    # Summary Headers
+    summary_headers = [
+        ("វត្តមាន (✓)", 10),
+        ("បេសកកម្ម (M)", 11),
+        ("មានច្បាប់ (P)", 12),
+        ("អត់ច្បាប់ (A)", 13),
+        ("គ្មានបៀវត្ស (U)", 14),
+        ("មកយឺត", 15),
+        ("ចេញមុន", 16),
+    ]
+
+    for title, col_idx in summary_headers:
+        col_let = openpyxl.utils.get_column_letter(col_idx)
+        ws.merge_cells(f'{col_let}4:{col_let}5')
+        c = ws[f'{col_let}4']
+        c.value = title
+        c.font = font_header
+        c.fill = fill_header
+        c.alignment = align_center
+        c.border = thin_border
+        ws[f'{col_let}5'].border = thin_border
+
+    # Data Rows
+    row_num = 6
+    for item in matrix_rows:
+        ws.row_dimensions[row_num].height = 22
+        is_even = (item['index'] % 2 == 0)
+        p = item['person']
+
+        ws[f'A{row_num}'] = item['index']
+        ws[f'A{row_num}'].alignment = align_center
+        ws[f'A{row_num}'].font = font_cell
+        ws[f'A{row_num}'].border = thin_border
+
+        ws[f'B{row_num}'] = p['name']
+        ws[f'B{row_num}'].alignment = align_left
+        ws[f'B{row_num}'].font = font_cell_bold
+        ws[f'B{row_num}'].border = thin_border
+
+        ws[f'C{row_num}'] = p['gender']
+        ws[f'C{row_num}'].alignment = align_center
+        ws[f'C{row_num}'].font = font_cell
+        ws[f'C{row_num}'].border = thin_border
+
+        ws[f'D{row_num}'] = p['position']
+        ws[f'D{row_num}'].alignment = align_left
+        ws[f'D{row_num}'].font = font_cell
+        ws[f'D{row_num}'].border = thin_border
+
+        for d_idx, d_data in enumerate(item['days'], 1):
+            col_let = openpyxl.utils.get_column_letter(4 + d_idx)
+            c = ws[f'{col_let}{row_num}']
+            c.value = d_data['status_code'] if d_data['has_rec'] else ""
+            c.alignment = align_center
+            c.font = font_code
+            c.border = thin_border
+
+            if is_even:
+                c.fill = fill_zebra
+
+        stats = item['stats']
+        stats_vals = [
+            stats['present'], stats['mission'], stats['leave_permission'],
+            stats['absent_no_leave'], stats['unpaid_leave'], stats['late'], stats['early_out']
+        ]
+
+        for s_idx, s_val in enumerate(stats_vals, 1):
+            col_let = openpyxl.utils.get_column_letter(9 + s_idx)
+            c = ws[f'{col_let}{row_num}']
+            c.value = s_val
+            c.alignment = align_center
+            c.font = font_cell_bold
+            c.border = thin_border
+            c.fill = fill_summary
+
+        row_num += 1
+
+    # Column widths
+    ws.column_dimensions['A'].width = 5
+    ws.column_dimensions['B'].width = 24
+    ws.column_dimensions['C'].width = 6
+    ws.column_dimensions['D'].width = 24
+    for i in range(1, 6):
+        col_let = openpyxl.utils.get_column_letter(4 + i)
+        ws.column_dimensions[col_let].width = 8
+    for i in range(1, 8):
+        col_let = openpyxl.utils.get_column_letter(9 + i)
+        ws.column_dimensions[col_let].width = 10
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="attendance_weekly_{dept.code if dept else "all"}_{iso_year}_W{iso_week:02d}.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def attendance_monthly_sheet(request):
+    """
+    Monthly Attendance Matrix Sheet (តារាងវត្តមានមន្ត្រីប្រចាំខែ) matching AttendendA.xlsx layout.
+    Displays days 1..31 with full status markers (✓, M, P, A, U), weekend highlighting,
+    and automatic total calculations.
+    """
+    context = _build_attendance_monthly_context(request)
+    return render(request, 'dms/attendance_monthly_sheet.html', context)
+
+
+@login_required
+def attendance_monthly_print(request):
+    """
+    Official A4 Landscape print format matching Cambodian Government / Ministry of Agriculture standard.
+    """
+    context = _build_attendance_monthly_context(request)
+    return render(request, 'dms/attendance_monthly_print.html', context)
+
+
+@login_required
+def attendance_monthly_export_excel(request):
+    """
+    Exports the Department Attendance Roster for the selected month to Excel (.xlsx)
+    matching the layout of AttendendA.xlsx.
+    """
+    context = _build_attendance_monthly_context(request)
+    dept = context.get('dept')
+    year = context.get('year')
+    month = context.get('month')
+    month_name_kh = context.get('month_name_kh')
+    days_meta = context.get('days_meta', [])
+    matrix_rows = context.get('matrix_rows', [])
+    num_days = context.get('num_days', 31)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"វត្តមាន_{month_name_kh}_{year}"
+
+    # Styles
+    font_title = Font(name="Khmer OS Muol Light", size=13, bold=True, color="1E3A8A")
+    font_sub = Font(name="Khmer OS Battambang", size=10, bold=True)
+    font_header = Font(name="Khmer OS Battambang", size=9, bold=True, color="FFFFFF")
+    font_cell = Font(name="Khmer OS Battambang", size=9)
+    font_cell_bold = Font(name="Khmer OS Battambang", size=9, bold=True)
+    font_code = Font(name="Arial", size=9, bold=True)
+
+    fill_header = PatternFill(start_color="1E40AF", end_color="1E40AF", fill_type="solid")
+    fill_weekend = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+    fill_zebra = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+    fill_summary = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    align_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    # Header Row 1: Title
+    dept_title = dept.name_kh if dept else "គ្រប់អង្គភាព"
+    last_col_letter = openpyxl.utils.get_column_letter(4 + num_days + 7)
+
+    ws.merge_cells(f'A1:{last_col_letter}1')
+    ws['A1'] = f"បញ្ជីវត្តមានមន្ត្រីរាជការ និងមន្ត្រីជាប់កិច្ចសន្យា {dept_title}"
+    ws['A1'].font = font_title
+    ws['A1'].alignment = align_center
+
+    ws.merge_cells(f'A2:{last_col_letter}2')
+    ws['A2'] = f"ប្រចាំខែ {month_name_kh} ឆ្នាំ {year}"
+    ws['A2'].font = font_sub
+    ws['A2'].alignment = align_center
+
+    # Table Header Row (Row 4 & 5)
+    ws.merge_cells('A4:A5')
+    ws['A4'] = "ល.រ"
+    ws.merge_cells('B4:B5')
+    ws['B4'] = "គោត្តនាម និងនាម"
+    ws.merge_cells('C4:C5')
+    ws['C4'] = "ភេទ"
+    ws.merge_cells('D4:D5')
+    ws['D4'] = "មុខតំណែង"
+
+    for col in ['A4', 'B4', 'C4', 'D4', 'A5', 'B5', 'C5', 'D5']:
+        ws[col].font = font_header
+        ws[col].fill = fill_header
+        ws[col].alignment = align_center
+        ws[col].border = thin_border
+
+    # Days Columns (Row 4 = Day Number, Row 5 = Weekday)
+    for idx, d_meta in enumerate(days_meta, 1):
+        col_num = 4 + idx
+        col_let = openpyxl.utils.get_column_letter(col_num)
+
+        c4 = ws[f'{col_let}4']
+        c4.value = d_meta['day']
+        c4.font = font_header
+        c4.fill = fill_header
+        c4.alignment = align_center
+        c4.border = thin_border
+
+        c5 = ws[f'{col_let}5']
+        c5.value = d_meta['weekday_name'][:3]
+        c5.font = font_header
+        c5.fill = fill_header
+        c5.alignment = align_center
+        c5.border = thin_border
+
+    # Summary Headers
+    summary_headers = [
+        ("វត្តមាន (✓)", 5 + num_days),
+        ("បេសកកម្ម (M)", 6 + num_days),
+        ("មានច្បាប់ (P)", 7 + num_days),
+        ("អត់ច្បាប់ (A)", 8 + num_days),
+        ("គ្មានបៀវត្ស (U)", 9 + num_days),
+        ("មកយឺត", 10 + num_days),
+        ("ចេញមុន", 11 + num_days),
+    ]
+
+    for title, col_idx in summary_headers:
+        col_let = openpyxl.utils.get_column_letter(col_idx)
+        ws.merge_cells(f'{col_let}4:{col_let}5')
+        c = ws[f'{col_let}4']
+        c.value = title
+        c.font = font_header
+        c.fill = fill_header
+        c.alignment = align_center
+        c.border = thin_border
+        ws[f'{col_let}5'].border = thin_border
+
+    # Data Rows
+    row_num = 6
+    for item in matrix_rows:
+        ws.row_dimensions[row_num].height = 22
+        is_even = (item['index'] % 2 == 0)
+        p = item['person']
+
+        ws[f'A{row_num}'] = item['index']
+        ws[f'A{row_num}'].alignment = align_center
+        ws[f'A{row_num}'].font = font_cell
+        ws[f'A{row_num}'].border = thin_border
+
+        ws[f'B{row_num}'] = p['name']
+        ws[f'B{row_num}'].alignment = align_left
+        ws[f'B{row_num}'].font = font_cell_bold
+        ws[f'B{row_num}'].border = thin_border
+
+        ws[f'C{row_num}'] = p['gender']
+        ws[f'C{row_num}'].alignment = align_center
+        ws[f'C{row_num}'].font = font_cell
+        ws[f'C{row_num}'].border = thin_border
+
+        ws[f'D{row_num}'] = p['position']
+        ws[f'D{row_num}'].alignment = align_left
+        ws[f'D{row_num}'].font = font_cell
+        ws[f'D{row_num}'].border = thin_border
+
+        for d_idx, d_data in enumerate(item['days'], 1):
+            col_let = openpyxl.utils.get_column_letter(4 + d_idx)
+            c = ws[f'{col_let}{row_num}']
+            c.value = d_data['status_code'] if d_data['has_rec'] else ""
+            c.alignment = align_center
+            c.font = font_code
+            c.border = thin_border
+
+            if d_data['is_weekend']:
+                c.fill = fill_weekend
+            elif is_even:
+                c.fill = fill_zebra
+
+        stats = item['stats']
+        stats_vals = [
+            stats['present'], stats['mission'], stats['leave_permission'],
+            stats['absent_no_leave'], stats['unpaid_leave'], stats['late'], stats['early_out']
+        ]
+
+        for s_idx, s_val in enumerate(stats_vals, 1):
+            col_let = openpyxl.utils.get_column_letter(4 + num_days + s_idx)
+            c = ws[f'{col_let}{row_num}']
+            c.value = s_val
+            c.alignment = align_center
+            c.font = font_cell_bold
+            c.border = thin_border
+            c.fill = fill_summary
+
+        row_num += 1
+
+    # Column widths
+    ws.column_dimensions['A'].width = 5
+    ws.column_dimensions['B'].width = 24
+    ws.column_dimensions['C'].width = 6
+    ws.column_dimensions['D'].width = 24
+    for i in range(1, num_days + 1):
+        col_let = openpyxl.utils.get_column_letter(4 + i)
+        ws.column_dimensions[col_let].width = 4.5
+    for i in range(1, 8):
+        col_let = openpyxl.utils.get_column_letter(4 + num_days + i)
+        ws.column_dimensions[col_let].width = 10
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="attendance_{dept.code if dept else "all"}_{year}_{month:02d}.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def attendance_summary_report(request):
+    """
+    Overview Attendance Statistics across all departments and cantons for ADMIN ONLY.
+    """
+    is_admin = _is_admin_user(request.user)
+    if not is_admin:
+        messages.warning(request, '⚠️ ផ្ទាំងរបាយការណ៍សង្ខេបវត្តមានទូទាំងអង្គភាព ត្រូវបានអនុញ្ញាតសម្រាប់តែ User: ADMIN ប៉ុណ្ណោះ!')
+        return redirect('attendance_monthly_sheet')
+
+    now = timezone.now()
+    year_str = request.GET.get('year', str(now.year)).strip()
+    month_str = request.GET.get('month', str(now.month)).strip()
+
+    try:
+        year = int(to_arabic_digits(year_str))
+    except Exception:
+        year = now.year
+
+    try:
+        month = int(to_arabic_digits(month_str))
+        if month < 1 or month > 12:
+            month = now.month
+    except Exception:
+        month = now.month
+
+    khmer_month_names = {
+        1: 'មករា', 2: 'កុម្ភៈ', 3: 'មីនា', 4: 'មេសា',
+        5: 'ឧសភា', 6: 'មិថុនា', 7: 'កក្កដា', 8: 'សីហា',
+        9: 'កញ្ញា', 10: 'តុលា', 11: 'វិច្ឆិកា', 12: 'ធ្នូ'
+    }
+
+    departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh')
+    dept_summaries = []
+
+    grand_total_staff = 0
+    grand_present = 0
+    grand_mission = 0
+    grand_leave = 0
+    grand_absent = 0
+
+    for d in departments:
+        roster = _get_department_roster(d)
+        total_staff = len(roster)
+        if total_staff == 0:
+            continue
+
+        civil_count = sum(1 for p in roster if not p['is_contract'])
+        contract_count = sum(1 for p in roster if p['is_contract'])
+
+        recs = AttendanceRecord.objects.filter(
+            department=d,
+            date__year=year,
+            date__month=month
+        )
+
+        total_records = recs.count()
+        present = recs.filter(status='PRESENT').count()
+        mission = recs.filter(status='MISSION').count()
+        leave = recs.filter(status__in=['LEAVE_PERMISSION', 'UNPAID_LEAVE']).count()
+        absent = recs.filter(status='ABSENT_NO_LEAVE').count()
+
+        rate = round((present / total_records * 100), 1) if total_records > 0 else 0
+
+        grand_total_staff += total_staff
+        grand_present += present
+        grand_mission += mission
+        grand_leave += leave
+        grand_absent += absent
+
+        dept_summaries.append({
+            'department': d,
+            'total_staff': total_staff,
+            'civil_count': civil_count,
+            'contract_count': contract_count,
+            'total_records': total_records,
+            'present': present,
+            'mission': mission,
+            'leave': leave,
+            'absent': absent,
+            'rate': rate,
+        })
+
+    year_options = [2025, 2026, 2027, 2028, 2029, 2030]
+    month_options = [(i, khmer_month_names[i]) for i in range(1, 13)]
+
+    context = {
+        'year': year,
+        'month': month,
+        'month_name_kh': khmer_month_names.get(month, ''),
+        'dept_summaries': dept_summaries,
+        'grand_total_staff': grand_total_staff,
+        'grand_present': grand_present,
+        'grand_mission': grand_mission,
+        'grand_leave': grand_leave,
+        'grand_absent': grand_absent,
+        'year_options': year_options,
+        'month_options': month_options,
+        'is_admin': is_admin,
+    }
+    return render(request, 'dms/attendance_reports.html', context)
+
+
+@login_required
+def api_attendance_quick_toggle(request):
+    """
+    AJAX endpoint for toggling or updating single attendance fields instantly.
+    Strict Department Isolation: Non-admin can only modify records for their own department.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method.'}, status=405)
+
+    profile = getattr(request.user, 'profile', None)
+    is_admin = _is_admin_user(request.user)
+
+    dept_id = request.POST.get('department_id')
+    date_str = request.POST.get('date')
+    person_type = request.POST.get('person_type')
+    person_id = request.POST.get('person_id')
+    field = request.POST.get('field')
+    value = request.POST.get('value')
+
+    dept = Department.objects.filter(id=dept_id).first()
+    if not dept:
+        return JsonResponse({'success': False, 'error': 'Department not found.'})
+
+    if not is_admin and profile and profile.department != dept:
+        return JsonResponse({'success': False, 'error': 'គ្មានសិទ្ធិកែប្រែវត្តមាននៃការិយាល័យផ្សេងឡើយ!'}, status=403)
+
+    try:
+        rec_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'Invalid date.'})
+
+    filter_kwargs = {
+        'department': dept,
+        'date': rec_date,
+        'person_type': person_type,
+    }
+    if person_type == 'CIVIL_SERVANT':
+        filter_kwargs['officer_id'] = person_id
+    else:
+        filter_kwargs['contract_officer_id'] = person_id
+
+    rec, created = AttendanceRecord.objects.get_or_create(
+        defaults={'recorded_by': request.user},
+        **filter_kwargs
+    )
+
+    if field == 'status':
+        rec.status = value
+    elif field in ['morning_in', 'morning_out', 'afternoon_in', 'afternoon_out', 'is_late', 'is_early_out']:
+        setattr(rec, field, value in ['1', 'true', True])
+    elif field in ['leave_type', 'reference_doc', 'remarks', 'disciplinary_measure']:
+        setattr(rec, field, value)
+
+    rec.recorded_by = request.user
+    rec.save()
+
+    return JsonResponse({
+        'success': True,
+        'status': rec.status,
+        'status_code': rec.status_code,
+        'badge_class': rec.status_badge_class,
+    })
+
+
+# ==============================================================================
+# 👑 LEADERSHIP & HEADS ATTENDANCE MODULE (គំរូ Attendend B - ថ្នាក់ដឹកនាំ ខណ្ឌ និងប្រធានការិយាល័យ)
+# ==============================================================================
+
+def _can_manage_leadership_attendance(user):
+    """
+    Leadership Attendance (Attendend B) is strictly restricted to:
+    1. User 'ADMIN' or superuser
+    2. Users belonging to the Administration & Personnel Office (ការិយាល័យរដ្ឋបាល-បុគ្គលិក)
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser or user.username.upper() == 'ADMIN':
+        return True
+    profile = getattr(user, 'profile', None)
+    if profile and profile.department:
+        dept_code = (profile.department.code or '').strip().upper()
+        dept_name = (profile.department.name_kh or '').strip()
+        if dept_code in ['ADMIN_PERS', 'ADMIN_PERSONNEL'] or ('រដ្ឋបាល' in dept_name and 'បុគ្គលិក' in dept_name):
+            return True
+    return False
+
+
+def _get_leadership_roster():
+    """
+    Builds the Leadership & Heads Roster matching Attendend B.xlsx:
+    Section I: ថ្នាក់ដឹកនាំមន្ទីរ (Department Leadership: ប្រធានមន្ទីរ, អនុប្រធានមន្ទីរ)
+    Section II: ខណ្ឌរដ្ឋបាល (Canton Chiefs; if none, Deputy Chief or sole officer)
+    Section III: ប្រធានការិយាល័យ (Office Chiefs; if none, Deputy Chief or sole officer)
+    """
+    section_lead = []
+    section_canton = []
+    section_office = []
+
+    # 1. Section I: Department Leadership (ថ្នាក់ដឹកនាំមន្ទីរ)
+    lead_officers = CivilServantProfile.objects.filter(
+        officer_status__in=['ACTIVE', 'IN_OFFICE', 'STUDYING_IN_COUNTRY', 'STUDYING_ABROAD']
+    ).filter(
+        current_position_title__iregex=r'(ប្រធានមន្ទីរ|អនុប្រធានមន្ទីរ)'
+    ).order_by('id')
+
+    lead_dept = Department.objects.filter(code='LEAD', is_active=True).first()
+    if lead_dept:
+        for o in CivilServantProfile.objects.filter(department=lead_dept).exclude(officer_status__in=['DISMISSED', 'RETIRED', 'TRANSFERRED_OUT']):
+            if o not in lead_officers:
+                lead_officers = list(lead_officers) + [o]
+
+    def _lead_sort_key(o):
+        pos = normalize_khmer_role(o.current_position_title or '')
+        if 'ប្រធានមន្ទីរ' in pos and 'អនុ' not in pos:
+            return (1, get_rank_step_sort_weight(o.current_rank_and_step), o.full_name_kh)
+        return (2, get_rank_step_sort_weight(o.current_rank_and_step), o.full_name_kh)
+
+    sorted_lead = sorted(list(lead_officers), key=_lead_sort_key)
+    for idx, o in enumerate(sorted_lead, 1):
+        section_lead.append({
+            'section': 'I. ថ្នាក់ដឹកនាំមន្ទីរ',
+            'section_code': 'LEAD',
+            'section_num': 1,
+            'index': idx,
+            'officer': o,
+            'person_id': o.id,
+            'person_type': 'CIVIL_SERVANT',
+            'name': o.full_name_kh,
+            'gender': 'ប' if o.gender == 'MALE' else 'ស',
+            'position': o.current_position_title or 'ថ្នាក់ដឹកនាំ',
+            'department': o.department,
+            'is_acting': False,
+        })
+
+    # 2. Section II: Canton Heads (ខណ្ឌរដ្ឋបាល)
+    canton_depts = Department.objects.filter(is_active=True, name_kh__contains='ខណ្ឌ').order_by('order_index', 'name_kh')
+    canton_idx = 1
+    for d in canton_depts:
+        chief = CivilServantProfile.objects.filter(
+            department=d
+        ).exclude(officer_status__in=['DISMISSED', 'RETIRED', 'TRANSFERRED_OUT']).filter(
+            current_position_title__iregex=r'នាយខណ្ឌ'
+        ).exclude(
+            current_position_title__iregex=r'នាយរង'
+        ).first()
+
+        is_acting = False
+        head_officer = chief
+
+        if not head_officer:
+            head_officer = CivilServantProfile.objects.filter(
+                department=d
+            ).exclude(officer_status__in=['DISMISSED', 'RETIRED', 'TRANSFERRED_OUT']).filter(
+                current_position_title__iregex=r'នាយរង'
+            ).first()
+            if head_officer:
+                is_acting = True
+
+        if not head_officer:
+            head_officer = CivilServantProfile.objects.filter(
+                department=d
+            ).exclude(officer_status__in=['DISMISSED', 'RETIRED', 'TRANSFERRED_OUT']).first()
+            if head_officer:
+                is_acting = True
+
+        if head_officer:
+            pos_display = head_officer.current_position_title or d.name_kh
+            if is_acting and 'នាយខណ្ឌ' not in pos_display:
+                if 'នាយរង' in pos_display:
+                    pos_display = f"{pos_display} (ទទួលបន្ទុករួម)"
+                else:
+                    pos_display = f"{pos_display} (តំណាង {d.name_kh})"
+
+            section_canton.append({
+                'section': 'II. ខណ្ឌរដ្ឋបាល',
+                'section_code': 'CANTON',
+                'section_num': 2,
+                'index': canton_idx,
+                'officer': head_officer,
+                'person_id': head_officer.id,
+                'person_type': 'CIVIL_SERVANT',
+                'name': head_officer.full_name_kh,
+                'gender': 'ប' if head_officer.gender == 'MALE' else 'ស',
+                'position': pos_display,
+                'department': d,
+                'is_acting': is_acting,
+            })
+            canton_idx += 1
+
+    # 3. Section III: Office Heads (ប្រធានការិយាល័យ)
+    office_depts = Department.objects.filter(is_active=True).exclude(code='LEAD').exclude(name_kh__contains='ខណ្ឌ').order_by('order_index', 'name_kh')
+    office_idx = 1
+    for d in office_depts:
+        chief = CivilServantProfile.objects.filter(
+            department=d
+        ).exclude(officer_status__in=['DISMISSED', 'RETIRED', 'TRANSFERRED_OUT']).filter(
+            current_position_title__iregex=r'ប្រធានការិយាល័យ'
+        ).exclude(
+            current_position_title__iregex=r'អនុប្រធាន'
+        ).first()
+
+        is_acting = False
+        head_officer = chief
+
+        if not head_officer:
+            head_officer = CivilServantProfile.objects.filter(
+                department=d
+            ).exclude(officer_status__in=['DISMISSED', 'RETIRED', 'TRANSFERRED_OUT']).filter(
+                current_position_title__iregex=r'អនុប្រធាន'
+            ).first()
+            if head_officer:
+                is_acting = True
+
+        if not head_officer:
+            head_officer = CivilServantProfile.objects.filter(
+                department=d
+            ).exclude(officer_status__in=['DISMISSED', 'RETIRED', 'TRANSFERRED_OUT']).first()
+            if head_officer:
+                is_acting = True
+
+        if head_officer:
+            pos_display = head_officer.current_position_title or f"ប្រធាន{d.name_kh}"
+            if is_acting and 'ប្រធាន' not in pos_display:
+                if 'អនុប្រធាន' in pos_display:
+                    pos_display = f"{pos_display} (ទទួលបន្ទុករួម)"
+                else:
+                    pos_display = f"{pos_display} (តំណាង {d.name_kh})"
+            elif is_acting and 'អនុប្រធាន' in pos_display and 'ទទួលបន្ទុករួម' not in pos_display:
+                pos_display = f"{pos_display} (ទទួលបន្ទុករួម)"
+
+            section_office.append({
+                'section': 'III. ប្រធានការិយាល័យ',
+                'section_code': 'OFFICE',
+                'section_num': 3,
+                'index': office_idx,
+                'officer': head_officer,
+                'person_id': head_officer.id,
+                'person_type': 'CIVIL_SERVANT',
+                'name': head_officer.full_name_kh,
+                'gender': 'ប' if head_officer.gender == 'MALE' else 'ស',
+                'position': pos_display,
+                'department': d,
+                'is_acting': is_acting,
+            })
+            office_idx += 1
+
+    return section_lead, section_canton, section_office
+
+
+@login_required
+def attendance_leadership_daily(request):
+    """
+    Daily Attendance for Department Leadership, Canton Heads, and Office Chiefs (Attendend B).
+    Strictly restricted to User ADMIN and Administration & Personnel Office (ការិយាល័យរដ្ឋបាល-បុគ្គលិក).
+    """
+    if not _can_manage_leadership_attendance(request.user):
+        messages.error(request, '⚠️ មុខងារគ្រប់គ្រងវត្តមានថ្នាក់ដឹកនាំ (Attendend B) ត្រូវបានអនុញ្ញាតសម្រាប់តែ User: ADMIN និងមន្ត្រីនៃការិយាល័យរដ្ឋបាល-បុគ្គលិក ប៉ុណ្ណោះ!')
+        return redirect('attendance_monthly_sheet')
+
+    profile = getattr(request.user, 'profile', None)
+    is_admin = _is_admin_user(request.user)
+
+    date_str = request.GET.get('date', '').strip()
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except Exception:
+            target_date = timezone.now().date()
+    else:
+        target_date = timezone.now().date()
+
+    sec_lead, sec_canton, sec_office = _get_leadership_roster()
+    all_leaders = sec_lead + sec_canton + sec_office
+
+    # POST: Save Leadership Daily Attendance
+    if request.method == 'POST':
+        if not (is_admin or is_lead):
+            messages.error(request, '⚠️ លោកអ្នកគ្មានសិទ្ធិកត់ត្រាវត្តមានសម្រាប់ថ្នាក់ដឹកនាំឡើយ!')
+            return redirect('attendance_leadership_daily')
+
+        posted_date_str = request.POST.get('target_date', '').strip()
+        if posted_date_str:
+            try:
+                target_date = datetime.strptime(posted_date_str, '%Y-%m-%d').date()
+            except Exception:
+                pass
+
+        person_keys = request.POST.getlist('person_keys')
+        saved_count = 0
+
+        for pkey in person_keys:
+            parts = pkey.split('_')
+            if len(parts) < 3:
+                continue
+            pid = int(parts[2])
+
+            # Find leader info
+            leader_match = next((l for l in all_leaders if l['person_id'] == pid), None)
+            if not leader_match:
+                continue
+
+            status = request.POST.get(f'status_{pkey}', 'PRESENT')
+            morning_in = request.POST.get(f'morning_in_{pkey}') == '1'
+            morning_out = request.POST.get(f'morning_out_{pkey}') == '1'
+            afternoon_in = request.POST.get(f'afternoon_in_{pkey}') == '1'
+            afternoon_out = request.POST.get(f'afternoon_out_{pkey}') == '1'
+            is_late = request.POST.get(f'is_late_{pkey}') == '1'
+            is_early_out = request.POST.get(f'is_early_out_{pkey}') == '1'
+            leave_type = request.POST.get(f'leave_type_{pkey}', '').strip()
+            reference_doc = request.POST.get(f'reference_doc_{pkey}', '').strip()
+            disciplinary_measure = request.POST.get(f'disciplinary_measure_{pkey}', '').strip()
+            remarks = request.POST.get(f'remarks_{pkey}', '').strip()
+            pos_title = leader_match['position']
+
+            if status not in ['LEAVE_PERMISSION', 'UNPAID_LEAVE']:
+                leave_type = ''
+
+            AttendanceRecord.objects.update_or_create(
+                department=leader_match['department'],
+                date=target_date,
+                person_type='CIVIL_SERVANT',
+                officer_id=pid,
+                defaults={
+                    'contract_officer': None,
+                    'position_title': pos_title,
+                    'morning_in': morning_in,
+                    'morning_out': morning_out,
+                    'afternoon_in': afternoon_in,
+                    'afternoon_out': afternoon_out,
+                    'status': status,
+                    'is_late': is_late,
+                    'is_early_out': is_early_out,
+                    'leave_type': leave_type,
+                    'reference_doc': reference_doc,
+                    'disciplinary_measure': disciplinary_measure,
+                    'remarks': remarks,
+                    'recorded_by': request.user,
+                }
+            )
+            saved_count += 1
+
+        messages.success(request, f"✅ បានរក្សាទុកវត្តមានថ្នាក់ដឹកនាំ និងប្រធានអង្គភាពចំនួន {saved_count} រូប សម្រាប់កាលបរិច្ឆេទ {target_date.strftime('%d/%m/%Y')} ដោយជោគជ័យ!")
+        return redirect(f"{reverse('attendance_leadership_daily')}?date={target_date.strftime('%Y-%m-%d')}")
+
+    # Build Existing Records
+    officer_ids = [l['person_id'] for l in all_leaders]
+    existing_records = AttendanceRecord.objects.filter(
+        date=target_date,
+        person_type='CIVIL_SERVANT',
+        officer_id__in=officer_ids
+    )
+
+    record_map = {f"CIVIL_SERVANT_{r.officer_id}": r for r in existing_records}
+
+    def _attach_records(sec_list):
+        result = []
+        for item in sec_list:
+            pkey = f"CIVIL_SERVANT_{item['person_id']}"
+            rec = record_map.get(pkey)
+            if rec:
+                status = rec.status
+                morning_in = rec.morning_in
+                morning_out = rec.morning_out
+                afternoon_in = rec.afternoon_in
+                afternoon_out = rec.afternoon_out
+                is_late = rec.is_late
+                is_early_out = rec.is_early_out
+                leave_type = rec.leave_type
+                reference_doc = rec.reference_doc
+                remarks = rec.remarks
+                is_recorded = True
+            else:
+                status = 'PRESENT'
+                morning_in = True
+                morning_out = True
+                afternoon_in = True
+                afternoon_out = True
+                is_late = False
+                is_early_out = False
+                leave_type = ''
+                reference_doc = ''
+                remarks = ''
+                is_recorded = False
+
+            result.append({
+                'person': item,
+                'pkey': pkey,
+                'status': status,
+                'morning_in': morning_in,
+                'morning_out': morning_out,
+                'afternoon_in': afternoon_in,
+                'afternoon_out': afternoon_out,
+                'is_late': is_late,
+                'is_early_out': is_early_out,
+                'leave_type': leave_type,
+                'reference_doc': reference_doc,
+                'remarks': remarks,
+                'is_recorded': is_recorded,
+            })
+        return result
+
+    rows_lead = _attach_records(sec_lead)
+    rows_canton = _attach_records(sec_canton)
+    rows_office = _attach_records(sec_office)
+
+    all_rows = rows_lead + rows_canton + rows_office
+    total_leaders = len(all_rows)
+    present_count = sum(1 for r in all_rows if r['status'] == 'PRESENT')
+    mission_count = sum(1 for r in all_rows if r['status'] == 'MISSION')
+    leave_count = sum(1 for r in all_rows if r['status'] in ['LEAVE_PERMISSION', 'UNPAID_LEAVE'])
+    absent_count = sum(1 for r in all_rows if r['status'] == 'ABSENT_NO_LEAVE')
+
+    prev_date = target_date - timedelta(days=1)
+    next_date = target_date + timedelta(days=1)
+    is_today = (target_date == timezone.now().date())
+
+    context = {
+        'target_date': target_date,
+        'target_date_str': target_date.strftime('%Y-%m-%d'),
+        'prev_date_str': prev_date.strftime('%Y-%m-%d'),
+        'next_date_str': next_date.strftime('%Y-%m-%d'),
+        'is_today': is_today,
+        'rows_lead': rows_lead,
+        'rows_canton': rows_canton,
+        'rows_office': rows_office,
+        'total_leaders': total_leaders,
+        'present_count': present_count,
+        'mission_count': mission_count,
+        'leave_count': leave_count,
+        'absent_count': absent_count,
+        'is_admin': is_admin or is_lead,
+        'status_choices': AttendanceRecord.STATUS_CHOICES,
+        'leave_choices': AttendanceRecord.LEAVE_TYPE_CHOICES,
+    }
+    return render(request, 'dms/attendance_leadership_daily.html', context)
+
+
+def _build_leadership_weekly_context(request):
+    """
+    Builds weekly leadership attendance context matching Attendend B.xlsx (ថ្នាក់ដឹកនាំប្រចាំសប្តាហ).
+    """
+    now = timezone.now()
+    date_str = request.GET.get('date', '').strip()
+    if date_str:
+        try:
+            base_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except Exception:
+            base_date = now.date()
+    else:
+        base_date = now.date()
+
+    monday = base_date - timedelta(days=base_date.weekday())
+    friday = monday + timedelta(days=4)
+    prev_week_monday = monday - timedelta(days=7)
+    next_week_monday = monday + timedelta(days=7)
+    is_current_week = (monday <= now.date() <= monday + timedelta(days=6))
+
+    sec_lead, sec_canton, sec_office = _get_leadership_roster()
+    all_leaders = sec_lead + sec_canton + sec_office
+    officer_ids = [l['person_id'] for l in all_leaders]
+
+    records = AttendanceRecord.objects.filter(
+        date__gte=monday,
+        date__lte=friday,
+        person_type='CIVIL_SERVANT',
+        officer_id__in=officer_ids
+    )
+
+    rec_by_officer = {}
+    for r in records:
+        rec_by_officer.setdefault(r.officer_id, []).append(r)
+
+    def _process_section(sec_list):
+        result = []
+        for item in sec_list:
+            recs = rec_by_officer.get(item['person_id'], [])
+            present = sum(1 for r in recs if r.status == 'PRESENT')
+            mission = sum(1 for r in recs if r.status == 'MISSION')
+            leave = sum(1 for r in recs if r.status in ['LEAVE_PERMISSION', 'UNPAID_LEAVE'])
+            absent = sum(1 for r in recs if r.status == 'ABSENT_NO_LEAVE')
+            late_or_early = sum(1 for r in recs if r.is_late or r.is_early_out)
+
+            leave_types = list(set([r.get_leave_type_display() for r in recs if r.leave_type]))
+            leave_type_str = ', '.join(leave_types) if leave_types else ''
+
+            remarks_list = list(set([r.remarks for r in recs if r.remarks]))
+            remarks_str = ', '.join(remarks_list) if remarks_list else ''
+
+            disciplinary_list = list(set([r.disciplinary_measure for r in recs if r.disciplinary_measure]))
+            disciplinary_str = ', '.join(disciplinary_list) if disciplinary_list else ''
+
+            result.append({
+                'person': item,
+                'present': present,
+                'mission': mission,
+                'leave': leave,
+                'absent': absent,
+                'late_or_early': late_or_early,
+                'leave_type': leave_type_str,
+                'disciplinary': disciplinary_str,
+                'remarks': remarks_str,
+            })
+        return result
+
+    rows_lead = _process_section(sec_lead)
+    rows_canton = _process_section(sec_canton)
+    rows_office = _process_section(sec_office)
+
+    all_rows = rows_lead + rows_canton + rows_office
+    total_leaders = len(all_rows)
+    tot_present = sum(r['present'] for r in all_rows)
+    tot_mission = sum(r['mission'] for r in all_rows)
+    tot_leave = sum(r['leave'] for r in all_rows)
+    tot_absent = sum(r['absent'] for r in all_rows)
+    tot_late_early = sum(r['late_or_early'] for r in all_rows)
+
+    iso_year, iso_week, _ = monday.isocalendar()
+
+    return {
+        'base_date': base_date,
+        'base_date_str': base_date.strftime('%Y-%m-%d'),
+        'monday': monday,
+        'friday': friday,
+        'monday_str': monday.strftime('%Y-%m-%d'),
+        'friday_str': friday.strftime('%Y-%m-%d'),
+        'prev_week_monday_str': prev_week_monday.strftime('%Y-%m-%d'),
+        'next_week_monday_str': next_week_monday.strftime('%Y-%m-%d'),
+        'is_current_week': is_current_week,
+        'iso_year': iso_year,
+        'iso_week': iso_week,
+        'rows_lead': rows_lead,
+        'rows_canton': rows_canton,
+        'rows_office': rows_office,
+        'total_leaders': total_leaders,
+        'tot_present': tot_present,
+        'tot_mission': tot_mission,
+        'tot_leave': tot_leave,
+        'tot_absent': tot_absent,
+        'tot_late_early': tot_late_early,
+    }
+
+
+@login_required
+def attendance_leadership_weekly(request):
+    """
+    Weekly Attendance Report for Leadership, Canton & Office Heads (Attendend B).
+    Strictly restricted to User ADMIN and Administration & Personnel Office.
+    """
+    if not _can_manage_leadership_attendance(request.user):
+        messages.error(request, '⚠️ មុខងារគ្រប់គ្រងវត្តមានថ្នាក់ដឹកនាំ (Attendend B) ត្រូវបានអនុញ្ញាតសម្រាប់តែ User: ADMIN និងមន្ត្រីនៃការិយាល័យរដ្ឋបាល-បុគ្គលិក ប៉ុណ្ណោះ!')
+        return redirect('attendance_monthly_sheet')
+    context = _build_leadership_weekly_context(request)
+    return render(request, 'dms/attendance_leadership_weekly.html', context)
+
+
+@login_required
+def attendance_leadership_weekly_print(request):
+    """
+    Print format matching Attendend B.xlsx sheet ថ្នាក់ដឹកនាំប្រចាំសប្តាហ.
+    """
+    if not _can_manage_leadership_attendance(request.user):
+        messages.error(request, '⚠️ មុខងារគ្រប់គ្រងវត្តមានថ្នាក់ដឹកនាំ (Attendend B) ត្រូវបានអនុញ្ញាតសម្រាប់តែ User: ADMIN និងមន្ត្រីនៃការិយាល័យរដ្ឋបាល-បុគ្គលិក ប៉ុណ្ណោះ!')
+        return redirect('attendance_monthly_sheet')
+    context = _build_leadership_weekly_context(request)
+    return render(request, 'dms/attendance_leadership_weekly_print.html', context)
+
+
+@login_required
+def attendance_leadership_weekly_export_excel(request):
+    """
+    Exports Weekly Leadership Attendance Report to Excel matching Attendend B.xlsx.
+    """
+    if not _can_manage_leadership_attendance(request.user):
+        messages.error(request, '⚠️ មុខងារគ្រប់គ្រងវត្តមានថ្នាក់ដឹកនាំ (Attendend B) ត្រូវបានអនុញ្ញាតសម្រាប់តែ User: ADMIN និងមន្ត្រីនៃការិយាល័យរដ្ឋបាល-បុគ្គលិក ប៉ុណ្ណោះ!')
+        return redirect('attendance_monthly_sheet')
+    context = _build_leadership_weekly_context(request)
+    monday = context['monday']
+    friday = context['friday']
+    iso_week = context['iso_week']
+    iso_year = context['iso_year']
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"ថ្នាក់ដឹកនាំ_សប្តាហ៍_{iso_week}"
+
+    font_title = Font(name="Khmer OS Muol Light", size=12, bold=True, color="1E3A8A")
+    font_sub = Font(name="Khmer OS Battambang", size=10, bold=True)
+    font_sec = Font(name="Khmer OS Battambang", size=10, bold=True, color="1E40AF")
+    font_header = Font(name="Khmer OS Battambang", size=9, bold=True, color="FFFFFF")
+    font_cell = Font(name="Khmer OS Battambang", size=9)
+    font_cell_bold = Font(name="Khmer OS Battambang", size=9, bold=True)
+
+    fill_header = PatternFill(start_color="1E40AF", end_color="1E40AF", fill_type="solid")
+    fill_sec = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
+    fill_zebra = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+    fill_summary = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    align_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    ws.merge_cells('A1:I1')
+    ws['A1'] = f"របាយការណ៍វត្តមានរបស់ថ្នាក់ដឹកនាំមន្ទីរ ខណ្ឌរដ្ឋបាល និងប្រធានការិយាល័យ"
+    ws['A1'].font = font_title
+    ws['A1'].alignment = align_center
+
+    ws.merge_cells('A2:I2')
+    ws['A2'] = f"ប្រចាំសប្តាហ៍ទី {iso_week} ឆ្នាំ {iso_year} (ពីថ្ងៃទី {monday.strftime('%d/%m/%Y')} ដល់ {friday.strftime('%d/%m/%Y')})"
+    ws['A2'].font = font_sub
+    ws['A2'].alignment = align_center
+
+    # Header Row 4 & 5
+    headers = [
+        ('A4:A5', 'A4', 'ល.រ', 5),
+        ('B4:B5', 'B4', 'គោត្តនាម-នាម', 22),
+        ('C4:C5', 'C4', 'ភេទ', 6),
+        ('D4:D5', 'D4', 'តួនាទី / មុខតំណែង', 28),
+        ('E4:E5', 'E4', 'មានច្បាប់', 10),
+        ('F4:F5', 'F4', 'អត់ច្បាប់', 10),
+        ('G4:G5', 'G4', 'យឺត/មុន', 10),
+        ('H4:H5', 'H4', 'ប្រភេទឈប់សម្រាក', 20),
+        ('I4:I5', 'I4', 'ផ្សេងៗ', 18),
+    ]
+
+    for merge_range, cell_ref, label, width in headers:
+        ws.merge_cells(merge_range)
+        ws[cell_ref] = label
+        ws[cell_ref].font = font_header
+        ws[cell_ref].fill = fill_header
+        ws[cell_ref].alignment = align_center
+        ws[cell_ref].border = thin_border
+        col_letter = cell_ref[0]
+        ws.column_dimensions[col_letter].width = width
+
+    row_num = 6
+    sections_data = [
+        ('I. ថ្នាក់ដឹកនាំមន្ទីរ', context['rows_lead']),
+        ('II. ខណ្ឌរដ្ឋបាល', context['rows_canton']),
+        ('III. ប្រធានការិយាល័យ', context['rows_office']),
+    ]
+
+    for sec_title, sec_rows in sections_data:
+        # Section Header Row
+        ws.merge_cells(f'A{row_num}:I{row_num}')
+        ws[f'A{row_num}'] = sec_title
+        ws[f'A{row_num}'].font = font_sec
+        ws[f'A{row_num}'].fill = fill_sec
+        ws[f'A{row_num}'].alignment = align_left
+        ws[f'A{row_num}'].border = thin_border
+        row_num += 1
+
+        for r in sec_rows:
+            p = r['person']
+            ws[f'A{row_num}'] = p['index']
+            ws[f'A{row_num}'].alignment = align_center
+            ws[f'A{row_num}'].font = font_cell
+            ws[f'A{row_num}'].border = thin_border
+
+            ws[f'B{row_num}'] = p['name']
+            ws[f'B{row_num}'].alignment = align_left
+            ws[f'B{row_num}'].font = font_cell_bold
+            ws[f'B{row_num}'].border = thin_border
+
+            ws[f'C{row_num}'] = p['gender']
+            ws[f'C{row_num}'].alignment = align_center
+            ws[f'C{row_num}'].font = font_cell
+            ws[f'C{row_num}'].border = thin_border
+
+            ws[f'D{row_num}'] = p['position']
+            ws[f'D{row_num}'].alignment = align_left
+            ws[f'D{row_num}'].font = font_cell
+            ws[f'D{row_num}'].border = thin_border
+
+            ws[f'E{row_num}'] = r['leave'] if r['leave'] > 0 else ""
+            ws[f'E{row_num}'].alignment = align_center
+            ws[f'E{row_num}'].font = font_cell_bold
+            ws[f'E{row_num}'].border = thin_border
+
+            ws[f'F{row_num}'] = r['absent'] if r['absent'] > 0 else ""
+            ws[f'F{row_num}'].alignment = align_center
+            ws[f'F{row_num}'].font = font_cell_bold
+            ws[f'F{row_num}'].border = thin_border
+
+            ws[f'G{row_num}'] = r['late_or_early'] if r['late_or_early'] > 0 else ""
+            ws[f'G{row_num}'].alignment = align_center
+            ws[f'G{row_num}'].font = font_cell
+            ws[f'G{row_num}'].border = thin_border
+
+            ws[f'H{row_num}'] = r['leave_type']
+            ws[f'H{row_num}'].alignment = align_left
+            ws[f'H{row_num}'].font = font_cell
+            ws[f'H{row_num}'].border = thin_border
+
+            ws[f'I{row_num}'] = r['remarks']
+            ws[f'I{row_num}'].alignment = align_left
+            ws[f'I{row_num}'].font = font_cell
+            ws[f'I{row_num}'].border = thin_border
+
+            row_num += 1
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="attendance_leadership_weekly_{iso_year}_W{iso_week:02d}.xlsx"'
+    wb.save(response)
+    return response
+
+
+def _build_leadership_monthly_context(request):
+    """
+    Builds monthly leadership attendance context matching Attendend B.xlsx (ថ្នាក់ដឹកនាំប្រចាំខែ).
+    """
+    now = timezone.now()
+    year_str = request.GET.get('year', str(now.year)).strip()
+    month_str = request.GET.get('month', str(now.month)).strip()
+
+    try:
+        year = int(to_arabic_digits(year_str))
+    except Exception:
+        year = now.year
+
+    try:
+        month = int(to_arabic_digits(month_str))
+        if month < 1 or month > 12:
+            month = now.month
+    except Exception:
+        month = now.month
+
+    sec_lead, sec_canton, sec_office = _get_leadership_roster()
+    all_leaders = sec_lead + sec_canton + sec_office
+    officer_ids = [l['person_id'] for l in all_leaders]
+
+    records = AttendanceRecord.objects.filter(
+        date__year=year,
+        date__month=month,
+        person_type='CIVIL_SERVANT',
+        officer_id__in=officer_ids
+    )
+
+    rec_by_officer = {}
+    for r in records:
+        rec_by_officer.setdefault(r.officer_id, []).append(r)
+
+    def _process_section(sec_list):
+        result = []
+        for item in sec_list:
+            recs = rec_by_officer.get(item['person_id'], [])
+            present = sum(1 for r in recs if r.status == 'PRESENT')
+            mission = sum(1 for r in recs if r.status == 'MISSION')
+            leave = sum(1 for r in recs if r.status in ['LEAVE_PERMISSION', 'UNPAID_LEAVE'])
+            absent = sum(1 for r in recs if r.status == 'ABSENT_NO_LEAVE')
+            late_or_early = sum(1 for r in recs if r.is_late or r.is_early_out)
+
+            leave_types = list(set([r.get_leave_type_display() for r in recs if r.leave_type]))
+            leave_type_str = ', '.join(leave_types) if leave_types else ''
+
+            remarks_list = list(set([r.remarks for r in recs if r.remarks]))
+            remarks_str = ', '.join(remarks_list) if remarks_list else ''
+
+            result.append({
+                'person': item,
+                'present': present,
+                'mission': mission,
+                'leave': leave,
+                'absent': absent,
+                'late_or_early': late_or_early,
+                'leave_type': leave_type_str,
+                'remarks': remarks_str,
+            })
+        return result
+
+    rows_lead = _process_section(sec_lead)
+    rows_canton = _process_section(sec_canton)
+    rows_office = _process_section(sec_office)
+
+    all_rows = rows_lead + rows_canton + rows_office
+    total_leaders = len(all_rows)
+    tot_present = sum(r['present'] for r in all_rows)
+    tot_mission = sum(r['mission'] for r in all_rows)
+    tot_leave = sum(r['leave'] for r in all_rows)
+    tot_absent = sum(r['absent'] for r in all_rows)
+    tot_late_early = sum(r['late_or_early'] for r in all_rows)
+
+    khmer_month_names = {
+        1: 'មករា', 2: 'កុម្ភៈ', 3: 'មីនា', 4: 'មេសា',
+        5: 'ឧសភា', 6: 'មិថុនា', 7: 'កក្កដា', 8: 'សីហា',
+        9: 'កញ្ញា', 10: 'តុលា', 11: 'វិច្ឆិកា', 12: 'ធ្នូ'
+    }
+
+    year_options = [2025, 2026, 2027, 2028, 2029, 2030]
+    month_options = [(i, khmer_month_names[i]) for i in range(1, 13)]
+
+    return {
+        'year': year,
+        'month': month,
+        'month_name_kh': khmer_month_names.get(month, ''),
+        'rows_lead': rows_lead,
+        'rows_canton': rows_canton,
+        'rows_office': rows_office,
+        'total_leaders': total_leaders,
+        'tot_present': tot_present,
+        'tot_mission': tot_mission,
+        'tot_leave': tot_leave,
+        'tot_absent': tot_absent,
+        'tot_late_early': tot_late_early,
+        'year_options': year_options,
+        'month_options': month_options,
+    }
+
+
+@login_required
+def attendance_leadership_monthly(request):
+    """
+    Monthly Attendance Matrix for Department Leadership, Canton & Office Heads (Attendend B).
+    Strictly restricted to User ADMIN and Administration & Personnel Office.
+    """
+    if not _can_manage_leadership_attendance(request.user):
+        messages.error(request, '⚠️ មុខងារគ្រប់គ្រងវត្តមានថ្នាក់ដឹកនាំ (Attendend B) ត្រូវបានអនុញ្ញាតសម្រាប់តែ User: ADMIN និងមន្ត្រីនៃការិយាល័យរដ្ឋបាល-បុគ្គលិក ប៉ុណ្ណោះ!')
+        return redirect('attendance_monthly_sheet')
+    context = _build_leadership_monthly_context(request)
+    return render(request, 'dms/attendance_leadership_monthly.html', context)
+
+
+@login_required
+def attendance_leadership_monthly_print(request):
+    """
+    Print format matching Attendend B.xlsx sheet ថ្នាក់ដឹកនាំប្រចាំខែ.
+    """
+    if not _can_manage_leadership_attendance(request.user):
+        messages.error(request, '⚠️ មុខងារគ្រប់គ្រងវត្តមានថ្នាក់ដឹកនាំ (Attendend B) ត្រូវបានអនុញ្ញាតសម្រាប់តែ User: ADMIN និងមន្ត្រីនៃការិយាល័យរដ្ឋបាល-បុគ្គលិក ប៉ុណ្ណោះ!')
+        return redirect('attendance_monthly_sheet')
+    context = _build_leadership_monthly_context(request)
+    return render(request, 'dms/attendance_leadership_monthly_print.html', context)
+
+
+@login_required
+def attendance_leadership_monthly_export_excel(request):
+    """
+    Exports Monthly Leadership Attendance Report to Excel matching Attendend B.xlsx.
+    """
+    if not _can_manage_leadership_attendance(request.user):
+        messages.error(request, '⚠️ មុខងារគ្រប់គ្រងវត្តមានថ្នាក់ដឹកនាំ (Attendend B) ត្រូវបានអនុញ្ញាតសម្រាប់តែ User: ADMIN និងមន្ត្រីនៃការិយាល័យរដ្ឋបាល-បុគ្គលិក ប៉ុណ្ណោះ!')
+        return redirect('attendance_monthly_sheet')
+    context = _build_leadership_monthly_context(request)
+    year = context['year']
+    month = context['month']
+    month_name_kh = context['month_name_kh']
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"ថ្នាក់ដឹកនាំ_{month_name_kh}_{year}"
+
+    font_title = Font(name="Khmer OS Muol Light", size=12, bold=True, color="1E3A8A")
+    font_sub = Font(name="Khmer OS Battambang", size=10, bold=True)
+    font_sec = Font(name="Khmer OS Battambang", size=10, bold=True, color="1E40AF")
+    font_header = Font(name="Khmer OS Battambang", size=9, bold=True, color="FFFFFF")
+    font_cell = Font(name="Khmer OS Battambang", size=9)
+    font_cell_bold = Font(name="Khmer OS Battambang", size=9, bold=True)
+
+    fill_header = PatternFill(start_color="1E40AF", end_color="1E40AF", fill_type="solid")
+    fill_sec = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
+
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    align_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    ws.merge_cells('A1:I1')
+    ws['A1'] = f"របាយការណ៍វត្តមានរបស់ថ្នាក់ដឹកនាំមន្ទីរ ខណ្ឌរដ្ឋបាល និងប្រធានការិយាល័យ"
+    ws['A1'].font = font_title
+    ws['A1'].alignment = align_center
+
+    ws.merge_cells('A2:I2')
+    ws['A2'] = f"ប្រចាំខែ {month_name_kh} ឆ្នាំ {year}"
+    ws['A2'].font = font_sub
+    ws['A2'].alignment = align_center
+
+    # Header Row 4 & 5
+    headers = [
+        ('A4:A5', 'A4', 'ល.រ', 5),
+        ('B4:B5', 'B4', 'គោត្តនាម-នាម', 22),
+        ('C4:C5', 'C4', 'ភេទ', 6),
+        ('D4:D5', 'D4', 'តួនាទី / មុខតំណែង', 28),
+        ('E4:E5', 'E4', 'មានច្បាប់', 10),
+        ('F4:F5', 'F4', 'អត់ច្បាប់', 10),
+        ('G4:G5', 'G4', 'យឺត/មុន', 10),
+        ('H4:H5', 'H4', 'ប្រភេទឈប់សម្រាក', 20),
+        ('I4:I5', 'I4', 'ផ្សេងៗ', 18),
+    ]
+
+    for merge_range, cell_ref, label, width in headers:
+        ws.merge_cells(merge_range)
+        ws[cell_ref] = label
+        ws[cell_ref].font = font_header
+        ws[cell_ref].fill = fill_header
+        ws[cell_ref].alignment = align_center
+        ws[cell_ref].border = thin_border
+        col_letter = cell_ref[0]
+        ws.column_dimensions[col_letter].width = width
+
+    row_num = 6
+    sections_data = [
+        ('I. ថ្នាក់ដឹកនាំមន្ទីរ', context['rows_lead']),
+        ('II. ខណ្ឌរដ្ឋបាល', context['rows_canton']),
+        ('III. ប្រធានការិយាល័យ', context['rows_office']),
+    ]
+
+    for sec_title, sec_rows in sections_data:
+        ws.merge_cells(f'A{row_num}:I{row_num}')
+        ws[f'A{row_num}'] = sec_title
+        ws[f'A{row_num}'].font = font_sec
+        ws[f'A{row_num}'].fill = fill_sec
+        ws[f'A{row_num}'].alignment = align_left
+        ws[f'A{row_num}'].border = thin_border
+        row_num += 1
+
+        for r in sec_rows:
+            p = r['person']
+            ws[f'A{row_num}'] = p['index']
+            ws[f'A{row_num}'].alignment = align_center
+            ws[f'A{row_num}'].font = font_cell
+            ws[f'A{row_num}'].border = thin_border
+
+            ws[f'B{row_num}'] = p['name']
+            ws[f'B{row_num}'].alignment = align_left
+            ws[f'B{row_num}'].font = font_cell_bold
+            ws[f'B{row_num}'].border = thin_border
+
+            ws[f'C{row_num}'] = p['gender']
+            ws[f'C{row_num}'].alignment = align_center
+            ws[f'C{row_num}'].font = font_cell
+            ws[f'C{row_num}'].border = thin_border
+
+            ws[f'D{row_num}'] = p['position']
+            ws[f'D{row_num}'].alignment = align_left
+            ws[f'D{row_num}'].font = font_cell
+            ws[f'D{row_num}'].border = thin_border
+
+            ws[f'E{row_num}'] = r['leave'] if r['leave'] > 0 else ""
+            ws[f'E{row_num}'].alignment = align_center
+            ws[f'E{row_num}'].font = font_cell_bold
+            ws[f'E{row_num}'].border = thin_border
+
+            ws[f'F{row_num}'] = r['absent'] if r['absent'] > 0 else ""
+            ws[f'F{row_num}'].alignment = align_center
+            ws[f'F{row_num}'].font = font_cell_bold
+            ws[f'F{row_num}'].border = thin_border
+
+            ws[f'G{row_num}'] = r['late_or_early'] if r['late_or_early'] > 0 else ""
+            ws[f'G{row_num}'].alignment = align_center
+            ws[f'G{row_num}'].font = font_cell
+            ws[f'G{row_num}'].border = thin_border
+
+            ws[f'H{row_num}'] = r['leave_type']
+            ws[f'H{row_num}'].alignment = align_left
+            ws[f'H{row_num}'].font = font_cell
+            ws[f'H{row_num}'].border = thin_border
+
+            ws[f'I{row_num}'] = r['remarks']
+            ws[f'I{row_num}'].alignment = align_left
+            ws[f'I{row_num}'].font = font_cell
+            ws[f'I{row_num}'].border = thin_border
+
+            row_num += 1
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="attendance_leadership_monthly_{year}_{month:02d}.xlsx"'
+    wb.save(response)
+    return response
+
+
 
 

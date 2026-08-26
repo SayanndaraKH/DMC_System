@@ -1,0 +1,99 @@
+{% with p=item.person k=item.pkey %}
+<tr id="row_{{ k }}">
+    <!-- Index -->
+    <td class="text-center fw-bold text-muted">{{ p.index }}</td>
+
+    <!-- Name -->
+    <td>
+        <input type="hidden" name="person_keys" value="{{ k }}">
+        <div class="fw-bold text-dark">{{ p.name }}</div>
+        {% if p.is_acting %}
+        <span class="badge bg-info-subtle text-info fs-9 py-0">ស្តីទី / តំណាង</span>
+        {% endif %}
+    </td>
+
+    <!-- Gender -->
+    <td class="text-center">
+        {% if p.gender == 'ស' %}
+        <span class="badge bg-danger-subtle text-danger rounded-pill">ស្រី</span>
+        {% else %}
+        <span class="badge bg-secondary-subtle text-secondary rounded-pill">ប្រុស</span>
+        {% endif %}
+    </td>
+
+    <!-- Position -->
+    <td>
+        <span class="badge bg-light text-dark border text-start text-wrap py-1.5 px-2">
+            {{ p.position }}
+        </span>
+    </td>
+
+    <!-- Status Dropdown -->
+    <td>
+        <select name="status_{{ k }}" id="status_{{ k }}" class="form-select form-select-sm status-select status-select-{{ item.status }}" onchange="handleStatusChange('{{ k }}')">
+            <option value="PRESENT" {% if item.status == 'PRESENT' %}selected{% endif %}>✓ វត្តមាន (Present)</option>
+            <option value="MISSION" {% if item.status == 'MISSION' %}selected{% endif %}>M - បេសកកម្ម (Mission)</option>
+            <option value="LEAVE_PERMISSION" {% if item.status == 'LEAVE_PERMISSION' %}selected{% endif %}>P - មានច្បាប់ (Leave)</option>
+            <option value="ABSENT_NO_LEAVE" {% if item.status == 'ABSENT_NO_LEAVE' %}selected{% endif %}>A - អត់ច្បាប់ (Absent)</option>
+            <option value="UNPAID_LEAVE" {% if item.status == 'UNPAID_LEAVE' %}selected{% endif %}>U - គ្មានបៀវត្ស (Unpaid)</option>
+        </select>
+    </td>
+
+    <!-- Morning In / Out -->
+    <td class="text-center">
+        <div class="d-flex justify-content-center align-items-center gap-2">
+            <div class="form-check form-switch checkin-switch m-0" title="ព្រឹក ចូល">
+                <input class="form-check-input morning-in-chk" type="checkbox" name="morning_in_{{ k }}" id="min_{{ k }}" value="1" {% if item.morning_in %}checked{% endif %}>
+            </div>
+            <div class="form-check form-switch checkin-switch m-0" title="ព្រឹក ចេញ">
+                <input class="form-check-input morning-out-chk" type="checkbox" name="morning_out_{{ k }}" id="mout_{{ k }}" value="1" {% if item.morning_out %}checked{% endif %}>
+            </div>
+        </div>
+        <div class="fs-9 text-muted mt-1">ចូល | ចេញ</div>
+    </td>
+
+    <!-- Afternoon In / Out -->
+    <td class="text-center">
+        <div class="d-flex justify-content-center align-items-center gap-2">
+            <div class="form-check form-switch checkin-switch m-0" title="ល្ងាច ចូល">
+                <input class="form-check-input afternoon-in-chk" type="checkbox" name="afternoon_in_{{ k }}" id="ain_{{ k }}" value="1" {% if item.afternoon_in %}checked{% endif %}>
+            </div>
+            <div class="form-check form-switch checkin-switch m-0" title="ល្ងាច ចេញ">
+                <input class="form-check-input afternoon-out-chk" type="checkbox" name="afternoon_out_{{ k }}" id="aout_{{ k }}" value="1" {% if item.afternoon_out %}checked{% endif %}>
+            </div>
+        </div>
+        <div class="fs-9 text-muted mt-1">ចូល | ចេញ</div>
+    </td>
+
+    <!-- Late / Early Out -->
+    <td>
+        <div class="d-flex flex-column gap-1">
+            <label class="form-check-label small d-flex align-items-center gap-1 cursor-pointer">
+                <input class="form-check-input m-0" type="checkbox" name="is_late_{{ k }}" value="1" {% if item.is_late %}checked{% endif %}>
+                <span class="fs-8 text-danger">មកយឺត</span>
+            </label>
+            <label class="form-check-label small d-flex align-items-center gap-1 cursor-pointer">
+                <input class="form-check-input m-0" type="checkbox" name="is_early_out_{{ k }}" value="1" {% if item.is_early_out %}checked{% endif %}>
+                <span class="fs-8 text-warning">ចេញមុន</span>
+            </label>
+        </div>
+    </td>
+
+    <!-- Leave Type / Ref -->
+    <td>
+        <div class="d-flex flex-column gap-1">
+            <select name="leave_type_{{ k }}" id="leave_type_{{ k }}" class="form-select form-select-sm" {% if item.status not in 'LEAVE_PERMISSION,UNPAID_LEAVE' %}disabled{% endif %}>
+                {% for val, label in leave_choices %}
+                <option value="{{ val }}" {% if item.leave_type == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="reference_doc_{{ k }}" class="form-control form-control-sm" placeholder="លិខិតបញ្ជាក់/យោង..." value="{{ item.reference_doc }}">
+        </div>
+    </td>
+
+    <!-- Remarks -->
+    <td>
+        <input type="text" name="remarks_{{ k }}" class="form-control form-control-sm" placeholder="កំណត់សម្គាល់..." value="{{ item.remarks }}">
+    </td>
+</tr>
+{% endwith %}
