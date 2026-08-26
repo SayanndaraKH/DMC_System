@@ -10,6 +10,9 @@ class Command(BaseCommand):
         admin_username = os.environ.get('ADMIN_USERNAME', 'ADMIN').strip()
         admin_password = os.environ.get('ADMIN_PASSWORD', 'syd@168').strip()
         admin_email = os.environ.get('ADMIN_EMAIL', 'sayanndara2022@gmail.com').strip()
+        # Escape hatch: set ADMIN_PASSWORD_RESET=1 in Railway to force the password
+        # back to ADMIN_PASSWORD on the next deploy (then remove the variable).
+        force_reset = os.environ.get('ADMIN_PASSWORD_RESET', '').strip().lower() in ('1', 'true', 'yes')
 
         # 1. Ensure core departments exist
         admin_dept, _ = Department.objects.get_or_create(
@@ -37,6 +40,7 @@ class Command(BaseCommand):
         # 2. Create or update ADMIN account (both uppercase ADMIN and lowercase admin)
         for uname in [admin_username, 'admin']:
             user = User.objects.filter(username__iexact=uname).first()
+            created = user is None
             if not user:
                 user = User.objects.create_superuser(
                     username=uname,
@@ -47,11 +51,22 @@ class Command(BaseCommand):
                 )
                 self.stdout.write(self.style.SUCCESS(f"Created superuser {uname}"))
             else:
-                user.set_password(admin_password)
+                # Never overwrite a password the user changed in the web UI - that
+                # silently undid their change on every deploy. Only keep the admin
+                # flags, which are what guarantees they can still get in.
+                if force_reset:
+                    user.set_password(admin_password)
                 user.is_superuser = True
                 user.is_staff = True
                 user.save()
-                self.stdout.write(self.style.SUCCESS(f"Updated superuser password for {uname}"))
+                if force_reset:
+                    self.stdout.write(self.style.WARNING(
+                        f"ADMIN_PASSWORD_RESET is set - password for {uname} was reset to ADMIN_PASSWORD"
+                    ))
+                else:
+                    self.stdout.write(self.style.SUCCESS(
+                        f"Verified superuser {uname} (existing password kept)"
+                    ))
 
             profile, _ = UserProfile.objects.get_or_create(
                 user=user,
@@ -71,13 +86,16 @@ class Command(BaseCommand):
                     'can_print': True,
                 }
             )
+            # Keep only the two flags that guarantee the admin can still log in and
+            # administer. Department and raw_password_display are editable in the web
+            # UI, so re-stamping them here would wipe those edits on every deploy.
             profile.is_approved = True
             profile.role = 'ADMIN'
-            profile.department = lead_dept
-            profile.raw_password_display = admin_password
+            if created or force_reset:
+                profile.raw_password_display = admin_password
             profile.save()
 
-        self.stdout.write(self.style.SUCCESS(f"Successfully initialized ADMIN with password: {admin_password}"))
+        self.stdout.write(self.style.SUCCESS("ADMIN account and core departments verified."))
 
         # 3. Auto-bootstrap initial geography data if database is empty
         try:
