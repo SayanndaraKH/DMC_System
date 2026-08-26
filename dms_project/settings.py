@@ -179,11 +179,19 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 media_candidate = os.environ.get('MEDIA_ROOT')
 if not media_candidate:
-    if os.path.exists('/app/media') and os.path.isdir('/app/media'):
+    # Railway sets RAILWAY_VOLUME_MOUNT_PATH on any service with a volume attached.
+    # Using it means uploads land on the volume wherever it is mounted, so photos
+    # survive a redeploy without anyone having to set MEDIA_ROOT by hand.
+    volume_mount = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+    if volume_mount and os.path.isdir(volume_mount):
+        media_candidate = os.path.join(volume_mount, 'media')
+    elif os.path.isdir('/app/media'):
         media_candidate = '/app/media'
     else:
         media_candidate = os.path.join(BASE_DIR, 'media')
 MEDIA_ROOT = media_candidate
+# Uploads fail with a 500 if the directory is missing (e.g. a freshly mounted volume).
+os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
