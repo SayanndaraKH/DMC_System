@@ -117,11 +117,69 @@
                 <span>បោះពុម្ពទម្រង់ផ្លូវការ</span>
             </button>
 
-            <!-- Export to Excel Button -->
-            <a href="{% url 'officer_status_export_excel' %}?{% if selected_dept %}department={{ selected_dept }}{% endif %}" class="btn btn-success d-flex align-items-center gap-2 shadow-sm px-3">
-                <i class="fa-solid fa-file-excel"></i>
-                <span>ទាញយកជា Excel</span>
-            </a>
+            <!-- Export to Excel / PDF Dropdown -->
+            <div class="dropdown">
+                <button type="button" class="btn btn-success d-flex align-items-center gap-2 shadow-sm px-3 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span>ទាញយក / មើល PDF</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-3 fs-7" style="min-width: 360px;">
+                    <li class="dropdown-header text-uppercase fw-bold text-muted fs-9 px-2 py-1">
+                        <i class="fa-solid fa-file-lines me-1 text-primary"></i> ជ្រើសរើសទម្រង់របាយការណ៍ (E-1 & E-2)
+                    </li>
+
+                    <!-- E-1 Option Card -->
+                    <li class="mb-2">
+                        <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
+                            <div class="d-flex align-items-center gap-2 mb-1.5">
+                                <span class="badge bg-success rounded-pill px-2 py-0.5 fs-9 fw-bold">E-1</span>
+                                <strong class="text-dark fs-8">ទម្រង់បញ្ជូនទៅក្រសួងកសិកម្ម</strong>
+                            </div>
+                            <p class="text-muted fs-9 mb-2">រៀបចំតាមរចនាសម្ព័ន្ធការិយាល័យ & ខណ្ឌ (១០ ជួរឈរ)</p>
+                            <div class="d-flex gap-1.5">
+                                <a href="{% url 'officer_preview_pdf_e1' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
+                                    <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
+                                </a>
+                                <a href="{% url 'officer_export_excel' %}?format=e1{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-sm btn-success rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
+                                    <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- E-2 Option Card -->
+                    <li class="mb-2">
+                        <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
+                            <div class="d-flex align-items-center gap-2 mb-1.5">
+                                <span class="badge bg-primary rounded-pill px-2 py-0.5 fs-9 fw-bold">E-2</span>
+                                <strong class="text-dark fs-8">ទម្រង់ទៅមន្ទីរមុខងារសាធារណៈខេត្ត</strong>
+                            </div>
+                            <p class="text-muted fs-9 mb-2">តារាងលម្អិត ១៦ ជួរឈរ (អត្តសញ្ញាណប័ណ្ណ កាំប្រាក់ ប្រកាស)</p>
+                            <div class="d-flex gap-1.5">
+                                <a href="{% url 'officer_preview_pdf_e2' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
+                                    <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
+                                </a>
+                                <a href="{% url 'officer_export_excel' %}?format=e2{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-sm btn-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
+                                    <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- General Status Matrix Card -->
+                    <li>
+                        <a class="dropdown-item rounded-3 p-2.5 d-flex align-items-start gap-2 border bg-light bg-opacity-25" href="{% url 'officer_status_export_excel' %}?{% if selected_dept %}department={{ selected_dept }}{% endif %}">
+                            <div class="bg-secondary bg-opacity-10 text-secondary rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; min-width: 32px;">
+                                <i class="fa-solid fa-chart-pie fs-7"></i>
+                            </div>
+                            <div>
+                                <strong class="d-block text-dark mb-0.5 fs-8">របាយការណ៍ស្ថានភាពទូទៅ (Status Matrix)</strong>
+                                <span class="fs-9 text-muted d-block">តារាងសង្ខេបក្របខ័ណ្ឌ សញ្ញាបត្រ និងស្ថានភាព</span>
+                            </div>
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
             <!-- Back to Officer List -->
             <a href="{% url 'officer_list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-2">

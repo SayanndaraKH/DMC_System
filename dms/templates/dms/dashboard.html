@@ -98,44 +98,44 @@
                 <table class="table table-hover align-middle m-0 fs-7">
                     <thead class="table-light">
                         <tr>
-                            <th>លេខចុះលិខិត</th>
-                            <th>កម្មវត្ថុ (ចំណងជើង)</th>
-                            <th>ប្រភព/អ្នកផ្ញើ</th>
-                            <th>កម្រិតប្រញាប់</th>
-                            <th>ស្ថានភាព</th>
-                            <th class="text-end">សកម្មភាព</th>
+                            <th class="py-3 px-3">លេខចុះលិខិត</th>
+                            <th class="py-3">កម្មវត្ថុ (ចំណងជើង)</th>
+                            <th class="py-3">ប្រភព/អ្នកផ្ញើ</th>
+                            <th class="py-3 text-center">កម្រិតប្រញាប់</th>
+                            <th class="py-3 text-center">ស្ថានភាព</th>
+                            <th class="py-3 text-end px-3">សកម្មភាព</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for doc in recent_documents %}
                         <tr>
-                            <td class="fw-bold text-success">{{ doc.registry_number }}</td>
+                            <td class="fw-bold text-success px-3">{{ doc.registry_number }}</td>
                             <td>
-                                <a href="{% url 'document_detail' doc.pk %}" class="text-decoration-none text-dark fw-medium">
-                                    {{ doc.title|truncatechars:45 }}
+                                <a href="{% url 'document_detail' doc.pk %}" class="text-decoration-none text-dark fw-medium d-block text-truncate" style="max-width: 260px;" title="{{ doc.title }}">
+                                    {{ doc.title }}
                                 </a>
                             </td>
-                            <td class="text-muted">{{ doc.origin_org|truncatechars:20 }}</td>
-                            <td>
-                                <span class="badge {{ doc.urgency|urgency_badge_class }}">
+                            <td class="text-muted text-truncate" style="max-width: 150px;">{{ doc.origin_org|default:"-" }}</td>
+                            <td class="text-center">
+                                <span class="badge {{ doc.urgency|urgency_badge_class }} rounded-pill px-2.5 py-1">
                                     {{ doc.get_urgency_display }}
                                 </span>
                             </td>
-                            <td>
-                                <span class="badge {{ doc.status|status_badge_class }}">
+                            <td class="text-center">
+                                <span class="badge {{ doc.status|status_badge_class }} rounded-pill px-2.5 py-1">
                                     {{ doc.get_status_display }}
                                 </span>
                             </td>
-                            <td class="text-end">
-                                <div class="d-inline-flex align-items-center gap-1">
-                                    <a href="{% url 'document_detail' doc.pk %}" class="btn btn-sm btn-light border text-primary" title="ពិនិត្យ">
-                                        <i class="fa-solid fa-eye"></i> មើល
+                            <td class="text-end px-3">
+                                <div class="d-inline-flex align-items-center gap-1.5">
+                                    <a href="{% url 'document_detail' doc.pk %}" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-1 fs-8" title="ពិនិត្យ">
+                                        <i class="fa-solid fa-eye me-1"></i> មើល
                                     </a>
                                     {% if user.is_superuser or user.username|upper == 'ADMIN' or profile.can_delete_document %}
                                     <form method="POST" action="{% url 'document_delete' doc.pk %}" class="d-inline" onsubmit="return confirm('⚠️ តើអ្នកពិតជាចង់លុបឯកសារលេខ «{{ doc.registry_number }}» នេះចេញពីប្រព័ន្ធមែនទេ?');">
                                         {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-0.5 rounded" title="លុបឯកសារ">
-                                            <i class="fa-solid fa-trash-can"></i>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-1.5" title="លុបឯកសារ" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">
+                                            <i class="fa-solid fa-trash-can fs-9"></i>
                                         </button>
                                     </form>
                                     {% endif %}
@@ -144,7 +144,10 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">គ្មានទិន្នន័យឯកសារឡើយ</td>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-folder-open fa-2x d-block mb-2 text-secondary opacity-50"></i>
+                                មិនទាន់មានទិន្នន័យឯកសារថ្មីៗឡើយ
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -162,21 +165,25 @@
                 </h6>
             </div>
             <div class="card-body p-3">
-                <div class="timeline">
+                <div class="timeline d-flex flex-column gap-2">
                     {% for r in recent_routings %}
-                    <div class="d-flex gap-3 mb-3 border-bottom pb-2">
-                        <div class="mt-1">
-                            <span class="badge bg-success rounded-circle p-2"><i class="fa-solid fa-paper-plane fs-8"></i></span>
+                    <div class="d-flex gap-2.5 p-2.5 rounded-3 bg-light bg-opacity-50 border border-light-subtle">
+                        <div class="mt-0.5">
+                            <span class="badge bg-success rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                <i class="fa-solid fa-paper-plane fs-9 text-white"></i>
+                            </span>
                         </div>
-                        <div class="flex-grow-1">
-                            <div class="fw-bold text-dark fs-7">{{ r.document.registry_number }}</div>
-                            <div class="fs-8 text-secondary">{{ r.from_user.get_full_name|default:r.from_user.username }} ➔ {{ r.to_dept.name_kh|default:"ថ្នាក់ដឹកនាំ" }}</div>
-                            <div class="fs-8 text-success font-monospace">{{ r.action_taken }}</div>
-                            <div class="fs-8 text-muted mt-1"><i class="fa-regular fa-clock me-1"></i>{{ r.routed_at|timesince }} មុន</div>
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="d-flex align-items-center justify-content-between mb-0.5">
+                                <span class="fw-bold text-dark fs-7 text-truncate">{{ r.document.registry_number }}</span>
+                                <small class="text-muted fs-9 text-nowrap"><i class="fa-regular fa-clock me-1"></i>{{ r.routed_at|timesince }} មុន</small>
+                            </div>
+                            <div class="fs-8 text-secondary text-truncate">{{ r.from_user.get_full_name|default:r.from_user.username }} ➔ {{ r.to_dept.name_kh|default:"ថ្នាក់ដឹកនាំ" }}</div>
+                            <div class="fs-8 text-success font-monospace fw-semibold text-truncate">{{ r.action_taken }}</div>
                         </div>
                     </div>
                     {% empty %}
-                    <div class="text-center text-muted py-3">គ្មានប្រវត្តិបញ្ជូនឡើយ</div>
+                    <div class="text-center text-muted py-4">គ្មានប្រវត្តិបញ្ជូនឡើយ</div>
                     {% endfor %}
                 </div>
             </div>

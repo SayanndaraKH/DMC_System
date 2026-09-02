@@ -1,16 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Siemreap&family=Moul&family=Battambang:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
-
-@font-face {
-    font-family: 'Khmer OS Siemreap';
-    src: local('Khmer OS Siemreap'), local('KhmerOS_siemreap'), local('KhmerOSSiemreap'), local('Siemreap'), url('https://fonts.gstatic.com/s/siemreap/v24/nwpTtK6mgnhKq45-T_4Qp28.woff2') format('woff2');
-    font-weight: 400;
-}
-
-@font-face {
-    font-family: 'Khmer OS Muol Light';
-    src: local('Khmer OS Muol Light'), local('KhmerOS_muollight'), local('KhmerOSMuolLight'), local('Khmer OS Muol'), local('Moul'), url('https://fonts.gstatic.com/s/moul/v24/5bU7ICfZP6S_1t3_fg.woff2') format('woff2');
-    font-weight: 400;
-}
+@import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Siemreap&family=Moul&family=Battambang:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
     --primary-color: #1a4d2e;
@@ -18,8 +6,8 @@
     --primary-light: #e8f5e9;
     --secondary-color: #2e7d32;
     --accent-color: #d97706;
-    --khmer-font: 'Khmer OS Siemreap', 'Siemreap', 'Times New Roman', Times, serif;
-    --khmer-muol: 'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', 'Times New Roman', serif;
+    --khmer-font: 'Kantumruy Pro', 'Siemreap', 'Khmer OS Siemreap', 'Battambang', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --khmer-muol: 'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', serif;
     --body-bg: #f4f6f9;
     --card-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
 }
@@ -30,16 +18,18 @@ body {
     color: #2d3748;
     margin: 0;
     padding: 0;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
 }
 
-/* Detail & Content Elements Typography (Khmer OS Siemreap / Times New Roman) */
+/* Detail & Content Elements Typography */
 p, label, table, td, th, input, select, textarea, button,
 .form-control, .form-select, .form-label, .table, .card-body,
-.nav-link span, .submenu-link span, .nav-group-toggle span,
+.nav-link, .nav-link span, .submenu-link, .submenu-link span, .nav-group-toggle, .nav-group-toggle span,
 .badge, .dropdown-item, .alert, .modal-body, .btn,
 .detail-text, .text-muted, .small {
     font-family: var(--khmer-font);
+    line-height: 1.55;
 }
 
 /* 🎯 Protect and Enforce FontAwesome Icons */
@@ -68,7 +58,7 @@ p, label, table, td, th, input, select, textarea, button,
     font-family: var(--bs-font-monospace) !important;
 }
 
-/* 👑 Main Titles Typography (Khmer OS Muol Light, Size 24) */
+/* 👑 Main Titles Typography (Khmer OS Muol Light, Size 22) */
 .main-title,
 .page-title,
 .muol-title,
@@ -82,7 +72,7 @@ p, label, table, td, th, input, select, textarea, button,
 .content-body > div > div:first-child h3,
 .modal-title {
     font-family: var(--khmer-muol) !important;
-    font-size: 24px !important;
+    font-size: 22px !important;
     font-weight: normal !important;
     letter-spacing: 0.3px;
     line-height: 1.5;
@@ -95,13 +85,15 @@ p, label, table, td, th, input, select, textarea, button,
 }
 
 .sidebar {
-    width: 270px;
-    background: linear-gradient(180deg, #112d1b 0%, #1a4d2e 100%);
+    width: 285px;
+    min-width: 285px;
+    max-width: 285px;
+    background: linear-gradient(180deg, #0e2a18 0%, #143e22 50%, #1a512d 100%);
     color: #ffffff;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.15);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.18);
     z-index: 100;
 }
 
@@ -119,69 +111,90 @@ p, label, table, td, th, input, select, textarea, button,
 
 .sidebar-title {
     font-family: var(--khmer-muol) !important;
-    font-size: 20px !important;
+    font-size: 19px !important;
     font-weight: normal !important;
     color: #ffffff;
     margin: 0;
     letter-spacing: 0.5px;
+    line-height: 1.4;
 }
 
 .sidebar-subtitle {
     font-family: var(--khmer-font);
     font-size: 0.78rem;
     color: #a7f3d0;
-    margin-top: 0.2rem;
+    margin-top: 0.25rem;
 }
 
 .sidebar-nav {
-    padding: 0.75rem 0.6rem;
+    padding: 0.85rem 0.75rem;
     flex-grow: 1;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
 .sidebar-nav::-webkit-scrollbar {
-    width: 4px;
+    width: 5px;
 }
 
 .sidebar-nav::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 5px;
+}
+
+.sidebar-section-header {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: #86efac;
+    padding: 0.85rem 0.6rem 0.35rem 0.6rem;
+    margin-top: 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.sidebar-section-header:first-of-type {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 0.2rem;
 }
 
 .sidebar-nav .nav-item {
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.45rem;
 }
 
 .sidebar-nav .nav-link {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    padding: 0.65rem 0.85rem;
+    gap: 0.75rem;
+    padding: 0.65rem 0.9rem;
     color: #e2e8f0;
     text-decoration: none;
-    border-radius: 8px;
+    border-radius: 9px;
     font-size: 0.88rem;
     font-weight: 600;
+    line-height: 1.5;
     transition: all 0.2s ease;
 }
 
-.sidebar-nav .nav-link:hover, 
-.sidebar-nav .nav-link.active {
-    background-color: rgba(255, 255, 255, 0.15);
+.sidebar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.12);
     color: #ffffff;
     transform: translateX(2px);
 }
 
 .sidebar-nav .nav-link.active {
-    background: linear-gradient(90deg, rgba(16, 185, 129, 0.3) 0%, rgba(16, 185, 129, 0.15) 100%);
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.35) 0%, rgba(16, 185, 129, 0.15) 100%);
     border-left: 3px solid #10b981;
     color: #ffffff;
+    font-weight: 700;
 }
 
 /* 📂 Collapsible Menu Groups */
 .nav-group {
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.45rem;
 }
 
 .nav-group-toggle {
@@ -189,13 +202,14 @@ p, label, table, td, th, input, select, textarea, button,
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.65rem 0.85rem;
+    padding: 0.65rem 0.9rem;
     color: #e2e8f0;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 9px;
     font-size: 0.88rem;
     font-weight: 600;
+    line-height: 1.5;
     text-align: left;
     transition: all 0.2s ease;
     cursor: pointer;
@@ -203,12 +217,14 @@ p, label, table, td, th, input, select, textarea, button,
 }
 
 .nav-group-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.09);
+    background-color: rgba(255, 255, 255, 0.1);
     color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .nav-group-toggle.active-parent {
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.35);
     color: #a7f3d0;
 }
 
@@ -226,29 +242,31 @@ p, label, table, td, th, input, select, textarea, button,
 
 /* 🌿 Nav Submenu */
 .nav-submenu {
-    padding: 0.3rem 0 0.3rem 0.5rem;
-    margin: 0.15rem 0 0.25rem 0.75rem;
-    border-left: 2px solid rgba(255, 255, 255, 0.12);
+    padding: 0.4rem 0 0.4rem 0.6rem;
+    margin: 0.25rem 0 0.35rem 0.75rem;
+    border-left: 2px solid rgba(16, 185, 129, 0.35);
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.25rem;
 }
 
 .submenu-link {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    padding: 0.5rem 0.75rem;
+    gap: 0.7rem;
+    padding: 0.48rem 0.8rem;
     color: #cbd5e1;
     text-decoration: none;
-    border-radius: 6px;
-    font-size: 0.835rem;
+    border-radius: 7px;
+    font-size: 0.84rem;
     font-weight: 500;
+    line-height: 1.5;
     transition: all 0.18s ease;
+    min-height: 34px;
 }
 
 .submenu-link:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.12);
     color: #ffffff;
     transform: translateX(3px);
 }
@@ -258,7 +276,7 @@ p, label, table, td, th, input, select, textarea, button,
     color: #ffffff;
     font-weight: 600;
     border-left: 3px solid #10b981;
-    padding-left: 0.6rem;
+    padding-left: 0.65rem;
 }
 
 /* Content Area Nav Pills & Tab Navigation - High Contrast & Clearly Readable */
@@ -380,14 +398,30 @@ p, label, table, td, th, input, select, textarea, button,
 }
 
 .content-body {
-    padding: 2rem;
+    padding: 1.75rem 2rem;
     flex-grow: 1;
+}
+
+/* 📊 Tables with Spacious Breathing Room */
+.table th {
+    font-weight: 600;
+    padding: 0.85rem 0.95rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+
+.table td {
+    padding: 0.85rem 0.95rem;
+    vertical-align: middle;
+    font-size: 0.86rem;
+    line-height: 1.55;
 }
 
 /* Custom Cards */
 .card-stat {
     border: none;
-    border-radius: 12px;
+    border-radius: 14px;
     box-shadow: var(--card-shadow);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     background: white;
@@ -399,13 +433,13 @@ p, label, table, td, th, input, select, textarea, button,
 }
 
 .stat-icon {
-    width: 54px;
-    height: 54px;
+    width: 52px;
+    height: 52px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
 }
 
 /* Badges */

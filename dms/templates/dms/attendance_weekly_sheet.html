@@ -206,7 +206,17 @@
                     {% for item in rows_civil %}
                         {% include "dms/partials/attendance_lead_weekly_row.html" with item=item %}
                     {% empty %}
-                        <tr><td colspan="10" class="text-center py-2 text-muted">មិនមានទិន្នន័យមន្ត្រីរាជការឡើយ</td></tr>
+                        <tr>
+                            <td colspan="10" class="text-center py-4 text-muted">
+                                <i class="fa-solid fa-folder-open fa-2x mb-2 text-secondary d-block"></i>
+                                <span class="fw-bold">មិនមានទិន្នន័យមន្ត្រីរាជការក្រោមឱវាទក្នុងអង្គភាពនេះឡើយ</span>
+                                <div class="mt-2">
+                                    <span class="badge bg-light text-primary border px-3 py-2">
+                                        <i class="fa-solid fa-crown me-1 text-warning"></i>ថ្នាក់ដឹកនាំ ប្រធាន ឬតំណាងអង្គភាពនេះ ត្រូវបានកត់ត្រាក្នុង «វត្តមានថ្នាក់ដឹកនាំមន្ទីរ»
+                                    </span>
+                                </div>
+                            </td>
+                        </tr>
                     {% endfor %}
 
                     <!-- SECTION II: មន្ត្រីជាប់កិច្ចសន្យា -->

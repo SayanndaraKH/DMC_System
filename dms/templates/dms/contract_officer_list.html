@@ -56,8 +56,13 @@
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
             <button type="button" class="btn btn-outline-primary rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#importDocxModal">
-                <i class="fa-solid fa-file-word me-1.5 text-primary"></i> នាំចូលពី Word (.docx)
+                <i class="fa-solid fa-wand-magic-sparkles me-1.5 text-primary"></i> ស្កេន & នាំចូល (PDF / រូបភាព / Word)
             </button>
+            {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 fs-7 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#geminiKeyModal" title="កំណត់ Google Gemini API Key សម្រាប់ OCR អក្សរខ្មែរ & អក្សរសរសេរដៃ">
+                <i class="fa-solid fa-key text-warning me-1"></i> Gemini Key
+            </button>
+            {% endif %}
             <a href="{% url 'contract_officer_export_excel' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-success rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-semibold">
                 <i class="fa-solid fa-file-excel me-1.5 text-success"></i> ទាញយក Excel
             </a>
@@ -559,7 +564,7 @@
     </div>
 </div>
 
-<!-- Modal: Batch Multi-File Import Contract Officer CVs from Word (.docx) -->
+<!-- Modal: Batch Multi-File Import Contract Officer CVs from PDF, Images & Word -->
 <div class="modal fade" id="importDocxModal" tabindex="-1" aria-labelledby="importDocxModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" id="batchModalDialog">
         <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
@@ -567,11 +572,11 @@
             <div class="modal-header bg-primary text-white px-4 py-3 border-0">
                 <div class="d-flex align-items-center gap-2.5">
                     <div class="bg-white bg-opacity-25 p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
-                        <i class="fa-solid fa-file-word fs-5 text-white"></i>
+                        <i class="fa-solid fa-wand-magic-sparkles fs-5 text-warning"></i>
                     </div>
                     <div>
-                        <h6 class="modal-title fw-bold m-0" id="importDocxModalLabel">នាំចូលជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យាពី Word (.docx)</h6>
-                        <span class="fs-8 text-white-50">Auto-Extract & Populate Contract Civil Servant CVs (Drag & Drop)</span>
+                        <h6 class="modal-title fw-bold m-0" id="importDocxModalLabel">ស្កេន & នាំចូលជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យា (PDF, រូបភាព & Word)</h6>
+                        <span class="fs-8 text-white-50">Smart AI Vision OCR (អានអក្សរពុម្ព & អក្សរសរសេរដៃ) & ស្រង់រូបថត 4x6 ស្វ័យប្រវត្តិ</span>
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
@@ -587,10 +592,10 @@
                 {% csrf_token %}
                 <!-- Info Alert -->
                 <div class="alert alert-info border-0 rounded-3 small mb-3 d-flex align-items-start gap-2.5 shadow-xs">
-                    <i class="fa-solid fa-circle-info fs-5 mt-0.5 text-info"></i>
+                    <i class="fa-solid fa-wand-magic-sparkles fs-5 mt-0.5 text-warning"></i>
                     <div>
                         <strong>ប្រព័ន្ធស្គាល់ទម្រង់ជីវប្រវត្តិរូបសង្ខេបមន្ត្រីជាប់កិច្ចសន្យា (ចំណុច ១ ដល់ ១១)</strong><br>
-                        លោកអ្នកអាច <strong>ទម្លាក់បញ្ចូល File Word មួយ ឬច្រើនក្នុងពេលតែមួយ (Multi-files)</strong> ដើម្បីឱ្យប្រព័ន្ធស្រង់ទិន្នន័យ និងរូបថត 4x6 ដោយស្វ័យប្រវត្តិ!
+                        លោកអ្នកអាច <strong>ទម្លាក់បញ្ចូល File PDF, រូបភាព (JPG/PNG) ឬ Word មួយ ឬច្រើនក្នុងពេលតែមួយ (Multi-files)</strong>។ ប្រព័ន្ធប្រើប្រាស់ AI Vision ដើម្បីស្កេនស្រង់ទិន្នន័យ ទាំងអក្សរពុម្ព និងអក្សរសរសេរដៃ ព្រមទាំងអនុញ្ញាតឱ្យពិនិត្យមើលផ្ទៀងផ្ទាត់រូបភាពដើមមុននឹង Save!
                     </div>
                 </div>
 
@@ -625,7 +630,7 @@
                     </div>
                 </div>
 
-                <!-- 🏢 Department Selector for Word Import -->
+                <!-- 🏢 Department Selector for Import -->
                 {% if is_admin_or_lead %}
                 <div class="card border border-primary border-opacity-25 bg-white rounded-3 p-3 mb-3 shadow-xs" id="batchDeptSelectGroup">
                     <label class="form-label fw-bold text-dark d-flex align-items-center justify-content-between mb-2">
@@ -652,12 +657,12 @@
                 </div>
                 {% endif %}
 
-                <!-- Multi-File Drag-and-Drop Zone -->
+                <!-- Multi-File Drag-and-Drop Zone (PDF, Images & Word) -->
                 <div id="batchDropZone" class="border border-2 border-dashed border-primary border-opacity-50 rounded-4 p-4 text-center bg-light position-relative mb-3 cursor-pointer" style="transition: all 0.2s ease;">
                     <i class="fa-solid fa-cloud-arrow-up fs-1 text-primary mb-2 d-block"></i>
-                    <h6 class="fw-bold text-dark mb-1">ចុចទីនេះ ឬទម្លាក់ File Word ជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យាចូលទីនេះ (.docx)</h6>
-                    <p class="text-muted fs-8 mb-0">លោកអ្នកអាច Select ជ្រើសរើស File Word ម្ដង ១០ ឬ ២០ ឯកសារបានយ៉ាងងាយស្រួល</p>
-                    <input type="file" id="batchDocxFileInput" multiple accept=".docx" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" onchange="handleFilesSelected(this.files)">
+                    <h6 class="fw-bold text-dark mb-1">ចុចទីនេះ ឬទម្លាក់ File PDF, រូបភាព (JPG/PNG) ឬ Word ចូលទីនេះ</h6>
+                    <p class="text-muted fs-8 mb-0">គាំទ្រ <strong>.pdf, .jpg, .jpeg, .png, .webp, .docx</strong> (អាចជ្រើសរើសម្ដងច្រើន Files បាន)</p>
+                    <input type="file" id="batchDocxFileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.docx" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" onchange="handleFilesSelected(this.files)">
                 </div>
 
                 <!-- Live Upload & Progress Container (Hidden until files selected) -->
@@ -897,10 +902,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Batch Word Import Management
+// Batch Document & Smart AI Scan Management
 let batchQueue = [];
 let isProcessing = false;
 let currentDiffIndex = null;
+let currentScanReviewIndex = null;
 let batchStats = { total: 0, newCount: 0, identical: 0, diffCount: 0, errors: 0 };
 
 function toggleBatchFullscreen() {
@@ -918,20 +924,34 @@ function toggleBatchFullscreen() {
 function handleFilesSelected(files) {
     if (!files || files.length === 0) return;
 
+    const validExts = ['.docx', '.pdf', '.jpg', '.jpeg', '.png', '.webp', '.bmp'];
+
     for (let i = 0; i < files.length; i++) {
         const f = files[i];
-        if (!f.name.toLowerCase().endsWith('.docx')) continue;
+        const nameLower = f.name.toLowerCase();
+        const isValid = validExts.some(ext => nameLower.endsWith(ext));
+        if (!isValid) continue;
         
         // Prevent exact duplicates in queue
         if (batchQueue.some(item => item.file.name === f.name && item.file.size === f.size)) continue;
 
+        let fileType = 'word';
+        if (nameLower.endsWith('.pdf')) fileType = 'pdf';
+        else if (nameLower.endsWith('.docx')) fileType = 'word';
+        else fileType = 'image';
+
         batchQueue.push({
             id: 'batch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
             file: f,
+            fileType: fileType,
             status: 'pending', // pending, processing, created, updated, identical, needs_review, skipped, error
             officerName: '-',
             deptPos: '-',
             diffs: [],
+            scannedData: null,
+            photoBase64: null,
+            previewImages: [],
+            existingOfficer: null,
             message: ''
         });
     }
@@ -966,9 +986,12 @@ function renderBatchTable() {
     let html = '';
     batchQueue.forEach((item, idx) => {
         let statusBadge = '<span class="badge bg-secondary bg-opacity-25 text-dark"><i class="fa-regular fa-clock me-1"></i> រង់ចាំ</span>';
+        let fileIcon = '<i class="fa-solid fa-file-word text-primary fs-6"></i>';
+        if (item.fileType === 'pdf') fileIcon = '<i class="fa-solid fa-file-pdf text-danger fs-6"></i>';
+        else if (item.fileType === 'image') fileIcon = '<i class="fa-solid fa-file-image text-success fs-6"></i>';
         
         if (item.status === 'processing') {
-            statusBadge = '<span class="badge bg-primary"><span class="spinner-border spinner-border-sm me-1"></span> កំពុងដំណើរការ...</span>';
+            statusBadge = '<span class="badge bg-primary"><span class="spinner-border spinner-border-sm me-1"></span> កំពុងស្កេន AI...</span>';
         } else if (item.status === 'created') {
             statusBadge = '<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> បញ្ចូលថ្មីជោគជ័យ</span>';
         } else if (item.status === 'updated') {
@@ -978,7 +1001,11 @@ function renderBatchTable() {
         } else if (item.status === 'skipped') {
             statusBadge = '<span class="badge bg-secondary"><i class="fa-solid fa-forward me-1"></i> បានរំលង</span>';
         } else if (item.status === 'needs_review') {
-            statusBadge = `<button type="button" class="btn btn-warning btn-sm py-0 px-2 fw-bold fs-9 rounded-pill" onclick="openDiffModal(${idx})"><i class="fa-solid fa-triangle-exclamation me-1"></i> ផ្ទៀងផ្ទាត់ (${item.diffs.length} ខុសគ្នា)</button>`;
+            if (item.scannedData) {
+                statusBadge = `<button type="button" class="btn btn-warning btn-sm py-0 px-2 fw-bold fs-9 rounded-pill shadow-xs" onclick="openScanReviewModal(${idx})"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> ផ្ទៀងផ្ទាត់ & កែប្រែ</button>`;
+            } else {
+                statusBadge = `<button type="button" class="btn btn-warning btn-sm py-0 px-2 fw-bold fs-9 rounded-pill" onclick="openDiffModal(${idx})"><i class="fa-solid fa-triangle-exclamation me-1"></i> ផ្ទៀងផ្ទាត់ (${item.diffs.length} ខុសគ្នា)</button>`;
+            }
         } else if (item.status === 'error') {
             statusBadge = `<span class="badge bg-danger text-wrap" title="${item.message}"><i class="fa-solid fa-circle-xmark me-1"></i> បរាជ័យ: ${item.message.substring(0, 30)}</span>`;
         }
@@ -988,11 +1015,14 @@ function renderBatchTable() {
             <td class="text-center text-muted fw-bold">${idx + 1}</td>
             <td>
                 <div class="d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-file-word text-primary fs-6"></i>
-                    <span class="fw-semibold text-dark text-truncate" style="max-width: 250px;" title="${item.file.name}">${item.file.name}</span>
+                    ${fileIcon}
+                    <span class="fw-semibold text-dark text-truncate" style="max-width: 240px;" title="${item.file.name}">${item.file.name}</span>
                 </div>
             </td>
-            <td><strong class="text-primary">${item.officerName}</strong></td>
+            <td>
+                <strong class="text-primary">${item.officerName}</strong>
+                ${item.photoBase64 ? `<img src="${item.photoBase64}" class="rounded ms-1 border" style="width: 22px; height: 26px; object-fit: cover;" title="រូបថត 4x6">` : ''}
+            </td>
             <td><span class="text-muted small">${item.deptPos}</span></td>
             <td class="text-center">${statusBadge}</td>
             <td class="text-center">
@@ -1047,10 +1077,12 @@ async function startBatchProcessing() {
     document.getElementById('startBatchUploadBtn').classList.add('d-none');
     document.getElementById('batchDropZone').classList.add('d-none');
     document.getElementById('duplicateModeCard').classList.add('d-none');
-    document.getElementById('batchDeptSelectGroup').classList.add('d-none');
+    const deptGroup = document.getElementById('batchDeptSelectGroup');
+    if (deptGroup) deptGroup.classList.add('d-none');
 
     const dupMode = document.querySelector('input[name="batchDuplicateMode"]:checked').value;
-    const globalDept = document.getElementById('batchGlobalDeptSelect').value;
+    const globalDeptEl = document.getElementById('batchGlobalDeptSelect');
+    const globalDept = globalDeptEl ? globalDeptEl.value : '';
 
     for (let i = 0; i < batchQueue.length; i++) {
         const item = batchQueue[i];
@@ -1059,33 +1091,89 @@ async function startBatchProcessing() {
         item.status = 'processing';
         renderBatchTable();
 
-        const formData = new FormData();
-        formData.append('docx_file', item.file);
-        formData.append('duplicate_mode', dupMode);
-        if (globalDept) formData.append('department', globalDept);
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-        formData.append('format', 'json');
+        if (item.fileType === 'pdf' || item.fileType === 'image') {
+            // Smart AI Scan Endpoint
+            const formData = new FormData();
+            formData.append('file', item.file);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
 
-        try {
-            const resp = await fetch("{% url 'contract_officer_import_docx' %}", {
-                method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                body: formData
-            });
-            const res = await resp.json();
+            try {
+                const scanResp = await fetch("{% url 'api_contract_officer_scan_file' %}", {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                });
+                const scanRes = await scanResp.json();
 
-            if (res.success) {
-                item.status = res.action; // created, updated, identical, needs_review, skipped
-                item.officerName = res.officer_name || '-';
-                item.message = res.message || '';
-                if (res.diffs) item.diffs = res.diffs;
-            } else {
+                if (scanRes.success) {
+                    const data = scanRes.data || {};
+                    item.scannedData = data;
+                    item.photoBase64 = scanRes.photo_base64;
+                    item.previewImages = scanRes.preview_images || [];
+                    item.existingOfficer = scanRes.existing_officer;
+
+                    const officerFullName = `${data.khmer_last_name || ''} ${data.khmer_first_name || ''}`.trim() || 'មន្ត្រី';
+                    item.officerName = officerFullName;
+                    item.deptPos = `${data.working_unit || 'កិច្ចសន្យា'} (${data.position_title || 'មន្ត្រី'})`;
+
+                    if (scanRes.existing_officer) {
+                        if (dupMode === 'skip') {
+                            item.status = 'skipped';
+                            item.message = 'មានក្នុងប្រព័ន្ធរួច (បានរំលង)';
+                        } else if (dupMode === 'auto_update') {
+                            // Auto save with update
+                            await executeDirectSaveForQueueItem(item, globalDept, true);
+                        } else {
+                            // Review required
+                            item.status = 'needs_review';
+                            item.diffs = scanRes.existing_officer.diffs || [];
+                        }
+                    } else {
+                        // New officer - auto save or review based on dupMode
+                        if (dupMode === 'review') {
+                            item.status = 'needs_review';
+                        } else {
+                            await executeDirectSaveForQueueItem(item, globalDept, false);
+                        }
+                    }
+                } else {
+                    item.status = 'error';
+                    item.message = scanRes.error || 'មិនអាចស្កេនឯកសារបានឡើយ';
+                }
+            } catch (err) {
                 item.status = 'error';
-                item.message = res.error || 'កំហុសមិនស្គាល់';
+                item.message = err.message || 'Server scan error';
             }
-        } catch (err) {
-            item.status = 'error';
-            item.message = err.message || 'Server error';
+        } else {
+            // Word document import endpoint
+            const formData = new FormData();
+            formData.append('docx_file', item.file);
+            formData.append('duplicate_mode', dupMode);
+            if (globalDept) formData.append('department', globalDept);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            formData.append('format', 'json');
+
+            try {
+                const resp = await fetch("{% url 'contract_officer_import_docx' %}", {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                });
+                const res = await resp.json();
+
+                if (res.success) {
+                    item.status = res.action; // created, updated, identical, needs_review, skipped
+                    item.officerName = res.officer_name || '-';
+                    item.message = res.message || '';
+                    if (res.diffs) item.diffs = res.diffs;
+                } else {
+                    item.status = 'error';
+                    item.message = res.error || 'កំហុសមិនស្គាល់';
+                }
+            } catch (err) {
+                item.status = 'error';
+                item.message = err.message || 'Server error';
+            }
         }
 
         renderBatchTable();
@@ -1093,6 +1181,46 @@ async function startBatchProcessing() {
 
     isProcessing = false;
     document.getElementById('batchDoneBtn').classList.remove('d-none');
+}
+
+async function executeDirectSaveForQueueItem(item, globalDept, isUpdate) {
+    const data = item.scannedData || {};
+    const saveFormData = new FormData();
+    saveFormData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    saveFormData.append('format', 'json');
+
+    if (item.existingOfficer && isUpdate) {
+        saveFormData.append('officer_id', item.existingOfficer.id);
+        saveFormData.append('confirm_update', '1');
+    }
+    if (globalDept) saveFormData.append('department', globalDept);
+
+    for (let k in data) {
+        if (data[k] !== null && data[k] !== undefined) {
+            saveFormData.append(k, data[k]);
+        }
+    }
+    if (item.photoBase64) saveFormData.append('photo_base64', item.photoBase64);
+    if (item.file) saveFormData.append('scanned_file', item.file);
+
+    try {
+        const saveResp = await fetch("{% url 'contract_officer_confirm_scan_import' %}", {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: saveFormData
+        });
+        const saveRes = await saveResp.json();
+        if (saveRes.success) {
+            item.status = isUpdate ? 'updated' : 'created';
+            item.message = saveRes.message;
+        } else {
+            item.status = 'error';
+            item.message = saveRes.error || 'បញ្ហារក្សាទុក';
+        }
+    } catch (e) {
+        item.status = 'error';
+        item.message = e.message;
+    }
 }
 
 function openDiffModal(idx) {
@@ -1171,7 +1299,578 @@ function openContractTransferModal(officerId, officerName, currentUnit, position
     const modal = new bootstrap.Modal(document.getElementById('quickContractTransferModal'));
     modal.show();
 }
+
+// ==============================================================================
+// 🔍 SMART AI SCANNER & DUAL-PANE REVIEW MODAL (List View)
+// ==============================================================================
+let currentPreviewPages = [];
+let currentPreviewPageIndex = 0;
+let currentZoom = 1.0;
+let currentRotation = 0;
+
+function openScanReviewModal(idx) {
+    currentScanReviewIndex = idx;
+    const item = batchQueue[idx];
+    if (!item || !item.scannedData) return;
+
+    const data = item.scannedData;
+    currentPreviewPages = item.previewImages || [];
+    currentPreviewPageIndex = 0;
+    currentZoom = 1.0;
+    currentRotation = 0;
+
+    // Source Badge
+    const sourceEl = document.getElementById('scanSourceBadge');
+    if (sourceEl) {
+        sourceEl.className = 'badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2.5 py-1';
+        sourceEl.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles me-1"></i> ស្រង់ដោយ Smart AI Vision OCR';
+    }
+
+    // Duplicate alert
+    const dupAlert = document.getElementById('scanDuplicateAlert');
+    if (dupAlert) {
+        if (item.existingOfficer) {
+            dupAlert.classList.remove('d-none');
+            document.getElementById('scanDupOfficerName').textContent = item.existingOfficer.name;
+            document.getElementById('scanDupDeptName').textContent = item.existingOfficer.department_name;
+        } else {
+            dupAlert.classList.add('d-none');
+        }
+    }
+
+    // Populate Fields in Modal
+    document.getElementById('modal_khmer_last_name').value = data.khmer_last_name || '';
+    document.getElementById('modal_khmer_first_name').value = data.khmer_first_name || '';
+    document.getElementById('modal_latin_name').value = data.latin_name || '';
+    document.getElementById('modal_gender').value = data.gender || 'MALE';
+    document.getElementById('modal_dob').value = data.dob || '';
+    document.getElementById('modal_nationality').value = data.nationality || 'ខ្មែរ';
+    document.getElementById('modal_ethnicity').value = data.ethnicity || 'ខ្មែរ';
+    
+    document.getElementById('modal_id_type').value = data.id_type || 'NATIONAL_ID';
+    document.getElementById('modal_id_number').value = data.id_number || '';
+    
+    document.getElementById('modal_pob_province').value = data.pob_province || '';
+    document.getElementById('modal_pob_district').value = data.pob_district || '';
+    document.getElementById('modal_pob_commune').value = data.pob_commune || '';
+    document.getElementById('modal_pob_village').value = data.pob_village || '';
+    document.getElementById('modal_place_of_birth').value = data.place_of_birth || '';
+
+    document.getElementById('modal_current_province').value = data.current_province || '';
+    document.getElementById('modal_current_district').value = data.current_district || '';
+    document.getElementById('modal_current_commune').value = data.current_commune || '';
+    document.getElementById('modal_current_village').value = data.current_village || '';
+    document.getElementById('modal_current_house_no').value = data.current_house_no || '';
+    document.getElementById('modal_current_street').value = data.current_street || '';
+    document.getElementById('modal_current_address').value = data.current_address || '';
+
+    document.getElementById('modal_general_education').value = data.general_education || '';
+    document.getElementById('modal_training_level').value = data.training_level || '';
+    document.getElementById('modal_skill_specialization').value = data.skill_specialization || '';
+
+    document.getElementById('modal_working_unit').value = data.working_unit || '';
+    document.getElementById('modal_phone').value = data.phone || '';
+    document.getElementById('modal_email').value = data.email || '';
+    document.getElementById('modal_position_title').value = data.position_title || 'មន្ត្រីជាប់កិច្ចសន្យា';
+    document.getElementById('modal_contract_year').value = data.contract_year || 2026;
+    document.getElementById('modal_contract_number').value = data.contract_number || '';
+    document.getElementById('modal_salary').value = data.salary || '';
+
+    // Extracted Photo
+    const photoImg = document.getElementById('modalExtractedPhoto');
+    const photoPlaceholder = document.getElementById('modalPhotoPlaceholder');
+    if (item.photoBase64) {
+        photoImg.src = item.photoBase64;
+        photoImg.classList.remove('d-none');
+        photoPlaceholder.classList.add('d-none');
+    } else {
+        photoImg.src = '';
+        photoImg.classList.add('d-none');
+        photoPlaceholder.classList.remove('d-none');
+    }
+
+    renderScanPreviewPage();
+
+    const modal = new bootstrap.Modal(document.getElementById('smartScannerModal'));
+    modal.show();
+}
+
+function renderScanPreviewPage() {
+    const previewImg = document.getElementById('scanDocumentPreviewImg');
+    const pageBadge = document.getElementById('scanPageNavBadge');
+    const prevBtn = document.getElementById('scanPrevPageBtn');
+    const nextBtn = document.getElementById('scanNextPageBtn');
+
+    if (currentPreviewPages.length > 0) {
+        previewImg.src = currentPreviewPages[currentPreviewPageIndex];
+        previewImg.classList.remove('d-none');
+        applyScanTransform();
+
+        pageBadge.textContent = `ទំព័រ ${currentPreviewPageIndex + 1} / ${currentPreviewPages.length}`;
+        prevBtn.disabled = currentPreviewPageIndex === 0;
+        nextBtn.disabled = currentPreviewPageIndex >= currentPreviewPages.length - 1;
+    } else {
+        previewImg.classList.add('d-none');
+        pageBadge.textContent = 'គ្មានរូបភាពមើលមុន';
+    }
+}
+
+function scanChangePage(delta) {
+    const newIdx = currentPreviewPageIndex + delta;
+    if (newIdx >= 0 && newIdx < currentPreviewPages.length) {
+        currentPreviewPageIndex = newIdx;
+        renderScanPreviewPage();
+    }
+}
+
+function scanZoom(delta) {
+    if (delta === 0) {
+        currentZoom = 1.0;
+        currentRotation = 0;
+    } else {
+        currentZoom = Math.max(0.4, Math.min(3.0, currentZoom + delta));
+    }
+    applyScanTransform();
+}
+
+function scanRotate() {
+    currentRotation = (currentRotation + 90) % 360;
+    applyScanTransform();
+}
+
+function applyScanTransform() {
+    const img = document.getElementById('scanDocumentPreviewImg');
+    if (img) {
+        img.style.transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
+        img.style.transformOrigin = 'center center';
+        img.style.transition = 'transform 0.2s ease';
+    }
+}
+
+async function saveDirectlyFromScanModal() {
+    if (currentScanReviewIndex === null) return;
+    const item = batchQueue[currentScanReviewIndex];
+    if (!item) return;
+
+    const lastName = document.getElementById('modal_khmer_last_name').value.trim();
+    const firstName = document.getElementById('modal_khmer_first_name').value.trim();
+    if (!lastName || !firstName) {
+        alert('⚠️ សូមបញ្ចូលគោត្តនាម និងនាមខ្លួនជាភាសាខ្មែរ!');
+        return;
+    }
+
+    const saveBtn = document.getElementById('modalDirectSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> កំពុងរក្សាទុក...';
+
+    const globalDeptEl = document.getElementById('batchGlobalDeptSelect');
+    const globalDept = globalDeptEl ? globalDeptEl.value : '';
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    formData.append('format', 'json');
+
+    if (item.existingOfficer) {
+        formData.append('officer_id', item.existingOfficer.id);
+        formData.append('confirm_update', '1');
+    }
+    if (globalDept) formData.append('department', globalDept);
+
+    formData.append('khmer_last_name', lastName);
+    formData.append('khmer_first_name', firstName);
+    formData.append('latin_name', document.getElementById('modal_latin_name').value.trim().toUpperCase());
+    formData.append('gender', document.getElementById('modal_gender').value);
+    formData.append('dob', document.getElementById('modal_dob').value.trim());
+    formData.append('nationality', document.getElementById('modal_nationality').value.trim() || 'ខ្មែរ');
+    formData.append('ethnicity', document.getElementById('modal_ethnicity').value.trim() || 'ខ្មែរ');
+
+    formData.append('id_type', document.getElementById('modal_id_type').value);
+    formData.append('id_number', document.getElementById('modal_id_number').value.trim());
+
+    formData.append('pob_province', document.getElementById('modal_pob_province').value.trim());
+    formData.append('pob_district', document.getElementById('modal_pob_district').value.trim());
+    formData.append('pob_commune', document.getElementById('modal_pob_commune').value.trim());
+    formData.append('pob_village', document.getElementById('modal_pob_village').value.trim());
+    formData.append('place_of_birth', document.getElementById('modal_place_of_birth').value.trim());
+
+    formData.append('current_province', document.getElementById('modal_current_province').value.trim());
+    formData.append('current_district', document.getElementById('modal_current_district').value.trim());
+    formData.append('current_commune', document.getElementById('modal_current_commune').value.trim());
+    formData.append('current_village', document.getElementById('modal_current_village').value.trim());
+    formData.append('current_house_no', document.getElementById('modal_current_house_no').value.trim());
+    formData.append('current_street', document.getElementById('modal_current_street').value.trim());
+    formData.append('current_address', document.getElementById('modal_current_address').value.trim());
+
+    formData.append('general_education', document.getElementById('modal_general_education').value.trim());
+    formData.append('training_level', document.getElementById('modal_training_level').value.trim());
+    formData.append('skill_specialization', document.getElementById('modal_skill_specialization').value.trim());
+
+    formData.append('working_unit', document.getElementById('modal_working_unit').value.trim());
+    formData.append('phone', document.getElementById('modal_phone').value.trim());
+    formData.append('email', document.getElementById('modal_email').value.trim());
+    formData.append('position_title', document.getElementById('modal_position_title').value.trim());
+    formData.append('contract_year', document.getElementById('modal_contract_year').value);
+    formData.append('contract_number', document.getElementById('modal_contract_number').value.trim());
+    formData.append('salary', document.getElementById('modal_salary').value.trim());
+
+    if (item.photoBase64) formData.append('photo_base64', item.photoBase64);
+    if (item.file) formData.append('scanned_file', item.file);
+
+    try {
+        const resp = await fetch("{% url 'contract_officer_confirm_scan_import' %}", {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        });
+        const res = await resp.json();
+
+        if (res.success) {
+            item.status = item.existingOfficer ? 'updated' : 'created';
+            item.officerName = `${lastName} ${firstName}`;
+            item.message = res.message;
+            bootstrap.Modal.getInstance(document.getElementById('smartScannerModal')).hide();
+            renderBatchTable();
+        } else {
+            alert('⚠️ ' + (res.error || 'មានបញ្ហាក្នុងការរក្សាទុក'));
+        }
+    } catch (e) {
+        alert('⚠️ មានបញ្ហាក្នុងការតភ្ជាប់៖ ' + e.message);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1.5"></i> យល់ព្រមរក្សាទុកចូលក្នុងប្រព័ន្ធ';
+    }
+}
+
+// 🔑 Gemini API Key Handler
+function saveGeminiApiKey() {
+    const keyInput = document.getElementById('geminiApiKeyInput');
+    const key = keyInput.value.trim();
+    if (!key) {
+        alert('សូមបញ្ចូល Google Gemini API Key!');
+        return;
+    }
+
+    const btn = document.getElementById('saveGeminiKeyBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> កំពុងរក្សាទុក...';
+
+    const formData = new FormData();
+    formData.append('gemini_api_key', key);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+    fetch("{% url 'api_save_gemini_api_key' %}", {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(res => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> រក្សាទុក API Key';
+        if (res.success) {
+            alert('✅ ' + res.message);
+            bootstrap.Modal.getInstance(document.getElementById('geminiKeyModal')).hide();
+        } else {
+            alert('⚠️ ' + (res.error || 'មិនអាចរក្សាទុកបានឡើយ'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> រក្សាទុក API Key';
+        alert('⚠️ មានបញ្ហា៖ ' + err.message);
+    });
+}
 </script>
+
+<!-- 🌟 SMART AI SCANNER & DUAL-PANE REVIEW MODAL -->
+<div class="modal fade" id="smartScannerModal" tabindex="-1" aria-labelledby="smartScannerModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-fullscreen modal-dialog-centered">
+        <div class="modal-content border-0 bg-light">
+            <!-- Modal Header -->
+            <div class="modal-header bg-dark text-white px-4 py-2.5 border-bottom border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-primary text-white p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="fa-solid fa-wand-magic-sparkles text-warning fs-5"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold m-0 text-white" id="smartScannerModalLabel">ផ្ទៀងផ្ទាត់ និងកែប្រែទិន្នន័យស្កេន (Smart AI OCR Review)</h6>
+                        <span class="fs-9 text-white-50">ពិនិត្យផ្ទៀងផ្ទាត់រូបភាពឯកសារខាងឆ្វេង ជាមួយទិន្នន័យដែលស្រង់បានខាងស្តាំ មុននឹងចុចយល់ព្រម</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="scanSourceBadge" class="badge bg-success bg-opacity-10 text-success border px-2.5 py-1 fs-9"></span>
+                    <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body: Dual Pane -->
+            <div class="modal-body p-0 overflow-hidden" style="height: calc(100vh - 120px);">
+                <div class="row g-0 h-100">
+                    <!-- LEFT PANE: Document Visual Viewer -->
+                    <div class="col-12 col-lg-5 col-xl-5 bg-dark h-100 d-flex flex-column border-end border-secondary border-opacity-25 position-relative">
+                        <!-- Viewer Toolbar -->
+                        <div class="d-flex align-items-center justify-content-between p-2 px-3 bg-black bg-opacity-40 text-white border-bottom border-secondary border-opacity-25 fs-8">
+                            <div class="d-flex align-items-center gap-1.5">
+                                <button type="button" class="btn btn-sm btn-dark border-secondary border-opacity-50 text-white px-2 py-1" onclick="scanZoom(0.2)" title="ពង្រីក (Zoom In)"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                                <button type="button" class="btn btn-sm btn-dark border-secondary border-opacity-50 text-white px-2 py-1" onclick="scanZoom(-0.2)" title="បង្រួម (Zoom Out)"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                                <button type="button" class="btn btn-sm btn-dark border-secondary border-opacity-50 text-white px-2 py-1" onclick="scanZoom(0)" title="កំណត់ដើមវិញ (Reset Zoom)"><i class="fa-solid fa-rotate-left"></i></button>
+                                <button type="button" class="btn btn-sm btn-dark border-secondary border-opacity-50 text-white px-2 py-1" onclick="scanRotate()" title="បង្វិលរូបភាព 90° (Rotate)"><i class="fa-solid fa-rotate-right"></i></button>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" id="scanPrevPageBtn" class="btn btn-sm btn-dark border-secondary border-opacity-50 text-white px-2 py-1" onclick="scanChangePage(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                                <span id="scanPageNavBadge" class="badge bg-secondary bg-opacity-50 px-2 py-1 font-monospace">ទំព័រ 1 / 1</span>
+                                <button type="button" id="scanNextPageBtn" class="btn btn-sm btn-dark border-secondary border-opacity-50 text-white px-2 py-1" onclick="scanChangePage(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Image Scroll Canvas -->
+                        <div class="flex-grow-1 overflow-auto d-flex align-items-center justify-content-center p-3" style="background-color: #0b1120;">
+                            <img id="scanDocumentPreviewImg" src="" alt="Scanned Document" class="img-fluid shadow-lg rounded-2" style="max-height: 85vh; max-width: 95%; object-fit: contain;">
+                        </div>
+
+                        <!-- Extracted 4x6 Photo Float Card -->
+                        <div class="position-absolute bottom-0 start-0 p-3" style="z-index: 10;">
+                            <div class="card bg-dark bg-opacity-90 text-white border border-secondary border-opacity-50 rounded-3 shadow-lg p-2 d-flex flex-row align-items-center gap-2.5">
+                                <div class="border border-secondary rounded-2 overflow-hidden bg-black d-flex align-items-center justify-content-center" style="width: 50px; height: 65px;">
+                                    <img id="modalExtractedPhoto" src="" alt="4x6 Photo" class="w-100 h-100 object-fit-cover d-none">
+                                    <div id="modalPhotoPlaceholder" class="text-center p-1 text-secondary fs-9"><i class="fa-solid fa-user"></i></div>
+                                </div>
+                                <div>
+                                    <span class="fs-9 fw-bold text-warning d-block"><i class="fa-solid fa-camera me-1"></i>រូបថត 4x6</span>
+                                    <span class="fs-9 text-white-50">កាត់ចេញដោយ AI</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT PANE: Editable Form Review -->
+                    <div class="col-12 col-lg-7 col-xl-7 h-100 bg-white d-flex flex-column">
+                        <!-- Duplicate Alert (if any) -->
+                        <div id="scanDuplicateAlert" class="alert alert-warning border-0 rounded-0 m-0 p-2.5 px-4 d-flex align-items-center justify-content-between d-none">
+                            <div class="d-flex align-items-center gap-2 fs-8">
+                                <i class="fa-solid fa-triangle-exclamation text-warning fs-6"></i>
+                                <span>រកឃើញមន្ត្រីមានឈ្មោះ <strong id="scanDupOfficerName">-</strong> ក្នុង «<span id="scanDupDeptName">-</span>» រួចហើយ!</span>
+                            </div>
+                            <span class="badge bg-warning text-dark px-2 py-1 fs-9">មានក្នុងប្រព័ន្ធរួច</span>
+                        </div>
+
+                        <!-- Scrollable Form Body -->
+                        <div class="flex-grow-1 overflow-y-auto p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                                <h6 class="fw-bold text-dark m-0">
+                                    <i class="fa-solid fa-pen-to-square text-primary me-1.5"></i>
+                                    ផ្ទៀងផ្ទាត់ ឬកែប្រែទិន្នន័យ (ចំណុច ១ ដល់ ១១)
+                                </h6>
+                                <span class="fs-8 text-muted">អាចកែប្រែអក្សរមុននឹងចុចយល់ព្រម</span>
+                            </div>
+
+                            <div class="row g-3 fs-8">
+                                <!-- 1. Names & Gender -->
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">១. គោត្តនាម (ខ្មែរ) <span class="text-danger">*</span></label>
+                                    <input type="text" id="modal_khmer_last_name" class="form-control form-control-sm fw-bold text-primary" placeholder="គោត្តនាម">
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">នាមខ្លួន (ខ្មែរ) <span class="text-danger">*</span></label>
+                                    <input type="text" id="modal_khmer_first_name" class="form-control form-control-sm fw-bold text-primary" placeholder="នាមខ្លួន">
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">ភេទ</label>
+                                    <select id="modal_gender" class="form-select form-select-sm">
+                                        <option value="MALE">ប្រុស</option>
+                                        <option value="FEMALE">ស្រី</option>
+                                    </select>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">សញ្ជាតិ</label>
+                                    <input type="text" id="modal_nationality" class="form-control form-control-sm" value="ខ្មែរ">
+                                </div>
+
+                                <!-- 2. Latin Name & Ethnicity -->
+                                <div class="col-12 col-md-8">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">២. អក្សរពុម្ពឡាតាំង (Latin Name)</label>
+                                    <input type="text" id="modal_latin_name" class="form-control form-control-sm font-monospace text-uppercase" placeholder="LATIN NAME">
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">ជនជាតិ</label>
+                                    <input type="text" id="modal_ethnicity" class="form-control form-control-sm" value="ខ្មែរ">
+                                </div>
+
+                                <!-- 3. DOB & 7. ID Card -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">៣. ថ្ងៃខែឆ្នាំកំណើត</label>
+                                    <input type="text" id="modal_dob" class="form-control form-control-sm font-monospace" placeholder="15/05/1990">
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">៧. ឯកសារសម្គាល់ខ្លួន (ID / Passport)</label>
+                                    <div class="input-group input-group-sm">
+                                        <select id="modal_id_type" class="form-select flex-grow-0" style="width: 130px;">
+                                            <option value="NATIONAL_ID">អត្តសញ្ញាណប័ណ្ណ</option>
+                                            <option value="PASSPORT">លិខិតឆ្លងដែន</option>
+                                        </select>
+                                        <input type="text" id="modal_id_number" class="form-control font-monospace" placeholder="លេខសម្គាល់">
+                                    </div>
+                                </div>
+
+                                <!-- 4. POB -->
+                                <div class="col-12">
+                                    <div class="p-2.5 bg-light rounded-3 border">
+                                        <span class="fw-bold text-dark d-block mb-1.5"><i class="fa-solid fa-map-pin text-danger me-1"></i> ៤. ទីកន្លែងកំណើត (Place of Birth)</span>
+                                        <div class="row g-2">
+                                            <div class="col-6 col-md-3">
+                                                <input type="text" id="modal_pob_province" class="form-control form-control-sm" placeholder="ខេត្ត/រាជធានី">
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <input type="text" id="modal_pob_district" class="form-control form-control-sm" placeholder="ស្រុក/ខណ្ឌ">
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <input type="text" id="modal_pob_commune" class="form-control form-control-sm" placeholder="ឃុំ/សង្កាត់">
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <input type="text" id="modal_pob_village" class="form-control form-control-sm" placeholder="ភូមិ">
+                                            </div>
+                                            <div class="col-12 mt-1.5">
+                                                <input type="text" id="modal_place_of_birth" class="form-control form-control-sm" placeholder="អាសយដ្ឋានទីកន្លែងកំណើតសង្ខេបពេញ...">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 9. Current Address -->
+                                <div class="col-12">
+                                    <div class="p-2.5 bg-light rounded-3 border">
+                                        <span class="fw-bold text-dark d-block mb-1.5"><i class="fa-solid fa-house-chimney text-success me-1"></i> ៩. អាសយដ្ឋានបច្ចុប្បន្ន (Current Address)</span>
+                                        <div class="row g-2">
+                                            <div class="col-6 col-md-3">
+                                                <input type="text" id="modal_current_province" class="form-control form-control-sm" placeholder="ខេត្ត/រាជធានី">
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <input type="text" id="modal_current_district" class="form-control form-control-sm" placeholder="ស្រុក/ខណ្ឌ">
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <input type="text" id="modal_current_commune" class="form-control form-control-sm" placeholder="ឃុំ/សង្កាត់">
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <input type="text" id="modal_current_village" class="form-control form-control-sm" placeholder="ភូមិ">
+                                            </div>
+                                            <div class="col-6 col-md-3 mt-1.5">
+                                                <input type="text" id="modal_current_house_no" class="form-control form-control-sm" placeholder="ផ្ទះលេខ">
+                                            </div>
+                                            <div class="col-6 col-md-3 mt-1.5">
+                                                <input type="text" id="modal_current_street" class="form-control form-control-sm" placeholder="ផ្លូវលេខ">
+                                            </div>
+                                            <div class="col-12 col-md-6 mt-1.5">
+                                                <input type="text" id="modal_current_address" class="form-control form-control-sm" placeholder="អាសយដ្ឋានបច្ចុប្បន្នសង្ខេបពេញ...">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 5, 6. Education & Skills -->
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">៥. កម្រិតវប្បធម៌ទូទៅ</label>
+                                    <input type="text" id="modal_general_education" class="form-control form-control-sm" placeholder="ឧ. មធ្យមសិក្សាទុតិយភូមិ">
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">៦. កម្រិតបណ្តុះបណ្តាល</label>
+                                    <input type="text" id="modal_training_level" class="form-control form-control-sm" placeholder="ឧ. បរិញ្ញាបត្រ">
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">ជំនាញ / ឯកទេស</label>
+                                    <input type="text" id="modal_skill_specialization" class="form-control form-control-sm" placeholder="ឧ. រដ្ឋបាល, ក្សេត្រសាស្ត្រ">
+                                </div>
+
+                                <!-- 8. Unit, 10. Phone, 11. Email -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">៨. អង្គភាព/ការិយាល័យ</label>
+                                    <input type="text" id="modal_working_unit" class="form-control form-control-sm" placeholder="អង្គភាពបំពេញការងារ">
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">១០. លេខទូរស័ព្ទ</label>
+                                    <input type="text" id="modal_phone" class="form-control form-control-sm font-monospace" placeholder="012345678">
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">១១. អ៊ីម៉ែល</label>
+                                    <input type="email" id="modal_email" class="form-control form-control-sm" placeholder="vanna@example.com">
+                                </div>
+
+                                <!-- Contract Details -->
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">មុខតំណែង</label>
+                                    <input type="text" id="modal_position_title" class="form-control form-control-sm" value="មន្ត្រីជាប់កិច្ចសន្យា">
+                                </div>
+                                <div class="col-12 col-md-2">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">ឆ្នាំកិច្ចសន្យា</label>
+                                    <input type="number" id="modal_contract_year" class="form-control form-control-sm font-monospace" value="2026">
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">លេខកិច្ចសន្យា</label>
+                                    <input type="text" id="modal_contract_number" class="form-control form-control-sm font-monospace" placeholder="024/26 ក.ស.ន">
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label fw-bold text-dark m-0 mb-1">ប្រាក់បៀវត្ស (៛)</label>
+                                    <input type="number" id="modal_salary" class="form-control form-control-sm font-monospace" placeholder="800000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal Action Footer -->
+                        <div class="modal-footer bg-light px-4 py-3 border-top d-flex align-items-center justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 fs-8" data-bs-dismiss="modal">
+                                បិទ
+                            </button>
+                            <button type="button" id="modalDirectSaveBtn" class="btn btn-success rounded-pill px-4 fs-8 fw-bold shadow-sm" onclick="saveDirectlyFromScanModal()">
+                                <i class="fa-solid fa-floppy-disk me-1.5"></i> យល់ព្រមរក្សាទុកចូលក្នុងប្រព័ន្ធ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🔑 Modal: Configure Gemini API Key -->
+{% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
+<div class="modal fade" id="geminiKeyModal" tabindex="-1" aria-labelledby="geminiKeyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white px-4 py-3 border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-warning text-dark p-2 rounded-circle">
+                        <i class="fa-solid fa-key fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold m-0" id="geminiKeyModalLabel">កំណត់ Google Gemini API Key</h5>
+                        <p class="fs-9 text-white-50 m-0">សម្រាប់មុខងារ Smart AI Vision OCR ស្កេនអក្សរខ្មែរ & អក្សរសរសេរដៃ</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-white">
+                <div class="alert alert-info border-0 rounded-3 p-3 mb-3 fs-8">
+                    <i class="fa-solid fa-circle-info me-1"></i>
+                    លោកអ្នកអាចបង្កើត API Key ឥតគិតថ្លៃបានពី <a href="https://aistudio.google.com/app/apikey" target="_blank" class="fw-bold text-decoration-underline">Google AI Studio</a>។
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-dark fs-8">Google Gemini API Key <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fa-solid fa-key text-warning"></i></span>
+                        <input type="password" id="geminiApiKeyInput" class="form-control font-monospace fs-7" placeholder="AIzaSy...">
+                    </div>
+                    <small class="text-muted fs-9">API Key នឹងត្រូវបានរក្សាទុកដោយសុវត្ថិភាពនៅក្នុង File បរិស្ថាន (.env) នៃប្រព័ន្ធ។</small>
+                </div>
+            </div>
+            <div class="modal-footer bg-light px-4 py-3 border-top">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fs-8" data-bs-dismiss="modal">បោះបង់</button>
+                <button type="button" id="saveGeminiKeyBtn" class="btn btn-primary rounded-pill px-4 fs-8 fw-bold" onclick="saveGeminiApiKey()">
+                    <i class="fa-solid fa-check me-1"></i> រក្សាទុក API Key
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- 🏢 Modal: Quick Department Transfer for Contract Staff (ADMIN) -->
 {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
@@ -1263,3 +1962,4 @@ function openContractTransferModal(officerId, officerName, currentUnit, position
 </div>
 {% endif %}
 {% endblock %}
+

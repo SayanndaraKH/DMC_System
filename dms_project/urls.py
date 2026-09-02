@@ -4,6 +4,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponse
 
+from django.views.generic.base import RedirectView
+
 def unregister_service_worker(request):
     js = """
     self.addEventListener('install', function(e) { self.skipWaiting(); });
@@ -18,6 +20,7 @@ def unregister_service_worker(request):
     return HttpResponse(js, content_type='application/javascript')
 
 urlpatterns = [
+    path('favicon.ico', RedirectView.as_view(url='/static/dms/img/favicon.ico', permanent=False)),
     path('admin/', admin.site.urls),
     path('sw.js', unregister_service_worker),
     path('service-worker.js', unregister_service_worker),

@@ -9,8 +9,28 @@ echo.
 
 cd /d "%~dp0"
 
+:: 1. Locate Git executable
+set "GIT_CMD=git"
+if exist "%LOCALAPPDATA%\Programs\Git\cmd\git.exe" (
+    set "GIT_CMD=%LOCALAPPDATA%\Programs\Git\cmd\git.exe"
+) else if exist "C:\Program Files\Git\cmd\git.exe" (
+    set "GIT_CMD=C:\Program Files\Git\cmd\git.exe"
+) else if exist "C:\Program Files (x86)\Git\cmd\git.exe" (
+    set "GIT_CMD=C:\Program Files (x86)\Git\cmd\git.exe"
+)
+
+:: 2. Locate Python executable
+set "PY_BIN=python"
+if exist "C:\Program Files\Python311\python.exe" (
+    set "PY_BIN=C:\Program Files\Python311\python.exe"
+) else if exist "C:\Program Files\Python312\python.exe" (
+    set "PY_BIN=C:\Program Files\Python312\python.exe"
+) else if exist "C:\Program Files\Python310\python.exe" (
+    set "PY_BIN=C:\Program Files\Python310\python.exe"
+)
+
 echo [1/4] Checking Django configuration for errors...
-python manage.py check
+"%PY_BIN%" manage.py check
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [ERROR] Django configuration check failed! Please fix the errors above.
@@ -21,7 +41,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo [2/4] Checking Git Status (Modified files)...
-git status -s
+"%GIT_CMD%" status -s
 echo.
 
 set commit_msg=
@@ -32,13 +52,13 @@ if "%commit_msg%"=="" (
 
 echo.
 echo [3/4] Adding modified files to Git (git add .)...
-git add .
-git commit -m "%commit_msg%"
+"%GIT_CMD%" add .
+"%GIT_CMD%" commit -m "%commit_msg%"
 
 echo.
 echo [4/4] Pushing to GitHub (origin/main and origin/master)...
-git push -u origin main
-git push origin main:master
+"%GIT_CMD%" push -u origin main
+"%GIT_CMD%" push origin main:master
 
 if %ERRORLEVEL% EQU 0 (
     echo.
@@ -47,7 +67,6 @@ if %ERRORLEVEL% EQU 0 (
     echo.
     echo  - GitHub Repo: https://github.com/SayanndaraKH/DMC_System
     echo  - Railway Deploy: Railway is automatically deploying your latest update!
-    echo  - Web Application: https://dmcsystem-admin.up.railway.app
     echo.
     echo  [NOTE] Live database records entered via Web are 100%% SAFE and intact!
     echo =======================================================================

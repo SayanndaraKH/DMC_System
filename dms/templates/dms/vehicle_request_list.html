@@ -202,7 +202,7 @@
 
                 {% if is_admin_or_lead %}
                 <div class="col-6 col-md-3 col-xl-2">
-                    <select name="department" class="form-select text-truncate">
+                    <select name="department" class="form-select text-truncate" onchange="this.form.submit()">
                         <option value="">-- គ្រប់ការិយាល័យ --</option>
                         {% for d in departments %}
                         <option value="{{ d.id }}" {% if dept_filter == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name_kh }}</option>
@@ -212,7 +212,7 @@
                 {% endif %}
 
                 <div class="col-6 col-md-2 col-xl-2">
-                    <select name="vehicle_type" class="form-select">
+                    <select name="vehicle_type" class="form-select" onchange="this.form.submit()">
                         <option value="">-- គ្រប់ប្រភេទ --</option>
                         <option value="MOTORCYCLE" {% if type_filter == 'MOTORCYCLE' %}selected{% endif %}>ម៉ូតូ</option>
                         <option value="CAR" {% if type_filter == 'CAR' %}selected{% endif %}>រថយន្ត</option>
@@ -221,7 +221,7 @@
                 </div>
 
                 <div class="col-6 col-md-2 col-xl-2">
-                    <select name="status" class="form-select">
+                    <select name="status" class="form-select" onchange="this.form.submit()">
                         <option value="">-- គ្រប់ស្ថានភាព --</option>
                         <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>រង់ចាំពិនិត្យ</option>
                         <option value="APPROVED" {% if status_filter == 'APPROVED' %}selected{% endif %}>បានអនុម័ត</option>

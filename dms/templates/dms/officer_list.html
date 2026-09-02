@@ -99,9 +99,6 @@
             <a href="{% url 'officer_audit_trail' %}" class="btn btn-outline-dark rounded-pill px-3 py-2 fs-7 shadow-sm fw-semibold">
                 <i class="fa-solid fa-clock-rotate-left me-1.5 text-warning"></i> Audit Logs
             </a>
-            <a href="{% url 'officer_sync_initial_data' %}" class="btn btn-outline-warning text-dark rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold" onclick="return confirm('តើអ្នកពិតជាចង់ទាញ និងនាំចូលទិន្នន័យដើម (មន្ត្រី ៥៦ នាក់ + ភូមិសាស្រ្ត) ចូលទៅក្នុងប្រព័ន្ធនេះមែនទេ?');">
-                <i class="fa-solid fa-cloud-arrow-down text-warning me-1.5"></i> ទាញទិន្នន័យដើម (Sync Data)
-            </a>
             {% endif %}
 
             {% if can_edit_officers %}
@@ -120,9 +117,54 @@
             </button>
             {% endif %}
 
-            <a href="{% url 'officer_export_excel' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-success rounded-pill px-3 py-2 fs-7 shadow-sm fw-semibold">
-                <i class="fa-solid fa-file-excel me-1.5 text-success"></i> ទាញយក Excel
-            </a>
+            <div class="dropdown">
+                <button class="btn btn-outline-success rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold dropdown-toggle d-inline-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-file-excel text-success"></i> ទាញយក / មើល PDF
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-3 fs-7" style="min-width: 360px;">
+                    <li class="dropdown-header text-uppercase fw-bold text-muted fs-9 px-2 py-1">
+                        <i class="fa-solid fa-file-lines me-1 text-primary"></i> ជ្រើសរើសទម្រង់របាយការណ៍ (E-1 & E-2)
+                    </li>
+
+                    <!-- E-1 Option Card -->
+                    <li class="mb-2">
+                        <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
+                            <div class="d-flex align-items-center gap-2 mb-1.5">
+                                <span class="badge bg-success rounded-pill px-2 py-0.5 fs-9 fw-bold">E-1</span>
+                                <strong class="text-dark fs-8">ទម្រង់បញ្ជូនទៅក្រសួងកសិកម្ម</strong>
+                            </div>
+                            <p class="text-muted fs-9 mb-2">រៀបចំតាមរចនាសម្ព័ន្ធការិយាល័យ & ខណ្ឌ (១០ ជួរឈរ)</p>
+                            <div class="d-flex gap-1.5">
+                                <a href="{% url 'officer_preview_pdf_e1' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
+                                    <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
+                                </a>
+                                <a href="{% url 'officer_export_excel' %}?format=e1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" class="btn btn-sm btn-success rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
+                                    <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- E-2 Option Card -->
+                    <li>
+                        <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
+                            <div class="d-flex align-items-center gap-2 mb-1.5">
+                                <span class="badge bg-primary rounded-pill px-2 py-0.5 fs-9 fw-bold">E-2</span>
+                                <strong class="text-dark fs-8">ទម្រង់ទៅមន្ទីរមុខងារសាធារណៈខេត្ត</strong>
+                            </div>
+                            <p class="text-muted fs-9 mb-2">តារាងលម្អិត ១៦ ជួរឈរ (អត្តសញ្ញាណប័ណ្ណ កាំប្រាក់ ប្រកាស)</p>
+                            <div class="d-flex gap-1.5">
+                                <a href="{% url 'officer_preview_pdf_e2' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
+                                    <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
+                                </a>
+                                <a href="{% url 'officer_export_excel' %}?format=e2{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" class="btn btn-sm btn-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
+                                    <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
 
             {% if can_edit_officers %}
             <a href="{% url 'officer_create' %}" class="btn btn-primary rounded-pill px-4 py-2 fs-7 shadow-sm fw-bold">
@@ -256,7 +298,7 @@
                 </div>
                 <div class="col-12 col-sm-6 col-lg-3">
                     {% if has_global_access %}
-                    <select name="department" class="form-select bg-light">
+                    <select name="department" class="form-select bg-light" onchange="this.form.submit()">
                         <option value="">-- គ្រប់ការិយាល័យ/អង្គភាព --</option>
                         {% for d in departments %}
                         <option value="{{ d.id }}" {% if dept_filter == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name_kh }}</option>
@@ -270,14 +312,14 @@
                     {% endif %}
                 </div>
                 <div class="col-6 col-sm-3 col-lg-2">
-                    <select name="gender" class="form-select bg-light">
+                    <select name="gender" class="form-select bg-light" onchange="this.form.submit()">
                         <option value="">-- ភេទ --</option>
                         <option value="MALE" {% if gender_filter == 'MALE' %}selected{% endif %}>ប្រុស</option>
                         <option value="FEMALE" {% if gender_filter == 'FEMALE' %}selected{% endif %}>ស្រី</option>
                     </select>
                 </div>
                 <div class="col-6 col-sm-3 col-lg-2">
-                    <select name="marital_status" class="form-select bg-light">
+                    <select name="marital_status" class="form-select bg-light" onchange="this.form.submit()">
                         <option value="">-- ស្ថានភាពគ្រួសារ --</option>
                         <option value="SINGLE" {% if marital_filter == 'SINGLE' %}selected{% endif %}>នៅលីវ</option>
                         <option value="MARRIED" {% if marital_filter == 'MARRIED' %}selected{% endif %}>រៀបការហើយ</option>

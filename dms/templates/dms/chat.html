@@ -451,7 +451,10 @@
     }
 
     // Polling function for real-time live chat updates
+    let isChatPolling = false;
     function pollNewMessages() {
+        if (document.hidden || isChatPolling) return;
+        isChatPolling = true;
         fetch(`{% url 'get_chat_messages_api' %}?room=${currentRoom}&after_id=${lastMsgId}`)
         .then(res => res.json())
         .then(data => {
@@ -466,10 +469,18 @@
                 if (shouldScroll) scrollToBottom();
             }
         })
-        .catch(err => console.error('Poll error:', err));
+        .catch(err => console.error('Poll error:', err))
+        .finally(() => {
+            isChatPolling = false;
+        });
     }
 
-    // Poll every 3 seconds
-    setInterval(pollNewMessages, 3000);
+    // Poll every 4 seconds when chat room is open
+    setInterval(pollNewMessages, 4000);
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            pollNewMessages();
+        }
+    });
 </script>
 {% endblock %}

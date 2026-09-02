@@ -213,3 +213,45 @@ if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
 else:
     EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'DMS Cambodia <no-reply@dms.gov.kh>')
+
+# Logging Configuration to suppress noisy polling endpoint logs in runserver console
+import logging
+
+class SuppressPollingFilter(logging.Filter):
+    """
+    Filters out noisy routine polling requests (such as chat unread check / messages)
+    and favicon redirects with 200/302/304 status so terminal console stays clean.
+    """
+    def filter(self, record):
+        try:
+            msg = record.getMessage()
+            if any(endpoint in msg for endpoint in ['/chat/api/check-unread/', '/chat/api/messages/', '/favicon.ico']):
+                if any(code in msg for code in ['" 200 ', '" 304 ', '" 302 ']):
+                    return False
+        except Exception:
+            pass
+        return True
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'suppress_polling': {
+            '()': 'dms_project.settings.SuppressPollingFilter',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'filters': ['suppress_polling'],
+        },
+    },
+    'loggers': {
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+

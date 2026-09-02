@@ -63,7 +63,6 @@ urlpatterns = [
     path('officers/status-report/print/', views.officer_status_report_print_view, name='officer_status_report_print'),
     path('officers/status-report/export/excel/', views.officer_status_export_excel, name='officer_status_export_excel'),
     path('officers/status-report/api/update-status/', views.api_officer_status_update, name='api_officer_status_update'),
-    path('officers/sync-initial-data/', views.officer_sync_initial_data_view, name='officer_sync_initial_data'),
     path('officers/new/', views.officer_create, name='officer_create'),
     path('officers/import-docx/', views.officer_import_docx, name='officer_import_docx'),
     path('officers/batch-photos/officers-index/', views.api_officers_for_photo_match, name='api_officers_for_photo_match'),
@@ -104,6 +103,8 @@ urlpatterns = [
     path('officers/<int:pk>/print/', views.officer_print, name='officer_print'),
     path('officers/<int:pk>/delete/', views.officer_delete, name='officer_delete'),
     path('officers/export/excel/', views.officer_export_excel, name='officer_export_excel'),
+    path('officers/preview/e1/', views.officer_preview_pdf_e1, name='officer_preview_pdf_e1'),
+    path('officers/preview/e2/', views.officer_preview_pdf_e2, name='officer_preview_pdf_e2'),
 
     # 📎 Officer Reference Attachments & Audit Log
     path('officers/<int:pk>/attachments/add/', views.officer_attachment_add, name='officer_attachment_add'),
@@ -122,6 +123,9 @@ urlpatterns = [
     path('contract-officers/', views.contract_officer_list, name='contract_officer_list'),
     path('contract-officers/new/', views.contract_officer_create, name='contract_officer_create'),
     path('contract-officers/import-docx/', views.contract_officer_import_docx, name='contract_officer_import_docx'),
+    path('contract-officers/api/scan/', views.api_contract_officer_scan_file, name='api_contract_officer_scan_file'),
+    path('contract-officers/confirm-scan-import/', views.contract_officer_confirm_scan_import, name='contract_officer_confirm_scan_import'),
+    path('contract-officers/api/save-gemini-key/', views.api_save_gemini_api_key, name='api_save_gemini_api_key'),
     path('contract-officers/<int:pk>/', views.contract_officer_detail, name='contract_officer_detail'),
     path('contract-officers/<int:pk>/edit/', views.contract_officer_edit, name='contract_officer_edit'),
     path('contract-officers/<int:pk>/renew/', views.contract_officer_renew, name='contract_officer_renew'),

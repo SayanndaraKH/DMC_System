@@ -59,7 +59,7 @@
             </div>
 
             <div class="col-md-2">
-                <select name="urgency" class="form-select fs-7 bg-light">
+                <select name="urgency" class="form-select fs-7 bg-light" onchange="this.form.submit()">
                     <option value="">-- កម្រិតប្រញាប់ --</option>
                     <option value="NORMAL" {% if urgency_filter == 'NORMAL' %}selected{% endif %}>ធម្មតា</option>
                     <option value="URGENT" {% if urgency_filter == 'URGENT' %}selected{% endif %}>ប្រញាប់</option>
@@ -68,7 +68,7 @@
             </div>
 
             <div class="col-md-3">
-                <select name="department" class="form-select fs-7 bg-light">
+                <select name="department" class="form-select fs-7 bg-light" onchange="this.form.submit()">
                     <option value="">-- ស្ថិតនៅការិយាល័យ --</option>
                     {% for d in departments %}
                     <option value="{{ d.pk }}" {% if dept_filter == d.pk|stringformat:"i" %}selected{% endif %}>{{ d.name_kh }}</option>

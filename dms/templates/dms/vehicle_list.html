@@ -201,7 +201,7 @@
                 </div>
 
                 <div class="col-6 col-md-3 col-xl-2">
-                    <select name="type" class="form-select">
+                    <select name="type" class="form-select" onchange="this.form.submit()">
                         <option value="">-- គ្រប់ប្រភេទ --</option>
                         <option value="MOTORCYCLE" {% if type_filter == 'MOTORCYCLE' %}selected{% endif %}>ម៉ូតូ (Motorcycle)</option>
                         <option value="CAR" {% if type_filter == 'CAR' %}selected{% endif %}>រថយន្តទេសចរណ៍ (Car)</option>
@@ -212,7 +212,7 @@
                 </div>
 
                 <div class="col-6 col-md-2 col-xl-2">
-                    <select name="status" class="form-select">
+                    <select name="status" class="form-select" onchange="this.form.submit()">
                         <option value="">-- គ្រប់ស្ថានភាព --</option>
                         <option value="AVAILABLE" {% if status_filter == 'AVAILABLE' %}selected{% endif %}>ទំនេរ / អាចខ្ចីបាន</option>
                         <option value="IN_USE" {% if status_filter == 'IN_USE' %}selected{% endif %}>កំពុងប្រើប្រាស់</option>
@@ -222,7 +222,7 @@
                 </div>
 
                 <div class="col-6 col-md-3 col-xl-2">
-                    <select name="department" class="form-select text-truncate">
+                    <select name="department" class="form-select text-truncate" onchange="this.form.submit()">
                         <option value="">-- គ្រប់ការិយាល័យ --</option>
                         {% for d in departments %}
                         <option value="{{ d.id }}" {% if dept_filter == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name_kh }}</option>

@@ -1,3 +1,5 @@
 Set WshShell = CreateObject("WScript.Shell")
-WshShell.CurrentDirectory = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
-WshShell.Run "cmd /c RUN_DMS.bat", 0, False
+Set FSO = CreateObject("Scripting.FileSystemObject")
+currentDir = FSO.GetParentFolderName(WScript.ScriptFullName)
+WshShell.CurrentDirectory = currentDir
+WshShell.Run "cmd.exe /c """ & currentDir & "\RUN_DMS.bat""", 0, False

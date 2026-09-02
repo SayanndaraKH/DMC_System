@@ -233,7 +233,7 @@
 
                 <div class="col-12 col-md-3">
                     {% if has_global_access %}
-                    <select name="department" class="form-select form-select-sm fs-8 fw-semibold">
+                    <select name="department" class="form-select form-select-sm fs-8 fw-semibold" onchange="this.form.submit()">
                         <option value="">-- គ្រប់ការិយាល័យ/អង្គភាពទាំងអស់ --</option>
                         {% for dept in departments %}
                         <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name_kh }}</option>
@@ -249,14 +249,14 @@
 
                 {% if active_view_tab == 'master' %}
                 <div class="col-6 col-md-2">
-                    <select name="year" class="form-select form-select-sm fs-8 fw-bold">
+                    <select name="year" class="form-select form-select-sm fs-8 fw-bold" onchange="this.form.submit()">
                         <option value="2026" {% if master_year == 2026 %}selected{% endif %}>ឆ្នាំ ២០២៦</option>
                         <option value="2027" {% if master_year == 2027 %}selected{% endif %}>ឆ្នាំ ២០២៧</option>
                         <option value="2025" {% if master_year == 2025 %}selected{% endif %}>ឆ្នាំ ២០២៥</option>
                     </select>
                 </div>
                 <div class="col-6 col-md-2">
-                    <select name="req_status" class="form-select form-select-sm fs-8">
+                    <select name="req_status" class="form-select form-select-sm fs-8" onchange="this.form.submit()">
                         <option value="ALL" {% if master_status == 'ALL' %}selected{% endif %}>-- គ្រប់ស្ថានភាព --</option>
                         <option value="PENDING" {% if master_status == 'PENDING' %}selected{% endif %}>🟡 រង់ចាំពិនិត្យ</option>
                         <option value="DEPT_APPROVED" {% if master_status == 'DEPT_APPROVED' %}selected{% endif %}>🟢 ថ្នាក់ដឹកនាំមន្ទីរឯកភាព</option>

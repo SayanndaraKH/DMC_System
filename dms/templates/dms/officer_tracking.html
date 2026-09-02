@@ -254,7 +254,7 @@
 
                 <div class="col-12 col-md-4">
                     {% if has_global_access %}
-                    <select name="department" class="form-select form-select-sm fs-8 fw-semibold">
+                    <select name="department" class="form-select form-select-sm fs-8 fw-semibold" onchange="this.form.submit()">
                         <option value="">-- គ្រប់ការិយាល័យ/អង្គភាពទាំងអស់ --</option>
                         {% for dept in departments %}
                         <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name_kh }}</option>

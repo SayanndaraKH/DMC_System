@@ -9,8 +9,18 @@ echo.
 
 cd /d "%~dp0"
 
+:: 1. Locate Git executable
+set "GIT_CMD=git"
+if exist "%LOCALAPPDATA%\Programs\Git\cmd\git.exe" (
+    set "GIT_CMD=%LOCALAPPDATA%\Programs\Git\cmd\git.exe"
+) else if exist "C:\Program Files\Git\cmd\git.exe" (
+    set "GIT_CMD=C:\Program Files\Git\cmd\git.exe"
+) else if exist "C:\Program Files (x86)\Git\cmd\git.exe" (
+    set "GIT_CMD=C:\Program Files (x86)\Git\cmd\git.exe"
+)
+
 echo [1/4] Checking Git Status...
-git status -s
+"%GIT_CMD%" status -s
 echo.
 
 set commit_msg=
@@ -21,15 +31,15 @@ if "%commit_msg%"=="" (
 
 echo.
 echo [2/4] Adding all files to Git (git add .)...
-git add .
+"%GIT_CMD%" add .
 
 echo.
 echo [3/4] Committing changes (git commit)...
-git commit -m "%commit_msg%"
+"%GIT_CMD%" commit -m "%commit_msg%"
 
 echo.
 echo [4/4] Pushing to GitHub (git push origin main)...
-git push -u origin main --force
+"%GIT_CMD%" push -u origin main
 
 if %ERRORLEVEL% EQU 0 (
     echo.
