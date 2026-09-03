@@ -424,3 +424,18 @@ class UserManagementEditForm(forms.Form):
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
+    can_export_contract_excel = forms.BooleanField(
+        label="សិទ្ធិទាញយក Excel មន្ត្រីកិច្ចសន្យា (Export Contract Staff to Excel)",
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    can_export_civil_servant_excel = forms.BooleanField(
+        label="សិទ្ធិទាញយក Excel បញ្ជីរាយនាមមន្ត្រី (Export Civil Servants to Excel)",
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    can_view_e2_report = forms.BooleanField(
+        label="សិទ្ធិមើលនិងទាញយកទម្រង់ E-2 ថ្នាក់ខេត្ត (Access Form E-2)",
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )

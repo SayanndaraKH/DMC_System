@@ -167,27 +167,57 @@
         table.d1-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9pt;
+            font-size: 8.5pt;
             table-layout: fixed;
             margin-bottom: 4px;
         }
         table.d1-table th, table.d1-table td {
             border: 1px solid #000;
-            padding: 3px 4px;
+            padding: 2px 4px;
             vertical-align: middle;
             box-sizing: border-box;
-            height: 25px;
+            height: 28px;
+            max-height: 28px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+        /* Strictly no bold text on the document per user directive */
+        .a4-page,
+        .a4-page *,
+        .d1-table,
+        .d1-table *,
+        .doc-title-block,
+        .doc-title-block *,
+        .doc-header,
+        .doc-header *,
+        .page-continuation-header,
+        .page-continuation-header *,
+        .page-footer-number {
+            font-weight: normal !important;
+        }
+
         table.d1-table thead th {
             background-color: #f8fafc;
             font-family: 'Khmer OS Battambang', sans-serif;
             font-size: 8.5pt;
             text-align: center;
-            font-weight: bold;
-            height: 34px;
+            font-weight: normal;
+            height: 32px;
+            white-space: nowrap;
         }
         table.d1-table tbody tr {
-            height: 25px;
+            height: 28px;
+            max-height: 28px;
+        }
+        table.d1-table tbody td {
+            font-size: 8.5pt;
+            height: 28px;
+            max-height: 28px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: normal;
         }
         .text-center { text-align: center; }
         .text-left { text-align: left; }
@@ -200,7 +230,7 @@
             color: #334155;
             padding-top: 4px;
             font-family: 'Arial', sans-serif;
-            font-weight: bold;
+            font-weight: normal;
         }
 
         @media print {
@@ -246,17 +276,30 @@
     <!-- Floating Action Toolbar -->
     <div class="preview-toolbar">
         <div class="preview-toolbar-title">
-            <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">D-1</span>
+            <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: normal;">D-1</span>
             <span>ទម្រង់បញ្ជីបច្ចុប្បន្នភាពមន្ត្រីជាប់កិច្ចសន្យា (Contract Staff - D-1) - A4 Landscape</span>
             <span style="font-size: 12px; color: #94a3b8;">| សរុប {{ total_count }} នាក់ (ស្រី {{ female_count }} នាក់) • {{ pages|length }} ទំព័រ</span>
         </div>
         <div class="preview-toolbar-actions">
+            {% if is_specialized %}
+            <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 6px; font-size: 12px; color: #cbd5e1; margin-right: 6px;">
+                <span><i class="fa-solid fa-signature"></i> ថ្នាក់ដឹកនាំ៖</span>
+                <select onchange="window.location.href=this.value;" style="background: #1e293b; color: #f8fafc; border: 1px solid #475569; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; outline: none;">
+                    <option value="?{{ base_query_string }}" {% if not request_lead_type %}selected{% endif %}>ស្វ័យប្រវត្តិ ({{ lead_type_display }})</option>
+                    <option value="?{{ base_query_string }}&lead_type=head" {% if request_lead_type == 'head' %}selected{% endif %}>មានប្រធានការិយាល័យ</option>
+                    <option value="?{{ base_query_string }}&lead_type=deputy" {% if request_lead_type == 'deputy' %}selected{% endif %}>អនុប្រធានទទួលបន្ទុករួម</option>
+                    <option value="?{{ base_query_string }}&lead_type=solo" {% if request_lead_type == 'solo' %}selected{% endif %}>មន្ត្រីទោល (មន្ត្រីទទួលបន្ទុកដឹកនាំរួម)</option>
+                </select>
+            </div>
+            {% endif %}
             <a href="{% url 'contract_officer_list' %}" class="btn-action btn-back">
                 <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
             </a>
-            <a href="{% url 'contract_officer_export_excel' %}{% if query_params %}?{{ query_params }}{% endif %}" class="btn-action btn-excel">
+            {% if can_export_contract_excel %}
+            <a href="{% url 'contract_officer_export_excel' %}?{{ excel_query_string }}" class="btn-action btn-excel">
                 <i class="fa-solid fa-file-excel"></i> ទាញយកជា Excel
             </a>
+            {% endif %}
             <button onclick="window.print()" class="btn-action btn-print">
                 <i class="fa-solid fa-print"></i> បោះពុម្ព / រក្សាទុកជា PDF
             </button>
@@ -273,28 +316,43 @@
                 {% if page.is_first %}
                 <!-- Full Header (Logo, Org, Kingdom, Title) -->
                 <div class="doc-header">
-                    <div class="doc-header-left" style="text-align: center; display: flex; flex-direction: column; align-items: center;">
-                        <img src="/static/dms/img/image1.jpeg" alt="MAFF Logo" style="width: 54px; height: 54px; object-fit: contain; margin-bottom: 3px;" onerror="this.style.display='none'">
-                        <div class="muol-font" style="font-size: 9.5pt; color: #1e3a8a;">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
-                        <div class="muol-font" style="font-size: 9pt; color: #1e3a8a; margin-top: 2px;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</div>
+                    <div class="doc-header-left" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <img src="/static/dms/img/image1.jpeg" alt="MAFF Logo" style="width: 56px; height: 56px; object-fit: contain; margin: 0 auto 3px auto; display: block;" onerror="this.style.display='none'">
+                        {% if is_specialized and selected_department %}
+                        <div class="muol-font" style="font-size: 9.5pt; color: #1e3a8a; text-align: center; width: 100%;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</div>
+                        <div class="muol-font" style="font-size: 9pt; color: #1e3a8a; margin-top: 2px; text-align: center; width: 100%;">{{ selected_department.name_kh }}</div>
+                        {% else %}
+                        <div class="muol-font" style="font-size: 9.5pt; color: #1e3a8a; text-align: center; width: 100%;">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
+                        <div class="muol-font" style="font-size: 9pt; color: #1e3a8a; margin-top: 2px; text-align: center; width: 100%;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</div>
+                        {% endif %}
                     </div>
                     <div class="doc-header-right" style="text-align: center;">
                         <div class="muol-font" style="font-size: 10pt; color: #1e3a8a;">ព្រះរាជាណាចក្រកម្ពុជា</div>
                         <div class="muol-font" style="font-size: 10pt; color: #1e3a8a; margin-top: 3px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
-                        <div style="font-size: 12px; letter-spacing: 3px; font-weight: bold; margin-top: 3px;">***</div>
+                        <div style="text-align: center; margin-top: 2px;">
+                            <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 12px; width: auto; display: inline-block;">
+                        </div>
                     </div>
                 </div>
 
                 <!-- Title Block strictly matching D-1 -->
                 <div class="doc-title-block">
                     <h2 class="muol-font">បញ្ជីបច្ចុប្បន្នភាពមន្ត្រីជាប់កិច្ចសន្យា</h2>
+                    {% if is_specialized and selected_department %}
+                    <h3 class="muol-font">របស់{{ selected_department.name_kh }}</h3>
+                    {% else %}
                     <h3 class="muol-font">របស់មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</h3>
+                    {% endif %}
                     <p class="muol-font">ប្រចាំខែ{{ month_kh }} ឆ្នាំ{{ year_kh }}</p>
                 </div>
                 {% else %}
                 <!-- Continuation Header for subsequent pages -->
                 <div class="page-continuation-header">
+                    {% if is_specialized and selected_department %}
+                    <span>បញ្ជីបច្ចុប្បន្នភាពមន្ត្រីជាប់កិច្ចសន្យា (ទម្រង់ D-1) - {{ selected_department.name_kh }} (បន្ត)</span>
+                    {% else %}
                     <span>បញ្ជីបច្ចុប្បន្នភាពមន្ត្រីជាប់កិច្ចសន្យា (ទម្រង់ D-1) - មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន (បន្ត)</span>
+                    {% endif %}
                     <span>ទំព័រទី {{ page.page_num }}/{{ page.total_pages }}</span>
                 </div>
                 {% endif %}
@@ -302,29 +360,29 @@
                 <!-- Table: 9 columns strictly following D-1.xlsx -->
                 <table class="d1-table">
                     <thead>
-                        <tr style="height: 34px;">
+                        <tr style="height: 32px;">
                             <th style="width: 4%;">ល.រ</th>
-                            <th style="width: 16%;">គោត្ដនាម នាម</th>
-                            <th style="width: 17%;">អក្សរឡាតាំង</th>
+                            <th style="width: 15%;">គោត្តនាម នាម</th>
+                            <th style="width: 16%;">អក្សរឡាតាំង</th>
                             <th style="width: 5%;">ភេទ</th>
                             <th style="width: 11%;">ថ្ងៃខែឆ្នាំកំណើត</th>
                             <th style="width: 18%;">ខណ្ឌ/ការិ.បំពេញការងារ</th>
                             <th style="width: 11%;">តួនាទី</th>
-                            <th style="width: 7%;">កម្រិតវប្បធម៌</th>
-                            <th style="width: 11%;">លេខទូរស័ព្ទ</th>
+                            <th style="width: 10%;">កម្រិតវប្បធម៌</th>
+                            <th style="width: 10%;">លេខទូរស័ព្ទ</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for it in page.items %}
-                        <tr>
+                        <tr style="height: 28px;">
                             <td class="text-center">{{ it.num }}</td>
-                            <td class="text-left" style="font-weight: 500;">{{ it.full_name_kh }}</td>
-                            <td class="text-left" style="font-family: 'Cambria', 'Times New Roman', serif;">{{ it.full_name_latin|default:"-" }}</td>
+                            <td class="text-left" title="{{ it.full_name_kh }}">{{ it.full_name_kh }}</td>
+                            <td class="text-left" style="font-family: 'Cambria', 'Times New Roman', serif;" title="{{ it.full_name_latin }}">{{ it.full_name_latin|default:"-" }}</td>
                             <td class="text-center">{{ it.gender_kh }}</td>
                             <td class="text-center">{{ it.dob_display|default:"-" }}</td>
-                            <td class="text-center">{{ it.working_unit|default:"-" }}</td>
-                            <td class="text-center">{{ it.position|default:"-" }}</td>
-                            <td class="text-center">{{ it.education|default:"គ្មាន" }}</td>
+                            <td class="text-center" title="{{ it.working_unit }}">{{ it.working_unit|default:"-" }}</td>
+                            <td class="text-center" title="{{ it.position }}">{{ it.position|default:"-" }}</td>
+                            <td class="text-center" title="{{ it.education }}">{{ it.education|default:"គ្មាន" }}</td>
                             <td class="text-center">{{ it.phone|default:"-" }}</td>
                         </tr>
                         {% empty %}
@@ -336,31 +394,81 @@
                 </table>
 
                 {% if page.is_last %}
-                <!-- Bottom Signatures Section -->
-                <div class="d1-bottom-section" style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 14px; page-break-inside: avoid;">
-                    
-                    <!-- Left: Summary Stats -->
-                    <div style="line-height: 1.85; font-size: 9.5pt; white-space: nowrap;">
-                        <div><strong>សរុបរួម៖</strong> ...{{ total_count }}...នាក់ , ស្រី...{{ female_count }}...នាក់</div>
-                        <div>(ប្រុស...{{ male_count }}...នាក់)</div>
+                <!-- Closing Summary Lines & Right Date Block (strictly matching D-1 format) -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 6px; margin-bottom: 6px; font-size: 8.5pt;">
+                    <!-- Left: Closing Line & Total Count Underneath -->
+                    <div style="line-height: 1.65; color: #1e293b; padding-top: 2px;">
+                        <div>
+                            {% if last_officer %}
+                            - បិទបញ្ចប់ត្រឹមលេខរៀងទី{{ total_count_kh }} ឈ្មោះ {{ last_officer.full_name_kh }}
+                            {% else %}
+                            - មិនមានទិន្នន័យមន្ត្រី
+                            {% endif %}
+                        </div>
+                        <div style="margin-top: 2px;">
+                            សរុបរួម៖ .....{{ total_count_kh }}..... នាក់ , ស្រី .....{{ female_count_kh }}..... នាក់
+                        </div>
+                        <div>
+                            ( ប្រុស .....{{ male_count_kh }}..... នាក់ )
+                        </div>
                     </div>
 
-                    <!-- Center: Approval -->
-                    <div style="text-align: center; line-height: 1.8; padding-top: 15px; min-width: 140px;">
-                        <div class="muol-font" style="font-size: 10pt; color: #111;">បានឃើញ និងឯកភាព</div>
-                        <div class="muol-font" style="font-size: 10pt; margin-top: 4px; color: #111;">ប្រធានមន្ទីរ</div>
-                        <div style="height: 50px;"></div>
+                    <!-- Right: Date and Signer Title Block (Strictly Centered together) -->
+                    <div style="text-align: center; line-height: 1.6; min-width: 290px; display: flex; flex-direction: column; align-items: center;">
+                        <div style="text-align: center; width: 100%;">ថ្ងៃ..................... ខែ.................. {{ lunar_year_text }}</div>
+                        <div style="text-align: center; width: 100%;">ប៉ៃលិនថ្ងៃទី................ ខែ................ ឆ្នាំ{{ year_kh }}</div>
+                        <div class="muol-font" style="font-size: 10pt; color: #111; margin-top: 4px; text-align: center; width: 100%;">
+                            {{ office_right_title }}
+                        </div>
+                        <div style="height: 48px;"></div>
                     </div>
-
-                    <!-- Right: Date & Head of HR Office -->
-                    <div style="text-align: center; line-height: 1.85; font-size: 9.5pt; min-width: 280px;">
-                        <div>ថ្ងៃ..................... ខែ.................. {{ lunar_year_text }}</div>
-                        <div>ប៉ៃលិន, ថ្ងៃទី....... ខែ................ ឆ្នាំ{{ year_kh }}</div>
-                        <div class="muol-font" style="font-size: 10pt; margin-top: 4px; color: #111;">ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក</div>
-                        <div style="height: 50px;"></div>
-                    </div>
-
                 </div>
+
+                {% if is_specialized %}
+                    {% if has_center_signature %}
+                    <!-- Specialized Office Footer: 3-column grid with Office Head/Deputy DEAD IN THE CENTER (Column 2) -->
+                    <div class="d1-bottom-section" style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: start; margin-top: 2px; page-break-inside: avoid;">
+                        <!-- Column 1 (Left): Spacer -->
+                        <div></div>
+
+                        <!-- Column 2 (Center): Head of Specialized Office / Deputy Head in charge - DEAD CENTER OF PAGE -->
+                        <div style="text-align: center; line-height: 1.65; display: flex; flex-direction: column; align-items: center;">
+                            <div class="muol-font" style="font-size: 10pt; color: #111; text-align: center; width: 100%;">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
+                            <div class="muol-font" style="font-size: 10pt; margin-top: 4px; color: #111; text-align: center; width: 100%;">{{ office_head_title }}</div>
+                            <div style="height: 48px;"></div>
+                        </div>
+
+                        <!-- Column 3 (Right): Spacer -->
+                        <div></div>
+                    </div>
+                    {% else %}
+                    <!-- Solo Officer: No center signature ("មិនមានការចុះហត្ថលេខាប្រធានការិយាល័យទេ") -->
+                    <div style="height: 48px;"></div>
+                    {% endif %}
+
+                {% else %}
+                <!-- Full 3-Level Hierarchy (Admin / All Offices): 3 equal columns layout -->
+                <div class="d1-bottom-section" style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: start; margin-top: 2px; page-break-inside: avoid;">
+                    <!-- Column 1 (Left): Provincial Department Director -->
+                    <div style="text-align: center; line-height: 1.55; font-size: 8.5pt; display: flex; flex-direction: column; align-items: center;">
+                        <div class="muol-font" style="font-size: 9.5pt; color: #111; text-align: center; width: 100%;">បានឃើញ និងឯកភាព</div>
+                        <div style="margin-top: 2px; text-align: center; width: 100%;">ថ្ងៃ..................... ខែ.................. {{ lunar_year_text }}</div>
+                        <div style="text-align: center; width: 100%;">ប៉ៃលិនថ្ងៃទី................ ខែ................ ឆ្នាំ{{ year_kh }}</div>
+                        <div class="muol-font" style="font-size: 9pt; margin-top: 4px; color: #111; text-align: center; width: 100%;">ប្រធានមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</div>
+                        <div style="height: 48px;"></div>
+                    </div>
+
+                    <!-- Column 2 (Center): Head of Administration & Personnel - DEAD CENTER OF PAGE -->
+                    <div style="text-align: center; line-height: 1.65; display: flex; flex-direction: column; align-items: center;">
+                        <div class="muol-font" style="font-size: 9.5pt; color: #111; text-align: center; width: 100%;">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
+                        <div class="muol-font" style="font-size: 9.5pt; margin-top: 4px; color: #111; text-align: center; width: 100%;">ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក</div>
+                        <div style="height: 48px;"></div>
+                    </div>
+
+                    <!-- Column 3 (Right): Spacer -->
+                    <div></div>
+                </div>
+                {% endif %}
                 {% endif %}
 
             </div>

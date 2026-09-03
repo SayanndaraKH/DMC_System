@@ -140,14 +140,17 @@
                                 <a href="{% url 'officer_preview_pdf_e1' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
                                     <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
                                 </a>
+                                {% if can_export_officer_excel %}
                                 <a href="{% url 'officer_export_excel' %}?format=e1{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-sm btn-success rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
                                     <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
                                 </a>
+                                {% endif %}
                             </div>
                         </div>
                     </li>
 
-                    <!-- E-2 Option Card -->
+                    <!-- E-2 Option Card (Only visible to Authorized Offices / Admin) -->
+                    {% if can_view_e2_report %}
                     <li class="mb-2">
                         <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
                             <div class="d-flex align-items-center gap-2 mb-1.5">
@@ -159,14 +162,18 @@
                                 <a href="{% url 'officer_preview_pdf_e2' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
                                     <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
                                 </a>
+                                {% if can_export_officer_excel %}
                                 <a href="{% url 'officer_export_excel' %}?format=e2{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-sm btn-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
                                     <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
                                 </a>
+                                {% endif %}
                             </div>
                         </div>
                     </li>
+                    {% endif %}
 
                     <!-- General Status Matrix Card -->
+                    {% if can_export_officer_excel %}
                     <li>
                         <a class="dropdown-item rounded-3 p-2.5 d-flex align-items-start gap-2 border bg-light bg-opacity-25" href="{% url 'officer_status_export_excel' %}?{% if selected_dept %}department={{ selected_dept }}{% endif %}">
                             <div class="bg-secondary bg-opacity-10 text-secondary rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; min-width: 32px;">
@@ -178,6 +185,7 @@
                             </div>
                         </a>
                     </li>
+                    {% endif %}
                 </ul>
             </div>
 

@@ -138,14 +138,17 @@
                                 <a href="{% url 'officer_preview_pdf_e1' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
                                     <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
                                 </a>
+                                {% if can_export_officer_excel %}
                                 <a href="{% url 'officer_export_excel' %}?format=e1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" class="btn btn-sm btn-success rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
                                     <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
                                 </a>
+                                {% endif %}
                             </div>
                         </div>
                     </li>
 
-                    <!-- E-2 Option Card -->
+                    <!-- E-2 Option Card (Only visible to Authorized Offices / Admin) -->
+                    {% if can_view_e2_report %}
                     <li>
                         <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
                             <div class="d-flex align-items-center gap-2 mb-1.5">
@@ -157,12 +160,15 @@
                                 <a href="{% url 'officer_preview_pdf_e2' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
                                     <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
                                 </a>
+                                {% if can_export_officer_excel %}
                                 <a href="{% url 'officer_export_excel' %}?format=e2{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" class="btn btn-sm btn-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
                                     <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
                                 </a>
+                                {% endif %}
                             </div>
                         </div>
                     </li>
+                    {% endif %}
                 </ul>
             </div>
 

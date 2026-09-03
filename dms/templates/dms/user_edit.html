@@ -200,6 +200,45 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Contract Staff Excel Export (Specialized Offices) -->
+                    <div class="col-md-6 col-12">
+                        <div class="p-2.5 bg-white rounded-3 border h-100 d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="fw-bold text-dark fs-7"><i class="fa-solid fa-file-excel text-success me-1.5"></i> ទាញយក Excel មន្ត្រីកិច្ចសន្យា</div>
+                                <div class="text-muted fs-8">អនុញ្ញាតឱ្យការិយាល័យជំនាញទាញយកទម្រង់ D-1 ជា Excel</div>
+                            </div>
+                            <div class="form-check form-switch m-0 fs-5">
+                                {{ form.can_export_contract_excel }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Civil Servant Excel Export (Specialized Offices) -->
+                    <div class="col-md-6 col-12">
+                        <div class="p-2.5 bg-white rounded-3 border h-100 d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="fw-bold text-dark fs-7"><i class="fa-solid fa-file-excel text-primary me-1.5"></i> ទាញយក Excel បញ្ជីរាយនាមមន្ត្រី</div>
+                                <div class="text-muted fs-8">អនុញ្ញាតឱ្យការិយាល័យជំនាញ/ខណ្ឌ ទាញយកទម្រង់ E-1 ជា Excel</div>
+                            </div>
+                            <div class="form-check form-switch m-0 fs-5">
+                                {{ form.can_export_civil_servant_excel }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form E-2 Access (Specialized Offices) -->
+                    <div class="col-md-6 col-12">
+                        <div class="p-2.5 bg-white rounded-3 border h-100 d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="fw-bold text-dark fs-7"><i class="fa-solid fa-file-lines text-warning me-1.5"></i> មើល & ទាញយកទម្រង់ E-2 (ថ្នាក់ខេត្ត)</div>
+                                <div class="text-muted fs-8">អនុញ្ញាតឱ្យការិយាល័យជំនាញ/ខណ្ឌ ចូលមើលទម្រង់ E-2 ថ្នាក់ខេត្ត</div>
+                            </div>
+                            <div class="form-check form-switch m-0 fs-5">
+                                {{ form.can_view_e2_report }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

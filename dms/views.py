@@ -8,7 +8,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from django.db.models import Q, Count
-from django.http import HttpResponse, JsonResponse, FileResponse
+from django.http import HttpResponse, JsonResponse, FileResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.utils import timezone
 import openpyxl
@@ -466,6 +466,9 @@ def user_edit_view(request, user_id):
             profile.can_delete_document = data.get('can_delete_document', False)
             profile.can_view_reports = data.get('can_view_reports', False)
             profile.can_print = data.get('can_print', False)
+            profile.can_export_contract_excel = data.get('can_export_contract_excel', False)
+            profile.can_export_civil_servant_excel = data.get('can_export_civil_servant_excel', False)
+            profile.can_view_e2_report = data.get('can_view_e2_report', False)
             profile.save()
 
             messages.success(request, f"បានកែប្រែព័ត៌មាន សិទ្ធិប្រើប្រាស់ និងពាក្យសម្ងាត់របស់គណនី «{target_user.username}» ដោយជោគជ័យ!")
@@ -489,6 +492,9 @@ def user_edit_view(request, user_id):
             'can_delete_document': profile.can_delete_document,
             'can_view_reports': profile.can_view_reports,
             'can_print': profile.can_print,
+            'can_export_contract_excel': getattr(profile, 'can_export_contract_excel', False),
+            'can_export_civil_servant_excel': getattr(profile, 'can_export_civil_servant_excel', False),
+            'can_view_e2_report': getattr(profile, 'can_view_e2_report', False),
         }
         form = UserManagementEditForm(initial=initial_data)
 
@@ -2429,6 +2435,8 @@ def officer_list(request):
         'edit_window': edit_window,
         'is_window_open': is_window_open,
         'can_edit_officers': can_edit_officers,
+        'can_export_officer_excel': can_export_civil_servants_to_excel(request.user, profile),
+        'can_view_e2_report': can_access_officer_e2_report(request.user, profile),
     }
     return render(request, 'dms/officer_list.html', context)
 
@@ -4526,7 +4534,7 @@ def _get_khmer_lunar_year_info(year):
     be_year = year + 544
     be_kh = _to_khmer_digits(str(be_year))
     
-    return f"ឆ្នាំ{animal} {sak} ព.ស {be_kh}"
+    return f"ឆ្នាំ{animal} {sak} ព.ស.{be_kh}"
 
 
 def _calculate_e1_cadre_stats(officers_list):
@@ -4569,7 +4577,82 @@ def _calculate_e1_cadre_stats(officers_list):
     }
 
 
-def _build_e1_ministry_workbook(officers_list):
+def _add_excel_khmer_divider(ws, col_idx, col_offset_px, row_idx, row_offset_px=3, width_px=65, height_px=18):
+    """Adds the royal ornamental flourish divider under ជាតិ សាសនា ព្រះមហាក្សត្រ in Excel worksheets."""
+    divider_path = os.path.join(settings.BASE_DIR, 'dms', 'static', 'dms', 'img', 'khmer_divider.png')
+    if not os.path.exists(divider_path):
+        return
+    try:
+        from openpyxl.drawing.image import Image as OpenpyxlImage
+        from openpyxl.drawing.spreadsheet_drawing import OneCellAnchor, AnchorMarker, XDRPositiveSize2D
+        from openpyxl.utils.units import pixels_to_EMU
+        div_img = OpenpyxlImage(divider_path)
+        div_size = XDRPositiveSize2D(pixels_to_EMU(width_px), pixels_to_EMU(height_px))
+        marker = AnchorMarker(col=col_idx, colOff=pixels_to_EMU(col_offset_px), row=row_idx, rowOff=pixels_to_EMU(row_offset_px))
+        div_img.anchor = OneCellAnchor(_from=marker, ext=div_size)
+        ws.add_image(div_img)
+    except Exception:
+        pass
+
+
+def _add_excel_centered_logo(ws, start_col_letter, end_col_letter, start_row_idx=0, row_offset_px=2, logo_size_px=60):
+    """
+    Precisely anchors the official circular MAFF logo so that its horizontal center
+    perfectly matches the center axis of the organization header merged across start_col to end_col.
+    """
+    logo_path = os.path.join(settings.BASE_DIR, 'dms', 'static', 'dms', 'img', 'image1.jpeg')
+    if not os.path.exists(logo_path):
+        return
+    try:
+        from openpyxl.drawing.image import Image as OpenpyxlImage
+        from openpyxl.drawing.spreadsheet_drawing import OneCellAnchor, AnchorMarker, XDRPositiveSize2D
+        from openpyxl.utils.units import pixels_to_EMU
+        import openpyxl.utils
+
+        def _get_col_px(col_letter):
+            cd = ws.column_dimensions.get(col_letter)
+            w = cd.width if (cd and cd.width is not None) else 8.43
+            return int(w * 7 + 0.5) + 5
+
+        start_idx = openpyxl.utils.column_index_from_string(start_col_letter) - 1
+        end_idx = openpyxl.utils.column_index_from_string(end_col_letter) - 1
+
+        left_of_start = 0
+        for idx in range(start_idx):
+            letter = openpyxl.utils.get_column_letter(idx + 1)
+            left_of_start += _get_col_px(letter)
+
+        range_width = 0
+        for idx in range(start_idx, end_idx + 1):
+            letter = openpyxl.utils.get_column_letter(idx + 1)
+            range_width += _get_col_px(letter)
+
+        center_x = left_of_start + (range_width / 2.0)
+        logo_left_x = center_x - (logo_size_px / 2.0)
+
+        # Find which column logo_left_x falls into
+        cum = 0
+        anchor_col = 0
+        col_off_px = 0
+        for idx in range(max(ws.max_column + 10, end_idx + 5)):
+            letter = openpyxl.utils.get_column_letter(idx + 1)
+            w = _get_col_px(letter)
+            if cum + w > logo_left_x:
+                anchor_col = idx
+                col_off_px = max(0, logo_left_x - cum)
+                break
+            cum += w
+
+        logo_img = OpenpyxlImage(logo_path)
+        logo_ext = XDRPositiveSize2D(pixels_to_EMU(logo_size_px), pixels_to_EMU(logo_size_px))
+        marker = AnchorMarker(col=anchor_col, colOff=pixels_to_EMU(col_off_px), row=start_row_idx, rowOff=pixels_to_EMU(row_offset_px))
+        logo_img.anchor = OneCellAnchor(_from=marker, ext=logo_ext)
+        ws.add_image(logo_img)
+    except Exception:
+        pass
+
+
+def _build_e1_ministry_workbook(officers_list, department=None):
     from openpyxl.drawing.image import Image as OpenpyxlImage
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -4637,25 +4720,25 @@ def _build_e1_ministry_workbook(officers_list):
     ws.row_dimensions[4].height = 20.0
     ws.row_dimensions[5].height = 8.0
 
-    # Add Official Logo ABOVE Organization
-    logo_path = os.path.join(settings.BASE_DIR, 'dms', 'static', 'dms', 'img', 'image1.jpeg')
-    if os.path.exists(logo_path):
-        try:
-            img = OpenpyxlImage(logo_path)
-            img.width = 58
-            img.height = 58
-            ws.add_image(img, 'B1')
-        except Exception:
-            pass
+    # Add Official Logo centered ABOVE Organization (A to E)
+    _add_excel_centered_logo(ws, 'A', 'E', start_row_idx=0, row_offset_px=2, logo_size_px=58)
+
+    is_specialized = _is_specialized_department(department)
 
     # Header Left (Organization - Below Logo)
     ws.merge_cells('A3:E3')
-    ws['A3'] = "ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"
+    ws.merge_cells('A4:E4')
+    if is_specialized and department:
+        # Specialized Office / Canton: Line 1 = Provincial Department, Line 2 = Office/Canton
+        ws['A3'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+        ws['A4'] = department.name_kh
+    else:
+        # Full Department / Ministry: Line 1 = Ministry, Line 2 = Provincial Department
+        ws['A3'] = "ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"
+        ws['A4'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+
     ws['A3'].font = font_org
     ws['A3'].alignment = align_center
-
-    ws.merge_cells('A4:E4')
-    ws['A4'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
     ws['A4'].font = font_org
     ws['A4'].alignment = align_center
 
@@ -4670,10 +4753,10 @@ def _build_e1_ministry_workbook(officers_list):
     ws['G3'].font = font_title
     ws['G3'].alignment = align_center
 
+    # Royal Divider Flourish under ជាតិ សាសនា ព្រះមហាក្សត្រ
     ws.merge_cells('G4:J4')
-    ws['G4'] = "***"
-    ws['G4'].font = font_title
-    ws['G4'].alignment = align_center
+    ws['G4'] = ""
+    _add_excel_khmer_divider(ws, col_idx=8, col_offset_px=78, row_idx=3, row_offset_px=2, width_px=65, height_px=18)
 
     # Title Block
     now = datetime.now()
@@ -4686,7 +4769,10 @@ def _build_e1_ministry_workbook(officers_list):
     ws['A6'].alignment = align_title
 
     ws.merge_cells('A7:J7')
-    ws['A7'] = "ក្នុងរចនាសម្ព័ន្ធមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+    if is_specialized and department:
+        ws['A7'] = f"របស់{department.name_kh}"
+    else:
+        ws['A7'] = "ក្នុងរចនាសម្ព័ន្ធមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
     ws['A7'].font = font_title
     ws['A7'].alignment = align_title
 
@@ -4837,9 +4923,10 @@ def _build_e1_ministry_workbook(officers_list):
     c_s3.font = font_stat
     c_s3.alignment = align_stat_left
 
-    # Right: ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក
+    # Right: Head of Office Title
     ws.merge_cells(start_row=current_row + 2, start_column=7, end_row=current_row + 2, end_column=10)
-    c_r3 = ws.cell(row=current_row + 2, column=7, value="ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក")
+    sig_right_title = _get_department_head_title(department) if (is_specialized and department) else "ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក"
+    c_r3 = ws.cell(row=current_row + 2, column=7, value=sig_right_title)
     c_r3.font = font_dept_header
     c_r3.alignment = align_sig_center
 
@@ -4964,16 +5051,8 @@ def _build_e2_provincial_workbook(officers_list):
     ws.row_dimensions[4].height = 20.0
     ws.row_dimensions[5].height = 8.0
 
-    # Add Official Logo ABOVE Organization
-    logo_path = os.path.join(settings.BASE_DIR, 'dms', 'static', 'dms', 'img', 'image1.jpeg')
-    if os.path.exists(logo_path):
-        try:
-            img = OpenpyxlImage(logo_path)
-            img.width = 58
-            img.height = 58
-            ws.add_image(img, 'B1')
-        except Exception:
-            pass
+    # Add Official Logo centered ABOVE Organization (A to F)
+    _add_excel_centered_logo(ws, 'A', 'F', start_row_idx=0, row_offset_px=2, logo_size_px=58)
 
     # Header Left (Organization - Below Logo)
     ws.merge_cells('A3:F3')
@@ -4997,10 +5076,10 @@ def _build_e2_provincial_workbook(officers_list):
     ws['K3'].font = font_title
     ws['K3'].alignment = align_center
 
+    # Royal Divider Flourish under ជាតិ សាសនា ព្រះមហាក្សត្រ
     ws.merge_cells('K4:P4')
-    ws['K4'] = "***"
-    ws['K4'].font = font_title
-    ws['K4'].alignment = align_center
+    ws['K4'] = ""
+    _add_excel_khmer_divider(ws, col_idx=12, col_offset_px=21, row_idx=3, row_offset_px=2, width_px=65, height_px=18)
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
@@ -5118,9 +5197,131 @@ def _build_e2_provincial_workbook(officers_list):
     return wb
 
 
+def can_export_civil_servants_to_excel(user, profile=None):
+    """
+    Strict Excel Export Access Control for Civil Servants:
+    Specialized offices and cantons (ខណ្ឌ) are FORBIDDEN from exporting civil servants to Excel,
+    EXCEPT for Administration-Personnel Office (ការិយាល័យរដ្ឋបាល-បុគ្គលិក) OR if authorized by ADMIN.
+    """
+    if not user or not user.is_authenticated:
+        return False
+
+    # 1. System Admin / Superuser / Staff / Admin username / Admin role
+    if user.is_superuser or user.is_staff or (user.username or '').upper() in ['ADMIN', 'ADMINISTRATOR', 'ROOT']:
+        return True
+
+    if not profile:
+        profile = getattr(user, 'profile', None)
+    if not profile:
+        return False
+
+    if getattr(profile, 'is_admin', False) or getattr(profile, 'role', '') == 'ADMIN':
+        return True
+
+    # 2. Leadership (ប្រធានមន្ទីរ, អនុប្រធានមន្ទីរ)
+    if getattr(profile, 'is_leadership', False) or getattr(profile, 'role', '') in ['LEADERSHIP', 'DIRECTOR', 'DEPUTY_DIRECTOR']:
+        return True
+
+    # 3. Administration-Personnel Office (ការិយាល័យរដ្ឋបាល-បុគ្គលិក / កិច្ចការទូទៅ)
+    dept = profile.department
+    if dept:
+        name_kh = (dept.name_kh or '').strip().lower()
+        code = (dept.code or '').strip().upper()
+        # Strictly exclude Cantons (ខណ្ឌរដ្ឋបាលព្រៃឈើ, ខណ្ឌរដ្ឋបាលជលផល)
+        if not (code.startswith('CANTON') or name_kh.startswith('ខណ្ឌ') or 'ខណ្ឌ' in name_kh):
+            if code in ['ADMIN', 'ADMIN_PERS', 'ADMIN_PERSONNEL', 'ADMIN_DEPT', 'LEAD', 'GEN_AFFAIRS', 'GENERAL_AFFAIRS']:
+                return True
+            if ('រដ្ឋបាល' in name_kh and 'បុគ្គលិក' in name_kh) or ('កិច្ចការទូទៅ' in name_kh):
+                return True
+            if name_kh in ['ការិយាល័យរដ្ឋបាល បុគ្គលិក', 'ការិយាល័យរដ្ឋបាល-បុគ្គលិក', 'ការិយាល័យរដ្ឋបាល', 'ការិយាល័យកិច្ចការរដ្ឋបាលទូទៅ']:
+                return True
+
+    # 4. Explicit authorization granted by ADMIN to this profile
+    if getattr(profile, 'can_export_civil_servant_excel', False):
+        return True
+
+    # Specialized offices and cantons are strictly forbidden by default
+    return False
+
+
+def can_access_officer_e2_report(user, profile=None):
+    """
+    Form E-2 Access Control:
+    Form E-2 (ថ្នាក់ខេត្ត) is STRICTLY DISABLED for Specialized offices and Cantons (ខណ្ឌ).
+    ONLY Administration-Personnel Office, Leadership, and ADMIN (or users explicitly granted can_view_e2_report) can access Form E-2.
+    """
+    if not user or not user.is_authenticated:
+        return False
+
+    if user.is_superuser or user.is_staff or (user.username or '').upper() in ['ADMIN', 'ADMINISTRATOR', 'ROOT']:
+        return True
+
+    if not profile:
+        profile = getattr(user, 'profile', None)
+    if not profile:
+        return False
+
+    if getattr(profile, 'is_admin', False) or getattr(profile, 'role', '') == 'ADMIN':
+        return True
+
+    if getattr(profile, 'is_leadership', False) or getattr(profile, 'role', '') in ['LEADERSHIP', 'DIRECTOR', 'DEPUTY_DIRECTOR']:
+        return True
+
+    dept = profile.department
+    if dept:
+        name_kh = (dept.name_kh or '').strip().lower()
+        code = (dept.code or '').strip().upper()
+        # Strictly exclude Cantons
+        if not (code.startswith('CANTON') or name_kh.startswith('ខណ្ឌ') or 'ខណ្ឌ' in name_kh):
+            if code in ['ADMIN', 'ADMIN_PERS', 'ADMIN_PERSONNEL', 'ADMIN_DEPT', 'LEAD', 'GEN_AFFAIRS', 'GENERAL_AFFAIRS']:
+                return True
+            if ('រដ្ឋបាល' in name_kh and 'បុគ្គលិក' in name_kh) or ('កិច្ចការទូទៅ' in name_kh):
+                return True
+            if name_kh in ['ការិយាល័យរដ្ឋបាល បុគ្គលិក', 'ការិយាល័យរដ្ឋបាល-បុគ្គលិក', 'ការិយាល័យរដ្ឋបាល', 'ការិយាល័យកិច្ចការរដ្ឋបាលទូទៅ']:
+                return True
+
+    if getattr(profile, 'can_view_e2_report', False):
+        return True
+
+    return False
+
+
 @login_required
 def officer_export_excel(request):
+    """
+    Export Civil Servants list to Excel (Form E-1 or Form E-2).
+    Strict Permission: Specialized offices and cantons are FORBIDDEN from exporting to Excel,
+    EXCEPT for Administration-Personnel Office OR if authorized by ADMIN.
+    Form E-2 is additionally forbidden unless authorized for E-2.
+    """
     profile = getattr(request.user, 'profile', None)
+    if not can_export_civil_servants_to_excel(request.user, profile):
+        messages.error(
+            request,
+            "ការិយាល័យជំនាញ និងខណ្ឌ មិនត្រូវបានអនុញ្ញាតឱ្យទាញចេញជា Excel ឡើយ! លើកលែងតែការិយាល័យរដ្ឋបាល-បុគ្គលិក ឬមានការអនុញ្ញាតដោយ ADMIN។"
+        )
+        return HttpResponseForbidden(
+            "<div style='font-family: Khmer OS Battambang, sans-serif; text-align: center; margin-top: 80px;'>"
+            "<h2 style='color: #dc2626;'>⛔ គ្មានសិទ្ធិទាញយកឯកសារជា Excel ឡើយ</h2>"
+            "<p style='font-size: 16px; color: #475569;'>ការិយាល័យជំនាញ និងខណ្ឌ មិនត្រូវបានអនុញ្ញាតឱ្យទាញចេញជា Excel ដាច់ខាត លើកលែងតែការិយាល័យរដ្ឋបាល-បុគ្គលិក ឬមានការអនុញ្ញាតដោយ ADMIN។</p>"
+            "<a href='javascript:history.back()' style='display: inline-block; margin-top: 15px; padding: 8px 20px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 20px;'>ត្រឡប់ក្រោយ</a>"
+            "</div>"
+        )
+
+    export_format = request.GET.get('format', 'e1').strip().lower()
+    if export_format == 'e2' and not can_access_officer_e2_report(request.user, profile):
+        messages.error(
+            request,
+            "ទម្រង់ E-2 (ថ្នាក់ខេត្ត) ត្រូវបានបិទសម្រាប់ការិយាល័យជំនាញ និងខណ្ឌ! សម្រាប់តែការិយាល័យរដ្ឋបាល-បុគ្គលិក ឬ ADMIN ប៉ុណ្ណោះ។"
+        )
+        return HttpResponseForbidden(
+            "<div style='font-family: Khmer OS Battambang, sans-serif; text-align: center; margin-top: 80px;'>"
+            "<h2 style='color: #dc2626;'>⛔ គ្មានសិទ្ធិទាញយកទម្រង់ E-2 ឡើយ</h2>"
+            "<p style='font-size: 16px; color: #475569;'>ទម្រង់ E-2 (ថ្នាក់ខេត្ត) ត្រូវបានបិទសម្រាប់ការិយាល័យជំនាញ និងខណ្ឌ។ អនុញ្ញាតសម្រាប់តែការិយាល័យរដ្ឋបាល-បុគ្គលិក ឬ ADMIN ប៉ុណ្ណោះ។</p>"
+            "<a href='javascript:history.back()' style='display: inline-block; margin-top: 15px; padding: 8px 20px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 20px;'>ត្រឡប់ក្រោយ</a>"
+            "</div>"
+        )
+
     dept = profile.department if profile else None
     has_global_access = check_has_global_hr_tracking_access(request.user, profile)
     is_admin_or_lead = has_global_access
@@ -5129,16 +5330,18 @@ def officer_export_excel(request):
     dept_filter = request.GET.get('department', '').strip()
     gender_filter = request.GET.get('gender', '').strip()
     marital_filter = request.GET.get('marital_status', '').strip()
-    export_format = request.GET.get('format', 'e1').strip().lower()
 
     queryset = CivilServantProfile.objects.select_related('department').all()
+    selected_dept = None
     if not is_admin_or_lead:
         if dept:
             queryset = queryset.filter(department=dept)
+            selected_dept = dept
         else:
             queryset = queryset.none()
     elif dept_filter:
         queryset = queryset.filter(department_id=dept_filter)
+        selected_dept = Department.objects.filter(id=dept_filter).first()
 
     if search_q:
         q_arabic = to_arabic_digits(search_q)
@@ -5176,7 +5379,7 @@ def officer_export_excel(request):
         wb = _build_e2_provincial_workbook(officers_list)
         filename = f"officers_E2_provincial_mcs_{date_suffix}.xlsx"
     else:
-        wb = _build_e1_ministry_workbook(officers_list)
+        wb = _build_e1_ministry_workbook(officers_list, department=selected_dept)
         filename = f"officers_E1_ministry_{date_suffix}.xlsx"
 
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -5262,13 +5465,19 @@ def officer_preview_pdf_e1(request):
     marital_filter = request.GET.get('marital_status', '').strip()
 
     queryset = CivilServantProfile.objects.select_related('department').all()
+    selected_dept = None
     if not is_admin_or_lead:
         if dept:
             queryset = queryset.filter(department=dept)
+            selected_dept = dept
         else:
             queryset = queryset.none()
     elif dept_filter:
         queryset = queryset.filter(department_id=dept_filter)
+        selected_dept = Department.objects.filter(id=dept_filter).first()
+
+    is_specialized = _is_specialized_department(selected_dept)
+    office_head_title = _get_department_head_title(selected_dept) if (is_specialized and selected_dept) else "ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក"
 
     if search_q:
         q_arabic = to_arabic_digits(search_q)
@@ -5350,6 +5559,10 @@ def officer_preview_pdf_e1(request):
         'year_kh': year_kh,
         'today': date.today(),
         'query_params': request.GET.urlencode(),
+        'can_export_officer_excel': can_export_civil_servants_to_excel(request.user, profile),
+        'is_specialized': is_specialized,
+        'selected_department': selected_dept,
+        'office_head_title': office_head_title,
     }
     return render(request, 'dms/officer_preview_e1_pdf.html', context)
 
@@ -5358,8 +5571,22 @@ def officer_preview_pdf_e1(request):
 def officer_preview_pdf_e2(request):
     """
     មើលជា PDF / Print Preview សម្រាប់ទម្រង់ E-2 (បញ្ជូនទៅមន្ទីរមុខងារសាធារណៈខេត្ត)
+    បិទសម្រាប់ការិយាល័យជំនាញ និងខណ្ឌ (Specialized offices & Cantons) លើកលែងតែរដ្ឋបាល-បុគ្គលិក ឬ ADMIN
     """
     profile = getattr(request.user, 'profile', None)
+    if not can_access_officer_e2_report(request.user, profile):
+        messages.error(
+            request,
+            "ទម្រង់ E-2 (ថ្នាក់ខេត្ត) ត្រូវបានបិទសម្រាប់ការិយាល័យជំនាញ និងខណ្ឌ! សម្រាប់តែការិយាល័យរដ្ឋបាល-បុគ្គលិក ឬ ADMIN ប៉ុណ្ណោះ។"
+        )
+        return HttpResponseForbidden(
+            "<div style='font-family: Khmer OS Battambang, sans-serif; text-align: center; margin-top: 80px;'>"
+            "<h2 style='color: #dc2626;'>⛔ ទម្រង់ E-2 ត្រូវបានបិទ</h2>"
+            "<p style='font-size: 16px; color: #475569;'>ទម្រង់ E-2 (ថ្នាក់ខេត្ត) ត្រូវបានបិទសម្រាប់ការិយាល័យជំនាញ និងខណ្ឌ។ អនុញ្ញាតសម្រាប់តែការិយាល័យរដ្ឋបាល-បុគ្គលិក ឬ ADMIN ប៉ុណ្ណោះ។</p>"
+            "<a href='javascript:history.back()' style='display: inline-block; margin-top: 15px; padding: 8px 20px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 20px;'>ត្រឡប់ក្រោយ</a>"
+            "</div>"
+        )
+
     dept = profile.department if profile else None
     has_global_access = check_has_global_hr_tracking_access(request.user, profile)
     is_admin_or_lead = has_global_access
@@ -5438,6 +5665,7 @@ def officer_preview_pdf_e2(request):
         'year_kh': year_kh,
         'today': date.today(),
         'query_params': request.GET.urlencode(),
+        'can_export_officer_excel': can_export_civil_servants_to_excel(request.user, profile),
     }
     return render(request, 'dms/officer_preview_e2_pdf.html', context)
 
@@ -7033,6 +7261,11 @@ def officer_promotion_master_export_excel(request):
     ws['K2'].font = font_royal_muol
     ws['K2'].alignment = align_center
 
+    # Royal Divider Flourish
+    ws.merge_cells('K3:N3')
+    ws['K3'] = ""
+    _add_excel_khmer_divider(ws, col_idx=11, col_offset_px=40, row_idx=2, row_offset_px=2, width_px=65, height_px=18)
+
     # Title Row
     ws.merge_cells('A4:N4')
     ws['A4'] = f"តារាងបូកសរុបសំណើសុំដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់មន្ត្រីរាជការ ប្រចាំឆ្នាំ {req_year}"
@@ -7315,6 +7548,11 @@ def officer_medals_master_export_excel(request):
     ws['I2'] = "ជាតិ សាសនា ព្រះមហាក្សត្រ"
     ws['I2'].font = font_royal_muol
     ws['I2'].alignment = align_center
+
+    # Royal Divider Flourish
+    ws.merge_cells('I3:L3')
+    ws['I3'] = ""
+    _add_excel_khmer_divider(ws, col_idx=9, col_offset_px=40, row_idx=2, row_offset_px=2, width_px=65, height_px=18)
 
     # Title Row
     ws.merge_cells('A4:L4')
@@ -8250,6 +8488,8 @@ def officer_status_report_view(request):
         'date_info': date_info,
         'today': today,
         'is_window_open': is_window_open,
+        'can_export_officer_excel': can_export_civil_servants_to_excel(request.user, profile),
+        'can_view_e2_report': can_access_officer_e2_report(request.user, profile),
     }
     return render(request, 'dms/officer_status_report.html', context)
 
@@ -8388,6 +8628,19 @@ def officer_status_export_excel(request):
     import datetime
 
     profile = getattr(request.user, 'profile', None)
+    if not can_export_civil_servants_to_excel(request.user, profile):
+        messages.error(
+            request,
+            "ការិយាល័យជំនាញ និងខណ្ឌ មិនត្រូវបានអនុញ្ញាតឱ្យទាញចេញជា Excel ឡើយ! លើកលែងតែការិយាល័យរដ្ឋបាល-បុគ្គលិក ឬមានការអនុញ្ញាតដោយ ADMIN។"
+        )
+        return HttpResponseForbidden(
+            "<div style='font-family: Khmer OS Battambang, sans-serif; text-align: center; margin-top: 80px;'>"
+            "<h2 style='color: #dc2626;'>⛔ គ្មានសិទ្ធិទាញយកឯកសារជា Excel ឡើយ</h2>"
+            "<p style='font-size: 16px; color: #475569;'>ការិយាល័យជំនាញ និងខណ្ឌ មិនត្រូវបានអនុញ្ញាតឱ្យទាញចេញជា Excel ដាច់ខាត លើកលែងតែការិយាល័យរដ្ឋបាល-បុគ្គលិក ឬមានការអនុញ្ញាតដោយ ADMIN។</p>"
+            "<a href='javascript:history.back()' style='display: inline-block; margin-top: 15px; padding: 8px 20px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 20px;'>ត្រឡប់ក្រោយ</a>"
+            "</div>"
+        )
+
     user_dept = profile.department if profile else None
     has_global_access = check_has_global_hr_tracking_access(request.user, profile)
 
@@ -9129,9 +9382,52 @@ def api_geo_item_delete(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
-# ==============================================================================
-# 📝 CONTRACT CIVIL SERVANTS VIEWS (មុខងារគ្រប់គ្រងមន្ត្រីជាប់កិច្ចសន្យា)
-# ==============================================================================
+def can_export_contract_officers_to_excel(user, profile=None):
+    """
+    Strict Excel Export Access Control:
+    Specialized offices are FORBIDDEN from exporting contract officers to Excel,
+    EXCEPT for Administration-Personnel Office (ការិយាល័យរដ្ឋបាល-បុគ្គលិក) OR if authorized by ADMIN.
+    """
+    if not user or not user.is_authenticated:
+        return False
+
+    # 1. System Admin / Superuser / Staff / Admin username / Admin role
+    if user.is_superuser or user.is_staff or (user.username or '').upper() in ['ADMIN', 'ADMINISTRATOR', 'ROOT']:
+        return True
+
+    if not profile:
+        profile = getattr(user, 'profile', None)
+    if not profile:
+        return False
+
+    if getattr(profile, 'is_admin', False) or getattr(profile, 'role', '') == 'ADMIN':
+        return True
+
+    # 2. Leadership (ប្រធានមន្ទីរ, អនុប្រធានមន្ទីរ)
+    if getattr(profile, 'is_leadership', False) or getattr(profile, 'role', '') in ['LEADERSHIP', 'DIRECTOR', 'DEPUTY_DIRECTOR']:
+        return True
+
+    # 3. Administration-Personnel Office (ការិយាល័យរដ្ឋបាល-បុគ្គលិក / កិច្ចការទូទៅ)
+    dept = profile.department
+    if dept:
+        name_kh = (dept.name_kh or '').strip().lower()
+        code = (dept.code or '').strip().upper()
+        # Strictly exclude Cantons (ខណ្ឌរដ្ឋបាលព្រៃឈើ, ខណ្ឌរដ្ឋបាលជលផល)
+        if not (code.startswith('CANTON') or name_kh.startswith('ខណ្ឌ') or 'ខណ្ឌ' in name_kh):
+            if code in ['ADMIN', 'ADMIN_PERS', 'ADMIN_PERSONNEL', 'ADMIN_DEPT', 'LEAD', 'GEN_AFFAIRS', 'GENERAL_AFFAIRS']:
+                return True
+            if ('រដ្ឋបាល' in name_kh and 'បុគ្គលិក' in name_kh) or ('កិច្ចការទូទៅ' in name_kh):
+                return True
+            if name_kh in ['ការិយាល័យរដ្ឋបាល បុគ្គលិក', 'ការិយាល័យរដ្ឋបាល-បុគ្គលិក', 'ការិយាល័យរដ្ឋបាល', 'ការិយាល័យកិច្ចការរដ្ឋបាលទូទៅ']:
+                return True
+
+    # 4. Explicit authorization granted by ADMIN to this profile
+    if getattr(profile, 'can_export_contract_excel', False):
+        return True
+
+    # Specialized offices are strictly forbidden by default
+    return False
+
 
 @login_required
 def contract_officer_list(request):
@@ -9242,6 +9538,7 @@ def contract_officer_list(request):
         'dept': dept,
         'is_admin_or_lead': is_admin_or_lead,
         'is_system_admin': is_system_admin,
+        'can_export_contract_excel': can_export_contract_officers_to_excel(request.user, profile),
     }
     return render(request, 'dms/contract_officer_list.html', context)
 
@@ -10063,10 +10360,155 @@ def _format_d1_phone(val):
     if not val:
         return '-'
     val_clean = str(val).strip()
+    # Keep strictly on single line - if multiple numbers, take the first/primary one
+    if ',' in val_clean:
+        val_clean = val_clean.split(',')[0].strip()
+    elif '/' in val_clean:
+        val_clean = val_clean.split('/')[0].strip()
     return _to_khmer_digits(val_clean)
 
 
-def _build_d1_contract_workbook(officers_list, year=None):
+def _format_d1_education(val):
+    """
+    Cleans education string so it strictly displays on a single line.
+    """
+    if not val:
+        return 'គ្មាន'
+    clean = ' '.join(str(val).split()).strip()
+    return clean or 'គ្មាន'
+
+
+def _format_contract_officer_office(officer):
+    """
+    Returns the specific Office / Canton where the contract officer serves (ខណ្ឌ/ការិយាល័យបំពេញការងារ),
+    strictly excluding the overarching organization/department name (មន្ទីរកសិកម្ម...).
+    """
+    # 1. If assigned to a specific department (which represents an Office or Canton in DCM):
+    dept = getattr(officer, 'department', None)
+    if dept and dept.name_kh:
+        dname = dept.name_kh.strip()
+        if 'មន្ទីរកសិកម្ម' not in dname:
+            return dname
+
+    # 2. Check working_unit field
+    unit = (getattr(officer, 'working_unit', '') or '').strip()
+    if unit:
+        if 'មន្ទីរកសិកម្ម' in unit:
+            # Check if an office name is inside it, e.g. "មន្ទីរកសិកម្ម... ការិយាល័យ..."
+            for kw in ['ការិយាល័យ', 'ខណ្ឌ']:
+                if kw in unit:
+                    parts = unit.split(kw)
+                    return (kw + ' ' + parts[-1]).strip(' -:/')
+            if dept and dept.name_kh and 'មន្ទីរកសិកម្ម' not in dept.name_kh:
+                return dept.name_kh.strip()
+            return "ការិយាល័យរដ្ឋបាល-បុគ្គលិក"
+        return unit
+
+def _is_specialized_department(dept):
+    """
+    Checks if a department is a specialized office / canton (ការិយាល័យជំនាញផ្សេងៗ / ខណ្ឌ),
+    as opposed to Provincial Leadership or Administration/Personnel.
+    """
+    if not dept:
+        return False
+    code = (getattr(dept, 'code', '') or '').upper()
+    name = getattr(dept, 'name_kh', '') or ''
+    admin_codes = ['LEAD', 'ADMIN_PERS', 'ADMIN_DEPT', 'ADMIN_PERSONNEL', 'GENERAL_AFFAIRS', 'ADMIN', 'ADMIN_NEW']
+    if code in admin_codes:
+        return False
+    if 'ថ្នាក់ដឹកនាំ' in name:
+        return False
+    return True
+
+
+def _get_department_head_title(dept):
+    """
+    Returns appropriate title for head of office / canton (ប្រធានការិយាល័យ... ឬ នាយខណ្ឌ...).
+    """
+    if not dept:
+        return "ប្រធានការិយាល័យ"
+    dname = dept.name_kh.strip()
+    code = (dept.code or '').upper()
+    if 'ខណ្ឌ' in dname or code.startswith('CANTON'):
+        if dname.startswith('ខណ្ឌ'):
+            return 'នាយ' + dname
+        return 'នាយខណ្ឌ ' + dname
+    if dname.startswith('ការិយាល័យ'):
+        return 'ប្រធាន' + dname
+    return 'ប្រធានការិយាល័យ ' + dname
+
+
+def _get_specialized_office_leadership_info(dept, override_type=None):
+    """
+    Returns leadership configuration for a specialized office/canton:
+    - 'head': Has Head of Office/Canton -> Center: 'ប្រធាន...' or 'នាយ...', Right: 'អ្នកធ្វើតារាង'
+    - 'deputy': No Head, but has Deputy in charge -> Center: 'អនុប្រធានទទួលបន្ទុករួមការិយាល័យ' (or 'អនុប្រធានទទួលបន្ទុករួមខណ្ឌ'), Right: 'អ្នកធ្វើតារាង'
+    - 'solo': Solo Officer (មន្ត្រីទោល) -> No Center signature, Right: 'មន្ត្រីទទួលបន្ទុកដឹកនាំរួម'
+    """
+    if not dept:
+        return {
+            'type': 'head',
+            'center_title': 'ប្រធានការិយាល័យ',
+            'right_title': 'អ្នកធ្វើតារាង',
+            'has_center': True
+        }
+
+    is_canton = 'ខណ្ឌ' in (dept.name_kh or '') or (dept.code or '').upper().startswith('CANTON')
+
+    if override_type in ['head', 'deputy', 'solo']:
+        lead_type = override_type
+    else:
+        # Auto-detect from active staff
+        cs_list = list(CivilServantProfile.objects.filter(department=dept))
+        up_list = list(UserProfile.objects.filter(department=dept))
+
+        has_head = False
+        has_deputy = False
+
+        for cs in cs_list:
+            pos = (cs.current_position_title or '').strip()
+            if ('ប្រធាន' in pos and 'អនុ' not in pos) or ('នាយខណ្ឌ' in pos and 'រង' not in pos):
+                has_head = True
+            elif 'អនុប្រធាន' in pos or 'នាយរង' in pos or 'រង' in pos:
+                has_deputy = True
+
+        if not has_head and not has_deputy:
+            for up in up_list:
+                pos = (up.position_title or '').strip()
+                if ('ប្រធាន' in pos and 'អនុ' not in pos) or ('នាយខណ្ឌ' in pos and 'រង' not in pos):
+                    has_head = True
+                elif 'អនុប្រធាន' in pos or 'នាយរង' in pos or 'រង' in pos:
+                    has_deputy = True
+
+        if has_head:
+            lead_type = 'head'
+        elif has_deputy:
+            lead_type = 'deputy'
+        else:
+            lead_type = 'solo'
+
+    if lead_type == 'head':
+        center_title = _get_department_head_title(dept)
+        right_title = 'អ្នកធ្វើតារាង'
+        has_center = True
+    elif lead_type == 'deputy':
+        center_title = 'អនុប្រធានទទួលបន្ទុករួមខណ្ឌ' if is_canton else 'អនុប្រធានទទួលបន្ទុករួមការិយាល័យ'
+        right_title = 'អ្នកធ្វើតារាង'
+        has_center = True
+    else:  # solo
+        center_title = ''
+        right_title = 'មន្ត្រីទទួលបន្ទុកដឹកនាំរួម'
+        has_center = False
+
+    return {
+        'type': lead_type,
+        'center_title': center_title,
+        'right_title': right_title,
+        'has_center': has_center,
+    }
+
+
+def _build_d1_contract_workbook(officers_list, year=None, department=None, lead_type=None):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "06"
@@ -10107,16 +10549,16 @@ def _build_d1_contract_workbook(officers_list, year=None):
     ws.row_dimensions[7].height = 71.1
     ws.row_dimensions[8].height = 43.5
 
-    # Fonts
+    # Fonts (Strictly bold=False as mandated)
     font_org = Font(name='Khmer OS Muol Light', size=10, color='1E3A8A', bold=False)
     font_org_sub = Font(name='Khmer OS Muol Light', size=9.5, color='1E3A8A', bold=False)
     font_kingdom = Font(name='Khmer OS Muol Light', size=10.5, color='1E3A8A', bold=False)
-    font_stars = Font(name='Khmer OS Battambang', size=12, color='1E3A8A', bold=True)
+    font_stars = Font(name='Khmer OS Battambang', size=12, color='1E3A8A', bold=False)
     font_title = Font(name='Khmer OS Muol Light', size=11, color='1E3A8A', bold=False)
-    font_header = Font(name='Khmer OS Battambang', size=11, bold=True)
+    font_header = Font(name='Khmer OS Battambang', size=11, bold=False)
     font_data = Font(name='Khmer OS Battambang', size=11, bold=False)
     font_latin = Font(name='Cambria', size=11, bold=False)
-    font_footer_bold = Font(name='Khmer OS Battambang', size=10.5, bold=True)
+    font_footer_bold = Font(name='Khmer OS Battambang', size=10.5, bold=False)
     font_footer_normal = Font(name='Khmer OS Battambang', size=10, bold=False)
     font_footer_muol = Font(name='Khmer OS Muol Light', size=10.5, bold=False)
 
@@ -10132,28 +10574,33 @@ def _build_d1_contract_workbook(officers_list, year=None):
     align_data_center = Alignment(horizontal='center', vertical='center', wrap_text=False)
     align_data_left = Alignment(horizontal='left', vertical='center', wrap_text=False)
 
-    # Logo Image on Left Header (above organization)
-    logo_path = os.path.join(settings.BASE_DIR, 'dms', 'static', 'dms', 'img', 'image1.jpeg')
-    if os.path.exists(logo_path):
-        try:
-            from openpyxl.drawing.image import Image as OpenpyxlImage
-            logo_img = OpenpyxlImage(logo_path)
-            logo_img.width = 56
-            logo_img.height = 56
-            ws.add_image(logo_img, 'B1')
-        except Exception:
-            pass
+    # Logo Image on Left Header (precisely centered above Organization A to C)
+    _add_excel_centered_logo(ws, 'A', 'C', start_row_idx=0, row_offset_px=2, logo_size_px=60)
 
-    # Left Header: Organization
+    is_specialized = _is_specialized_department(department)
+    lead_info = _get_specialized_office_leadership_info(department, override_type=lead_type) if is_specialized else None
+
+    # Left Header: Organization under Logo (centered across A to C)
     ws.merge_cells('A4:C4')
-    ws['A4'] = "ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"
-    ws['A4'].font = font_org
-    ws['A4'].alignment = align_center
-
     ws.merge_cells('A5:C5')
-    ws['A5'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
-    ws['A5'].font = font_org_sub
-    ws['A5'].alignment = align_center
+    if is_specialized and department:
+        # Specialized Office: Line 1 = Provincial Department, Line 2 = Office/Canton
+        ws['A4'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+        ws['A4'].font = font_org
+        ws['A4'].alignment = align_center
+
+        ws['A5'] = department.name_kh
+        ws['A5'].font = font_org_sub
+        ws['A5'].alignment = align_center
+    else:
+        # Full Department / Admin: Line 1 = Ministry, Line 2 = Provincial Department
+        ws['A4'] = "ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"
+        ws['A4'].font = font_org
+        ws['A4'].alignment = align_center
+
+        ws['A5'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+        ws['A5'].font = font_org_sub
+        ws['A5'].alignment = align_center
 
     # Right Header: Kingdom & Motto
     ws.merge_cells('G2:I2')
@@ -10166,10 +10613,10 @@ def _build_d1_contract_workbook(officers_list, year=None):
     ws['G3'].font = font_kingdom
     ws['G3'].alignment = align_center
 
+    # Royal Divider Flourish under ជាតិ សាសនា ព្រះមហាក្សត្រ
     ws.merge_cells('G4:I4')
-    ws['G4'] = "***"
-    ws['G4'].font = font_stars
-    ws['G4'].alignment = align_center
+    ws['G4'] = ""
+    _add_excel_khmer_divider(ws, col_idx=7, col_offset_px=23, row_idx=3, row_offset_px=5, width_px=65, height_px=18)
 
     # Row 7: Title block
     now = datetime.now()
@@ -10178,9 +10625,14 @@ def _build_d1_contract_workbook(officers_list, year=None):
     year_kh = _to_khmer_digits(str(year_val))
 
     ws.merge_cells('A7:I7')
+    if is_specialized and department:
+        owner_name = f"របស់{department.name_kh}"
+    else:
+        owner_name = "របស់មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+
     title_text = (
         "បញ្ជីបច្ចុប្បន្នភាពមន្ត្រីជាប់កិច្ចសន្យា\n"
-        "របស់មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន\n"
+        f"{owner_name}\n"
         f"ប្រចាំខែ{month_kh} ឆ្នាំ{year_kh}"
     )
     ws['A7'] = title_text
@@ -10190,7 +10642,7 @@ def _build_d1_contract_workbook(officers_list, year=None):
     # Row 8: Headers (9 columns)
     headers = [
         ('A', 'ល.រ'),
-        ('B', 'គោត្ដនាម នាម'),
+        ('B', 'គោត្តនាម នាម'),
         ('C', 'អក្សរឡាតាំង'),
         ('D', 'ភេទ'),
         ('E', 'ថ្ងៃខែឆ្នាំកំណើត'),
@@ -10206,14 +10658,15 @@ def _build_d1_contract_workbook(officers_list, year=None):
         cell.alignment = align_center
         cell.border = thin_border
 
-    # Row 9+: Data Rows
+    # Row 9+: Data Rows (Uniform height 25.0, single-line cell content)
     current_row = 9
     for idx, o in enumerate(officers_list, start=1):
-        ws.row_dimensions[current_row].height = 27.0
+        ws.row_dimensions[current_row].height = 25.0
 
         g_kh = 'ប្រុស' if o.gender == 'MALE' or str(o.gender).upper() in ['M', 'ប្រុស', 'ប'] else 'ស្រី'
         dob_display = _format_d1_dob(o.dob)
-        edu = (o.general_education or o.training_level or 'គ្មាន').strip()
+        office_display = _format_contract_officer_office(o)
+        edu_display = _format_d1_education(o.general_education or o.training_level)
         phone_display = _format_d1_phone(o.phone)
 
         cells_data = [
@@ -10222,9 +10675,9 @@ def _build_d1_contract_workbook(officers_list, year=None):
             ('C', o.full_name_latin, font_latin, align_data_left),
             ('D', g_kh, font_data, align_data_center),
             ('E', dob_display, font_data, align_data_center),
-            ('F', o.display_working_unit, font_data, align_data_center),
+            ('F', office_display, font_data, align_data_center),
             ('G', o.position_title or 'មន្ត្រីជាប់កិច្ចសន្យា', font_data, align_data_center),
-            ('H', edu, font_data, align_data_center),
+            ('H', edu_display, font_data, align_data_center),
             ('I', phone_display, font_data, align_data_center),
         ]
         for col_letter, val, f_style, a_style in cells_data:
@@ -10236,51 +10689,130 @@ def _build_d1_contract_workbook(officers_list, year=None):
 
         current_row += 1
 
-    # Bottom Summary and Signature (matching PDF footer)
+    # Bottom Summary and Hierarchical Signatures (strictly matching D-1 format)
+    is_specialized = _is_specialized_department(department)
+    head_title = _get_department_head_title(department) if is_specialized else ""
+    last_officer = officers_list[-1] if officers_list else None
     total_count = len(officers_list)
     female_count = sum(1 for o in officers_list if o.gender == 'FEMALE' or str(o.gender).upper() in ['F', 'FEMALE', 'ស្រី', 'ស'])
     male_count = total_count - female_count
     total_kh = _to_khmer_digits(str(total_count))
     female_kh = _to_khmer_digits(str(female_count))
     male_kh = _to_khmer_digits(str(male_count))
+    lunar_info = _get_khmer_lunar_year_info(year_val) or "ឆ្នាំមមី អដ្ឋស័ក ព.ស.២៥៧០"
 
+    # Blank spacing row right after data rows (tightened)
+    ws.row_dimensions[current_row].height = 6.0
+
+    # Row 1: Closing Line (Col A:E) and Top-Right Lunar Date (Col G:I)
     current_row += 1
-    ws.row_dimensions[current_row].height = 22.0
-    ws[f'A{current_row}'] = f"សរុប៖ .....{total_kh}.....នាក់, ស្រី ....{female_kh}....នាក់"
-    ws[f'A{current_row}'].font = font_footer_bold
+    ws.row_dimensions[current_row].height = 16.0
+    if last_officer:
+        ws[f'A{current_row}'] = f"- បិទបញ្ចប់ត្រឹមលេខរៀងទី{total_kh} ឈ្មោះ {last_officer.full_name_kh}"
+    else:
+        ws[f'A{current_row}'] = "- មិនមានទិន្នន័យមន្ត្រី"
+    ws[f'A{current_row}'].font = Font(name='Khmer OS Battambang', size=10, bold=False)
 
-    ws.merge_cells(f'E{current_row}:F{current_row}')
-    ws[f'E{current_row}'] = "បានឃើញ និងឯកភាព"
-    ws[f'E{current_row}'].font = font_footer_muol
-    ws[f'E{current_row}'].alignment = align_center
+    ws.merge_cells(f'G{current_row}:I{current_row}')
+    ws[f'G{current_row}'] = f"ថ្ងៃ.....................ខែ...............{lunar_info}"
+    ws[f'G{current_row}'].font = Font(name='Khmer OS Battambang', size=9.5, bold=False)
+    ws[f'G{current_row}'].alignment = align_center
 
-    ws.merge_cells(f'H{current_row}:I{current_row}')
-    lunar_info = _get_khmer_lunar_year_info(year_val)
-    ws[f'H{current_row}'] = lunar_info or "ថ្ងៃ.....................ខែ...............ឆ្នាំ... ព.ស ២៥..."
-    ws[f'H{current_row}'].font = font_footer_normal
-    ws[f'H{current_row}'].alignment = align_center
-
+    # Row 2: Total count & Female count (Col A:E) and Top-Right Solar Date (Col G:I)
     current_row += 1
-    ws.row_dimensions[current_row].height = 22.0
-    ws[f'A{current_row}'] = f"(ប្រុស ....{male_kh}....នាក់ )"
-    ws[f'A{current_row}'].font = font_footer_bold
+    ws.row_dimensions[current_row].height = 16.0
+    ws[f'A{current_row}'] = f"សរុបរួម៖ .....{total_kh}..... នាក់ , ស្រី .....{female_kh}..... នាក់"
+    ws[f'A{current_row}'].font = Font(name='Khmer OS Battambang', size=10, bold=False)
 
-    ws.merge_cells(f'E{current_row}:F{current_row}')
-    ws[f'E{current_row}'] = "ប្រធានមន្ទីរ"
-    ws[f'E{current_row}'].font = font_footer_muol
-    ws[f'E{current_row}'].alignment = align_center
+    ws.merge_cells(f'G{current_row}:I{current_row}')
+    ws[f'G{current_row}'] = f"ប៉ៃលិនថ្ងៃទី................ខែ...............ឆ្នាំ{year_kh}"
+    ws[f'G{current_row}'].font = Font(name='Khmer OS Battambang', size=9.5, bold=False)
+    ws[f'G{current_row}'].alignment = align_center
 
-    ws.merge_cells(f'H{current_row}:I{current_row}')
-    ws[f'H{current_row}'] = f"ប៉ៃលិន, ថ្ងៃទី......... ខែ.............. ឆ្នាំ{year_kh}"
-    ws[f'H{current_row}'].font = font_footer_normal
-    ws[f'H{current_row}'].alignment = align_center
-
+    # Row 3: Male count (Col A:E) and Right Signer Title (Col G:I)
     current_row += 1
-    ws.row_dimensions[current_row].height = 22.0
-    ws.merge_cells(f'H{current_row}:I{current_row}')
-    ws[f'H{current_row}'] = "ប្រធានការិយាល័យរដ្ឋបាល បុគ្គលិក"
-    ws[f'H{current_row}'].font = font_footer_muol
-    ws[f'H{current_row}'].alignment = align_center
+    ws.row_dimensions[current_row].height = 18.0
+    ws[f'A{current_row}'] = f"( ប្រុស .....{male_kh}..... នាក់ )"
+    ws[f'A{current_row}'].font = Font(name='Khmer OS Battambang', size=10, bold=False)
+
+    ws.merge_cells(f'G{current_row}:I{current_row}')
+    if is_specialized and lead_info:
+        ws[f'G{current_row}'] = lead_info['right_title']
+    else:
+        ws[f'G{current_row}'] = "អ្នកធ្វើតារាង" if is_specialized else "មន្ត្រីទទួលបន្ទុក"
+    ws[f'G{current_row}'].font = Font(name='Khmer OS Muol Light', size=10.5)
+    ws[f'G{current_row}'].alignment = align_center
+
+    # Small spacing row before bottom signatures (tightened)
+    current_row += 1
+    ws.row_dimensions[current_row].height = 6.0
+
+    # Row 4: Signatures Section (Directly consecutive, zero gap)
+    if is_specialized:
+        if lead_info and lead_info['has_center']:
+            # Specialized Office with Head or Deputy: In Center D:F
+            current_row += 1
+            ws.row_dimensions[current_row].height = 18.0
+            ws.merge_cells(f'D{current_row}:F{current_row}')
+            ws[f'D{current_row}'] = "បានឃើញ និងពិនិត្យត្រឹមត្រូវ"
+            ws[f'D{current_row}'].font = Font(name='Khmer OS Muol Light', size=10.5, bold=False)
+            ws[f'D{current_row}'].alignment = align_center
+
+            # Title of Office Head / Deputy Head (dead center of worksheet in D:F, immediately next row!)
+            current_row += 1
+            ws.row_dimensions[current_row].height = 18.0
+            ws.merge_cells(f'D{current_row}:F{current_row}')
+            ws[f'D{current_row}'] = lead_info['center_title']
+            ws[f'D{current_row}'].font = Font(name='Khmer OS Muol Light', size=10.0, bold=False)
+            ws[f'D{current_row}'].alignment = align_center
+        else:
+            # Solo Officer: No center signature
+            pass
+
+    else:
+        # Full 3-Level Hierarchy: Left (A:C), Center (D:F - dead center of worksheet)
+        # Line 1: Action Headers
+        current_row += 1
+        ws.row_dimensions[current_row].height = 18.0
+        # Left Header
+        ws.merge_cells(f'A{current_row}:C{current_row}')
+        ws[f'A{current_row}'] = "បានឃើញ និងឯកភាព"
+        ws[f'A{current_row}'].font = Font(name='Khmer OS Muol Light', size=10.5, bold=False)
+        ws[f'A{current_row}'].alignment = align_center
+        # Center Header
+        ws.merge_cells(f'D{current_row}:F{current_row}')
+        ws[f'D{current_row}'] = "បានឃើញ និងពិនិត្យត្រឹមត្រូវ"
+        ws[f'D{current_row}'].font = Font(name='Khmer OS Muol Light', size=10.5, bold=False)
+        ws[f'D{current_row}'].alignment = align_center
+
+        # Line 2: Lunar Date on Left (A:C) & Head of Office Title on Center (D:F)
+        current_row += 1
+        ws.row_dimensions[current_row].height = 14.0
+        ws.merge_cells(f'A{current_row}:C{current_row}')
+        ws[f'A{current_row}'] = f"ថ្ងៃ.....................ខែ...............{lunar_info}"
+        ws[f'A{current_row}'].font = Font(name='Khmer OS Battambang', size=9.0, bold=False)
+        ws[f'A{current_row}'].alignment = align_center
+
+        ws.merge_cells(f'D{current_row}:F{current_row}')
+        ws[f'D{current_row}'] = "ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក"
+        ws[f'D{current_row}'].font = Font(name='Khmer OS Muol Light', size=10.0, bold=False)
+        ws[f'D{current_row}'].alignment = align_center
+
+        # Line 3: Solar Date on Left (A:C)
+        current_row += 1
+        ws.row_dimensions[current_row].height = 14.0
+        ws.merge_cells(f'A{current_row}:C{current_row}')
+        ws[f'A{current_row}'] = f"ប៉ៃលិនថ្ងៃទី................ខែ...............ឆ្នាំ{year_kh}"
+        ws[f'A{current_row}'].font = Font(name='Khmer OS Battambang', size=9.0, bold=False)
+        ws[f'A{current_row}'].alignment = align_center
+
+        # Line 4: Provincial Department Director Title directly on Left (A:C) - NO EMPTY ROW!
+        current_row += 1
+        ws.row_dimensions[current_row].height = 18.0
+        ws.merge_cells(f'A{current_row}:C{current_row}')
+        ws[f'A{current_row}'] = "ប្រធានមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+        ws[f'A{current_row}'].font = Font(name='Khmer OS Muol Light', size=9.5, bold=False)
+        ws[f'A{current_row}'].alignment = align_center
 
     return wb
 
@@ -10289,24 +10821,41 @@ def _build_d1_contract_workbook(officers_list, year=None):
 def contract_officer_export_excel(request):
     """
     Export Contract Civil Servants list to Excel strictly formatted as Form D-1 (Excel/D-1.xlsx).
-    Strict Department Isolation: Specialized offices only export their own department's data.
+    Strict Permission: Specialized offices are FORBIDDEN from exporting to Excel,
+    EXCEPT for Administration-Personnel Office (ការិយាល័យរដ្ឋបាល-បុគ្គលិក) OR if authorized by ADMIN.
     """
     profile = getattr(request.user, 'profile', None)
+    if not can_export_contract_officers_to_excel(request.user, profile):
+        messages.error(
+            request,
+            "ការិយាល័យជំនាញមិនត្រូវបានអនុញ្ញាតឱ្យទាញចេញជា Excel ឡើយ! លើកលែងតែការិយាល័យរដ្ឋបាល-បុគ្គលិក ឬមានការអនុញ្ញាតដោយ ADMIN។"
+        )
+        return HttpResponseForbidden(
+            "<div style='font-family: Khmer OS Battambang, sans-serif; text-align: center; margin-top: 80px;'>"
+            "<h2 style='color: #dc2626;'>⛔ គ្មានសិទ្ធិទាញយកឯកសារជា Excel ឡើយ</h2>"
+            "<p style='font-size: 16px; color: #475569;'>ការិយាល័យជំនាញមិនត្រូវបានអនុញ្ញាតឱ្យទាញចេញជា Excel ដាច់ខាត លើកលែងតែការិយាល័យរដ្ឋបាល-បុគ្គលិក ឬមានការអនុញ្ញាតដោយ ADMIN។</p>"
+            "<a href='javascript:history.back()' style='display: inline-block; margin-top: 15px; padding: 8px 20px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 20px;'>ត្រឡប់ក្រោយ</a>"
+            "</div>"
+        )
+
     dept = profile.department if profile else None
     has_global_access = check_has_global_hr_tracking_access(request.user, profile)
     is_admin_or_lead = has_global_access
 
     queryset = ContractOfficer.objects.select_related('department').all()
 
+    selected_dept = None
     if not is_admin_or_lead:
         if dept:
             queryset = queryset.filter(department=dept)
+            selected_dept = dept
         else:
             queryset = queryset.none()
     else:
         dept_filter = request.GET.get('department', '').strip()
         if dept_filter:
             queryset = queryset.filter(department_id=dept_filter)
+            selected_dept = Department.objects.filter(pk=dept_filter).first()
 
     year_filter = request.GET.get('year', '').strip()
     year_int = None
@@ -10341,9 +10890,10 @@ def contract_officer_export_excel(request):
 
     officers_list = list(queryset.order_by('-contract_year', 'khmer_last_name', 'khmer_first_name'))
 
+    lead_type_param = request.GET.get('lead_type', '').strip()
     now = datetime.now()
     year_val = year_int if year_int else now.year
-    wb = _build_d1_contract_workbook(officers_list, year=year_val)
+    wb = _build_d1_contract_workbook(officers_list, year=year_val, department=selected_dept, lead_type=lead_type_param)
 
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -10366,15 +10916,18 @@ def contract_officer_preview_pdf_d1(request):
 
     queryset = ContractOfficer.objects.select_related('department').all()
 
+    selected_dept = None
     if not is_admin_or_lead:
         if dept:
             queryset = queryset.filter(department=dept)
+            selected_dept = dept
         else:
             queryset = queryset.none()
     else:
         dept_filter = request.GET.get('department', '').strip()
         if dept_filter:
             queryset = queryset.filter(department_id=dept_filter)
+            selected_dept = Department.objects.filter(pk=dept_filter).first()
 
     year_filter = request.GET.get('year', '').strip()
     year_int = None
@@ -10419,13 +10972,13 @@ def contract_officer_preview_pdf_d1(request):
             'full_name_latin': o.full_name_latin,
             'gender_kh': g_kh,
             'dob_display': _format_d1_dob(o.dob),
-            'working_unit': o.display_working_unit,
+            'working_unit': _format_contract_officer_office(o),
             'position': o.position_title or 'មន្ត្រីជាប់កិច្ចសន្យា',
-            'education': (o.general_education or o.training_level or 'គ្មាន').strip(),
+            'education': _format_d1_education(o.general_education or o.training_level),
             'phone': _format_d1_phone(o.phone),
         })
 
-    pages = _paginate_preview_items(table_items, first_page_cap=18, mid_page_cap=24, last_page_cap=14, single_page_cap=13)
+    pages = _paginate_preview_items(table_items, first_page_cap=14, mid_page_cap=18, last_page_cap=11, single_page_cap=9)
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
@@ -10435,12 +10988,55 @@ def contract_officer_preview_pdf_d1(request):
 
     female_count = sum(1 for item in table_items if item['gender_kh'] == 'ស្រី')
     male_count = len(table_items) - female_count
+    female_count_kh = _to_khmer_digits(str(female_count))
+    male_count_kh = _to_khmer_digits(str(male_count))
+
+    is_specialized = _is_specialized_department(selected_dept)
+    lead_type_param = request.GET.get('lead_type', '').strip()
+    lead_info = _get_specialized_office_leadership_info(selected_dept, override_type=lead_type_param) if is_specialized else None
+
+    office_head_title = lead_info['center_title'] if lead_info else ""
+    office_right_title = lead_info['right_title'] if lead_info else ("អ្នកធ្វើតារាង" if is_specialized else "មន្ត្រីទទួលបន្ទុក")
+    has_center_signature = lead_info['has_center'] if lead_info else True
+
+    lead_type_display = ""
+    if lead_info:
+        if lead_info['type'] == 'head':
+            lead_type_display = "មានប្រធានការិយាល័យ"
+        elif lead_info['type'] == 'deputy':
+            lead_type_display = "អនុប្រធានទទួលបន្ទុករួម"
+        else:
+            lead_type_display = "មន្ត្រីទោល"
+
+    get_params = request.GET.copy()
+    excel_query_string = get_params.urlencode()
+
+    get_params_no_lead = get_params.copy()
+    if 'lead_type' in get_params_no_lead:
+        del get_params_no_lead['lead_type']
+    base_query_string = get_params_no_lead.urlencode()
+
+    last_officer = officers_list[-1] if officers_list else None
 
     context = {
         'pages': pages,
         'total_count': len(table_items),
+        'total_count_kh': _to_khmer_digits(str(len(table_items))),
         'female_count': female_count,
+        'female_count_kh': female_count_kh,
         'male_count': male_count,
+        'male_count_kh': male_count_kh,
+        'last_officer': last_officer,
+        'is_specialized': is_specialized,
+        'office_head_title': office_head_title,
+        'office_right_title': office_right_title,
+        'has_center_signature': has_center_signature,
+        'request_lead_type': lead_type_param,
+        'lead_type_display': lead_type_display,
+        'excel_query_string': excel_query_string,
+        'base_query_string': base_query_string,
+        'selected_department': selected_dept,
+        'can_export_contract_excel': can_export_contract_officers_to_excel(request.user, profile),
         'lunar_year_text': lunar_year_text,
         'month_kh': month_kh,
         'year_kh': year_kh,

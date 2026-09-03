@@ -65,6 +65,9 @@ class UserProfile(models.Model):
     can_delete_document = models.BooleanField(default=False, verbose_name="សិទ្ធិលុបលិខិត (Delete Doc)")
     can_view_reports = models.BooleanField(default=True, verbose_name="សិទ្ធិមើលរបាយការណ៍ & Export Excel")
     can_print = models.BooleanField(default=True, verbose_name="សិទ្ធិបោះពុម្ពប័ណ្ណតាមដាន (Print)")
+    can_export_contract_excel = models.BooleanField(default=False, verbose_name="សិទ្ធិទាញយក Excel មន្ត្រីកិច្ចសន្យា (Export Contract Staff to Excel)")
+    can_export_civil_servant_excel = models.BooleanField(default=False, verbose_name="សិទ្ធិទាញយក Excel បញ្ជីរាយនាមមន្ត្រី (Export Civil Servants to Excel)")
+    can_view_e2_report = models.BooleanField(default=False, verbose_name="សិទ្ធិមើលនិងទាញយកទម្រង់ E-2 ថ្នាក់ខេត្ត (Access Form E-2)")
 
     class Meta:
         verbose_name = "ព័ត៌មានអ្នកប្រើប្រាស់"
