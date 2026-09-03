@@ -819,15 +819,36 @@ class CivilServantProfile(models.Model):
 
         super().save(*args, **kwargs)
 
+    @staticmethod
+    def _format_address_part(val, part_type):
+        if not val:
+            return ""
+        val = str(val).strip()
+        if not val:
+            return ""
+        if part_type == 'village':
+            return val if val.startswith('ភូមិ') else f"ភូមិ {val}"
+        elif part_type == 'commune':
+            return val if (val.startswith('ឃុំ') or val.startswith('សង្កាត់')) else f"ឃុំ/សង្កាត់ {val}"
+        elif part_type == 'district':
+            return val if (val.startswith('ស្រុក') or val.startswith('ខណ្ឌ') or val.startswith('ក្រុង')) else f"ស្រុក/ខណ្ឌ {val}"
+        elif part_type == 'province':
+            return val if (val.startswith('ខេត្ត') or val.startswith('រាជធានី')) else f"រាជធានី/ខេត្ត {val}"
+        elif part_type == 'street':
+            return val if val.startswith('ផ្លូវ') else f"ផ្លូវ {val}"
+        elif part_type == 'house':
+            return val if (val.startswith('#') or val.startswith('ផ្ទះ')) else f"#{val}"
+        return val
+
     @property
     def current_address_full(self):
         parts = []
-        if self.current_house_no: parts.append(f"#{self.current_house_no}")
-        if self.current_street: parts.append(f"ផ្លូវ {self.current_street}")
-        if self.current_village: parts.append(f"ភូមិ {self.current_village}")
-        if self.current_commune: parts.append(f"ឃុំ/សង្កាត់ {self.current_commune}")
-        if self.current_district: parts.append(f"ស្រុក/ខណ្ឌ {self.current_district}")
-        if self.current_province: parts.append(f"រាជធានី/ខេត្ត {self.current_province}")
+        if self.current_house_no: parts.append(self._format_address_part(self.current_house_no, 'house'))
+        if self.current_street: parts.append(self._format_address_part(self.current_street, 'street'))
+        if self.current_village: parts.append(self._format_address_part(self.current_village, 'village'))
+        if self.current_commune: parts.append(self._format_address_part(self.current_commune, 'commune'))
+        if self.current_district: parts.append(self._format_address_part(self.current_district, 'district'))
+        if self.current_province: parts.append(self._format_address_part(self.current_province, 'province'))
         return " ".join(parts) or "មិនទាន់បញ្ជាក់"
 
     @property
@@ -835,21 +856,21 @@ class CivilServantProfile(models.Model):
         if self.perm_same_as_current:
             return self.current_address_full
         parts = []
-        if self.perm_house_no: parts.append(f"#{self.perm_house_no}")
-        if self.perm_street: parts.append(f"ផ្លូវ {self.perm_street}")
-        if self.perm_village: parts.append(f"ភូមិ {self.perm_village}")
-        if self.perm_commune: parts.append(f"ឃុំ/សង្កាត់ {self.perm_commune}")
-        if self.perm_district: parts.append(f"ស្រុក/ខណ្ឌ {self.perm_district}")
-        if self.perm_province: parts.append(f"រាជធានី/ខេត្ត {self.perm_province}")
+        if self.perm_house_no: parts.append(self._format_address_part(self.perm_house_no, 'house'))
+        if self.perm_street: parts.append(self._format_address_part(self.perm_street, 'street'))
+        if self.perm_village: parts.append(self._format_address_part(self.perm_village, 'village'))
+        if self.perm_commune: parts.append(self._format_address_part(self.perm_commune, 'commune'))
+        if self.perm_district: parts.append(self._format_address_part(self.perm_district, 'district'))
+        if self.perm_province: parts.append(self._format_address_part(self.perm_province, 'province'))
         return " ".join(parts) or "មិនទាន់បញ្ជាក់"
 
     @property
     def pob_full(self):
         parts = []
-        if self.pob_village: parts.append(f"ភូមិ {self.pob_village}")
-        if self.pob_commune: parts.append(f"ឃុំ/សង្កាត់ {self.pob_commune}")
-        if self.pob_district: parts.append(f"ស្រុក/ខណ្ឌ {self.pob_district}")
-        if self.pob_province: parts.append(f"រាជធានី/ខេត្ត {self.pob_province}")
+        if self.pob_village: parts.append(self._format_address_part(self.pob_village, 'village'))
+        if self.pob_commune: parts.append(self._format_address_part(self.pob_commune, 'commune'))
+        if self.pob_district: parts.append(self._format_address_part(self.pob_district, 'district'))
+        if self.pob_province: parts.append(self._format_address_part(self.pob_province, 'province'))
         return " ".join(parts) or "មិនទាន់បញ្ជាក់"
 
 

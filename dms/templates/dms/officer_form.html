@@ -269,13 +269,30 @@
                             </div>
                         </div>
 
-                        <!-- ទីកន្លែងកំណើត (Place of Birth - Cascading Geo Selector) -->
+                        <!-- Datalist for Cambodian Provinces -->
+                        <datalist id="cambodia_provinces_list">
+                            {% for p in provinces %}
+                            <option value="{{ p.name_kh }}">{{ p.name_kh }} ({{ p.code }})</option>
+                            {% endfor %}
+                        </datalist>
+
+                        <!-- ទីកន្លែងកំណើត (Place of Birth - Cascading Geo Selector & Manual Fallback) -->
                         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                            <h6 class="fw-bold text-secondary m-0">
-                                <i class="fa-solid fa-location-dot me-1 text-danger"></i> ទីកន្លែងកំណើត (Place of Birth)
-                            </h6>
-                            <span class="fs-8 text-muted bg-light px-2.5 py-1 rounded-pill border">
-                                <i class="fa-solid fa-layer-group me-1 text-primary"></i> ជ្រើសរើសតាមលំដាប់៖ រាជធានី/ខេត្ត &gt; ក្រុង/ស្រុក/ខណ្ឌ &gt; ឃុំ/សង្កាត់ &gt; ភូមិ
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h6 class="fw-bold text-secondary m-0">
+                                    <i class="fa-solid fa-location-dot me-1 text-danger"></i> ទីកន្លែងកំណើត (Place of Birth)
+                                </h6>
+                                <div class="btn-group btn-group-sm ms-md-2 shadow-xs border rounded-pill p-0.5 bg-white" role="group" id="pob_mode_btn_group">
+                                    <button type="button" class="btn btn-sm btn-primary rounded-pill py-0.5 px-2.5 fs-8 fw-semibold geo-mode-btn" id="pob_mode_dropdown_btn" onclick="setGeoAddressMode('pob', 'dropdown')">
+                                        <i class="fa-solid fa-list-check me-1"></i> ជ្រើសតាមបញ្ជី
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-0.5 px-2.5 fs-8 fw-semibold geo-mode-btn border-0" id="pob_mode_manual_btn" onclick="setGeoAddressMode('pob', 'manual')">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i> វាយបញ្ចូលដោយដៃ
+                                    </button>
+                                </div>
+                            </div>
+                            <span class="fs-8 text-muted bg-light px-2.5 py-1 rounded-pill border" id="pob_hint_badge">
+                                <i class="fa-solid fa-layer-group me-1 text-primary"></i> ជ្រើសតាមលំដាប់ ឬវាយដោយដៃករណីមិនគ្រប់/គ្មានក្នុងបញ្ជី
                             </span>
                         </div>
                         <div class="row g-3 mb-4 geo-address-group" id="geo_pob" data-prefix="pob">
@@ -292,59 +309,114 @@
 
                             <!-- 1. Province -->
                             <div class="col-12 col-md-3">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>១. រាជធានី/ខេត្ត <span class="text-danger">*</span></span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>១. រាជធានី/ខេត្ត <span class="text-danger">*</span>
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('pob', 'province')" id="pob_province_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="pob_prov_badge">{{ officer.pob_province_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-province-select" id="pob_prov_select">
-                                    <option value="">-- ជ្រើសរើសរាជធានី/ខេត្ត --</option>
-                                    {% for p in provinces %}
-                                    <option value="{{ p.code }}" data-name="{{ p.name_kh }}" {% if officer.pob_province_code == p.code or officer.pob_province == p.name_kh %}selected{% endif %}>{{ p.name_kh }} ({{ p.code }})</option>
-                                    {% endfor %}
-                                </select>
+                                <div id="pob_province_select_wrap">
+                                    <select class="form-select form-select-sm geo-province-select" id="pob_prov_select">
+                                        <option value="">-- ជ្រើសរើសរាជធានី/ខេត្ត --</option>
+                                        {% for p in provinces %}
+                                        <option value="{{ p.code }}" data-name="{{ p.name_kh }}" {% if officer.pob_province_code == p.code or officer.pob_province == p.name_kh %}selected{% endif %}>{{ p.name_kh }} ({{ p.code }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div id="pob_province_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="pob_province_manual" list="cambodia_provinces_list" placeholder="វាយឈ្មោះរាជធានី/ខេត្ត..." value="{{ officer.pob_province|default:'' }}" oninput="onGeoManualInput('pob', 'province')">
+                                </div>
                             </div>
 
                             <!-- 2. District -->
                             <div class="col-12 col-md-3">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>២. ក្រុង/ស្រុក/ខណ្ឌ {% if is_system_admin %}<a href="javascript:void(0)" class="text-success small fw-normal ms-1 text-decoration-none" onclick="quickAddDistrict('pob')" title="បន្ថែមស្រុក/ក្រុងថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>២. ក្រុង/ស្រុក/ខណ្ឌ
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('pob', 'district')" id="pob_district_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                        {% if is_system_admin %}<a href="javascript:void(0)" class="text-success small fw-normal ms-1 text-decoration-none" onclick="quickAddDistrict('pob')" title="បន្ថែមស្រុក/ក្រុងថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="pob_dist_badge">{{ officer.pob_district_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-district-select" id="pob_dist_select" disabled>
-                                    <option value="">-- ជ្រើសរើសក្រុង/ស្រុក/ខណ្ឌ --</option>
-                                </select>
+                                <div id="pob_district_select_wrap">
+                                    <select class="form-select form-select-sm geo-district-select" id="pob_dist_select" disabled>
+                                        <option value="">-- ជ្រើសរើសក្រុង/ស្រុក/ខណ្ឌ --</option>
+                                    </select>
+                                </div>
+                                <div id="pob_district_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="pob_district_manual" placeholder="វាយឈ្មោះក្រុង/ស្រុក/ខណ្ឌ..." value="{{ officer.pob_district|default:'' }}" oninput="onGeoManualInput('pob', 'district')">
+                                </div>
                             </div>
 
                             <!-- 3. Commune -->
                             <div class="col-12 col-md-3">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>៣. ឃុំ/សង្កាត់ {% if is_system_admin %}<a href="javascript:void(0)" class="text-warning text-dark small fw-normal ms-1 text-decoration-none" onclick="quickAddCommune('pob')" title="បន្ថែមឃុំ/សង្កាត់ថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>៣. ឃុំ/សង្កាត់
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('pob', 'commune')" id="pob_commune_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                        {% if is_system_admin %}<a href="javascript:void(0)" class="text-warning text-dark small fw-normal ms-1 text-decoration-none" onclick="quickAddCommune('pob')" title="បន្ថែមឃុំ/សង្កាត់ថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="pob_comm_badge">{{ officer.pob_commune_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-commune-select" id="pob_comm_select" disabled>
-                                    <option value="">-- ជ្រើសរើសឃុំ/សង្កាត់ --</option>
-                                </select>
+                                <div id="pob_commune_select_wrap">
+                                    <select class="form-select form-select-sm geo-commune-select" id="pob_comm_select" disabled>
+                                        <option value="">-- ជ្រើសរើសឃុំ/សង្កាត់ --</option>
+                                    </select>
+                                </div>
+                                <div id="pob_commune_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="pob_commune_manual" placeholder="វាយឈ្មោះឃុំ/សង្កាត់..." value="{{ officer.pob_commune|default:'' }}" oninput="onGeoManualInput('pob', 'commune')">
+                                </div>
                             </div>
 
                             <!-- 4. Village -->
                             <div class="col-12 col-md-3">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>៤. ភូមិ {% if is_system_admin %}<a href="javascript:void(0)" class="text-info small fw-normal ms-1 text-decoration-none" onclick="quickAddVillage('pob')" title="បន្ថែមភូមិថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>៤. ភូមិ
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('pob', 'village')" id="pob_village_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                        {% if is_system_admin %}<a href="javascript:void(0)" class="text-info small fw-normal ms-1 text-decoration-none" onclick="quickAddVillage('pob')" title="បន្ថែមភូមិថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="pob_vill_badge">{{ officer.pob_village_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-village-select" id="pob_vill_select" disabled>
-                                    <option value="">-- ជ្រើសរើសភូមិ --</option>
-                                </select>
+                                <div id="pob_village_select_wrap">
+                                    <select class="form-select form-select-sm geo-village-select" id="pob_vill_select" disabled>
+                                        <option value="">-- ជ្រើសរើសភូមិ --</option>
+                                    </select>
+                                </div>
+                                <div id="pob_village_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="pob_village_manual" placeholder="វាយឈ្មោះភូមិ..." value="{{ officer.pob_village|default:'' }}" oninput="onGeoManualInput('pob', 'village')">
+                                </div>
+                            </div>
+
+                            <!-- Live Address Summary Alert -->
+                            <div class="col-12 mt-1">
+                                <div class="px-3 py-1.5 bg-light rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-2 fs-8">
+                                    <div class="d-flex align-items-center gap-1.5 text-secondary flex-wrap">
+                                        <i class="fa-solid fa-map-pin text-danger"></i>
+                                        <span class="fw-semibold">ទីកន្លែងកំណើតសរុប៖</span>
+                                        <span class="fw-bold text-dark font-monospace-custom" id="pob_summary_text">{{ officer.pob_full|default:'មិនទាន់បញ្ជាក់' }}</span>
+                                    </div>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" id="pob_status_badge">
+                                        <i class="fa-solid fa-circle-info me-1"></i> ប្រព័ន្ធ ឬវាយដៃ
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- អាសយដ្ឋានបច្ចុប្បន្ន (Current Address - Cascading Geo Selector) -->
+                        <!-- អាសយដ្ឋានបច្ចុប្បន្ន (Current Address - Cascading Geo Selector & Manual Fallback) -->
                         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                            <h6 class="fw-bold text-secondary m-0">
-                                <i class="fa-solid fa-house-user me-1 text-success"></i> អាសយដ្ឋានបច្ចុប្បន្ន (Current Address)
-                            </h6>
-                            <span class="fs-8 text-muted bg-light px-2.5 py-1 rounded-pill border">
-                                <i class="fa-solid fa-layer-group me-1 text-primary"></i> ជ្រើសរើសតាមលំដាប់៖ រាជធានី/ខេត្ត &gt; ក្រុង/ស្រុក/ខណ្ឌ &gt; ឃុំ/សង្កាត់ &gt; ភូមិ
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h6 class="fw-bold text-secondary m-0">
+                                    <i class="fa-solid fa-house-user me-1 text-success"></i> អាសយដ្ឋានបច្ចុប្បន្ន (Current Address)
+                                </h6>
+                                <div class="btn-group btn-group-sm ms-md-2 shadow-xs border rounded-pill p-0.5 bg-white" role="group" id="current_mode_btn_group">
+                                    <button type="button" class="btn btn-sm btn-primary rounded-pill py-0.5 px-2.5 fs-8 fw-semibold geo-mode-btn" id="current_mode_dropdown_btn" onclick="setGeoAddressMode('current', 'dropdown')">
+                                        <i class="fa-solid fa-list-check me-1"></i> ជ្រើសតាមបញ្ជី
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-0.5 px-2.5 fs-8 fw-semibold geo-mode-btn border-0" id="current_mode_manual_btn" onclick="setGeoAddressMode('current', 'manual')">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i> វាយបញ្ចូលដោយដៃ
+                                    </button>
+                                </div>
+                            </div>
+                            <span class="fs-8 text-muted bg-light px-2.5 py-1 rounded-pill border" id="current_hint_badge">
+                                <i class="fa-solid fa-layer-group me-1 text-primary"></i> ជ្រើសតាមលំដាប់ ឬវាយដោយដៃករណីមិនគ្រប់/គ្មានក្នុងបញ្ជី
                             </span>
                         </div>
                         <div class="row g-3 mb-4 geo-address-group" id="geo_current" data-prefix="current">
@@ -361,64 +433,119 @@
 
                             <div class="col-6 col-md-2">
                                 <label class="form-label fw-bold fs-8">ផ្ទះលេខ (#)</label>
-                                <input type="text" name="current_house_no" id="current_house_no" value="{{ officer.current_house_no|default:'' }}" class="form-control form-control-sm" placeholder="ផ្ទះលេខ">
+                                <input type="text" name="current_house_no" id="current_house_no" value="{{ officer.current_house_no|default:'' }}" class="form-control form-control-sm" placeholder="ផ្ទះលេខ" oninput="updateGeoSummary('current')">
                             </div>
                             <div class="col-6 col-md-2">
                                 <label class="form-label fw-bold fs-8">ផ្លូវ</label>
-                                <input type="text" name="current_street" id="current_street" value="{{ officer.current_street|default:'' }}" class="form-control form-control-sm" placeholder="ផ្លូវ">
+                                <input type="text" name="current_street" id="current_street" value="{{ officer.current_street|default:'' }}" class="form-control form-control-sm" placeholder="ផ្លូវ" oninput="updateGeoSummary('current')">
                             </div>
                             <div class="col-12 col-md-2">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>រាជធានី/ខេត្ត</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>រាជធានី/ខេត្ត
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('current', 'province')" id="current_province_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="current_prov_badge">{{ officer.current_province_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-province-select" id="current_prov_select">
-                                    <option value="">-- រាជធានី/ខេត្ត --</option>
-                                    {% for p in provinces %}
-                                    <option value="{{ p.code }}" data-name="{{ p.name_kh }}" {% if officer.current_province_code == p.code or officer.current_province == p.name_kh %}selected{% endif %}>{{ p.name_kh }} ({{ p.code }})</option>
-                                    {% endfor %}
-                                </select>
+                                <div id="current_province_select_wrap">
+                                    <select class="form-select form-select-sm geo-province-select" id="current_prov_select">
+                                        <option value="">-- រាជធានី/ខេត្ត --</option>
+                                        {% for p in provinces %}
+                                        <option value="{{ p.code }}" data-name="{{ p.name_kh }}" {% if officer.current_province_code == p.code or officer.current_province == p.name_kh %}selected{% endif %}>{{ p.name_kh }} ({{ p.code }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div id="current_province_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="current_province_manual" list="cambodia_provinces_list" placeholder="វាយរាជធានី/ខេត្ត..." value="{{ officer.current_province|default:'' }}" oninput="onGeoManualInput('current', 'province')">
+                                </div>
                             </div>
                             <div class="col-12 col-md-2">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>ក្រុង/ស្រុក/ខណ្ឌ {% if is_system_admin %}<a href="javascript:void(0)" class="text-success small fw-normal ms-1 text-decoration-none" onclick="quickAddDistrict('current')" title="បន្ថែមស្រុក/ក្រុងថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>ក្រុង/ស្រុក/ខណ្ឌ
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('current', 'district')" id="current_district_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                        {% if is_system_admin %}<a href="javascript:void(0)" class="text-success small fw-normal ms-1 text-decoration-none" onclick="quickAddDistrict('current')" title="បន្ថែមស្រុក/ក្រុងថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="current_dist_badge">{{ officer.current_district_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-district-select" id="current_dist_select" disabled>
-                                    <option value="">-- ក្រុង/ស្រុក/ខណ្ឌ --</option>
-                                </select>
+                                <div id="current_district_select_wrap">
+                                    <select class="form-select form-select-sm geo-district-select" id="current_dist_select" disabled>
+                                        <option value="">-- ក្រុង/ស្រុក/ខណ្ឌ --</option>
+                                    </select>
+                                </div>
+                                <div id="current_district_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="current_district_manual" placeholder="វាយក្រុង/ស្រុក/ខណ្ឌ..." value="{{ officer.current_district|default:'' }}" oninput="onGeoManualInput('current', 'district')">
+                                </div>
                             </div>
                             <div class="col-12 col-md-2">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>ឃុំ/សង្កាត់ {% if is_system_admin %}<a href="javascript:void(0)" class="text-warning text-dark small fw-normal ms-1 text-decoration-none" onclick="quickAddCommune('current')" title="បន្ថែមឃុំ/សង្កាត់ថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>ឃុំ/សង្កាត់
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('current', 'commune')" id="current_commune_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                        {% if is_system_admin %}<a href="javascript:void(0)" class="text-warning text-dark small fw-normal ms-1 text-decoration-none" onclick="quickAddCommune('current')" title="បន្ថែមឃុំ/សង្កាត់ថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="current_comm_badge">{{ officer.current_commune_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-commune-select" id="current_comm_select" disabled>
-                                    <option value="">-- ឃុំ/សង្កាត់ --</option>
-                                </select>
+                                <div id="current_commune_select_wrap">
+                                    <select class="form-select form-select-sm geo-commune-select" id="current_comm_select" disabled>
+                                        <option value="">-- ឃុំ/សង្កាត់ --</option>
+                                    </select>
+                                </div>
+                                <div id="current_commune_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="current_commune_manual" placeholder="វាយឃុំ/សង្កាត់..." value="{{ officer.current_commune|default:'' }}" oninput="onGeoManualInput('current', 'commune')">
+                                </div>
                             </div>
                             <div class="col-12 col-md-2">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>ភូមិ {% if is_system_admin %}<a href="javascript:void(0)" class="text-info small fw-normal ms-1 text-decoration-none" onclick="quickAddVillage('current')" title="បន្ថែមភូមិថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>ភូមិ
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('current', 'village')" id="current_village_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                        {% if is_system_admin %}<a href="javascript:void(0)" class="text-info small fw-normal ms-1 text-decoration-none" onclick="quickAddVillage('current')" title="បន្ថែមភូមិថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="current_vill_badge">{{ officer.current_village_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-village-select" id="current_vill_select" disabled>
-                                    <option value="">-- ភូមិ --</option>
-                                </select>
+                                <div id="current_village_select_wrap">
+                                    <select class="form-select form-select-sm geo-village-select" id="current_vill_select" disabled>
+                                        <option value="">-- ភូមិ --</option>
+                                    </select>
+                                </div>
+                                <div id="current_village_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="current_village_manual" placeholder="វាយឈ្មោះភូមិ..." value="{{ officer.current_village|default:'' }}" oninput="onGeoManualInput('current', 'village')">
+                                </div>
+                            </div>
+
+                            <!-- Live Address Summary Alert -->
+                            <div class="col-12 mt-1">
+                                <div class="px-3 py-1.5 bg-light rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-2 fs-8">
+                                    <div class="d-flex align-items-center gap-1.5 text-secondary flex-wrap">
+                                        <i class="fa-solid fa-house text-success"></i>
+                                        <span class="fw-semibold">អាសយដ្ឋានបច្ចុប្បន្នសរុប៖</span>
+                                        <span class="fw-bold text-dark font-monospace-custom" id="current_summary_text">{{ officer.current_address_full|default:'មិនទាន់បញ្ជាក់' }}</span>
+                                    </div>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" id="current_status_badge">
+                                        <i class="fa-solid fa-circle-info me-1"></i> ប្រព័ន្ធ ឬវាយដៃ
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- អាសយដ្ឋានអចិន្ត្រៃយ៍ (Permanent Address - Cascading Geo Selector) -->
+                        <!-- អាសយដ្ឋានអចិន្ត្រៃយ៍ (Permanent Address - Cascading Geo Selector & Manual Fallback) -->
                         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                            <h6 class="fw-bold text-secondary m-0">
-                                <i class="fa-solid fa-map-location-dot me-1 text-primary"></i> អាសយដ្ឋានអចិន្ត្រៃយ៍ (Permanent Address)
-                            </h6>
-                            <div class="form-check form-switch">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h6 class="fw-bold text-secondary m-0">
+                                    <i class="fa-solid fa-map-location-dot me-1 text-primary"></i> អាសយដ្ឋានអចិន្ត្រៃយ៍ (Permanent Address)
+                                </h6>
+                                <div class="btn-group btn-group-sm ms-md-2 shadow-xs border rounded-pill p-0.5 bg-white" role="group" id="perm_mode_btn_group">
+                                    <button type="button" class="btn btn-sm btn-primary rounded-pill py-0.5 px-2.5 fs-8 fw-semibold geo-mode-btn" id="perm_mode_dropdown_btn" onclick="setGeoAddressMode('perm', 'dropdown')">
+                                        <i class="fa-solid fa-list-check me-1"></i> ជ្រើសតាមបញ្ជី
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-0.5 px-2.5 fs-8 fw-semibold geo-mode-btn border-0" id="perm_mode_manual_btn" onclick="setGeoAddressMode('perm', 'manual')">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i> វាយបញ្ចូលដោយដៃ
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-check form-switch m-0">
                                 <input class="form-check-input" type="checkbox" name="perm_same_as_current" id="permSameSwitch" {% if not is_edit or officer.perm_same_as_current %}checked{% endif %} onchange="togglePermanentAddress(this)">
                                 <label class="form-check-label small fw-semibold" for="permSameSwitch">ដូចអាសយដ្ឋានបច្ចុប្បន្ន</label>
                             </div>
                         </div>
-                        <div id="permanentAddressBlock" class="row g-3 mb-4 geo-address-group {% if not is_edit or officer.perm_same_as_current %}d-none{% endif %}" id="geo_perm" data-prefix="perm">
+                        <div id="permanentAddressBlock" class="row g-3 mb-4 geo-address-group {% if not is_edit or officer.perm_same_as_current %}d-none{% endif %}" data-prefix="perm">
                             <!-- Hidden persistent code & name inputs -->
                             <input type="hidden" name="perm_province_code" id="perm_province_code" value="{{ officer.perm_province_code|default:'' }}">
                             <input type="hidden" name="perm_district_code" id="perm_district_code" value="{{ officer.perm_district_code|default:'' }}">
@@ -432,50 +559,95 @@
 
                             <div class="col-6 col-md-2">
                                 <label class="form-label fw-bold fs-8">ផ្ទះលេខ (#)</label>
-                                <input type="text" name="perm_house_no" id="perm_house_no" value="{{ officer.perm_house_no|default:'' }}" class="form-control form-control-sm" placeholder="ផ្ទះលេខ">
+                                <input type="text" name="perm_house_no" id="perm_house_no" value="{{ officer.perm_house_no|default:'' }}" class="form-control form-control-sm" placeholder="ផ្ទះលេខ" oninput="updateGeoSummary('perm')">
                             </div>
                             <div class="col-6 col-md-2">
                                 <label class="form-label fw-bold fs-8">ផ្លូវ</label>
-                                <input type="text" name="perm_street" id="perm_street" value="{{ officer.perm_street|default:'' }}" class="form-control form-control-sm" placeholder="ផ្លូវ">
+                                <input type="text" name="perm_street" id="perm_street" value="{{ officer.perm_street|default:'' }}" class="form-control form-control-sm" placeholder="ផ្លូវ" oninput="updateGeoSummary('perm')">
                             </div>
                             <div class="col-12 col-md-2">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>រាជធានី/ខេត្ត</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>រាជធានី/ខេត្ត
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('perm', 'province')" id="perm_province_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="perm_prov_badge">{{ officer.perm_province_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-province-select" id="perm_prov_select">
-                                    <option value="">-- រាជធានី/ខេត្ត --</option>
-                                    {% for p in provinces %}
-                                    <option value="{{ p.code }}" data-name="{{ p.name_kh }}" {% if officer.perm_province_code == p.code or officer.perm_province == p.name_kh %}selected{% endif %}>{{ p.name_kh }} ({{ p.code }})</option>
-                                    {% endfor %}
-                                </select>
+                                <div id="perm_province_select_wrap">
+                                    <select class="form-select form-select-sm geo-province-select" id="perm_prov_select">
+                                        <option value="">-- រាជធានី/ខេត្ត --</option>
+                                        {% for p in provinces %}
+                                        <option value="{{ p.code }}" data-name="{{ p.name_kh }}" {% if officer.perm_province_code == p.code or officer.perm_province == p.name_kh %}selected{% endif %}>{{ p.name_kh }} ({{ p.code }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div id="perm_province_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="perm_province_manual" list="cambodia_provinces_list" placeholder="វាយរាជធានី/ខេត្ត..." value="{{ officer.perm_province|default:'' }}" oninput="onGeoManualInput('perm', 'province')">
+                                </div>
                             </div>
                             <div class="col-12 col-md-2">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>ក្រុង/ស្រុក/ខណ្ឌ {% if is_system_admin %}<a href="javascript:void(0)" class="text-success small fw-normal ms-1 text-decoration-none" onclick="quickAddDistrict('perm')" title="បន្ថែមស្រុក/ក្រុងថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>ក្រុង/ស្រុក/ខណ្ឌ
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('perm', 'district')" id="perm_district_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                        {% if is_system_admin %}<a href="javascript:void(0)" class="text-success small fw-normal ms-1 text-decoration-none" onclick="quickAddDistrict('perm')" title="បន្ថែមស្រុក/ក្រុងថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="perm_dist_badge">{{ officer.perm_district_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-district-select" id="perm_dist_select" disabled>
-                                    <option value="">-- ក្រុង/ស្រុក/ខណ្ឌ --</option>
-                                </select>
+                                <div id="perm_district_select_wrap">
+                                    <select class="form-select form-select-sm geo-district-select" id="perm_dist_select" disabled>
+                                        <option value="">-- ក្រុង/ស្រុក/ខណ្ឌ --</option>
+                                    </select>
+                                </div>
+                                <div id="perm_district_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="perm_district_manual" placeholder="វាយក្រុង/ស្រុក/ខណ្ឌ..." value="{{ officer.perm_district|default:'' }}" oninput="onGeoManualInput('perm', 'district')">
+                                </div>
                             </div>
                             <div class="col-12 col-md-2">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>ឃុំ/សង្កាត់ {% if is_system_admin %}<a href="javascript:void(0)" class="text-warning text-dark small fw-normal ms-1 text-decoration-none" onclick="quickAddCommune('perm')" title="បន្ថែមឃុំ/សង្កាត់ថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>ឃុំ/សង្កាត់
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('perm', 'commune')" id="perm_commune_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                        {% if is_system_admin %}<a href="javascript:void(0)" class="text-warning text-dark small fw-normal ms-1 text-decoration-none" onclick="quickAddCommune('perm')" title="បន្ថែមឃុំ/សង្កាត់ថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="perm_comm_badge">{{ officer.perm_commune_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-commune-select" id="perm_comm_select" disabled>
-                                    <option value="">-- ឃុំ/សង្កាត់ --</option>
-                                </select>
+                                <div id="perm_commune_select_wrap">
+                                    <select class="form-select form-select-sm geo-commune-select" id="perm_comm_select" disabled>
+                                        <option value="">-- ឃុំ/សង្កាត់ --</option>
+                                    </select>
+                                </div>
+                                <div id="perm_commune_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="perm_commune_manual" placeholder="វាយឃុំ/សង្កាត់..." value="{{ officer.perm_commune|default:'' }}" oninput="onGeoManualInput('perm', 'commune')">
+                                </div>
                             </div>
                             <div class="col-12 col-md-2">
-                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center">
-                                    <span>ភូមិ {% if is_system_admin %}<a href="javascript:void(0)" class="text-info small fw-normal ms-1 text-decoration-none" onclick="quickAddVillage('perm')" title="បន្ថែមភូមិថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}</span>
+                                <label class="form-label fw-bold fs-8 text-dark d-flex justify-content-between align-items-center mb-1">
+                                    <span>ភូមិ
+                                        <a href="javascript:void(0)" class="text-primary small fw-normal ms-1 text-decoration-none geo-single-toggle" onclick="toggleFieldManual('perm', 'village')" id="perm_village_toggle" title="ប្តូរទៅវាយដោយដៃ / Switch"><i class="fa-solid fa-pen"></i></a>
+                                        {% if is_system_admin %}<a href="javascript:void(0)" class="text-info small fw-normal ms-1 text-decoration-none" onclick="quickAddVillage('perm')" title="បន្ថែមភូមិថ្មី"><i class="fa-solid fa-plus-circle"></i> ថ្មី</a>{% endif %}
+                                    </span>
                                     <span class="badge bg-light text-secondary border fs-9 geo-code-badge" id="perm_vill_badge">{{ officer.perm_village_code|default:'-' }}</span>
                                 </label>
-                                <select class="form-select form-select-sm geo-village-select" id="perm_vill_select" disabled>
-                                    <option value="">-- ភូមិ --</option>
-                                </select>
+                                <div id="perm_village_select_wrap">
+                                    <select class="form-select form-select-sm geo-village-select" id="perm_vill_select" disabled>
+                                        <option value="">-- ភូមិ --</option>
+                                    </select>
+                                </div>
+                                <div id="perm_village_manual_wrap" class="d-none">
+                                    <input type="text" class="form-control form-control-sm geo-manual-input" id="perm_village_manual" placeholder="វាយឈ្មោះភូមិ..." value="{{ officer.perm_village|default:'' }}" oninput="onGeoManualInput('perm', 'village')">
+                                </div>
+                            </div>
+
+                            <!-- Live Address Summary Alert -->
+                            <div class="col-12 mt-1">
+                                <div class="px-3 py-1.5 bg-light rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-2 fs-8">
+                                    <div class="d-flex align-items-center gap-1.5 text-secondary flex-wrap">
+                                        <i class="fa-solid fa-map-location text-primary"></i>
+                                        <span class="fw-semibold">អាសយដ្ឋានអចិន្ត្រៃយ៍សរុប៖</span>
+                                        <span class="fw-bold text-dark font-monospace-custom" id="perm_summary_text">{{ officer.perm_address_full|default:'មិនទាន់បញ្ជាក់' }}</span>
+                                    </div>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" id="perm_status_badge">
+                                        <i class="fa-solid fa-circle-info me-1"></i> ប្រព័ន្ធ ឬវាយដៃ
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -3912,6 +4084,155 @@ async function fetchGeoVillages(communeCode, communeName = '', districtCode = ''
     return [];
 }
 
+function updateGeoSummary(prefix) {
+    const pInput = document.getElementById(prefix + '_province');
+    const dInput = document.getElementById(prefix + '_district');
+    const cInput = document.getElementById(prefix + '_commune');
+    const vInput = document.getElementById(prefix + '_village');
+
+    const pName = pInput ? pInput.value.trim() : '';
+    const dName = dInput ? dInput.value.trim() : '';
+    const cName = cInput ? cInput.value.trim() : '';
+    const vName = vInput ? vInput.value.trim() : '';
+
+    const hInput = document.getElementById(prefix + '_house_no');
+    const sInput = document.getElementById(prefix + '_street');
+    const hNo = hInput ? hInput.value.trim() : '';
+    const st = sInput ? sInput.value.trim() : '';
+
+    const parts = [];
+    if (hNo) parts.push((hNo.startsWith('#') || hNo.startsWith('ផ្ទះ')) ? hNo : '#' + hNo);
+    if (st) parts.push(st.startsWith('ផ្លូវ') ? st : 'ផ្លូវ ' + st);
+    if (vName) parts.push(vName.startsWith('ភូមិ') ? vName : 'ភូមិ ' + vName);
+    if (cName) parts.push((cName.startsWith('ឃុំ') || cName.startsWith('សង្កាត់')) ? cName : 'ឃុំ/សង្កាត់ ' + cName);
+    if (dName) parts.push((dName.startsWith('ស្រុក') || dName.startsWith('ខណ្ឌ') || dName.startsWith('ក្រុង')) ? dName : 'ស្រុក/ខណ្ឌ ' + dName);
+    if (pName) parts.push((pName.startsWith('ខេត្ត') || pName.startsWith('រាជធានី')) ? pName : 'រាជធានី/ខេត្ត ' + pName);
+
+    const summaryEl = document.getElementById(prefix + '_summary_text');
+    if (summaryEl) {
+        summaryEl.textContent = parts.length > 0 ? parts.join(' ') : 'មិនទាន់បញ្ជាក់';
+    }
+
+    const badgeEl = document.getElementById(prefix + '_status_badge');
+    if (badgeEl) {
+        if (pName && dName && cName && vName) {
+            badgeEl.className = 'badge bg-success bg-opacity-10 text-success border border-success border-opacity-25';
+            badgeEl.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i> ព័ត៌មានពេញលេញ';
+        } else if (pName || dName || cName || vName) {
+            badgeEl.className = 'badge bg-warning bg-opacity-10 text-dark border border-warning border-opacity-25';
+            badgeEl.innerHTML = '<i class="fa-solid fa-pen-ruler me-1"></i> បំពេញបានមួយចំនួន (អនុញ្ញាត)';
+        } else {
+            badgeEl.className = 'badge bg-secondary bg-opacity-10 text-secondary border';
+            badgeEl.innerHTML = '<i class="fa-regular fa-clock me-1"></i> មិនទាន់បំពេញ';
+        }
+    }
+}
+
+function setGeoAddressMode(prefix, mode) {
+    const fields = ['province', 'district', 'commune', 'village'];
+    const dropdownBtn = document.getElementById(prefix + '_mode_dropdown_btn');
+    const manualBtn = document.getElementById(prefix + '_mode_manual_btn');
+    const hintBadge = document.getElementById(prefix + '_hint_badge');
+
+    if (mode === 'manual') {
+        if (dropdownBtn) {
+            dropdownBtn.classList.remove('btn-primary', 'active');
+            dropdownBtn.classList.add('btn-outline-secondary', 'border-0');
+        }
+        if (manualBtn) {
+            manualBtn.classList.remove('btn-outline-secondary', 'border-0');
+            manualBtn.classList.add('btn-primary', 'active');
+        }
+        if (hintBadge) {
+            hintBadge.innerHTML = '<i class="fa-solid fa-pen-to-square me-1 text-primary"></i> របៀបវាយបញ្ចូលដោយដៃ (អាចបំពេញទោះបីទិន្នន័យមិនគ្រប់ក៏បាន)';
+        }
+
+        fields.forEach(f => {
+            const selectWrap = document.getElementById(prefix + '_' + f + '_select_wrap');
+            const manualWrap = document.getElementById(prefix + '_' + f + '_manual_wrap');
+            const toggle = document.getElementById(prefix + '_' + f + '_toggle');
+            if (selectWrap) selectWrap.classList.add('d-none');
+            if (manualWrap) manualWrap.classList.remove('d-none');
+            if (toggle) toggle.innerHTML = '<i class="fa-solid fa-list text-secondary"></i>';
+        });
+    } else {
+        if (manualBtn) {
+            manualBtn.classList.remove('btn-primary', 'active');
+            manualBtn.classList.add('btn-outline-secondary', 'border-0');
+        }
+        if (dropdownBtn) {
+            dropdownBtn.classList.remove('btn-outline-secondary', 'border-0');
+            dropdownBtn.classList.add('btn-primary', 'active');
+        }
+        if (hintBadge) {
+            hintBadge.innerHTML = '<i class="fa-solid fa-layer-group me-1 text-primary"></i> ជ្រើសតាមលំដាប់ ឬវាយដោយដៃករណីមិនគ្រប់/គ្មានក្នុងបញ្ជី';
+        }
+
+        fields.forEach(f => {
+            const selectWrap = document.getElementById(prefix + '_' + f + '_select_wrap');
+            const manualWrap = document.getElementById(prefix + '_' + f + '_manual_wrap');
+            const toggle = document.getElementById(prefix + '_' + f + '_toggle');
+            if (selectWrap) selectWrap.classList.remove('d-none');
+            if (manualWrap) manualWrap.classList.add('d-none');
+            if (toggle) toggle.innerHTML = '<i class="fa-solid fa-pen"></i>';
+        });
+    }
+    updateGeoSummary(prefix);
+}
+
+function toggleFieldManual(prefix, fieldLevel) {
+    const selectWrap = document.getElementById(prefix + '_' + fieldLevel + '_select_wrap');
+    const manualWrap = document.getElementById(prefix + '_' + fieldLevel + '_manual_wrap');
+    const toggle = document.getElementById(prefix + '_' + fieldLevel + '_toggle');
+    const manualInput = document.getElementById(prefix + '_' + fieldLevel + '_manual');
+    const nameInput = document.getElementById(prefix + '_' + fieldLevel);
+    const badgeShort = fieldLevel === 'province' ? 'prov' : (fieldLevel === 'district' ? 'dist' : (fieldLevel === 'commune' ? 'comm' : 'vill'));
+    const badge = document.getElementById(prefix + '_' + badgeShort + '_badge');
+
+    if (!selectWrap || !manualWrap) return;
+
+    const isManual = !manualWrap.classList.contains('d-none');
+
+    if (isManual) {
+        // Switch back to select
+        manualWrap.classList.add('d-none');
+        selectWrap.classList.remove('d-none');
+        if (toggle) toggle.innerHTML = '<i class="fa-solid fa-pen"></i>';
+    } else {
+        // Switch to manual input
+        selectWrap.classList.add('d-none');
+        manualWrap.classList.remove('d-none');
+        if (toggle) toggle.innerHTML = '<i class="fa-solid fa-list text-secondary"></i>';
+        if (manualInput) {
+            if (nameInput && nameInput.value && !manualInput.value) {
+                manualInput.value = nameInput.value;
+            }
+            manualInput.focus();
+        }
+        if (badge) badge.textContent = 'ដៃ';
+    }
+    updateGeoSummary(prefix);
+}
+
+function onGeoManualInput(prefix, fieldLevel) {
+    const manualInput = document.getElementById(prefix + '_' + fieldLevel + '_manual');
+    const nameInput = document.getElementById(prefix + '_' + fieldLevel);
+    const codeInput = document.getElementById(prefix + '_' + fieldLevel + '_code');
+    const badgeShort = fieldLevel === 'province' ? 'prov' : (fieldLevel === 'district' ? 'dist' : (fieldLevel === 'commune' ? 'comm' : 'vill'));
+    const badge = document.getElementById(prefix + '_' + badgeShort + '_badge');
+
+    if (manualInput && nameInput) {
+        nameInput.value = manualInput.value.trim();
+    }
+    if (codeInput) {
+        codeInput.value = '';
+    }
+    if (badge) {
+        badge.textContent = manualInput && manualInput.value.trim() ? 'ដៃ' : '-';
+    }
+    updateGeoSummary(prefix);
+}
+
 function setupGeoGroup(prefix) {
     const provSelect = document.getElementById(prefix + '_prov_select');
     const distSelect = document.getElementById(prefix + '_dist_select');
@@ -3928,6 +4249,11 @@ function setupGeoGroup(prefix) {
     const commNameInput = document.getElementById(prefix + '_commune');
     const villNameInput = document.getElementById(prefix + '_village');
 
+    const provManual = document.getElementById(prefix + '_province_manual');
+    const distManual = document.getElementById(prefix + '_district_manual');
+    const commManual = document.getElementById(prefix + '_commune_manual');
+    const villManual = document.getElementById(prefix + '_village_manual');
+
     const provBadge = document.getElementById(prefix + '_prov_badge');
     const distBadge = document.getElementById(prefix + '_dist_badge');
     const commBadge = document.getElementById(prefix + '_comm_badge');
@@ -3943,17 +4269,21 @@ function setupGeoGroup(prefix) {
 
         if (provCodeInput) provCodeInput.value = pCode;
         if (provNameInput) provNameInput.value = pCode ? pName : '';
+        if (provManual) provManual.value = pCode ? pName : '';
         if (provBadge) provBadge.textContent = pCode || '-';
 
         // Clear children
         if (distCodeInput) distCodeInput.value = '';
         if (distNameInput) distNameInput.value = '';
+        if (distManual) distManual.value = '';
         if (distBadge) distBadge.textContent = '-';
         if (commCodeInput) commCodeInput.value = '';
         if (commNameInput) commNameInput.value = '';
+        if (commManual) commManual.value = '';
         if (commBadge) commBadge.textContent = '-';
         if (villCodeInput) villCodeInput.value = '';
         if (villNameInput) villNameInput.value = '';
+        if (villManual) villManual.value = '';
         if (villBadge) villBadge.textContent = '-';
 
         distSelect.innerHTML = '<option value="">-- ជ្រើសរើសក្រុង/ស្រុក/ខណ្ឌ --</option>';
@@ -3975,27 +4305,42 @@ function setupGeoGroup(prefix) {
                 opt.textContent = `${d.name_kh} (${d.code})`;
                 distSelect.appendChild(opt);
             });
+            const customOpt = document.createElement('option');
+            customOpt.value = '__manual__';
+            customOpt.textContent = '✍️ វាយបញ្ចូលដោយដៃ (ករណីគ្មានក្នុងបញ្ជី)...';
+            distSelect.appendChild(customOpt);
         } else {
             distSelect.disabled = true;
         }
+
+        updateGeoSummary(prefix);
     });
 
     // 2. District Change
     distSelect.addEventListener('change', async function() {
         const dCode = this.value;
+        if (dCode === '__manual__') {
+            this.value = '';
+            toggleFieldManual(prefix, 'district');
+            return;
+        }
+
         const selectedOpt = this.options[this.selectedIndex];
         const dName = selectedOpt ? (selectedOpt.getAttribute('data-name') || selectedOpt.text.split(' (')[0]) : '';
 
         if (distCodeInput) distCodeInput.value = dCode;
         if (distNameInput) distNameInput.value = dCode ? dName : '';
+        if (distManual) distManual.value = dCode ? dName : '';
         if (distBadge) distBadge.textContent = dCode || '-';
 
         // Clear children
         if (commCodeInput) commCodeInput.value = '';
         if (commNameInput) commNameInput.value = '';
+        if (commManual) commManual.value = '';
         if (commBadge) commBadge.textContent = '-';
         if (villCodeInput) villCodeInput.value = '';
         if (villNameInput) villNameInput.value = '';
+        if (villManual) villManual.value = '';
         if (villBadge) villBadge.textContent = '-';
 
         commSelect.innerHTML = '<option value="">-- ជ្រើសរើសឃុំ/សង្កាត់ --</option>';
@@ -4014,24 +4359,38 @@ function setupGeoGroup(prefix) {
                 opt.textContent = `${c.name_kh} (${c.code})`;
                 commSelect.appendChild(opt);
             });
+            const customOpt = document.createElement('option');
+            customOpt.value = '__manual__';
+            customOpt.textContent = '✍️ វាយបញ្ចូលដោយដៃ (ករណីគ្មានក្នុងបញ្ជី)...';
+            commSelect.appendChild(customOpt);
         } else {
             commSelect.disabled = true;
         }
+
+        updateGeoSummary(prefix);
     });
 
     // 3. Commune Change
     commSelect.addEventListener('change', async function() {
         const cCode = this.value;
+        if (cCode === '__manual__') {
+            this.value = '';
+            toggleFieldManual(prefix, 'commune');
+            return;
+        }
+
         const selectedOpt = this.options[this.selectedIndex];
         const cName = selectedOpt ? (selectedOpt.getAttribute('data-name') || selectedOpt.text.split(' (')[0]) : '';
 
         if (commCodeInput) commCodeInput.value = cCode;
         if (commNameInput) commNameInput.value = cCode ? cName : '';
+        if (commManual) commManual.value = cCode ? cName : '';
         if (commBadge) commBadge.textContent = cCode || '-';
 
         // Clear village
         if (villCodeInput) villCodeInput.value = '';
         if (villNameInput) villNameInput.value = '';
+        if (villManual) villManual.value = '';
         if (villBadge) villBadge.textContent = '-';
 
         villSelect.innerHTML = '<option value="">-- ជ្រើសរើសភូមិ --</option>';
@@ -4048,20 +4407,35 @@ function setupGeoGroup(prefix) {
                 opt.textContent = `${v.name_kh} (${v.code})`;
                 villSelect.appendChild(opt);
             });
+            const customOpt = document.createElement('option');
+            customOpt.value = '__manual__';
+            customOpt.textContent = '✍️ វាយបញ្ចូលដោយដៃ (ករណីគ្មានក្នុងបញ្ជី)...';
+            villSelect.appendChild(customOpt);
         } else {
             villSelect.disabled = true;
         }
+
+        updateGeoSummary(prefix);
     });
 
     // 4. Village Change
     villSelect.addEventListener('change', function() {
         const vCode = this.value;
+        if (vCode === '__manual__') {
+            this.value = '';
+            toggleFieldManual(prefix, 'village');
+            return;
+        }
+
         const selectedOpt = this.options[this.selectedIndex];
         const vName = selectedOpt ? (selectedOpt.getAttribute('data-name') || selectedOpt.text.split(' (')[0]) : '';
 
         if (villCodeInput) villCodeInput.value = vCode;
         if (villNameInput) villNameInput.value = vCode ? vName : '';
+        if (villManual) villManual.value = vCode ? vName : '';
         if (villBadge) villBadge.textContent = vCode || '-';
+
+        updateGeoSummary(prefix);
     });
 
     // Initial Load for Existing Record
@@ -4071,20 +4445,36 @@ function setupGeoGroup(prefix) {
         let cVal = (commCodeInput ? commCodeInput.value : '') || (commNameInput ? commNameInput.value : '');
         let vVal = (villCodeInput ? villCodeInput.value : '') || (villNameInput ? villNameInput.value : '');
 
+        // Sync initial text to manual inputs
+        if (provManual && provNameInput && provNameInput.value) provManual.value = provNameInput.value;
+        if (distManual && distNameInput && distNameInput.value) distManual.value = distNameInput.value;
+        if (commManual && commNameInput && commNameInput.value) commManual.value = commNameInput.value;
+        if (villManual && villNameInput && villNameInput.value) villManual.value = villNameInput.value;
+
+        updateGeoSummary(prefix);
+
         if (!pVal && provSelect.value) {
             pVal = provSelect.value;
         }
 
         if (pVal) {
             // Match province
+            let matchedP = false;
             for (let opt of provSelect.options) {
                 if (opt.value === pVal || (opt.getAttribute('data-name') && opt.getAttribute('data-name').trim() === pVal.trim())) {
                     provSelect.value = opt.value;
                     if (provCodeInput) provCodeInput.value = opt.value;
                     if (provNameInput) provNameInput.value = opt.getAttribute('data-name');
+                    if (provManual) provManual.value = opt.getAttribute('data-name');
                     if (provBadge) provBadge.textContent = opt.value;
+                    matchedP = true;
                     break;
                 }
+            }
+
+            if (!matchedP && provNameInput && provNameInput.value) {
+                // Province has custom/manual name not in dropdown
+                toggleFieldManual(prefix, 'province');
             }
 
             const activePCode = provSelect.value;
@@ -4103,10 +4493,20 @@ function setupGeoGroup(prefix) {
                         matchedDCode = d.code;
                         if (distCodeInput) distCodeInput.value = d.code;
                         if (distNameInput) distNameInput.value = d.name_kh;
+                        if (distManual) distManual.value = d.name_kh;
                         if (distBadge) distBadge.textContent = d.code;
                     }
                     distSelect.appendChild(opt);
                 });
+                const customOptD = document.createElement('option');
+                customOptD.value = '__manual__';
+                customOptD.textContent = '✍️ វាយបញ្ចូលដោយដៃ (ករណីគ្មានក្នុងបញ្ជី)...';
+                distSelect.appendChild(customOptD);
+
+                if (!matchedDCode && dVal) {
+                    // Custom district not in list
+                    toggleFieldManual(prefix, 'district');
+                }
 
                 if (matchedDCode || dVal) {
                     const activeDCode = matchedDCode || dVal;
@@ -4124,16 +4524,27 @@ function setupGeoGroup(prefix) {
                             matchedCCode = c.code;
                             if (commCodeInput) commCodeInput.value = c.code;
                             if (commNameInput) commNameInput.value = c.name_kh;
+                            if (commManual) commManual.value = c.name_kh;
                             if (commBadge) commBadge.textContent = c.code;
                         }
                         commSelect.appendChild(opt);
                     });
+                    const customOptC = document.createElement('option');
+                    customOptC.value = '__manual__';
+                    customOptC.textContent = '✍️ វាយបញ្ចូលដោយដៃ (ករណីគ្មានក្នុងបញ្ជី)...';
+                    commSelect.appendChild(customOptC);
+
+                    if (!matchedCCode && cVal) {
+                        // Custom commune not in list
+                        toggleFieldManual(prefix, 'commune');
+                    }
 
                     if (matchedCCode || cVal) {
                         const activeCCode = matchedCCode || cVal;
                         villSelect.disabled = false;
                         const villages = await fetchGeoVillages(activeCCode, commNameInput ? commNameInput.value : '', activeDCode);
                         villSelect.innerHTML = '<option value="">-- ជ្រើសរើសភូមិ --</option>';
+                        let matchedVCode = '';
                         villages.forEach(v => {
                             const opt = document.createElement('option');
                             opt.value = v.code;
@@ -4141,16 +4552,28 @@ function setupGeoGroup(prefix) {
                             opt.textContent = `${v.name_kh} (${v.code})`;
                             if (v.code === vVal || (vVal && v.name_kh.trim() === vVal.trim())) {
                                 opt.selected = true;
+                                matchedVCode = v.code;
                                 if (villCodeInput) villCodeInput.value = v.code;
                                 if (villNameInput) villNameInput.value = v.name_kh;
+                                if (villManual) villManual.value = v.name_kh;
                                 if (villBadge) villBadge.textContent = v.code;
                             }
                             villSelect.appendChild(opt);
                         });
+                        const customOptV = document.createElement('option');
+                        customOptV.value = '__manual__';
+                        customOptV.textContent = '✍️ វាយបញ្ចូលដោយដៃ (ករណីគ្មានក្នុងបញ្ជី)...';
+                        villSelect.appendChild(customOptV);
+
+                        if (!matchedVCode && vVal) {
+                            // Custom village not in list
+                            toggleFieldManual(prefix, 'village');
+                        }
                     }
                 }
             }
         }
+        updateGeoSummary(prefix);
     }
 
     initPreloadedValues();

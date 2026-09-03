@@ -2510,10 +2510,24 @@ def _handle_form_attachments(request, officer):
             )
 
 
+def _clean_geo_prefix(val, prefixes):
+    if not val:
+        return ''
+    val = str(val).strip()
+    for p in prefixes:
+        if val.startswith(p):
+            trimmed = val[len(p):].strip()
+            if trimmed:
+                return trimmed
+    return val
+
+
 def _resolve_geo_address(province_code, district_code, commune_code, village_code,
                          province_name, district_name, commune_name, village_name):
     """
     Ensures bidirectional resolution between Cambodian Geographic Codes and Khmer Names.
+    Intelligently handles manual inputs with or without common Khmer administrative prefixes
+    (e.g., ខេត្ត, រាជធានី, ស្រុក, ខណ្ឌ, ក្រុង, ឃុំ, សង្កាត់, ភូមិ).
     """
     province_code = (province_code or '').strip()
     district_code = (district_code or '').strip()
@@ -2542,32 +2556,46 @@ def _resolve_geo_address(province_code, district_code, commune_code, village_cod
         if v:
             village_name = v.name_kh
 
+    # Prepare prefix-stripped variations for smart matching
+    p_clean = _clean_geo_prefix(province_name, ['ខេត្ត', 'រាជធានី'])
+    d_clean = _clean_geo_prefix(district_name, ['ស្រុក', 'ខណ្ឌ', 'ក្រុង'])
+    c_clean = _clean_geo_prefix(commune_name, ['ឃុំ', 'សង្កាត់'])
+    v_clean = _clean_geo_prefix(village_name, ['ភូមិ'])
+
     # If name is given but code is empty, lookup code
     if province_name and not province_code:
-        p = CambodiaProvince.objects.filter(name_kh=province_name).first()
+        p_candidates = [name for name in [province_name, p_clean] if name]
+        p = CambodiaProvince.objects.filter(name_kh__in=p_candidates).first()
         if p:
             province_code = p.code
+            province_name = p.name_kh
     if district_name and not district_code:
-        d_qs = CambodiaDistrict.objects.filter(name_kh=district_name)
+        d_candidates = [name for name in [district_name, d_clean] if name]
+        d_qs = CambodiaDistrict.objects.filter(name_kh__in=d_candidates)
         if province_code:
             d_qs = d_qs.filter(province_id=province_code)
         d = d_qs.first()
         if d:
             district_code = d.code
+            district_name = d.name_kh
     if commune_name and not commune_code:
-        c_qs = CambodiaCommune.objects.filter(name_kh=commune_name)
+        c_candidates = [name for name in [commune_name, c_clean] if name]
+        c_qs = CambodiaCommune.objects.filter(name_kh__in=c_candidates)
         if district_code:
             c_qs = c_qs.filter(district_id=district_code)
         c = c_qs.first()
         if c:
             commune_code = c.code
+            commune_name = c.name_kh
     if village_name and not village_code:
-        v_qs = CambodiaVillage.objects.filter(name_kh=village_name)
+        v_candidates = [name for name in [village_name, v_clean] if name]
+        v_qs = CambodiaVillage.objects.filter(name_kh__in=v_candidates)
         if commune_code:
             v_qs = v_qs.filter(commune_id=commune_code)
         v = v_qs.first()
         if v:
             village_code = v.code
+            village_name = v.name_kh
 
     return (province_code or None, district_code or None, commune_code or None, village_code or None,
             province_name, district_name, commune_name, village_name)
