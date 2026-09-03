@@ -10048,10 +10048,247 @@ def contract_officer_bulk_delete(request):
     return redirect('contract_officer_list')
 
 
+def _format_d1_dob(val):
+    if not val:
+        return '-'
+    std_dmy = _format_khmer_date_standard(val)
+    if '-' in std_dmy and len(std_dmy.split('-')) == 3:
+        parts = std_dmy.split('-')
+        dotted = f"{parts[0]}.{parts[1]}.{parts[2]}"
+        return _to_khmer_digits(dotted)
+    return _to_khmer_digits(str(val))
+
+
+def _format_d1_phone(val):
+    if not val:
+        return '-'
+    val_clean = str(val).strip()
+    return _to_khmer_digits(val_clean)
+
+
+def _build_d1_contract_workbook(officers_list, year=None):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "06"
+
+    # Page Setup: A4 Landscape Print Format strictly matching Excel/D-1.xlsx
+    ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.page_margins.left = 0.3
+    ws.page_margins.right = 0.3
+    ws.page_margins.top = 0.4
+    ws.page_margins.bottom = 0.4
+
+    # Column widths strictly matching D-1.xlsx
+    col_widths = {
+        'A': 5.14,
+        'B': 15.71,
+        'C': 25.14,
+        'D': 6.14,
+        'E': 16.29,
+        'F': 28.43,
+        'G': 15.86,
+        'H': 12.43,
+        'I': 18.43,
+    }
+    for col_letter, width in col_widths.items():
+        ws.column_dimensions[col_letter].width = width
+
+    # Row heights
+    ws.row_dimensions[1].height = 18.0
+    ws.row_dimensions[2].height = 18.0
+    ws.row_dimensions[3].height = 18.0
+    ws.row_dimensions[4].height = 23.25
+    ws.row_dimensions[5].height = 23.25
+    ws.row_dimensions[6].height = 6.0
+    ws.row_dimensions[7].height = 71.1
+    ws.row_dimensions[8].height = 43.5
+
+    # Fonts
+    font_org = Font(name='Khmer OS Muol Light', size=10, color='1E3A8A', bold=False)
+    font_org_sub = Font(name='Khmer OS Muol Light', size=9.5, color='1E3A8A', bold=False)
+    font_kingdom = Font(name='Khmer OS Muol Light', size=10.5, color='1E3A8A', bold=False)
+    font_stars = Font(name='Khmer OS Battambang', size=12, color='1E3A8A', bold=True)
+    font_title = Font(name='Khmer OS Muol Light', size=11, color='1E3A8A', bold=False)
+    font_header = Font(name='Khmer OS Battambang', size=11, bold=True)
+    font_data = Font(name='Khmer OS Battambang', size=11, bold=False)
+    font_latin = Font(name='Cambria', size=11, bold=False)
+    font_footer_bold = Font(name='Khmer OS Battambang', size=10.5, bold=True)
+    font_footer_normal = Font(name='Khmer OS Battambang', size=10, bold=False)
+    font_footer_muol = Font(name='Khmer OS Muol Light', size=10.5, bold=False)
+
+    # Thin Border
+    thin_border = Border(
+        left=Side(style='thin', color='000000'),
+        right=Side(style='thin', color='000000'),
+        top=Side(style='thin', color='000000'),
+        bottom=Side(style='thin', color='000000')
+    )
+
+    align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    align_data_center = Alignment(horizontal='center', vertical='center', wrap_text=False)
+    align_data_left = Alignment(horizontal='left', vertical='center', wrap_text=False)
+
+    # Logo Image on Left Header (above organization)
+    logo_path = os.path.join(settings.BASE_DIR, 'dms', 'static', 'dms', 'img', 'image1.jpeg')
+    if os.path.exists(logo_path):
+        try:
+            from openpyxl.drawing.image import Image as OpenpyxlImage
+            logo_img = OpenpyxlImage(logo_path)
+            logo_img.width = 56
+            logo_img.height = 56
+            ws.add_image(logo_img, 'B1')
+        except Exception:
+            pass
+
+    # Left Header: Organization
+    ws.merge_cells('A4:C4')
+    ws['A4'] = "ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"
+    ws['A4'].font = font_org
+    ws['A4'].alignment = align_center
+
+    ws.merge_cells('A5:C5')
+    ws['A5'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+    ws['A5'].font = font_org_sub
+    ws['A5'].alignment = align_center
+
+    # Right Header: Kingdom & Motto
+    ws.merge_cells('G2:I2')
+    ws['G2'] = "ព្រះរាជាណាចក្រកម្ពុជា"
+    ws['G2'].font = font_kingdom
+    ws['G2'].alignment = align_center
+
+    ws.merge_cells('G3:I3')
+    ws['G3'] = "ជាតិ សាសនា ព្រះមហាក្សត្រ"
+    ws['G3'].font = font_kingdom
+    ws['G3'].alignment = align_center
+
+    ws.merge_cells('G4:I4')
+    ws['G4'] = "***"
+    ws['G4'].font = font_stars
+    ws['G4'].alignment = align_center
+
+    # Row 7: Title block
+    now = datetime.now()
+    month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
+    year_val = year if year else now.year
+    year_kh = _to_khmer_digits(str(year_val))
+
+    ws.merge_cells('A7:I7')
+    title_text = (
+        "បញ្ជីបច្ចុប្បន្នភាពមន្ត្រីជាប់កិច្ចសន្យា\n"
+        "របស់មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន\n"
+        f"ប្រចាំខែ{month_kh} ឆ្នាំ{year_kh}"
+    )
+    ws['A7'] = title_text
+    ws['A7'].font = font_title
+    ws['A7'].alignment = align_center
+
+    # Row 8: Headers (9 columns)
+    headers = [
+        ('A', 'ល.រ'),
+        ('B', 'គោត្ដនាម នាម'),
+        ('C', 'អក្សរឡាតាំង'),
+        ('D', 'ភេទ'),
+        ('E', 'ថ្ងៃខែឆ្នាំកំណើត'),
+        ('F', 'ខណ្ឌ/ការិ.បំពេញការងារ'),
+        ('G', 'តួនាទី'),
+        ('H', 'កម្រិតវប្បធម៌'),
+        ('I', 'លេខទូរស័ព្ទ'),
+    ]
+    for col_letter, h_text in headers:
+        cell = ws[f'{col_letter}8']
+        cell.value = h_text
+        cell.font = font_header
+        cell.alignment = align_center
+        cell.border = thin_border
+
+    # Row 9+: Data Rows
+    current_row = 9
+    for idx, o in enumerate(officers_list, start=1):
+        ws.row_dimensions[current_row].height = 27.0
+
+        g_kh = 'ប្រុស' if o.gender == 'MALE' or str(o.gender).upper() in ['M', 'ប្រុស', 'ប'] else 'ស្រី'
+        dob_display = _format_d1_dob(o.dob)
+        edu = (o.general_education or o.training_level or 'គ្មាន').strip()
+        phone_display = _format_d1_phone(o.phone)
+
+        cells_data = [
+            ('A', idx, font_data, align_data_center),
+            ('B', o.full_name_kh, font_data, align_data_left),
+            ('C', o.full_name_latin, font_latin, align_data_left),
+            ('D', g_kh, font_data, align_data_center),
+            ('E', dob_display, font_data, align_data_center),
+            ('F', o.display_working_unit, font_data, align_data_center),
+            ('G', o.position_title or 'មន្ត្រីជាប់កិច្ចសន្យា', font_data, align_data_center),
+            ('H', edu, font_data, align_data_center),
+            ('I', phone_display, font_data, align_data_center),
+        ]
+        for col_letter, val, f_style, a_style in cells_data:
+            c = ws[f'{col_letter}{current_row}']
+            c.value = val
+            c.font = f_style
+            c.alignment = a_style
+            c.border = thin_border
+
+        current_row += 1
+
+    # Bottom Summary and Signature (matching PDF footer)
+    total_count = len(officers_list)
+    female_count = sum(1 for o in officers_list if o.gender == 'FEMALE' or str(o.gender).upper() in ['F', 'FEMALE', 'ស្រី', 'ស'])
+    male_count = total_count - female_count
+    total_kh = _to_khmer_digits(str(total_count))
+    female_kh = _to_khmer_digits(str(female_count))
+    male_kh = _to_khmer_digits(str(male_count))
+
+    current_row += 1
+    ws.row_dimensions[current_row].height = 22.0
+    ws[f'A{current_row}'] = f"សរុប៖ .....{total_kh}.....នាក់, ស្រី ....{female_kh}....នាក់"
+    ws[f'A{current_row}'].font = font_footer_bold
+
+    ws.merge_cells(f'E{current_row}:F{current_row}')
+    ws[f'E{current_row}'] = "បានឃើញ និងឯកភាព"
+    ws[f'E{current_row}'].font = font_footer_muol
+    ws[f'E{current_row}'].alignment = align_center
+
+    ws.merge_cells(f'H{current_row}:I{current_row}')
+    lunar_info = _get_khmer_lunar_year_info(year_val)
+    ws[f'H{current_row}'] = lunar_info or "ថ្ងៃ.....................ខែ...............ឆ្នាំ... ព.ស ២៥..."
+    ws[f'H{current_row}'].font = font_footer_normal
+    ws[f'H{current_row}'].alignment = align_center
+
+    current_row += 1
+    ws.row_dimensions[current_row].height = 22.0
+    ws[f'A{current_row}'] = f"(ប្រុស ....{male_kh}....នាក់ )"
+    ws[f'A{current_row}'].font = font_footer_bold
+
+    ws.merge_cells(f'E{current_row}:F{current_row}')
+    ws[f'E{current_row}'] = "ប្រធានមន្ទីរ"
+    ws[f'E{current_row}'].font = font_footer_muol
+    ws[f'E{current_row}'].alignment = align_center
+
+    ws.merge_cells(f'H{current_row}:I{current_row}')
+    ws[f'H{current_row}'] = f"ប៉ៃលិន, ថ្ងៃទី......... ខែ.............. ឆ្នាំ{year_kh}"
+    ws[f'H{current_row}'].font = font_footer_normal
+    ws[f'H{current_row}'].alignment = align_center
+
+    current_row += 1
+    ws.row_dimensions[current_row].height = 22.0
+    ws.merge_cells(f'H{current_row}:I{current_row}')
+    ws[f'H{current_row}'] = "ប្រធានការិយាល័យរដ្ឋបាល បុគ្គលិក"
+    ws[f'H{current_row}'].font = font_footer_muol
+    ws[f'H{current_row}'].alignment = align_center
+
+    return wb
+
+
 @login_required
 def contract_officer_export_excel(request):
     """
-    Export Contract Civil Servants list to Excel formatted nicely with Khmer fonts and styling.
+    Export Contract Civil Servants list to Excel strictly formatted as Form D-1 (Excel/D-1.xlsx).
     Strict Department Isolation: Specialized offices only export their own department's data.
     """
     profile = getattr(request.user, 'profile', None)
@@ -10072,6 +10309,7 @@ def contract_officer_export_excel(request):
             queryset = queryset.filter(department_id=dept_filter)
 
     year_filter = request.GET.get('year', '').strip()
+    year_int = None
     if year_filter:
         try:
             year_int = int(to_arabic_digits(year_filter))
@@ -10103,93 +10341,113 @@ def contract_officer_export_excel(request):
 
     officers_list = list(queryset.order_by('-contract_year', 'khmer_last_name', 'khmer_first_name'))
 
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "មន្ត្រីជាប់កិច្ចសន្យា"
-
-    header_font = Font(name='Khmer OS Battambang', size=11, bold=True, color='FFFFFF')
-    header_fill = PatternFill(start_color='1E3A8A', end_color='1E3A8A', fill_type='solid')
-    align_center = Alignment(horizontal='center', vertical='center')
-    align_left = Alignment(horizontal='left', vertical='center')
-    thin_border = Border(
-        left=Side(style='thin', color='CCCCCC'),
-        right=Side(style='thin', color='CCCCCC'),
-        top=Side(style='thin', color='CCCCCC'),
-        bottom=Side(style='thin', color='CCCCCC')
-    )
-
-    year_label = f"ប្រចាំឆ្នាំ {year_filter}" if year_filter else "គ្រប់ឆ្នាំ"
-    ws.merge_cells('A1:M1')
-    ws['A1'] = f"បញ្ជីរាយនាមមន្ត្រីជាប់កិច្ចសន្យា (Contract Staff) - {year_label}"
-    ws['A1'].font = Font(name='Khmer OS Muol Light', size=14, bold=True, color='1E3A8A')
-    ws['A1'].alignment = align_center
-
-    ws.merge_cells('A2:M2')
-    ws['A2'] = f"កាលបរិច្ឆេទ Export៖ {datetime.now().strftime('%d/%m/%Y %H:%M')} | សរុប៖ {len(officers_list)} នាក់ (ប្រុស: {sum(1 for o in officers_list if o.gender == 'MALE')} / ស្រី: {sum(1 for o in officers_list if o.gender == 'FEMALE')})"
-    ws['A2'].font = Font(name='Khmer OS Battambang', size=10, italic=True, color='555555')
-    ws['A2'].alignment = align_center
-
-    headers = [
-        'ល.រ', 'ឆ្នាំកិច្ចសន្យា', 'គោត្តនាម-នាមខ្លួន', 'អក្សរឡាតាំង', 'ភេទ', 'ថ្ងៃខែឆ្នាំកំណើត',
-        'មុខតំណែង', 'អង្គភាព/ការិយាល័យ', 'កម្រិតវប្បធម៌/ជំនាញ', 'លេខអត្តសញ្ញាណ/លិខិតឆ្លងដែន',
-        'លេខទូរស័ព្ទ', 'កាលបរិច្ឆេទកិច្ចសន្យា', 'ស្ថានភាព'
-    ]
-
-    ws.append([]) # row 3 blank
-    ws.append(headers) # row 4
-
-    for col_num in range(1, len(headers) + 1):
-        cell = ws.cell(row=4, column=col_num)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = align_center
-        cell.border = thin_border
-
-    for idx, o in enumerate(officers_list, start=1):
-        edu_skill = f"{o.general_education or ''} {('- ' + o.skill_specialization) if o.skill_specialization else ''}".strip() or '-'
-        id_display = f"{o.get_id_type_display()}: {o.id_number}" if o.id_number else '-'
-        contract_period = f"{o.contract_start_date.strftime('%d/%m/%Y') if o.contract_start_date else ''} - {o.contract_end_date.strftime('%d/%m/%Y') if o.contract_end_date else ''}".strip(' -') or '-'
-        
-        row = [
-            idx,
-            o.contract_year,
-            o.full_name_kh,
-            o.full_name_latin or '-',
-            o.get_gender_display(),
-            o.dob or '-',
-            o.position_title or 'មន្ត្រីជាប់កិច្ចសន្យា',
-            o.display_working_unit,
-            edu_skill,
-            id_display,
-            o.phone or '-',
-            contract_period,
-            o.get_contract_status_display()
-        ]
-        ws.append(row)
-        current_row = ws.max_row
-        for col_num in range(1, len(row) + 1):
-            cell = ws.cell(row=current_row, column=col_num)
-            cell.font = Font(name='Khmer OS Battambang', size=10)
-            cell.border = thin_border
-            if col_num in [1, 2, 5, 6, 11, 12, 13]:
-                cell.alignment = align_center
-            else:
-                cell.alignment = align_left
-
-    # Auto-adjust column widths
-    column_widths = {
-        'A': 6, 'B': 14, 'C': 24, 'D': 22, 'E': 8, 'F': 16,
-        'G': 22, 'H': 28, 'I': 26, 'J': 28, 'K': 16, 'L': 24, 'M': 18
-    }
-    for col_letter, width in column_widths.items():
-        ws.column_dimensions[col_letter].width = width
+    now = datetime.now()
+    year_val = year_int if year_int else now.year
+    wb = _build_d1_contract_workbook(officers_list, year=year_val)
 
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename="contract_officers_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
+    month_str = str(now.month).zfill(2)
+    response['Content-Disposition'] = f'attachment; filename="contract_officers_D1_{year_val}_{month_str}.xlsx"'
     wb.save(response)
     return response
+
+
+@login_required
+def contract_officer_preview_pdf_d1(request):
+    """
+    មើលជា PDF / Print Preview សម្រាប់ទម្រង់ D-1 (បញ្ជីបច្ចុប្បន្នភាពមន្ត្រីជាប់កិច្ចសន្យា)
+    """
+    profile = getattr(request.user, 'profile', None)
+    dept = profile.department if profile else None
+    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+    is_admin_or_lead = has_global_access
+
+    queryset = ContractOfficer.objects.select_related('department').all()
+
+    if not is_admin_or_lead:
+        if dept:
+            queryset = queryset.filter(department=dept)
+        else:
+            queryset = queryset.none()
+    else:
+        dept_filter = request.GET.get('department', '').strip()
+        if dept_filter:
+            queryset = queryset.filter(department_id=dept_filter)
+
+    year_filter = request.GET.get('year', '').strip()
+    year_int = None
+    if year_filter:
+        try:
+            year_int = int(to_arabic_digits(year_filter))
+            queryset = queryset.filter(contract_year=year_int)
+        except Exception:
+            pass
+
+    search_q = request.GET.get('q', '').strip()
+    if search_q:
+        q_arabic = to_arabic_digits(search_q)
+        queryset = queryset.filter(
+            Q(khmer_last_name__icontains=search_q) |
+            Q(khmer_first_name__icontains=search_q) |
+            Q(latin_name__icontains=search_q) |
+            Q(id_number__icontains=search_q) |
+            Q(id_number__icontains=q_arabic) |
+            Q(phone__icontains=search_q) |
+            Q(position_title__icontains=search_q) |
+            Q(working_unit__icontains=search_q)
+        )
+
+    gender_filter = request.GET.get('gender', '').strip()
+    if gender_filter:
+        queryset = queryset.filter(gender=gender_filter)
+
+    status_filter = request.GET.get('contract_status', '').strip()
+    if status_filter:
+        queryset = queryset.filter(contract_status=status_filter)
+
+    officers_list = list(queryset.order_by('-contract_year', 'khmer_last_name', 'khmer_first_name'))
+
+    table_items = []
+    for idx, o in enumerate(officers_list, 1):
+        g_kh = 'ប្រុស' if o.gender == 'MALE' or str(o.gender).upper() in ['M', 'ប្រុស', 'ប'] else 'ស្រី'
+        table_items.append({
+            'num': idx,
+            'officer': o,
+            'full_name_kh': o.full_name_kh,
+            'full_name_latin': o.full_name_latin,
+            'gender_kh': g_kh,
+            'dob_display': _format_d1_dob(o.dob),
+            'working_unit': o.display_working_unit,
+            'position': o.position_title or 'មន្ត្រីជាប់កិច្ចសន្យា',
+            'education': (o.general_education or o.training_level or 'គ្មាន').strip(),
+            'phone': _format_d1_phone(o.phone),
+        })
+
+    pages = _paginate_preview_items(table_items, first_page_cap=18, mid_page_cap=24, last_page_cap=14, single_page_cap=13)
+
+    now = datetime.now()
+    month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
+    year_val = year_int if year_int else now.year
+    year_kh = _to_khmer_digits(str(year_val))
+    lunar_year_text = _get_khmer_lunar_year_info(year_val)
+
+    female_count = sum(1 for item in table_items if item['gender_kh'] == 'ស្រី')
+    male_count = len(table_items) - female_count
+
+    context = {
+        'pages': pages,
+        'total_count': len(table_items),
+        'female_count': female_count,
+        'male_count': male_count,
+        'lunar_year_text': lunar_year_text,
+        'month_kh': month_kh,
+        'year_kh': year_kh,
+        'today': date.today(),
+        'query_params': request.GET.urlencode(),
+    }
+    return render(request, 'dms/contract_officer_preview_d1_pdf.html', context)
 
 
 @login_required
@@ -13587,6 +13845,533 @@ def api_attendance_quick_toggle(request):
         'status_code': rec.status_code,
         'badge_class': rec.status_badge_class,
     })
+
+
+# ==============================================================================
+# 📑 ANNUAL WORK RECORD / LEAVE BULLETIN MODULE (ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំរបស់មន្ត្រីរាជការស៊ីវិល)
+# ឧបសម្ព័ន្ធទី៤នៃអនុក្រឹត្យលេខ ៥៨ អនក្រ.បក ចុះថ្ងៃទី ០១ ខែ កញ្ញា ឆ្នាំ២០១៦
+# ==============================================================================
+
+def _build_annual_bulletin_data(officer, year):
+    """
+    Builds leave bulletin data according to Sub-Decree 58 Annex 4 (ឧបសម្ព័ន្ធទី៤ នៃអនុក្រឹត្យលេខ ៥៨)
+    """
+    records = AttendanceRecord.objects.filter(
+        officer=officer,
+        date__year=year
+    )
+
+    # 1. Annual Leave (១. ច្បាប់ឈប់ប្រចាំឆ្នាំ - ១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ)
+    annual_used = records.filter(leave_type='ANNUAL').count()
+    annual_prev_unused = 0
+    prev_records = AttendanceRecord.objects.filter(officer=officer, date__year=year - 1)
+    if prev_records.exists():
+        prev_annual_used = prev_records.filter(leave_type='ANNUAL').count()
+        annual_prev_unused = max(0, 15 - prev_annual_used)
+
+    annual_transfer_direct = 0
+    annual_transfer_other = 0
+    annual_additional = 0
+    annual_total_entitled = 15 + annual_prev_unused + annual_additional
+    annual_remaining = max(0, annual_total_entitled - annual_used)
+
+    # 2. Short-term Leave (២. ច្បាប់ឈប់រយៈពេលខ្លី - ១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ)
+    short_used = records.filter(leave_type='SHORT').count()
+    short_remaining = max(0, 15 - short_used)
+
+    # 3. Maternity Leave (៣. ច្បាប់ឈប់សម្រាកលំហែមាតុភាព - ៣ខែ)
+    maternity_used = records.filter(leave_type='MATERNITY').count()
+    maternity_display = f"{maternity_used} ថ្ងៃ" if maternity_used > 0 else "០"
+
+    # 4. Sick Leave (៤. ច្បាប់ឈប់សម្រាកព្យាបាលជំងឺ - ១២ខែ សម្រាប់មួយជីវិតជាមន្ត្រី)
+    lifetime_sick_records = AttendanceRecord.objects.filter(officer=officer, leave_type='SICK').count()
+    sick_used_months = round(lifetime_sick_records / 30, 1) if lifetime_sick_records > 0 else 0
+    sick_remaining_months = max(0, round(12 - sick_used_months, 1))
+
+    # 5. Personal Business Leave (៥. ច្បាប់ឈប់សម្រាកដោយមានកិច្ចផ្ទាល់ខ្លួន - ៣ខែ សម្រាប់មួយជីវិតជាមន្ត្រី)
+    lifetime_personal_records = AttendanceRecord.objects.filter(officer=officer, leave_type='PERSONAL').count()
+    personal_used_months = round(lifetime_personal_records / 30, 1) if lifetime_personal_records > 0 else 0
+    personal_remaining_months = max(0, round(3 - personal_used_months, 1))
+
+    # 6. Disciplinary & Sanctions (ទណ្ឌកម្មវិន័យ និងវិធានការ)
+    disc_list = list(set([r.disciplinary_measure for r in records if r.disciplinary_measure]))
+    remarks_list = list(set([r.remarks for r in records if r.remarks and 'វិន័យ' in r.remarks]))
+    all_disc = disc_list + remarks_list
+    disciplinary_str = ', '.join(all_disc) if all_disc else '-'
+
+    # Absences & other summary stats
+    authorized_leave_days = records.filter(status='LEAVE_PERMISSION').count()
+    unauthorized_absent_days = records.filter(status='ABSENT_NO_LEAVE').count()
+    unpaid_leave_days = records.filter(status='UNPAID_LEAVE').count()
+    other_leave_days = records.filter(leave_type='OTHER').count()
+
+    g_kh = 'ប្រុស' if officer.gender == 'MALE' or str(officer.gender).upper() in ['M', 'ប្រុស', 'ប'] else 'ស្រី'
+
+    return {
+        'officer': officer,
+        'year': year,
+        'year_kh': _to_khmer_digits(str(year)),
+        'gender_kh': g_kh,
+        'department_name': officer.department.name_kh if officer.department else 'មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន',
+
+        # Category 1: Annual Leave
+        'annual_prev_unused': _to_khmer_digits(str(annual_prev_unused)) if annual_prev_unused else '០',
+        'annual_transfer_direct': _to_khmer_digits(str(annual_transfer_direct)) if annual_transfer_direct else '០',
+        'annual_transfer_other': _to_khmer_digits(str(annual_transfer_other)) if annual_transfer_other else '០',
+        'annual_additional': _to_khmer_digits(str(annual_additional)) if annual_additional else '០',
+        'annual_used': _to_khmer_digits(str(annual_used)),
+        'annual_remaining': _to_khmer_digits(str(annual_remaining)),
+
+        # Category 2: Short-term Leave
+        'short_used': _to_khmer_digits(str(short_used)),
+        'short_remaining': _to_khmer_digits(str(short_remaining)),
+
+        # Category 3: Maternity Leave
+        'maternity_display': _to_khmer_digits(maternity_display),
+
+        # Category 4: Sick Leave
+        'sick_used_months': _to_khmer_digits(str(sick_used_months)) if sick_used_months > 0 else '០',
+        'sick_remaining_months': _to_khmer_digits(str(sick_remaining_months)),
+
+        # Category 5: Personal Leave
+        'personal_used_months': _to_khmer_digits(str(personal_used_months)) if personal_used_months > 0 else '០',
+        'personal_remaining_months': _to_khmer_digits(str(personal_remaining_months)),
+
+        # Category 6: Discipline
+        'disciplinary_str': disciplinary_str,
+
+        # Absence stats
+        'authorized_leave_days': _to_khmer_digits(str(authorized_leave_days)),
+        'unauthorized_absent_days': _to_khmer_digits(str(unauthorized_absent_days)),
+        'unpaid_leave_days': _to_khmer_digits(str(unpaid_leave_days)),
+        'other_leave_days': _to_khmer_digits(str(other_leave_days)) if other_leave_days else '០',
+
+        'lunar_year_text': _get_khmer_lunar_year_info(year),
+    }
+
+
+def _build_annual_bulletin_workbook(data):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "ព្រឹត្តិបត្រការងារ"
+
+    # Page Setup
+    ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.page_margins.left = 0.25
+    ws.page_margins.right = 0.25
+    ws.page_margins.top = 0.3
+    ws.page_margins.bottom = 0.3
+
+    # Column widths (14 columns A to N)
+    col_widths = {
+        'A': 8.5, 'B': 8.0, 'C': 9.5, 'D': 8.5, 'E': 8.0, 'F': 8.0,
+        'G': 8.0, 'H': 8.0, 'I': 10.0, 'J': 8.5, 'K': 8.5, 'L': 8.5,
+        'M': 8.5, 'N': 16.0
+    }
+    for col_letter, width in col_widths.items():
+        ws.column_dimensions[col_letter].width = width
+
+    font_org = Font(name='Khmer OS Muol Light', size=10, bold=False)
+    font_annex = Font(name='Khmer OS Battambang', size=9, bold=False)
+    font_title = Font(name='Khmer OS Muol Light', size=13, bold=False)
+    font_sub_info = Font(name='Khmer OS Battambang', size=10, bold=True)
+    font_th_large = Font(name='Khmer OS Muol Light', size=9.5, bold=False)
+    font_th_bold = Font(name='Khmer OS Battambang', size=8.5, bold=True)
+    font_th_normal = Font(name='Khmer OS Battambang', size=8, bold=False)
+    font_data = Font(name='Khmer OS Battambang', size=10, bold=False)
+    font_notes = Font(name='Khmer OS Battambang', size=9, bold=False)
+
+    thin_border = Border(
+        left=Side(style='thin', color='000000'),
+        right=Side(style='thin', color='000000'),
+        top=Side(style='thin', color='000000'),
+        bottom=Side(style='thin', color='000000')
+    )
+
+    align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    align_left = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    align_data_center = Alignment(horizontal='center', vertical='center')
+
+    # Top Header
+    # Row 2
+    ws['A2'] = "ក្រសួង ស្ថាប័ន៖ ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"
+    ws['A2'].font = font_org
+    ws.merge_cells('D2:J2')
+    ws['D2'] = "ឧបសម្ព័ន្ធទី៤នៃអនុក្រឹត្យលេខ ៥៨ អនក្រ.បក ចុះថ្ងៃទី ០១ ខែ កញ្ញា ឆ្នាំ២០១៦"
+    ws['D2'].font = font_annex
+    ws['D2'].alignment = align_center
+    ws.merge_cells('L2:N2')
+    ws['L2'] = "ព្រះរាជាណាចក្រកម្ពុជា"
+    ws['L2'].font = font_org
+    ws['L2'].alignment = align_center
+
+    # Row 3
+    ws['A3'] = f"អង្គភាព៖ {data['department_name']}"
+    ws['A3'].font = font_org
+    ws.merge_cells('L3:N3')
+    ws['L3'] = "ជាតិ សាសនា ព្រះមហាក្សត្រ"
+    ws['L3'].font = font_org
+    ws['L3'].alignment = align_center
+
+    # Row 5: Title
+    ws.merge_cells('A5:N5')
+    ws['A5'] = "ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំរបស់មន្ត្រីរាជការស៊ីវិល"
+    ws['A5'].font = font_title
+    ws['A5'].alignment = align_center
+    ws.row_dimensions[5].height = 28
+
+    # Row 7: Officer Info
+    o = data['officer']
+    g_kh = data['gender_kh']
+    ws.merge_cells('A7:N7')
+    ws['A7'] = f"ឈ្មោះ៖  {o.full_name_kh}        ភេទ៖  {g_kh}        ថ្ងៃខែឆ្នាំកំណើត៖  {_format_d1_dob(o.dob)}        អត្តលេខ៖  {o.officer_id_number or '-'}"
+    ws['A7'].font = font_sub_info
+    ws['A7'].alignment = align_left
+    ws.row_dimensions[7].height = 22
+
+    # Table Headers: Rows 9, 10, 11, 12
+    ws.merge_cells('A9:M9')
+    ws['A9'] = "ប្រភេទនៃច្បាប់ឈប់សម្រាករបស់មន្ត្រីរាជការស៊ីវិល"
+    ws['A9'].font = font_th_large
+    ws['A9'].alignment = align_center
+
+    ws.merge_cells('N9:N12')
+    ws['N9'] = "ទណ្ឌកម្មវិន័យ\nនិងវិធានការ"
+    ws['N9'].font = font_th_bold
+    ws['N9'].alignment = align_center
+
+    # Row 10: The 5 Categories
+    ws.merge_cells('A10:F10')
+    ws['A10'] = "១. ច្បាប់ឈប់ប្រចាំឆ្នាំ\nមានចំនួន ១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ"
+    ws['A10'].font = font_th_bold
+    ws['A10'].alignment = align_center
+
+    ws.merge_cells('G10:H10')
+    ws['G10'] = "២. ច្បាប់ឈប់រយៈពេលខ្លី\nមានចំនួន ១៥ថ្ងៃ\nនៃថ្ងៃធ្វើការ/១ឆ្នាំ"
+    ws['G10'].font = font_th_bold
+    ws['G10'].alignment = align_center
+
+    ws.merge_cells('I10:I12')
+    ws['I10'] = "៣. ច្បាប់\nឈប់សម្រាក\nលំហែ\nមាតុភាព\nមានចំនួន\n៣ខែ"
+    ws['I10'].font = font_th_bold
+    ws['I10'].alignment = align_center
+
+    ws.merge_cells('J10:K10')
+    ws['J10'] = "៤. ច្បាប់ឈប់សម្រាកព្យាបាលជំងឺ\nមានចំនួន ១២ខែ\n(សម្រាប់មួយជីវិតជាមន្ត្រី)"
+    ws['J10'].font = font_th_bold
+    ws['J10'].alignment = align_center
+
+    ws.merge_cells('L10:M10')
+    ws['L10'] = "៥. ច្បាប់ឈប់សម្រាកដោយមាន\nកិច្ចផ្ទាល់ខ្លួន (៣ខែ)\n(សម្រាប់មួយជីវិតជាមន្ត្រី)"
+    ws['L10'].font = font_th_bold
+    ws['L10'].alignment = align_center
+
+    # Row 11: Sub-headers
+    ws.merge_cells('A11:A12')
+    ws['A11'] = "ចំនួនថ្ងៃដែល\nមិនទាន់បាន\nអនុវត្តក្នុង\nឆ្នាំចាស់"
+    ws['A11'].font = font_th_normal
+    ws['A11'].alignment = align_center
+
+    ws.merge_cells('B11:C11')
+    ws['B11'] = "ចំនួនថ្ងៃដែលត្រូវផ្លាស់ប្តូរ"
+    ws['B11'].font = font_th_normal
+    ws['B11'].alignment = align_center
+
+    ws.merge_cells('D11:D12')
+    ws['D11'] = "ចំនួនថ្ងៃឈប់\nសម្រាកប្រចាំ\nឆ្នាំបន្ថែម"
+    ws['D11'].font = font_th_normal
+    ws['D11'].alignment = align_center
+
+    ws.merge_cells('E11:E12')
+    ws['E11'] = "ចំនួនថ្ងៃដែល\nបានអនុវត្ត"
+    ws['E11'].font = font_th_normal
+    ws['E11'].alignment = align_center
+
+    ws.merge_cells('F11:F12')
+    ws['F11'] = "ចំនួនថ្ងៃដែល\nមិនទាន់បាន\nអនុវត្ត"
+    ws['F11'].font = font_th_normal
+    ws['F11'].alignment = align_center
+
+    ws.merge_cells('G11:G12')
+    ws['G11'] = "ចំនួនថ្ងៃដែល\nបានអនុវត្ត"
+    ws['G11'].font = font_th_normal
+    ws['G11'].alignment = align_center
+
+    ws.merge_cells('H11:H12')
+    ws['H11'] = "ចំនួនថ្ងៃដែល\nមិនទាន់បាន\nអនុវត្ត"
+    ws['H11'].font = font_th_normal
+    ws['H11'].alignment = align_center
+
+    ws.merge_cells('J11:J12')
+    ws['J11'] = "ចំនួនខែដែល\nបានអនុវត្ត"
+    ws['J11'].font = font_th_normal
+    ws['J11'].alignment = align_center
+
+    ws.merge_cells('K11:K12')
+    ws['K11'] = "ចំនួនខែដែល\nមិនទាន់បាន\nអនុវត្ត"
+    ws['K11'].font = font_th_normal
+    ws['K11'].alignment = align_center
+
+    ws.merge_cells('L11:L12')
+    ws['L11'] = "ចំនួនខែដែល\nបានអនុវត្ត"
+    ws['L11'].font = font_th_normal
+    ws['L11'].alignment = align_center
+
+    ws.merge_cells('M11:M12')
+    ws['M11'] = "ចំនួនខែដែល\nមិនទាន់បាន\nអនុវត្ត"
+    ws['M11'].font = font_th_normal
+    ws['M11'].alignment = align_center
+
+    # Row 12: B12 & C12
+    ws['B12'] = "ផ្ទាល់"
+    ws['B12'].font = font_th_normal
+    ws['B12'].alignment = align_center
+
+    ws['C12'] = "ឈប់សម្រាក\nផ្សេងៗ"
+    ws['C12'].font = font_th_normal
+    ws['C12'].alignment = align_center
+
+    # Apply thin border to all cells in rows 9-12
+    for r in range(9, 13):
+        for c in range(1, 15):
+            ws.cell(r, c).border = thin_border
+
+    # Row 13: Data Row
+    data_row = [
+        data['annual_prev_unused'],
+        data['annual_transfer_direct'],
+        data['annual_transfer_other'],
+        data['annual_additional'],
+        data['annual_used'],
+        data['annual_remaining'],
+        data['short_used'],
+        data['short_remaining'],
+        data['maternity_display'],
+        data['sick_used_months'],
+        data['sick_remaining_months'],
+        data['personal_used_months'],
+        data['personal_remaining_months'],
+        data['disciplinary_str'],
+    ]
+    ws.row_dimensions[13].height = 26
+    for c_idx, val in enumerate(data_row, 1):
+        cell = ws.cell(13, c_idx)
+        cell.value = val
+        cell.font = font_data
+        cell.alignment = align_data_center
+        cell.border = thin_border
+
+    # Rows 14 to 16: Extra lined rows matching official printed ledger
+    for r_idx in range(14, 17):
+        ws.row_dimensions[r_idx].height = 24
+        for c_idx in range(1, 15):
+            cell = ws.cell(r_idx, c_idx)
+            cell.value = ""
+            cell.border = thin_border
+
+    # Footer Notes & Signatures
+    ws['A18'] = f"- អវត្តមានមានច្បាប់អនុញ្ញាតប្រចាំឆ្នាំ ៖  {data['authorized_leave_days']} ថ្ងៃ"
+    ws['A18'].font = font_notes
+    ws['A19'] = f"- អវត្តមានគ្មានច្បាប់អនុញ្ញាតប្រចាំឆ្នាំ ៖  {data['unauthorized_absent_days']} ថ្ងៃ"
+    ws['A19'].font = font_notes
+    ws['A20'] = f"- ទំនេរគ្មានបៀវត្ស ៖  {data['unpaid_leave_days']} ថ្ងៃ"
+    ws['A20'].font = font_notes
+    ws['A21'] = f"- ផ្សេងៗ ៖  {data['other_leave_days']} ថ្ងៃ"
+    ws['A21'].font = font_notes
+
+    disc_text = (
+        "សម្គាល់ ៖ ទណ្ឌកម្មវិន័យអនុវត្តចំពោះអវត្តមានគ្មានច្បាប់អនុញ្ញាត៖\n"
+        "១- មន្ត្រីរាជការស៊ីវិល\n"
+        "  - ការស្តីបន្ទោស\n"
+        "  - ការស្តីបន្ទោសដោយមានចំណារក្នុងសំណុំលិខិតផ្ទាល់ខ្លួន\n"
+        "  - ការផ្លាស់ដោយបង្ខំតាមវិធានការវិន័យឬការលុបឈ្មោះចេញពីតារាងដំឡើងថ្នាក់ឬឋានន្តរស័ក្តិ\n"
+        "  - ការលុបឈ្មោះចេញពីក្របខណ្ឌ។\n"
+        "២- មន្ត្រីជាប់កិច្ចសន្យា\n"
+        "  - ណែនាំលើកទី១\n"
+        "  - ណែនាំចុងក្រោយ\n"
+        "  - លុបឈ្មោះពីអង្គភាពសាមី។"
+    )
+    ws.merge_cells('A23:G29')
+    ws['A23'] = disc_text
+    ws['A23'].font = Font(name='Khmer OS Battambang', size=8.5)
+    ws['A23'].alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+
+    ws.merge_cells('I18:N18')
+    ws['I18'] = f"ធ្វើនៅប៉ៃលិន, ថ្ងៃទី....... ខែ............... ឆ្នាំ{data['year_kh']}"
+    ws['I18'].font = font_notes
+    ws['I18'].alignment = align_center
+
+    ws.merge_cells('I19:N19')
+    ws['I19'] = "ប្រធានអង្គភាព"
+    ws['I19'].font = Font(name='Khmer OS Muol Light', size=10)
+    ws['I19'].alignment = align_center
+
+    leave_desc = (
+        "ប្រភេទច្បាប់ឈប់សម្រាករបស់មន្ត្រីរាជការស៊ីវិលរួមមាន៖\n"
+        "១- ច្បាប់ឈប់ប្រចាំឆ្នាំ មានរយៈពេល១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ\n"
+        "២- ច្បាប់ឈប់រយៈពេលខ្លី មានរយៈពេល១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ\n"
+        "៣- ច្បាប់ឈប់សម្រាកលំហែមាតុភាព មានរយៈពេល៣ខែ\n"
+        "៤- ច្បាប់ឈប់សម្រាកព្យាបាលជំងឺ មានរយៈពេល១២ខែក្នុងអំឡុងពេលបម្រើការងារជាមន្ត្រី\n"
+        "៥- ច្បាប់ឈប់សម្រាកដោយមានកិច្ចការផ្ទាល់ខ្លួន មានរយៈពេល៣ខែក្នុងអំឡុងពេលបម្រើការងារជាមន្ត្រី"
+    )
+    ws.merge_cells('I23:N29')
+    ws['I23'] = leave_desc
+    ws['I23'].font = Font(name='Khmer OS Battambang', size=8.5)
+    ws['I23'].alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+
+    return wb
+
+
+@login_required
+def attendance_annual_bulletin(request):
+    """
+    Annual Civil Servant Work / Leave Bulletin (ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំរបស់មន្ត្រីរាជការស៊ីវិល)
+    Annex 4 of Sub-Decree 58 ANKr.BK dated 01 September 2016.
+    """
+    profile = getattr(request.user, 'profile', None)
+    user_dept = profile.department if profile else None
+    is_admin = _is_admin_user(request.user)
+
+    now = timezone.now()
+    year_str = request.GET.get('year', str(now.year)).strip()
+    try:
+        year = int(to_arabic_digits(year_str))
+    except Exception:
+        year = now.year
+
+    # Department handling with strict isolation
+    if is_admin:
+        dept_id = request.GET.get('department', '').strip()
+        if dept_id:
+            dept = Department.objects.filter(id=dept_id, is_active=True).first()
+        else:
+            dept = user_dept or Department.objects.filter(is_active=True).order_by('order_index').first()
+        departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh')
+    else:
+        dept = user_dept
+        dept_id = str(dept.id) if dept else ''
+        departments = Department.objects.filter(id=dept.id) if dept else []
+
+    # Get civil servants for selector
+    if is_admin and not dept_id:
+        officers_qs = CivilServantProfile.objects.exclude(
+            officer_status__in=['DISMISSED', 'RETIRED', 'TRANSFERRED_OUT']
+        ).select_related('department').order_by('department__order_index', 'khmer_last_name', 'khmer_first_name')
+    elif dept:
+        officers_qs = CivilServantProfile.objects.filter(
+            department=dept
+        ).exclude(
+            officer_status__in=['DISMISSED', 'RETIRED', 'TRANSFERRED_OUT']
+        ).order_by('khmer_last_name', 'khmer_first_name')
+    else:
+        officers_qs = CivilServantProfile.objects.none()
+
+    officer_id = request.GET.get('officer_id', '').strip()
+    selected_officer = None
+    if officer_id:
+        selected_officer = officers_qs.filter(id=officer_id).first()
+    if not selected_officer and officers_qs.exists():
+        selected_officer = officers_qs.first()
+
+    bulletin_data = None
+    if selected_officer:
+        bulletin_data = _build_annual_bulletin_data(selected_officer, year)
+
+    years = list(range(now.year + 1, 2019, -1))
+
+    context = {
+        'dept': dept,
+        'departments': departments,
+        'officers': officers_qs,
+        'selected_officer': selected_officer,
+        'selected_officer_id': selected_officer.id if selected_officer else None,
+        'year': year,
+        'years': years,
+        'bulletin': bulletin_data,
+        'is_admin': is_admin,
+    }
+    return render(request, 'dms/attendance_annual_bulletin.html', context)
+
+
+@login_required
+def attendance_annual_bulletin_print(request):
+    """
+    Official A4 Landscape Printable / PDF Preview format for Annual Work Bulletin
+    (ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំរបស់មន្ត្រីរាជការស៊ីវិល - ឧបសម្ព័ន្ធទី៤ នៃអនុក្រឹត្យលេខ ៥៨).
+    """
+    officer_id = request.GET.get('officer_id', '').strip()
+    if not officer_id:
+        messages.warning(request, '⚠️ សូមជ្រើសរើសមន្ត្រីរាជការដើម្បីបោះពុម្ពព្រឹត្តិបត្រការងារ!')
+        return redirect('attendance_annual_bulletin')
+
+    officer = get_object_or_404(CivilServantProfile, pk=officer_id)
+
+    profile = getattr(request.user, 'profile', None)
+    is_admin = _is_admin_user(request.user)
+    if not is_admin and profile and profile.department:
+        if officer.department_id != profile.department_id:
+            messages.error(request, '⚠️ លោកអ្នកគ្មានសិទ្ធិមើលព្រឹត្តិបត្រការងាររបស់មន្ត្រីនៃអង្គភាពផ្សេងឡើយ!')
+            return redirect('attendance_annual_bulletin')
+
+    now = timezone.now()
+    year_str = request.GET.get('year', str(now.year)).strip()
+    try:
+        year = int(to_arabic_digits(year_str))
+    except Exception:
+        year = now.year
+
+    bulletin_data = _build_annual_bulletin_data(officer, year)
+
+    context = {
+        'bulletin': bulletin_data,
+        'officer': officer,
+        'year': year,
+        'query_params': request.GET.urlencode(),
+    }
+    return render(request, 'dms/attendance_annual_bulletin_print.html', context)
+
+
+@login_required
+def attendance_annual_bulletin_export_excel(request):
+    """
+    Exports the official Annual Civil Servant Work Bulletin to Excel (.xlsx)
+    matching Sub-Decree 58 Annex 4 layout.
+    """
+    officer_id = request.GET.get('officer_id', '').strip()
+    if not officer_id:
+        messages.warning(request, '⚠️ សូមជ្រើសរើសមន្ត្រីរាជការដើម្បីទាញយកព្រឹត្តិបត្រការងារ!')
+        return redirect('attendance_annual_bulletin')
+
+    officer = get_object_or_404(CivilServantProfile, pk=officer_id)
+
+    profile = getattr(request.user, 'profile', None)
+    is_admin = _is_admin_user(request.user)
+    if not is_admin and profile and profile.department:
+        if officer.department_id != profile.department_id:
+            messages.error(request, '⚠️ លោកអ្នកគ្មានសិទ្ធិទាញយកព្រឹត្តិបត្រការងាររបស់មន្ត្រីនៃអង្គភាពផ្សេងឡើយ!')
+            return redirect('attendance_annual_bulletin')
+
+    now = timezone.now()
+    year_str = request.GET.get('year', str(now.year)).strip()
+    try:
+        year = int(to_arabic_digits(year_str))
+    except Exception:
+        year = now.year
+
+    bulletin_data = _build_annual_bulletin_data(officer, year)
+    wb = _build_annual_bulletin_workbook(bulletin_data)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    safe_name = officer.full_name_latin or officer.officer_id_number or str(officer.id)
+    response['Content-Disposition'] = f'attachment; filename="annual_bulletin_{safe_name}_{year}.xlsx"'
+    wb.save(response)
+    return response
 
 
 # ==============================================================================

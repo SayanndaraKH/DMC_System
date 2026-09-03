@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំរបស់មន្ត្រីរាជការស៊ីវិល - {{ officer.full_name_kh }} (ឆ្នាំ {{ year }})</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Khmer OS Battambang', 'Kantumruy Pro', sans-serif;
+            font-size: 9pt;
+            color: #000;
+            background: #cbd5e1;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* Floating Toolbar */
+        .preview-toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 9999;
+            background: #1e293b;
+            color: #fff;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+        .preview-toolbar-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .preview-toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .btn-print {
+            background: #2563eb;
+            color: #fff;
+        }
+        .btn-print:hover {
+            background: #1d4ed8;
+            color: #fff;
+        }
+        .btn-excel {
+            background: #16a34a;
+            color: #fff;
+        }
+        .btn-excel:hover {
+            background: #15803d;
+            color: #fff;
+        }
+        .btn-back {
+            background: #475569;
+            color: #fff;
+        }
+        .btn-back:hover {
+            background: #334155;
+            color: #fff;
+        }
+
+        /* Distinct Multi-Page A4 Container */
+        .pages-container {
+            padding: 30px 0 50px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .a4-page {
+            width: 297mm;
+            min-height: 210mm;
+            background: #ffffff;
+            padding: 10mm 12mm 8mm 12mm;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .page-content-wrapper {
+            flex-grow: 1;
+        }
+
+        .muol-font {
+            font-family: 'Khmer OS Muol Light', 'Moul', serif;
+        }
+
+        /* Top Header */
+        .doc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .doc-title-block {
+            text-align: center;
+            margin: 6px 0 10px 0;
+        }
+        .doc-title-block h2 {
+            margin: 0;
+            font-size: 13pt;
+            color: #000;
+        }
+
+        /* Officer Info Bar */
+        .officer-info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9pt;
+            margin-bottom: 8px;
+            padding: 0 2px;
+        }
+
+        /* 14-column Table */
+        table.bulletin-print-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+            text-align: center;
+            table-layout: fixed;
+            margin-bottom: 8px;
+        }
+        table.bulletin-print-table th, table.bulletin-print-table td {
+            border: 1px solid #000;
+            padding: 2px 1px;
+            vertical-align: middle;
+            box-sizing: border-box;
+        }
+        table.bulletin-print-table thead th {
+            background-color: #fff;
+            font-family: 'Khmer OS Battambang', sans-serif;
+            font-size: 7.5pt;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+        table.bulletin-print-table tbody td {
+            height: 26px;
+            font-size: 8.5pt;
+        }
+
+        /* Bottom Section */
+        .bottom-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            font-size: 8pt;
+            line-height: 1.6;
+            margin-top: 6px;
+        }
+        .bottom-left {
+            width: 48%;
+        }
+        .bottom-right {
+            width: 50%;
+        }
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+            body {
+                background: #fff;
+                padding: 0;
+                margin: 0;
+            }
+            .preview-toolbar {
+                display: none !important;
+            }
+            .pages-container {
+                padding: 0;
+                gap: 0;
+                display: block;
+            }
+            .a4-page {
+                width: 297mm !important;
+                height: 210mm !important;
+                min-height: 210mm !important;
+                max-height: 210mm !important;
+                margin: 0 !important;
+                padding: 10mm 10mm 8mm 10mm !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+            table.bulletin-print-table th {
+                background-color: #fff !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating Action Toolbar -->
+    <div class="preview-toolbar">
+        <div class="preview-toolbar-title">
+            <span style="background: rgba(234, 179, 8, 0.2); color: #facc15; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">ឧបសម្ព័ន្ធទី៤</span>
+            <span>ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំរបស់មន្ត្រីរាជការស៊ីវិល - A4 Landscape Preview</span>
+            <span style="font-size: 12px; color: #94a3b8;">| {{ officer.full_name_kh }} (ឆ្នាំ {{ year }})</span>
+        </div>
+        <div class="preview-toolbar-actions">
+            <a href="{% url 'attendance_annual_bulletin' %}?department={{ officer.department_id|default:'' }}&officer_id={{ officer.id }}&year={{ year }}" class="btn-action btn-back">
+                <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
+            </a>
+            <a href="{% url 'attendance_annual_bulletin_export_excel' %}?officer_id={{ officer.id }}&year={{ year }}" class="btn-action btn-excel">
+                <i class="fa-solid fa-file-excel"></i> ទាញយកជា EXCEL
+            </a>
+            <button onclick="window.print()" class="btn-action btn-print">
+                <i class="fa-solid fa-print"></i> បោះពុម្ព / រក្សាទុកជា PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Multi-Page Distinct A4 Landscape Container -->
+    <div class="pages-container">
+        <div class="a4-page">
+            <div class="page-content-wrapper">
+                
+                <!-- Full Header (Matching Annex 4 Sub-Decree 58 Image) -->
+                <div class="doc-header">
+                    <div style="text-align: left; width: 33%;">
+                        <div>ក្រសួង ស្ថាប័ន៖ <strong>ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</strong></div>
+                        <div style="margin-top: 2px;">អង្គភាព៖ <strong>{{ bulletin.department_name }}</strong></div>
+                    </div>
+                    <div style="text-align: center; width: 34%;">
+                        <div style="font-size: 8.5pt;">ឧបសម្ព័ន្ធទី៤នៃអនុក្រឹត្យលេខ <strong>៥៨</strong> អនក្រ.បក ចុះថ្ងៃទី <strong>០១</strong> ខែ <strong>កញ្ញា</strong> ឆ្នាំ<strong>២០១៦</strong></div>
+                    </div>
+                    <div style="text-align: center; width: 33%;">
+                        <div class="muol-font" style="font-size: 9.5pt;">ព្រះរាជាណាចក្រកម្ពុជា</div>
+                        <div class="muol-font" style="font-size: 9.5pt; margin-top: 2px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                        <div style="font-size: 9px; letter-spacing: 2px;">***</div>
+                    </div>
+                </div>
+
+                <!-- Document Title -->
+                <div class="doc-title-block">
+                    <h2 class="muol-font">ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំរបស់មន្ត្រីរាជការស៊ីវិល</h2>
+                </div>
+
+                <!-- Officer Info Row -->
+                <div class="officer-info-bar">
+                    <div>ឈ្មោះ៖ <strong>{{ officer.full_name_kh }}</strong></div>
+                    <div>ភេទ៖ <strong>{{ bulletin.gender_kh }}</strong></div>
+                    <div>ថ្ងៃខែឆ្នាំកំណើត៖ <strong>{{ officer.dob|default:"-" }}</strong></div>
+                    <div>អត្តលេខ៖ <strong>{{ officer.officer_id_number|default:"-" }}</strong></div>
+                </div>
+
+                <!-- 14-column Table strictly matching Annex 4 Sub-decree 58 -->
+                <table class="bulletin-print-table">
+                    <thead>
+                        <tr>
+                            <th colspan="13" class="muol-font" style="font-size: 8.5pt; padding: 3px 0;">ប្រភេទនៃច្បាប់ឈប់សម្រាករបស់មន្ត្រីរាជការស៊ីវិល</th>
+                            <th rowspan="4" style="width: 13%;">ទណ្ឌកម្មវិន័យ<br>និងវិធានការ</th>
+                        </tr>
+                        <tr>
+                            <th colspan="6" style="width: 38%;">១. ច្បាប់ឈប់ប្រចាំឆ្នាំ<br>មានចំនួន ១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ</th>
+                            <th colspan="2" style="width: 14%;">២. ច្បាប់ឈប់រយៈពេលខ្លី<br>មានចំនួន ១៥ថ្ងៃ<br>នៃថ្ងៃធ្វើការ/១ឆ្នាំ</th>
+                            <th rowspan="3" style="width: 8%;">៣. ច្បាប់<br>ឈប់សម្រាក<br>លំហែ<br>មាតុភាព<br>មានចំនួន<br>៣ខែ</th>
+                            <th colspan="2" style="width: 14%;">៤. ច្បាប់ឈប់សម្រាកព្យាបាលជំងឺ<br>មានចំនួន ១២ខែ<br>(សម្រាប់មួយជីវិតជាមន្ត្រី)</th>
+                            <th colspan="2" style="width: 13%;">៥. ច្បាប់ឈប់សម្រាកដោយមាន<br>កិច្ចផ្ទាល់ខ្លួន (៣ខែ)<br>(សម្រាប់មួយជីវិតជាមន្ត្រី)</th>
+                        </tr>
+                        <tr>
+                            <th rowspan="2" style="width: 7%;">ចំនួនថ្ងៃដែល<br>មិនទាន់បាន<br>អនុវត្តក្នុង<br>ឆ្នាំចាស់</th>
+                            <th colspan="2" style="width: 12%;">ចំនួនថ្ងៃដែលត្រូវផ្លាស់ប្តូរ</th>
+                            <th rowspan="2" style="width: 6.5%;">ចំនួនថ្ងៃឈប់<br>សម្រាកប្រចាំ<br>ឆ្នាំបន្ថែម</th>
+                            <th rowspan="2" style="width: 6.5%;">ចំនួនថ្ងៃដែល<br>បានអនុវត្ត</th>
+                            <th rowspan="2" style="width: 6%;">ចំនួនថ្ងៃដែល<br>មិនទាន់បាន<br>អនុវត្ត</th>
+                            <th rowspan="2" style="width: 7%;">ចំនួនថ្ងៃដែល<br>បានអនុវត្ត</th>
+                            <th rowspan="2" style="width: 7%;">ចំនួនថ្ងៃដែល<br>មិនទាន់បាន<br>អនុវត្ត</th>
+                            <th rowspan="2" style="width: 7%;">ចំនួនខែដែល<br>បានអនុវត្ត</th>
+                            <th rowspan="2" style="width: 7%;">ចំនួនខែដែល<br>មិនទាន់បាន<br>អនុវត្ត</th>
+                            <th rowspan="2" style="width: 6.5%;">ចំនួនខែដែល<br>បានអនុវត្ត</th>
+                            <th rowspan="2" style="width: 6.5%;">ចំនួនខែដែល<br>មិនទាន់បាន<br>អនុវត្ត</th>
+                        </tr>
+                        <tr>
+                            <th style="width: 5.5%;">ផ្ទាល់</th>
+                            <th style="width: 6.5%;">ឈប់សម្រាក<br>ផ្សេងៗ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Year Data Row -->
+                        <tr style="font-weight: bold;">
+                            <td>{{ bulletin.annual_prev_unused }}</td>
+                            <td>{{ bulletin.annual_transfer_direct }}</td>
+                            <td>{{ bulletin.annual_transfer_other }}</td>
+                            <td>{{ bulletin.annual_additional }}</td>
+                            <td>{{ bulletin.annual_used }}</td>
+                            <td>{{ bulletin.annual_remaining }}</td>
+                            <td>{{ bulletin.short_used }}</td>
+                            <td>{{ bulletin.short_remaining }}</td>
+                            <td>{{ bulletin.maternity_display }}</td>
+                            <td>{{ bulletin.sick_used_months }}</td>
+                            <td>{{ bulletin.sick_remaining_months }}</td>
+                            <td>{{ bulletin.personal_used_months }}</td>
+                            <td>{{ bulletin.personal_remaining_months }}</td>
+                            <td>{{ bulletin.disciplinary_str }}</td>
+                        </tr>
+                        <!-- Blank Rows matching paper template -->
+                        <tr>
+                            <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Bottom Section: Absences, Sanctions, Notes & Signatures -->
+                <div class="bottom-section">
+                    <!-- Left: Absence Counters & Disciplinary note -->
+                    <div class="bottom-left">
+                        <div>- អវត្តមានមានច្បាប់អនុញ្ញាតប្រចាំឆ្នាំ ៖ <strong>{{ bulletin.authorized_leave_days }} ថ្ងៃ</strong></div>
+                        <div>- អវត្តមានគ្មានច្បាប់អនុញ្ញាតប្រចាំឆ្នាំ ៖ <strong>{{ bulletin.unauthorized_absent_days }} ថ្ងៃ</strong></div>
+                        <div>- ទំនេរគ្មានបៀវត្ស ៖ <strong>{{ bulletin.unpaid_leave_days }} ថ្ងៃ</strong></div>
+                        <div>- ផ្សេងៗ ៖ <strong>{{ bulletin.other_leave_days }} ថ្ងៃ</strong></div>
+                        
+                        <div style="margin-top: 6px; font-size: 7.5pt; line-height: 1.45;">
+                            <strong>សម្គាល់ ៖ ទណ្ឌកម្មវិន័យអនុវត្តចំពោះអវត្តមានគ្មានច្បាប់អនុញ្ញាត៖</strong>
+                            <div><strong>១- មន្ត្រីរាជការស៊ីវិល</strong></div>
+                            <div style="padding-left: 10px;">- ការស្តីបន្ទោស</div>
+                            <div style="padding-left: 10px;">- ការស្តីបន្ទោសដោយមានចំណារក្នុងសំណុំលិខិតផ្ទាល់ខ្លួន</div>
+                            <div style="padding-left: 10px;">- ការផ្លាស់ដោយបង្ខំតាមវិធានការវិន័យឬការលុបឈ្មោះចេញពីតារាងដំឡើងថ្នាក់ឬឋានន្តរស័ក្តិ</div>
+                            <div style="padding-left: 10px;">- ការលុបឈ្មោះចេញពីក្របខណ្ឌ។</div>
+                            <div><strong>២- មន្ត្រីជាប់កិច្ចសន្យា</strong></div>
+                            <div style="padding-left: 10px;">- ណែនាំលើកទី១</div>
+                            <div style="padding-left: 10px;">- ណែនាំចុងក្រោយ</div>
+                            <div style="padding-left: 10px;">- លុបឈ្មោះពីអង្គភាពសាមី។</div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Date, Signature & Types of leave description -->
+                    <div class="bottom-right">
+                        <div style="text-align: center; margin-bottom: 8px;">
+                            <div>ធ្វើនៅប៉ៃលិន, ថ្ងៃទី....... ខែ............... ឆ្នាំ{{ bulletin.year_kh }}</div>
+                            <div class="muol-font" style="font-size: 9pt; margin-top: 3px;">ប្រធានអង្គភាព</div>
+                            <div style="height: 52px;"></div>
+                        </div>
+
+                        <div style="font-size: 7.5pt; line-height: 1.5; border-top: 1px dashed #999; padding-top: 5px;">
+                            <strong>ប្រភេទច្បាប់ឈប់សម្រាករបស់មន្ត្រីរាជការស៊ីវិលរួមមាន៖</strong>
+                            <div>១- ច្បាប់ឈប់ប្រចាំឆ្នាំ មានរយៈពេល១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ</div>
+                            <div>២- ច្បាប់ឈប់រយៈពេលខ្លី មានរយៈពេល១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ</div>
+                            <div>៣- ច្បាប់ឈប់សម្រាកលំហែមាតុភាព មានរយៈពេល៣ខែ</div>
+                            <div>៤- ច្បាប់ឈប់សម្រាកព្យាបាលជំងឺ មានរយៈពេល១២ខែក្នុងអំឡុងពេលបម្រើការងារជាមន្ត្រី</div>
+                            <div>៥- ច្បាប់ឈប់សម្រាកដោយមានកិច្ចការផ្ទាល់ខ្លួន មានរយៈពេល៣ខែក្នុងអំឡុងពេលបម្រើការងារជាមន្ត្រី</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

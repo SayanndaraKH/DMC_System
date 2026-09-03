@@ -136,6 +136,7 @@ urlpatterns = [
     path('contract-officers/<int:pk>/delete/', views.contract_officer_delete, name='contract_officer_delete'),
     path('contract-officers/bulk-delete/', views.contract_officer_bulk_delete, name='contract_officer_bulk_delete'),
     path('contract-officers/export/excel/', views.contract_officer_export_excel, name='contract_officer_export_excel'),
+    path('contract-officers/preview/d1/', views.contract_officer_preview_pdf_d1, name='contract_officer_preview_pdf_d1'),
     path('contract-officers/<int:pk>/attachments/add/', views.contract_officer_attachment_add, name='contract_officer_attachment_add'),
     path('contract-officers/<int:pk>/attachments/<int:attachment_id>/delete/', views.contract_officer_attachment_delete, name='contract_officer_attachment_delete'),
     path('contract-officers/<int:pk>/attachments/<int:attachment_id>/view/', views.contract_officer_attachment_view, name='contract_officer_attachment_view'),
@@ -183,6 +184,9 @@ urlpatterns = [
     path('attendance/monthly/print/', views.attendance_monthly_print, name='attendance_monthly_print'),
     path('attendance/monthly/export/excel/', views.attendance_monthly_export_excel, name='attendance_monthly_export_excel'),
     path('attendance/reports/', views.attendance_summary_report, name='attendance_summary_report'),
+    path('attendance/annual-bulletin/', views.attendance_annual_bulletin, name='attendance_annual_bulletin'),
+    path('attendance/annual-bulletin/print/', views.attendance_annual_bulletin_print, name='attendance_annual_bulletin_print'),
+    path('attendance/annual-bulletin/export/excel/', views.attendance_annual_bulletin_export_excel, name='attendance_annual_bulletin_export_excel'),
     path('attendance/api/quick-toggle/', views.api_attendance_quick_toggle, name='api_attendance_quick_toggle'),
 
     # 👑 Leadership Attendance Module (វត្តមានថ្នាក់ដឹកនាំ ខណ្ឌ និងប្រធានការិយាល័យ - Attendend B)

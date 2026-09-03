@@ -1,0 +1,298 @@
+{% extends 'dms/base.html' %}
+
+{% block title %}ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំ - គ្រប់គ្រងវត្តមាន{% endblock %}
+
+{% block content %}
+<style>
+.bulletin-paper-card {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 28px 32px;
+    font-family: 'Khmer OS Battambang', 'Kantumruy Pro', sans-serif;
+    color: #111;
+    overflow-x: auto;
+}
+.bulletin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+    text-align: center;
+    table-layout: fixed;
+}
+.bulletin-table th, .bulletin-table td {
+    border: 1px solid #222;
+    padding: 3px 2px;
+    vertical-align: middle;
+    box-sizing: border-box;
+}
+.bulletin-table thead th {
+    background-color: #f8fafc;
+    font-weight: bold;
+    font-size: 8pt;
+    line-height: 1.35;
+}
+.bulletin-table tbody td {
+    height: 28px;
+    font-size: 8.5pt;
+}
+.muol-font {
+    font-family: 'Khmer OS Muol Light', 'Moul', serif;
+}
+</style>
+
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Header Banner -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-warning bg-opacity-10 text-warning px-2.5 py-1 rounded-pill fw-bold fs-9">
+                    <i class="fa-solid fa-file-contract me-1"></i> អនុក្រឹត្យលេខ ៥៨
+                </span>
+                <span class="text-muted fs-8">ម៉ូឌុលគ្រប់គ្រងវត្តមាន</span>
+            </div>
+            <h4 class="fw-bold m-0 text-dark">ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំរបស់មន្ត្រីរាជការស៊ីវិល</h4>
+            <p class="text-muted small m-0">តាមដាន និងគ្រប់គ្រងច្បាប់ឈប់សម្រាកប្រចាំឆ្នាំ (ឧបសម្ព័ន្ធទី៤ នៃអនុក្រឹត្យលេខ ៥៨ អនក្រ.បក)</p>
+        </div>
+        {% if selected_officer %}
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{% url 'attendance_annual_bulletin_print' %}?officer_id={{ selected_officer.id }}&year={{ year }}" target="_blank" class="btn btn-outline-primary rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold">
+                <i class="fa-solid fa-print me-1.5 text-danger"></i> មើលជា PDF / បោះពុម្ព
+            </a>
+            <a href="{% url 'attendance_annual_bulletin_export_excel' %}?officer_id={{ selected_officer.id }}&year={{ year }}" class="btn btn-success rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold">
+                <i class="fa-solid fa-file-excel me-1.5"></i> ទាញយកជា EXCEL
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Filter Bar Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-body p-3">
+            <form method="GET" action="{% url 'attendance_annual_bulletin' %}" class="row g-2.5 align-items-center">
+                <!-- Year Selector -->
+                <div class="col-12 col-sm-6 col-md-2">
+                    <label class="form-label text-muted fs-8 fw-bold mb-1">
+                        <i class="fa-solid fa-calendar me-1 text-primary"></i> ឆ្នាំ
+                    </label>
+                    <select name="year" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>ឆ្នាំ {{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Department Selector -->
+                <div class="col-12 col-sm-6 col-md-4">
+                    <label class="form-label text-muted fs-8 fw-bold mb-1">
+                        <i class="fa-solid fa-building-user me-1 text-info"></i> ការិយាល័យ / អង្គភាព
+                    </label>
+                    <select name="department" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()" {% if not is_admin %}disabled{% endif %}>
+                        {% if is_admin %}
+                        <option value="">-- ការិយាល័យ / អង្គភាពទាំងអស់ --</option>
+                        {% endif %}
+                        {% for d in departments %}
+                        <option value="{{ d.id }}" {% if dept and dept.id == d.id %}selected{% endif %}>{{ d.name_kh }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if not is_admin %}
+                    <input type="hidden" name="department" value="{{ dept.id|default:'' }}">
+                    {% endif %}
+                </div>
+
+                <!-- Officer Selector -->
+                <div class="col-12 col-sm-8 col-md-4">
+                    <label class="form-label text-muted fs-8 fw-bold mb-1">
+                        <i class="fa-solid fa-user me-1 text-success"></i> មន្ត្រីរាជការ
+                    </label>
+                    <select name="officer_id" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                        {% if not officers.exists %}
+                        <option value="">-- ពុំមានទិន្នន័យមន្ត្រីរាជការ --</option>
+                        {% endif %}
+                        {% for off in officers %}
+                        <option value="{{ off.id }}" {% if selected_officer_id == off.id %}selected{% endif %}>
+                            {{ off.full_name_kh }} ({{ off.officer_id_number|default:"-" }}) - {{ off.current_position_title|default:"មន្ត្រី" }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Submit / Refresh -->
+                <div class="col-12 col-sm-4 col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill w-100 py-1.5 fw-bold">
+                        <i class="fa-solid fa-magnifying-glass me-1"></i> បង្ហាញ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_officer and bulletin %}
+    <!-- Document Paper Preview -->
+    <div class="bulletin-paper-card border">
+        <!-- Top Header -->
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+                <div class="muol-font text-dark fs-8">ក្រសួង ស្ថាប័ន៖ ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
+                <div class="muol-font text-dark fs-8 mt-1">អង្គភាព៖ {{ bulletin.department_name }}</div>
+            </div>
+            <div class="text-center">
+                <span class="badge bg-light text-dark border px-3 py-1 fs-8 fw-normal">
+                    ឧបសម្ព័ន្ធទី៤នៃអនុក្រឹត្យលេខ ៥៨ អនក្រ.បក ចុះថ្ងៃទី ០១ ខែ កញ្ញា ឆ្នាំ២០១៦
+                </span>
+            </div>
+            <div class="text-center">
+                <div class="muol-font text-dark fs-8">ព្រះរាជាណាចក្រកម្ពុជា</div>
+                <div class="muol-font text-dark fs-8 mt-1">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                <div class="fs-9 letter-spacing-2 mt-0.5">***</div>
+            </div>
+        </div>
+
+        <!-- Document Title -->
+        <div class="text-center my-3">
+            <h4 class="muol-font text-dark m-0" style="font-size: 13pt;">ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំរបស់មន្ត្រីរាជការស៊ីវិល</h4>
+        </div>
+
+        <!-- Officer Info Line -->
+        <div class="p-2.5 mb-3 rounded-2 bg-light bg-opacity-50 border">
+            <div class="row g-2 fs-8">
+                <div class="col-12 col-md-3">
+                    <strong>ឈ្មោះ៖</strong> <span class="fw-bold text-primary">{{ selected_officer.full_name_kh }}</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <strong>ភេទ៖</strong> <span>{{ bulletin.gender_kh }}</span>
+                </div>
+                <div class="col-6 col-md-4">
+                    <strong>ថ្ងៃខែឆ្នាំកំណើត៖</strong> <span>{{ selected_officer.dob|default:"-" }}</span>
+                </div>
+                <div class="col-12 col-md-3">
+                    <strong>អត្តលេខ៖</strong> <span class="fw-bold">{{ selected_officer.officer_id_number|default:"-" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 14-column Table strictly matching Annex 4 Sub-decree 58 -->
+        <div class="table-responsive">
+            <table class="bulletin-table">
+                <thead>
+                    <tr>
+                        <th colspan="13" class="muol-font py-1.5" style="font-size: 9pt;">ប្រភេទនៃច្បាប់ឈប់សម្រាករបស់មន្ត្រីរាជការស៊ីវិល</th>
+                        <th rowspan="4" style="width: 13%;" class="align-middle">ទណ្ឌកម្មវិន័យ<br>និងវិធានការ</th>
+                    </tr>
+                    <tr>
+                        <th colspan="6" style="width: 38%;">១. ច្បាប់ឈប់ប្រចាំឆ្នាំ<br>មានចំនួន ១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ</th>
+                        <th colspan="2" style="width: 14%;">២. ច្បាប់ឈប់រយៈពេលខ្លី<br>មានចំនួន ១៥ថ្ងៃ<br>នៃថ្ងៃធ្វើការ/១ឆ្នាំ</th>
+                        <th rowspan="3" style="width: 8%;" class="align-middle">៣. ច្បាប់<br>ឈប់សម្រាក<br>លំហែ<br>មាតុភាព<br>មានចំនួន<br>៣ខែ</th>
+                        <th colspan="2" style="width: 14%;">៤. ច្បាប់ឈប់សម្រាកព្យាបាលជំងឺ<br>មានចំនួន ១២ខែ<br>(សម្រាប់មួយជីវិតជាមន្ត្រី)</th>
+                        <th colspan="2" style="width: 13%;">៥. ច្បាប់ឈប់សម្រាកដោយមាន<br>កិច្ចផ្ទាល់ខ្លួន (៣ខែ)<br>(សម្រាប់មួយជីវិតជាមន្ត្រី)</th>
+                    </tr>
+                    <tr>
+                        <th rowspan="2" style="width: 7%;" class="align-middle">ចំនួនថ្ងៃដែល<br>មិនទាន់បាន<br>អនុវត្តក្នុង<br>ឆ្នាំចាស់</th>
+                        <th colspan="2" style="width: 12%;">ចំនួនថ្ងៃដែលត្រូវផ្លាស់ប្តូរ</th>
+                        <th rowspan="2" style="width: 6.5%;" class="align-middle">ចំនួនថ្ងៃឈប់<br>សម្រាកប្រចាំ<br>ឆ្នាំបន្ថែម</th>
+                        <th rowspan="2" style="width: 6.5%;" class="align-middle">ចំនួនថ្ងៃដែល<br>បានអនុវត្ត</th>
+                        <th rowspan="2" style="width: 6%;" class="align-middle">ចំនួនថ្ងៃដែល<br>មិនទាន់បាន<br>អនុវត្ត</th>
+                        <th rowspan="2" style="width: 7%;" class="align-middle">ចំនួនថ្ងៃដែល<br>បានអនុវត្ត</th>
+                        <th rowspan="2" style="width: 7%;" class="align-middle">ចំនួនថ្ងៃដែល<br>មិនទាន់បាន<br>អនុវត្ត</th>
+                        <th rowspan="2" style="width: 7%;" class="align-middle">ចំនួនខែដែល<br>បានអនុវត្ត</th>
+                        <th rowspan="2" style="width: 7%;" class="align-middle">ចំនួនខែដែល<br>មិនទាន់បាន<br>អនុវត្ត</th>
+                        <th rowspan="2" style="width: 6.5%;" class="align-middle">ចំនួនខែដែល<br>បានអនុវត្ត</th>
+                        <th rowspan="2" style="width: 6.5%;" class="align-middle">ចំនួនខែដែល<br>មិនទាន់បាន<br>អនុវត្ត</th>
+                    </tr>
+                    <tr>
+                        <th style="width: 5.5%;">ផ្ទាល់</th>
+                        <th style="width: 6.5%;">ឈប់សម្រាក<br>ផ្សេងៗ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Year Record Row -->
+                    <tr class="fw-semibold">
+                        <td>{{ bulletin.annual_prev_unused }}</td>
+                        <td>{{ bulletin.annual_transfer_direct }}</td>
+                        <td>{{ bulletin.annual_transfer_other }}</td>
+                        <td>{{ bulletin.annual_additional }}</td>
+                        <td class="text-primary">{{ bulletin.annual_used }}</td>
+                        <td class="text-success">{{ bulletin.annual_remaining }}</td>
+                        <td class="text-primary">{{ bulletin.short_used }}</td>
+                        <td class="text-success">{{ bulletin.short_remaining }}</td>
+                        <td>{{ bulletin.maternity_display }}</td>
+                        <td class="text-primary">{{ bulletin.sick_used_months }}</td>
+                        <td class="text-success">{{ bulletin.sick_remaining_months }}</td>
+                        <td class="text-primary">{{ bulletin.personal_used_months }}</td>
+                        <td class="text-success">{{ bulletin.personal_remaining_months }}</td>
+                        <td class="text-center">{{ bulletin.disciplinary_str }}</td>
+                    </tr>
+                    <!-- Extra blank rows matching official ledger -->
+                    <tr>
+                        <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Bottom Notes & Signatures Section -->
+        <div class="row g-3 mt-3 pt-2">
+            <!-- Left: Absence Summary & Sanctions note -->
+            <div class="col-12 col-md-6 fs-8" style="line-height: 1.75;">
+                <div class="mb-2">
+                    <div>- អវត្តមានមានច្បាប់អនុញ្ញាតប្រចាំឆ្នាំ ៖ <strong>{{ bulletin.authorized_leave_days }} ថ្ងៃ</strong></div>
+                    <div>- អវត្តមានគ្មានច្បាប់អនុញ្ញាតប្រចាំឆ្នាំ ៖ <strong class="text-danger">{{ bulletin.unauthorized_absent_days }} ថ្ងៃ</strong></div>
+                    <div>- ទំនេរគ្មានបៀវត្ស ៖ <strong>{{ bulletin.unpaid_leave_days }} ថ្ងៃ</strong></div>
+                    <div>- ផ្សេងៗ ៖ <strong>{{ bulletin.other_leave_days }} ថ្ងៃ</strong></div>
+                </div>
+                <div class="p-2.5 rounded-2 border bg-light bg-opacity-50">
+                    <strong class="text-dark">សម្គាល់ ៖ ទណ្ឌកម្មវិន័យអនុវត្តចំពោះអវត្តមានគ្មានច្បាប់អនុញ្ញាត៖</strong>
+                    <div class="mt-1">
+                        <strong>១- មន្ត្រីរាជការស៊ីវិល</strong>
+                        <ul class="mb-1 ps-3">
+                            <li>ការស្តីបន្ទោស</li>
+                            <li>ការស្តីបន្ទោសដោយមានចំណារក្នុងសំណុំលិខិតផ្ទាល់ខ្លួន</li>
+                            <li>ការផ្លាស់ដោយបង្ខំតាមវិធានការវិន័យឬការលុបឈ្មោះចេញពីតារាងដំឡើងថ្នាក់ឬឋានន្តរស័ក្តិ</li>
+                            <li>ការលុបឈ្មោះចេញពីក្របខណ្ឌ។</li>
+                        </ul>
+                        <strong>២- មន្ត្រីជាប់កិច្ចសន្យា</strong>
+                        <ul class="mb-0 ps-3">
+                            <li>ណែនាំលើកទី១</li>
+                            <li>ណែនាំចុងក្រោយ</li>
+                            <li>លុបឈ្មោះពីអង្គភាពសាមី។</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Date, Approval, and Leave descriptions note -->
+            <div class="col-12 col-md-6 text-center fs-8">
+                <div class="mb-4">
+                    <div>{{ bulletin.lunar_year_text }}</div>
+                    <div>ប៉ៃលិន, ថ្ងៃទី....... ខែ............... ឆ្នាំ{{ bulletin.year_kh }}</div>
+                    <div class="muol-font text-dark fs-8 mt-1">ប្រធានអង្គភាព</div>
+                    <div style="height: 60px;"></div>
+                </div>
+                <div class="p-2.5 rounded-2 border bg-light bg-opacity-50 text-start">
+                    <strong class="text-dark">ប្រភេទច្បាប់ឈប់សម្រាករបស់មន្ត្រីរាជការស៊ីវិលរួមមាន៖</strong>
+                    <ol class="mb-0 ps-3 mt-1">
+                        <li>ច្បាប់ឈប់ប្រចាំឆ្នាំ មានរយៈពេល១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ</li>
+                        <li>ច្បាប់ឈប់រយៈពេលខ្លី មានរយៈពេល១៥ថ្ងៃនៃថ្ងៃធ្វើការ/១ឆ្នាំ</li>
+                        <li>ច្បាប់ឈប់សម្រាកលំហែមាតុភាព មានរយៈពេល៣ខែ</li>
+                        <li>ច្បាប់ឈប់សម្រាកព្យាបាលជំងឺ មានរយៈពេល១២ខែក្នុងអំឡុងពេលបម្រើការងារជាមន្ត្រី</li>
+                        <li>ច្បាប់ឈប់សម្រាកដោយមានកិច្ចការផ្ទាល់ខ្លួន មានរយៈពេល៣ខែក្នុងអំឡុងពេលបម្រើការងារជាមន្ត្រី</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+        <i class="fa-solid fa-file-circle-question fs-1 text-muted mb-3"></i>
+        <h5 class="text-muted fw-bold">ពុំមានទិន្នន័យមន្ត្រីរាជការសម្រាប់បង្ហាញឡើយ</h5>
+        <p class="text-muted fs-8">សូមជ្រើសរើសការិយាល័យ ឬមន្ត្រីរាជការដើម្បីពិនិត្យមើលព្រឹត្តិបត្រការងារប្រចាំឆ្នាំ។</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

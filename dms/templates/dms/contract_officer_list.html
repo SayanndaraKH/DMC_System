@@ -63,9 +63,35 @@
                 <i class="fa-solid fa-key text-warning me-1"></i> Gemini Key
             </button>
             {% endif %}
-            <a href="{% url 'contract_officer_export_excel' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-success rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-semibold">
-                <i class="fa-solid fa-file-excel me-1.5 text-success"></i> ទាញយក Excel
-            </a>
+            <div class="dropdown">
+                <button class="btn btn-outline-success rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold dropdown-toggle d-inline-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-file-excel text-success"></i> ទាញយក / មើល PDF
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-3 fs-7" style="min-width: 360px;">
+                    <li class="dropdown-header text-uppercase fw-bold text-muted fs-9 px-2 py-1">
+                        <i class="fa-solid fa-file-lines me-1 text-primary"></i> ជ្រើសរើសទម្រង់របាយការណ៍ (D-1)
+                    </li>
+
+                    <!-- D-1 Option Card -->
+                    <li class="mb-1">
+                        <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
+                            <div class="d-flex align-items-center gap-2 mb-1.5">
+                                <span class="badge bg-success rounded-pill px-2 py-0.5 fs-9 fw-bold">D-1</span>
+                                <strong class="text-dark fs-8">ទម្រង់បញ្ជីបច្ចុប្បន្នភាពមន្ត្រីជាប់កិច្ចសន្យា</strong>
+                            </div>
+                            <p class="text-muted fs-9 mb-2">បញ្ជីបច្ចុប្បន្នភាពមន្ត្រីជាប់កិច្ចសន្យា (៩ ជួរឈរ តាមទម្រង់ស្តង់ដារ D-1)</p>
+                            <div class="d-flex gap-1.5">
+                                <a href="{% url 'contract_officer_preview_pdf_d1' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
+                                    <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
+                                </a>
+                                <a href="{% url 'contract_officer_export_excel' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-sm btn-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
+                                    <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
             <a href="{% url 'contract_officer_create' %}" class="btn btn-primary rounded-pill px-4 py-2 fs-7 shadow-sm fw-bold">
                 <i class="fa-solid fa-user-plus me-1.5"></i> បញ្ចូលមន្ត្រីកិច្ចសន្យាថ្មី
             </a>

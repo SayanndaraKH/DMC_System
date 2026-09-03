@@ -260,6 +260,10 @@
                                 <i class="fa-solid fa-table-cells text-info"></i>
                                 <span>តារាងវត្តមានប្រចាំខែ</span>
                             </a>
+                            <a href="{% url 'attendance_annual_bulletin' %}" class="submenu-link {% if 'annual_bulletin' in request.resolver_match.url_name %}active{% endif %}">
+                                <i class="fa-solid fa-file-contract text-warning"></i>
+                                <span>ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំ</span>
+                            </a>
                             {% if user.is_superuser or user.username|upper == 'ADMIN' %}
                             <a href="{% url 'attendance_summary_report' %}" class="submenu-link {% if request.resolver_match.url_name == 'attendance_summary_report' %}active{% endif %}">
                                 <i class="fa-solid fa-chart-pie text-warning"></i>
