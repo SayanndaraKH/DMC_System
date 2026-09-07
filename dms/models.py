@@ -748,7 +748,7 @@ class CivilServantProfile(models.Model):
         deg = self.computed_highest_degree
         labels = {
             'DOCTORATE': 'បណ្ឌិត',
-            'MASTER': 'បរិញ្ញាបត្រជាន់ខ្ពស់ (អនុបណ្ឌិត)',
+            'MASTER': 'បរិញ្ញាបត្រជាន់ខ្ពស់',
             'BACHELOR': 'បរិញ្ញាប័ត្រ',
             'ASSOCIATE': 'បរិញ្ញាប័ត្ររង',
             'HIGHSCHOOL': 'មធ្យមសិក្សាទុតិយភូមិ',

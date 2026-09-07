@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Kantumruy+Pro:wght@400;600;700&family=Siemreap&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
     <style>
         @font-face {
             font-family: 'Khmer OS Battambang';
@@ -272,7 +273,10 @@
 
     <!-- Floating Top Print Action Bar -->
     <div class="print-actions-bar">
-        <button onclick="window.print()" class="btn-print">
+        <button type="button" class="btn-print" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">
+            <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
+        </button>
+        <button class="btn-print" onclick="window.print()">
             <i class="fa-solid fa-print"></i> បោះពុម្ព (Print)
         </button>
         <button onclick="window.close()" class="btn-close-win">
@@ -284,12 +288,12 @@
     <div class="a4-page">
         <!-- Header & Photo Area -->
         <div class="header-layout">
-            <div class="header-center">
+            <div class="header-center header-draggable sig-draggable">
                 <div class="royal-header">
                     <div class="royal-title">ព្រះរាជាណាចក្រកម្ពុជា</div>
                     <div class="royal-sub">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
                     <div style="text-align: center; margin-top: 3px; margin-bottom: 6px;">
-                        <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 13px; width: auto; display: inline-block;">
+                        <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 24px; width: auto; display: inline-block;">
                     </div>
                 </div>
 
@@ -400,7 +404,7 @@
 
         <!-- Signature Section -->
         <div class="signature-section">
-            <div class="signature-box">
+            <div class="signature-box sig-draggable">
                 <div class="signature-location">
                     ធ្វើនៅប៉ៃលិន, ថ្ងៃទី<span style="display:inline-block; width: 35px; border-bottom: 1px dotted #000;"></span> ខែ<span style="display:inline-block; width: 45px; border-bottom: 1px dotted #000;"></span> ឆ្នាំ២០២<span style="display:inline-block; width: 20px; border-bottom: 1px dotted #000;"></span>
                 </div>
@@ -414,5 +418,6 @@
         </div>
     </div>
 
+    <script src="/static/dms/js/sig_draggable.js"></script>
 </body>
 </html>

@@ -1,0 +1,100 @@
+/**
+ * DCM System - Draggable Signatures Stylesheet
+ * Allows free positioning of signature blocks on PDF/Print views with 100% print fidelity.
+ */
+
+.sig-draggable,
+.header-draggable,
+.doc-header-left.header-draggable,
+.doc-header-right.header-draggable {
+    cursor: grab !important;
+    position: relative;
+    touch-action: none;
+    transition: outline 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Subtle hover hint on screen (never shown on print) */
+@media screen {
+    .sig-draggable:hover,
+    .header-draggable:hover {
+        outline: 1.5px dashed rgba(59, 130, 246, 0.65) !important;
+        outline-offset: 4px;
+        border-radius: 4px;
+        background-color: rgba(59, 130, 246, 0.025);
+    }
+
+    .sig-draggable.sig-dragging,
+    .header-draggable.sig-dragging {
+        cursor: grabbing !important;
+        outline: 1.5px dashed #2563eb !important;
+        outline-offset: 4px;
+        border-radius: 4px;
+        background-color: rgba(37, 99, 235, 0.05);
+        z-index: 1000 !important;
+        user-select: none !important;
+    }
+
+    .sig-draggable.sig-resetting,
+    .header-draggable.sig-resetting {
+        transition: left 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    }
+
+    /* Small badge or button styles in preview toolbar */
+    .btn-reset-sig {
+        background: rgba(255, 255, 255, 0.12);
+        color: #f8fafc;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        white-space: nowrap;
+        font-family: 'Khmer OS Battambang', 'Battambang', sans-serif;
+        transition: all 0.2s ease;
+    }
+
+    .btn-reset-sig:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.5);
+        color: #fca5a5;
+    }
+
+    .sig-drag-hint {
+        font-size: 11.5px;
+        color: #94a3b8;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 8px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        white-space: nowrap;
+        user-select: none;
+    }
+}
+
+/* STRICT PRINT RULES: Remove all outlines, borders, hints, or effects */
+@media print {
+    .sig-draggable,
+    .header-draggable,
+    .sig-draggable:hover,
+    .header-draggable:hover,
+    .sig-draggable.sig-dragging,
+    .header-draggable.sig-dragging {
+        cursor: default !important;
+        outline: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    .sig-drag-hint,
+    .btn-reset-sig {
+        display: none !important;
+    }
+}

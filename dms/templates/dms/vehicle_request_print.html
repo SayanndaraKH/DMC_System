@@ -6,6 +6,7 @@
     <title>លិខិតសុំប្រើប្រាស់មធ្យោបាយ {{ req.applicant_name }} - {{ req.request_number }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Moul+Light&family=Siemreap&family=Kantumruy+Pro:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
     <style>
         @page {
             size: A4 portrait;
@@ -229,7 +230,10 @@
                 <div style="font-size: 12px; color: #94a3b8;">{{ req.applicant_name }} &bull; {{ req.request_number|default:"N/A" }}</div>
             </div>
         </div>
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button type="button" class="btn-print" style="background:#0284c7;" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">
+                <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
+            </button>
             <button onclick="window.print()" class="btn-print">
                 <i class="fa-solid fa-print"></i> បោះពុម្ពឯកសារ (Print)
             </button>
@@ -247,16 +251,20 @@
         <!-- Header -->
         <table class="header-table">
             <tr>
-                <td style="width: 45%; text-align: center;">
-                    <div class="muol-text" style="font-size: 12.5pt; line-height: 1.4;">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
-                    <div class="muol-text" style="font-size: 11.5pt; line-height: 1.4;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</div>
-                    <div style="font-size: 12pt; margin-top: 4px;">លេខ: <span style="font-family: Arial, sans-serif; font-weight: bold;">{{ req.request_number|default:"........../.......... មករន.បល" }}</span></div>
+                <td style="width: 45%; text-align: center; vertical-align: top;">
+                    <div class="header-draggable sig-draggable">
+                        <div class="muol-text" style="font-size: 12.5pt; line-height: 1.4;">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
+                        <div class="muol-text" style="font-size: 11.5pt; line-height: 1.4;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</div>
+                        <div style="font-size: 12pt; margin-top: 4px;">លេខ: <span style="font-family: Arial, sans-serif; font-weight: bold;">{{ req.request_number|default:"........../.......... មករន.បល" }}</span></div>
+                    </div>
                 </td>
                 <td style="width: 10%;"></td>
-                <td style="width: 45%; text-align: center;">
-                    <div class="muol-text" style="font-size: 13pt;">ព្រះរាជាណាចក្រកម្ពុជា</div>
-                    <div class="muol-text" style="font-size: 12pt; margin-top: 2px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
-                    <div style="font-size: 14pt; letter-spacing: 2px; margin-top: -4px;">---***---</div>
+                <td style="width: 45%; text-align: center; vertical-align: top;">
+                    <div class="header-draggable sig-draggable">
+                        <div class="muol-text" style="font-size: 13pt;">ព្រះរាជាណាចក្រកម្ពុជា</div>
+                        <div class="muol-text" style="font-size: 12pt; margin-top: 2px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                        <div style="font-size: 14pt; letter-spacing: 2px; margin-top: -4px;">---***---</div>
+                    </div>
                 </td>
             </tr>
         </table>
@@ -311,23 +319,27 @@
         <table class="sig-table">
             <tr>
                 <td>
-                    <div style="font-size: 11.5pt;">ថ្ងៃ..................ខែ.........ឆ្នាំ...........ព.ស ២៥......</div>
-                    <div style="font-size: 11.5pt; margin-top: 2px;">ប៉ៃលិន, ថ្ងៃទី.......ខែ.........ឆ្នាំ២០២...</div>
-                    <div class="muol-text" style="font-size: 12pt; margin-top: 4px;">បានឃើញ និងឯកភាព</div>
-                    <div class="muol-text" style="font-size: 12pt; margin-top: 2px;">ប្រធានមន្ទីរ</div>
-                    <div class="sig-space"></div>
-                    {% if req.approved_by %}
-                    <div class="muol-text" style="font-size: 11.5pt;">{{ req.approved_by.get_full_name|default:req.approved_by.username }}</div>
-                    {% else %}
-                    <div style="font-size: 11pt; color: #888;">( ហត្ថលេខា និងត្រា )</div>
-                    {% endif %}
+                    <div class="sig-draggable">
+                        <div style="font-size: 11.5pt;">ថ្ងៃ..................ខែ.........ឆ្នាំ...........ព.ស ២៥......</div>
+                        <div style="font-size: 11.5pt; margin-top: 2px;">ប៉ៃលិន, ថ្ងៃទី.......ខែ.........ឆ្នាំ២០២...</div>
+                        <div class="muol-text" style="font-size: 12pt; margin-top: 4px;">បានឃើញ និងឯកភាព</div>
+                        <div class="muol-text" style="font-size: 12pt; margin-top: 2px;">ប្រធានមន្ទីរ</div>
+                        <div class="sig-space"></div>
+                        {% if req.approved_by %}
+                        <div class="muol-text" style="font-size: 11.5pt;">{{ req.approved_by.get_full_name|default:req.approved_by.username }}</div>
+                        {% else %}
+                        <div style="font-size: 11pt; color: #888;">( ហត្ថលេខា និងត្រា )</div>
+                        {% endif %}
+                    </div>
                 </td>
                 <td>
-                    <div style="font-size: 11.5pt;">ថ្ងៃ..................ខែ.........ឆ្នាំ...........ព.ស ២៥......</div>
-                    <div style="font-size: 11.5pt; margin-top: 2px;">ប៉ៃលិន, ថ្ងៃទី.......ខែ.........ឆ្នាំ២០២...</div>
-                    <div class="muol-text" style="font-size: 12pt; margin-top: 4px;">ហត្ថលេខា និងឈ្មោះអ្នកស្នើសុំ</div>
-                    <div class="sig-space"></div>
-                    <div class="muol-text" style="font-size: 11.5pt;">{{ req.applicant_name }}</div>
+                    <div class="sig-draggable">
+                        <div style="font-size: 11.5pt;">ថ្ងៃ..................ខែ.........ឆ្នាំ...........ព.ស ២៥......</div>
+                        <div style="font-size: 11.5pt; margin-top: 2px;">ប៉ៃលិន, ថ្ងៃទី.......ខែ.........ឆ្នាំ២០២...</div>
+                        <div class="muol-text" style="font-size: 12pt; margin-top: 4px;">ហត្ថលេខា និងឈ្មោះអ្នកស្នើសុំ</div>
+                        <div class="sig-space"></div>
+                        <div class="muol-text" style="font-size: 11.5pt;">{{ req.applicant_name }}</div>
+                    </div>
                 </td>
             </tr>
         </table>
@@ -429,28 +441,34 @@
         <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #000; page-break-inside: avoid;">
             <tr>
                 <td style="width: 38%; border: 1px solid #000; text-align: center; vertical-align: top; padding: 8px;">
-                    <div class="muol-text" style="font-size: 11.5pt;">បានឃើញនិងឯកភាព</div>
-                    <div class="muol-text" style="font-size: 11.5pt; margin-top: 2px;">ប្រធានអង្គភាព</div>
-                    <div style="height: 70px;"></div>
-                    {% if req.approved_by %}
-                    <div class="muol-text" style="font-size: 11pt;">{{ req.approved_by.get_full_name|default:req.approved_by.username }}</div>
-                    {% else %}
-                    <div style="font-size: 10pt; color: #888;">( ហត្ថលេខា និងត្រា )</div>
-                    {% endif %}
+                    <div class="sig-draggable">
+                        <div class="muol-text" style="font-size: 11.5pt;">បានឃើញនិងឯកភាព</div>
+                        <div class="muol-text" style="font-size: 11.5pt; margin-top: 2px;">ប្រធានអង្គភាព</div>
+                        <div style="height: 70px;"></div>
+                        {% if req.approved_by %}
+                        <div class="muol-text" style="font-size: 11pt;">{{ req.approved_by.get_full_name|default:req.approved_by.username }}</div>
+                        {% else %}
+                        <div style="font-size: 10pt; color: #888;">( ហត្ថលេខា និងត្រា )</div>
+                        {% endif %}
+                    </div>
                 </td>
                 <td style="width: 62%; border: 1px solid #000; vertical-align: top; padding: 0;">
                     <table style="width: 100%; border-collapse: collapse; height: 100%;">
                         <tr>
                             <td style="width: 50%; border-right: 1px solid #000; text-align: center; padding: 8px; vertical-align: top;">
-                                <div class="muol-text" style="font-size: 11.5pt;">អ្នកទទួល</div>
-                                <div style="height: 70px;"></div>
-                                <div class="muol-text" style="font-size: 11pt;">{{ req.recipient_name|default:req.applicant_name }}</div>
+                                <div class="sig-draggable">
+                                    <div class="muol-text" style="font-size: 11.5pt;">អ្នកទទួល</div>
+                                    <div style="height: 70px;"></div>
+                                    <div class="muol-text" style="font-size: 11pt;">{{ req.recipient_name|default:req.applicant_name }}</div>
+                                </div>
                             </td>
                             <td style="width: 50%; text-align: center; padding: 8px; vertical-align: top;">
-                                <div class="muol-text" style="font-size: 11.5pt;">អ្នកប្រគល់</div>
-                                <div class="muol-text" style="font-size: 10.5pt; margin-top: 1px;">មន្ត្រីទទួលបន្ទុក</div>
-                                <div style="height: 52px;"></div>
-                                <div class="muol-text" style="font-size: 11pt;">{{ req.handover_officer_name|default:"........................" }}</div>
+                                <div class="sig-draggable">
+                                    <div class="muol-text" style="font-size: 11.5pt;">អ្នកប្រគល់</div>
+                                    <div class="muol-text" style="font-size: 10.5pt; margin-top: 1px;">មន្ត្រីទទួលបន្ទុក</div>
+                                    <div style="height: 52px;"></div>
+                                    <div class="muol-text" style="font-size: 11pt;">{{ req.handover_officer_name|default:"........................" }}</div>
+                                </div>
                             </td>
                         </tr>
                     </table>
@@ -460,5 +478,6 @@
     </div>
     {% endif %}
 
+    <script src="/static/dms/js/sig_draggable.js"></script>
 </body>
 </html>

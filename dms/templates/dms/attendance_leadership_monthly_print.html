@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Siemreap&family=Moul&family=Battambang:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
 
     <style>
         @page {
@@ -118,7 +119,10 @@
         <div>
             <strong>ទម្រង់បោះពុម្ពវត្តមានថ្នាក់ដឹកនាំប្រចាំខែ</strong> (ខែ {{ month_name_kh }} ឆ្នាំ {{ year }})
         </div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn btn-outline btn-reset-sig" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">
+                <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
+            </button>
             <button onclick="window.print()" class="btn btn-primary">
                 <i class="fa-solid fa-print"></i> បោះពុម្ពឯកសារ (Print)
             </button>
@@ -131,16 +135,16 @@
     <div style="padding: 10px 15px;">
         <!-- Header Section -->
         <div class="header-section">
-            <div>
+            <div class="header-left header-draggable sig-draggable">
                 <div style="font-size: 9pt;">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
                 <div style="font-size: 9pt;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ ខេត្ត...</div>
                 <div style="font-weight: bold; font-size: 9.5pt; margin-top: 2px;">ការិយាល័យរដ្ឋបាល-បុគ្គលិក</div>
             </div>
-            <div class="kingdom-header">
+            <div class="kingdom-header header-draggable sig-draggable">
                 <div class="moul-font">ព្រះរាជាណាចក្រកម្ពុជា</div>
                 <div class="moul-font">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
                 <div style="text-align: center; margin-top: 2px;">
-                    <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 12px; width: auto; display: inline-block;">
+                    <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 22px; width: auto; display: inline-block;">
                 </div>
             </div>
         </div>
@@ -236,7 +240,7 @@
 
         <!-- Signature Section -->
         <div class="signatures-section">
-            <div class="sig-box">
+            <div class="sig-box sig-draggable">
                 <div>ថ្ងៃ....................ខែ.............ឆ្នាំ២០២៦</div>
                 <div style="font-weight: bold; margin-top: 4px;">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
                 <div style="font-size: 8.5pt;">ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក</div>
@@ -245,5 +249,6 @@
             </div>
         </div>
     </div>
+    <script src="/static/dms/js/sig_draggable.js"></script>
 </body>
 </html>

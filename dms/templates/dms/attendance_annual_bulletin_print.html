@@ -6,6 +6,7 @@
     <title>ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំរបស់មន្ត្រីរាជការស៊ីវិល - {{ officer.full_name_kh }} (ឆ្នាំ {{ year }})</title>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
     <style>
         * {
             box-sizing: border-box;
@@ -239,6 +240,9 @@
             <a href="{% url 'attendance_annual_bulletin_export_excel' %}?officer_id={{ officer.id }}&year={{ year }}" class="btn-action btn-excel">
                 <i class="fa-solid fa-file-excel"></i> ទាញយកជា EXCEL
             </a>
+            <button type="button" class="btn-action btn-reset-sig" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">
+                <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
+            </button>
             <button onclick="window.print()" class="btn-action btn-print">
                 <i class="fa-solid fa-print"></i> បោះពុម្ព / រក្សាទុកជា PDF
             </button>
@@ -252,18 +256,18 @@
                 
                 <!-- Full Header (Matching Annex 4 Sub-Decree 58 Image) -->
                 <div class="doc-header">
-                    <div style="text-align: left; width: 33%;">
+                    <div class="header-draggable sig-draggable" style="text-align: left; width: 33%;">
                         <div>ក្រសួង ស្ថាប័ន៖ <strong>ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</strong></div>
                         <div style="margin-top: 2px;">អង្គភាព៖ <strong>{{ bulletin.department_name }}</strong></div>
                     </div>
-                    <div style="text-align: center; width: 34%;">
+                    <div class="header-draggable sig-draggable" style="text-align: center; width: 34%;">
                         <div style="font-size: 8.5pt;">ឧបសម្ព័ន្ធទី៤នៃអនុក្រឹត្យលេខ <strong>៥៨</strong> អនក្រ.បក ចុះថ្ងៃទី <strong>០១</strong> ខែ <strong>កញ្ញា</strong> ឆ្នាំ<strong>២០១៦</strong></div>
                     </div>
-                    <div style="text-align: center; width: 33%;">
+                    <div class="header-draggable sig-draggable" style="text-align: center; width: 33%;">
                         <div class="muol-font" style="font-size: 9.5pt;">ព្រះរាជាណាចក្រកម្ពុជា</div>
                         <div class="muol-font" style="font-size: 9.5pt; margin-top: 2px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
                         <div style="text-align: center; margin-top: 2px;">
-                            <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 12px; width: auto; display: inline-block;">
+                            <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 22px; width: auto; display: inline-block;">
                         </div>
                     </div>
                 </div>
@@ -369,7 +373,7 @@
 
                     <!-- Right: Date, Signature & Types of leave description -->
                     <div class="bottom-right">
-                        <div style="text-align: center; margin-bottom: 8px;">
+                        <div style="text-align: center; margin-bottom: 8px;" class="sig-draggable">
                             <div>ធ្វើនៅប៉ៃលិន, ថ្ងៃទី....... ខែ............... ឆ្នាំ{{ bulletin.year_kh }}</div>
                             <div class="muol-font" style="font-size: 9pt; margin-top: 3px;">ប្រធានអង្គភាព</div>
                             <div style="height: 52px;"></div>
@@ -390,5 +394,6 @@
         </div>
     </div>
 
+    <script src="/static/dms/js/sig_draggable.js"></script>
 </body>
 </html>

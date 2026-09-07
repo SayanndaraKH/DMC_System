@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.5, user-scalable=yes">
     <title>តារាងបូកសរុបសំណើសុំគ្រឿងឥស្សរិយយស និងមេដាយការងារ ឆ្នាំ {{ req_year }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
     <style>
         * {
             box-sizing: border-box;
@@ -108,7 +110,7 @@
                 display: none !important;
             }
             @page {
-                size: landscape A4;
+                size: A4 landscape;
                 margin: 1cm;
             }
             table.formal-table th {
@@ -124,23 +126,24 @@
 <div class="page">
 
     <div class="no-print">
+        <button type="button" class="btn-print" style="background:#0284c7; margin-right: 10px;" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">🔄 កំណត់ទីតាំងដើម</button>
         <button class="btn-print" onclick="window.print()">🖨️ បោះពុម្ពឯកសារនេះ (Print Document)</button>
         <button class="btn-print" style="background:#64748b; margin-left: 10px;" onclick="window.close()">✖️ បិទ</button>
     </div>
 
     <!-- Official Khmer Header -->
     <div class="header-section">
-        <div class="header-left">
+        <div class="header-left header-draggable sig-draggable">
             <div class="muol-font" style="font-size: 10pt;">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
             <div class="muol-font" style="font-size: 10pt;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ ខេត្តប៉ៃលិន</div>
             <div style="font-size: 9.5pt;">លេខ៖ .................... ម.ក.រ.ន/ប.ល</div>
         </div>
 
-        <div class="header-right">
+        <div class="header-right header-draggable sig-draggable">
             <div class="muol-font" style="font-size: 11.5pt;">ព្រះរាជាណាចក្រកម្ពុជា</div>
             <div class="muol-font" style="font-size: 11pt;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
             <div style="text-align: center; margin-top: 2px;">
-                <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 12px; width: auto; display: inline-block;">
+                <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 24px; width: auto; display: inline-block;">
             </div>
         </div>
     </div>
@@ -199,20 +202,20 @@
 
     <!-- Formal Signatures Section -->
     <div class="signatures-section">
-        <div class="signature-box">
+        <div class="signature-box sig-draggable">
             <div class="muol-font">អ្នករៀបចំតារាង</div>
             <div class="signature-space"></div>
             <div class="fw-bold">........................................</div>
         </div>
 
-        <div class="signature-box">
+        <div class="signature-box sig-draggable">
             <div>បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
             <div class="muol-font">ប្រធានការិយាល័យរដ្ឋបាល និងបុគ្គលិក</div>
             <div class="signature-space"></div>
             <div class="fw-bold">........................................</div>
         </div>
 
-        <div class="signature-box">
+        <div class="signature-box sig-draggable">
             <div>ថ្ងៃ................... ខែ............. ឆ្នាំ២០២៦</div>
             <div class="muol-font">ប្រធានមន្ទីរ</div>
             <div class="signature-space"></div>
@@ -222,5 +225,6 @@
 
 </div>
 
+<script src="/static/dms/js/sig_draggable.js"></script>
 </body>
 </html>

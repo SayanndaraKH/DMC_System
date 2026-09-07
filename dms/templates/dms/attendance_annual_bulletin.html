@@ -3,6 +3,7 @@
 {% block title %}ព្រឹត្តិបត្រការងារប្រចាំឆ្នាំ - គ្រប់គ្រងវត្តមាន{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
 <style>
 .bulletin-paper-card {
     background: #ffffff;
@@ -132,20 +133,20 @@
     <div class="bulletin-paper-card border">
         <!-- Top Header -->
         <div class="d-flex justify-content-between align-items-start mb-2">
-            <div>
+            <div class="header-draggable sig-draggable">
                 <div class="muol-font text-dark fs-8">ក្រសួង ស្ថាប័ន៖ ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
                 <div class="muol-font text-dark fs-8 mt-1">អង្គភាព៖ {{ bulletin.department_name }}</div>
             </div>
-            <div class="text-center">
+            <div class="text-center header-draggable sig-draggable">
                 <span class="badge bg-light text-dark border px-3 py-1 fs-8 fw-normal">
                     ឧបសម្ព័ន្ធទី៤នៃអនុក្រឹត្យលេខ ៥៨ អនក្រ.បក ចុះថ្ងៃទី ០១ ខែ កញ្ញា ឆ្នាំ២០១៦
                 </span>
             </div>
-            <div class="text-center">
+            <div class="text-center header-draggable sig-draggable">
                 <div class="muol-font text-dark fs-8">ព្រះរាជាណាចក្រកម្ពុជា</div>
                 <div class="muol-font text-dark fs-8 mt-1">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
                 <div style="text-align: center; margin-top: 2px;">
-                    <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 12px; width: auto; display: inline-block;">
+                    <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 22px; width: auto; display: inline-block;">
                 </div>
             </div>
         </div>
@@ -270,7 +271,7 @@
 
             <!-- Right: Date, Approval, and Leave descriptions note -->
             <div class="col-12 col-md-6 text-center fs-8">
-                <div class="mb-4">
+                <div class="mb-4 sig-draggable">
                     <div>{{ bulletin.lunar_year_text }}</div>
                     <div>ប៉ៃលិន, ថ្ងៃទី....... ខែ............... ឆ្នាំ{{ bulletin.year_kh }}</div>
                     <div class="muol-font text-dark fs-8 mt-1">ប្រធានអង្គភាព</div>
@@ -297,4 +298,5 @@
     </div>
     {% endif %}
 </div>
+<script src="/static/dms/js/sig_draggable.js"></script>
 {% endblock %}

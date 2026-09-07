@@ -111,83 +111,21 @@
             </p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <!-- Print Official Report Button -->
-            <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#printReportModal">
-                <i class="fa-solid fa-print"></i>
-                <span>បោះពុម្ពទម្រង់ផ្លូវការ</span>
-            </button>
+            {% if can_access_status_pdf %}
+            <!-- Direct Full Page PDF View Button -->
+            <a href="{% url 'officer_status_report_print' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm px-3" title="បើកផ្ទាំងពិនិត្យមើល PDF">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                <span>បើកផ្ទាំង PDF</span>
+            </a>
+            {% endif %}
 
-            <!-- Export to Excel / PDF Dropdown -->
-            <div class="dropdown">
-                <button type="button" class="btn btn-success d-flex align-items-center gap-2 shadow-sm px-3 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fa-solid fa-file-excel"></i>
-                    <span>ទាញយក / មើល PDF</span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-3 fs-7" style="min-width: 360px;">
-                    <li class="dropdown-header text-uppercase fw-bold text-muted fs-9 px-2 py-1">
-                        <i class="fa-solid fa-file-lines me-1 text-primary"></i> ជ្រើសរើសទម្រង់របាយការណ៍ (E-1 & E-2)
-                    </li>
-
-                    <!-- E-1 Option Card -->
-                    <li class="mb-2">
-                        <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
-                            <div class="d-flex align-items-center gap-2 mb-1.5">
-                                <span class="badge bg-success rounded-pill px-2 py-0.5 fs-9 fw-bold">E-1</span>
-                                <strong class="text-dark fs-8">ទម្រង់បញ្ជូនទៅក្រសួងកសិកម្ម</strong>
-                            </div>
-                            <p class="text-muted fs-9 mb-2">រៀបចំតាមរចនាសម្ព័ន្ធការិយាល័យ & ខណ្ឌ (១០ ជួរឈរ)</p>
-                            <div class="d-flex gap-1.5">
-                                <a href="{% url 'officer_preview_pdf_e1' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
-                                    <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
-                                </a>
-                                {% if can_export_officer_excel %}
-                                <a href="{% url 'officer_export_excel' %}?format=e1{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-sm btn-success rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
-                                    <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
-                                </a>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </li>
-
-                    <!-- E-2 Option Card (Only visible to Authorized Offices / Admin) -->
-                    {% if can_view_e2_report %}
-                    <li class="mb-2">
-                        <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
-                            <div class="d-flex align-items-center gap-2 mb-1.5">
-                                <span class="badge bg-primary rounded-pill px-2 py-0.5 fs-9 fw-bold">E-2</span>
-                                <strong class="text-dark fs-8">ទម្រង់ទៅមន្ទីរមុខងារសាធារណៈខេត្ត</strong>
-                            </div>
-                            <p class="text-muted fs-9 mb-2">តារាងលម្អិត ១៦ ជួរឈរ (អត្តសញ្ញាណប័ណ្ណ កាំប្រាក់ ប្រកាស)</p>
-                            <div class="d-flex gap-1.5">
-                                <a href="{% url 'officer_preview_pdf_e2' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
-                                    <i class="fa-solid fa-file-pdf me-1 text-danger"></i> មើលជា PDF
-                                </a>
-                                {% if can_export_officer_excel %}
-                                <a href="{% url 'officer_export_excel' %}?format=e2{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-sm btn-primary rounded-pill flex-fill py-1 fs-8 fw-semibold text-center">
-                                    <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel
-                                </a>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </li>
-                    {% endif %}
-
-                    <!-- General Status Matrix Card -->
-                    {% if can_export_officer_excel %}
-                    <li>
-                        <a class="dropdown-item rounded-3 p-2.5 d-flex align-items-start gap-2 border bg-light bg-opacity-25" href="{% url 'officer_status_export_excel' %}?{% if selected_dept %}department={{ selected_dept }}{% endif %}">
-                            <div class="bg-secondary bg-opacity-10 text-secondary rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; min-width: 32px;">
-                                <i class="fa-solid fa-chart-pie fs-7"></i>
-                            </div>
-                            <div>
-                                <strong class="d-block text-dark mb-0.5 fs-8">របាយការណ៍ស្ថានភាពទូទៅ (Status Matrix)</strong>
-                                <span class="fs-9 text-muted d-block">តារាងសង្ខេបក្របខ័ណ្ឌ សញ្ញាបត្រ និងស្ថានភាព</span>
-                            </div>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </div>
+            {% if can_export_officer_excel %}
+            <!-- Direct Excel Export for Officer Status Report -->
+            <a href="{% url 'officer_status_export_excel' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" class="btn btn-success d-flex align-items-center gap-2 shadow-sm px-3" title="ទាញយករបាយការណ៍ស្ថានភាពមន្ត្រីជាឯកសារ Excel">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>ទាញយក Excel</span>
+            </a>
+            {% endif %}
 
             <!-- Back to Officer List -->
             <a href="{% url 'officer_list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
@@ -708,61 +646,207 @@
 </div>
 
 <!-- ========================================================================= -->
-<!-- Print Options Modal (ជម្រើសបោះពុម្ពទម្រង់ផ្លូវការ) -->
+<!-- PDF Preview & Print Modal (ផ្ទាំងពិនិត្យមើល PDF និងជម្រើសបោះពុម្ព)       -->
 <!-- ========================================================================= -->
-<div class="modal fade" id="printReportModal" tabindex="-1" aria-labelledby="printReportModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
-            <div class="modal-header bg-dark text-white border-0 py-3" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-print fs-5 text-warning"></i>
-                    <h5 class="modal-title fw-bold mb-0" id="printReportModalLabel">ជម្រើសបោះពុម្ពរបាយការណ៍ស្ថានភាពមន្ត្រី</h5>
+{% if can_access_status_pdf %}
+<div class="modal fade" id="pdfPreviewModal" tabindex="-1" aria-labelledby="pdfPreviewModalLabel" aria-hidden="true" data-bs-focus="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 92vw;">
+        <div class="modal-content border-0 shadow-2xl" style="border-radius: 18px; overflow: hidden; background: #ffffff;">
+            <!-- Modal Header -->
+            <div class="modal-header bg-dark text-white border-0 py-2.5 px-4" style="background: linear-gradient(135deg, #0f172a, #1e293b) !important;">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="bg-danger text-white rounded-3 p-1.5 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="fa-solid fa-file-pdf fs-6"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 fs-6 text-white" id="pdfPreviewModalLabel" style="font-family: 'Khmer OS Muol Light', sans-serif;">
+                            ពិនិត្យមើល PDF មុនបោះពុម្ព - ស្ថានភាពមន្ត្រីរាជការ
+                        </h5>
+                        <small class="text-white-50" style="font-size: 11px;">
+                            ទម្រង់រដ្ឋបាលផ្លូវការ A4 Portrait • ផ្ទៀងផ្ទាត់ទិន្នន័យក្របខ័ណ្ឌ សញ្ញាបត្រ និងស្ថានភាពមុនបោះពុម្ព
+                        </small>
+                    </div>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{% url 'officer_status_report_print' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 fs-8" id="modalBtnOpenFullPdf" title="បើកពិនិត្យមើលក្នុងផ្ទាំង Browser ធំ">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>
+                        <span>បើកពេញអេក្រង់</span>
+                    </a>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
             </div>
-            <form method="GET" action="{% url 'officer_status_report_print' %}" target="_blank">
-                <div class="modal-body p-4">
-                    {% if has_global_access %}
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark small">🏢 ការិយាល័យ / អង្គភាពត្រូវបោះពុម្ព</label>
-                        <select name="department" class="form-select">
-                            <option value="">-- មន្ទីរកសិកម្មទាំងមូល (មន្ទីរខេត្តប៉ៃលិន) --</option>
-                            {% for d in departments %}
-                            <option value="{{ d.id }}" {% if selected_dept == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name_kh }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% endif %}
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark small">📍 ទីកន្លែងធ្វើរបាយការណ៍ (Location)</label>
-                        <input type="text" name="location" value="ប៉ៃលិន" class="form-control">
-                        <small class="text-muted">ឧ. ប៉ៃលិន (ធ្វើនៅប៉ៃលិន, ថ្ងៃទី...)</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="form-check form-switch mt-2">
-                            <input class="form-check-input" type="checkbox" name="include_roster" value="1" id="includeRosterCheck" checked>
-                            <label class="form-check-label fw-semibold text-dark" for="includeRosterCheck">
-                                បោះពុម្ពភ្ជាប់ជាមួយបញ្ជីរាយនាមមន្ត្រីលម្អិត (Include Detailed Roster)
+            <!-- Modal Body with Controls Bar & Live Iframe Preview -->
+            <div class="modal-body p-0 d-flex flex-column" style="background: #f8fafc;">
+                <!-- Live Configuration Bar -->
+                <div class="bg-white border-bottom p-3 px-4 shadow-xs">
+                    <div class="row g-2.5 align-items-center">
+                        {% if has_global_access %}
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small fw-bold text-secondary mb-1">
+                                <i class="fa-solid fa-building text-primary me-1"></i> ការិយាល័យ / អង្គភាព
                             </label>
+                            <select id="modal_preview_dept" class="form-select form-select-sm" onchange="refreshStatusPdfPreview()">
+                                <option value="">-- មន្ទីរកសិកម្មទាំងមូល (ខេត្តប៉ៃលិន) --</option>
+                                {% for d in departments %}
+                                <option value="{{ d.id }}" {% if selected_dept == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name_kh }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div class="col-6 col-md-3">
+                            <label class="form-label small fw-bold text-secondary mb-1">
+                                <i class="fa-solid fa-location-dot text-danger me-1"></i> ទីកន្លែងធ្វើរបាយការណ៍
+                            </label>
+                            <input type="text" id="modal_preview_location" value="ប៉ៃលិន" class="form-control form-control-sm" onchange="refreshStatusPdfPreview()" placeholder="ប៉ៃលិន">
+                        </div>
+
+                        <div class="col-6 col-md-3">
+                            <label class="form-label small fw-bold text-secondary mb-1">
+                                <i class="fa-solid fa-list-check text-success me-1"></i> បញ្ជីរាយនាមមន្ត្រី
+                            </label>
+                            <div class="form-check form-switch pt-1">
+                                <input class="form-check-input" type="checkbox" id="modal_preview_roster" onchange="refreshStatusPdfPreview()">
+                                <label class="form-check-label small fw-semibold text-dark" for="modal_preview_roster">
+                                    រួមបញ្ចូលបញ្ជីរាយនាម
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-2 d-flex justify-content-md-end align-items-end pt-2 pt-md-0">
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-3 w-100 py-1.5" onclick="refreshStatusPdfPreview()" title="ផ្ទុកទិន្នន័យ Preview ឡើងវិញ">
+                                <i class="fa-solid fa-rotate me-1 text-primary"></i> ផ្ទុកឡើងវិញ
+                            </button>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light border-0 py-3" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
-                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">បិទ</button>
-                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
-                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> បើកផ្ទាំងបោះពុម្ព (Print Preview)
-                    </button>
+
+                <!-- Live Iframe Preview Area -->
+                <div class="position-relative flex-grow-1" style="height: 66vh; min-height: 520px; background: #cbd5e1;">
+                    <!-- Loading Spinner Overlay -->
+                    <div id="pdfIframeSpinner" class="position-absolute top-50 start-50 translate-middle text-center" style="z-index: 10;">
+                        <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div class="mt-2 small fw-bold text-dark bg-white bg-opacity-90 px-3 py-1 rounded-pill shadow-sm">
+                            កំពុងរៀបចំទម្រង់ PDF ពិនិត្យមើល...
+                        </div>
+                    </div>
+
+                    <!-- PDF Viewer Iframe -->
+                    <iframe id="officerStatusPdfIframe" src="about:blank" class="w-100 h-100 border-0" onload="onPdfIframeLoaded()"></iframe>
                 </div>
-            </form>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer bg-white border-top py-2.5 px-4 d-flex justify-content-between align-items-center">
+                <div class="text-muted small d-none d-md-block">
+                    <i class="fa-solid fa-circle-info text-primary me-1"></i>
+                    <span>គាំទ្រការ Zoom ពង្រីក/បង្រួម បើក/បិទបញ្ជីរាយនាម និងបោះពុម្ពជាក្រដាស A4 ឬរក្សាទុកជា PDF</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 ms-auto">
+                    <button type="button" class="btn btn-secondary px-3 py-1.5 rounded-3 fw-semibold" data-bs-dismiss="modal">
+                        បិទ
+                    </button>
+                    <button type="button" class="btn btn-success px-3.5 py-1.5 rounded-3 fw-semibold shadow-sm" onclick="printFromModalIframe()">
+                        <i class="fa-solid fa-print me-1.5"></i>
+                        <span>បោះពុម្ពឥឡូវនេះ</span>
+                    </button>
+                    <a href="{% url 'officer_status_report_print' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank" id="modalBtnOpenFullPdf2" class="btn btn-primary px-3.5 py-1.5 rounded-3 fw-semibold shadow-sm">
+                        <i class="fa-solid fa-up-right-from-square me-1.5"></i>
+                        <span>បើកផ្ទាំងធំ</span>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+{% endif %}
+
+<!-- Backward-compatibility dummy modal for any legacy triggers -->
+<div class="modal fade" id="printReportModal" tabindex="-1" aria-hidden="true" style="display:none;"></div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    // =========================================================================
+    // Interactive PDF Preview Modal Logic
+    // =========================================================================
+    function getStatusPdfPreviewUrl() {
+        const deptEl = document.getElementById('modal_preview_dept');
+        const locEl = document.getElementById('modal_preview_location');
+        const rosterEl = document.getElementById('modal_preview_roster');
+
+        const deptVal = deptEl ? deptEl.value : '{{ selected_dept }}';
+        const locVal = locEl ? locEl.value.trim() : 'ប៉ៃលិន';
+        const rosterVal = rosterEl && rosterEl.checked ? '1' : '0';
+
+        const params = new URLSearchParams();
+        if (deptVal) params.set('department', deptVal);
+        if (locVal) params.set('location', locVal);
+        params.set('include_roster', rosterVal);
+
+        return "{% url 'officer_status_report_print' %}?" + params.toString();
+    }
+
+    function refreshStatusPdfPreview() {
+        const iframe = document.getElementById('officerStatusPdfIframe');
+        const spinner = document.getElementById('pdfIframeSpinner');
+        const btnFull = document.getElementById('modalBtnOpenFullPdf');
+        const btnFull2 = document.getElementById('modalBtnOpenFullPdf2');
+
+        const url = getStatusPdfPreviewUrl();
+
+        if (spinner) spinner.style.display = 'block';
+        if (iframe) iframe.src = url;
+        if (btnFull) btnFull.href = url;
+        if (btnFull2) btnFull2.href = url;
+    }
+
+    function onPdfIframeLoaded() {
+        const spinner = document.getElementById('pdfIframeSpinner');
+        if (spinner) spinner.style.display = 'none';
+    }
+
+    function printFromModalIframe() {
+        const iframe = document.getElementById('officerStatusPdfIframe');
+        if (iframe && iframe.contentWindow) {
+            try {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } catch (err) {
+                // Fallback: open full print page
+                window.open(getStatusPdfPreviewUrl(), '_blank');
+            }
+        } else {
+            window.open(getStatusPdfPreviewUrl(), '_blank');
+        }
+    }
+
+    // Modal initialization
+    document.addEventListener('DOMContentLoaded', () => {
+        const pdfModalEl = document.getElementById('pdfPreviewModal');
+        if (pdfModalEl) {
+            pdfModalEl.addEventListener('show.bs.modal', () => {
+                refreshStatusPdfPreview();
+            });
+        }
+
+        // Backward compatibility: If legacy printReportModal was invoked, redirect to pdfPreviewModal
+        const legacyModalEl = document.getElementById('printReportModal');
+        if (legacyModalEl) {
+            legacyModalEl.addEventListener('show.bs.modal', (e) => {
+                e.preventDefault();
+                const newModal = bootstrap.Modal.getOrCreateInstance(pdfModalEl);
+                newModal.show();
+            });
+        }
+    });
+
+    // =========================================================================
+    // Quick Officer Status Update Modal
+    // =========================================================================
     function openQuickStatusModal(officerId, officerName, statusVal, degreeVal, fwVal) {
         document.getElementById('modal_officer_id').value = officerId;
         document.getElementById('modal_officer_name').textContent = officerName;

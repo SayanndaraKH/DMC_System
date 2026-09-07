@@ -4697,9 +4697,13 @@ def _build_e1_ministry_workbook(officers_list, department=None):
     ws.page_margins.top = 0.4
     ws.page_margins.bottom = 0.4
 
-    # Page Numbering: -1-, -2-, ...
-    ws.oddFooter.center.text = "-&P-"
-    ws.evenFooter.center.text = "-&P-"
+    # Page Numbering: -1-, -2-, ... (Only if more than 1 page)
+    if len(officers_list) > 12:
+        ws.oddFooter.center.text = "-&P-"
+        ws.evenFooter.center.text = "-&P-"
+    else:
+        ws.oddFooter.center.text = ""
+        ws.evenFooter.center.text = ""
 
     # Fonts
     font_title = Font(name='Khmer OS Muol Light', size=11, bold=False)
@@ -4792,26 +4796,21 @@ def _build_e1_ministry_workbook(officers_list, department=None):
     year_kh = _to_khmer_digits(str(now.year))
 
     ws.merge_cells('A6:J6')
-    ws['A6'] = "បញ្ជីរាយនាមមន្ត្រីរាជការ"
+    if is_specialized and department:
+        ws['A6'] = f"បញ្ជីរាយនាមមន្ត្រីរាជការ របស់{department.name_kh}"
+    else:
+        ws['A6'] = "បញ្ជីរាយនាមមន្ត្រីរាជការ ក្នុងរចនាសម្ព័ន្ធមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
     ws['A6'].font = font_title
     ws['A6'].alignment = align_title
 
     ws.merge_cells('A7:J7')
-    if is_specialized and department:
-        ws['A7'] = f"របស់{department.name_kh}"
-    else:
-        ws['A7'] = "ក្នុងរចនាសម្ព័ន្ធមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+    ws['A7'] = f"ប្រចាំខែ{month_kh} ឆ្នាំ{year_kh}"
     ws['A7'].font = font_title
     ws['A7'].alignment = align_title
 
-    ws.merge_cells('A8:J8')
-    ws['A8'] = f"ប្រចាំខែ{month_kh} ឆ្នាំ{year_kh}"
-    ws['A8'].font = font_title
-    ws['A8'].alignment = align_title
-
-    ws.row_dimensions[6].height = 22.0
+    ws.row_dimensions[6].height = 24.0
     ws.row_dimensions[7].height = 22.0
-    ws.row_dimensions[8].height = 22.0
+    ws.row_dimensions[8].height = 8.0
     ws.row_dimensions[10].height = 36.0
 
     headers = [
@@ -4876,14 +4875,15 @@ def _build_e1_ministry_workbook(officers_list, department=None):
             current_row += 1
 
     for dept_name, off_list in dept_map.items():
-        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=10)
-        dept_cell = ws.cell(row=current_row, column=1, value=dept_name)
-        dept_cell.font = font_dept_header
-        dept_cell.alignment = align_left
-        for c in range(1, 11):
-            ws.cell(row=current_row, column=c).border = thin_border
-        ws.row_dimensions[current_row].height = 22.0
-        current_row += 1
+        if not (is_specialized and department):
+            ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=10)
+            dept_cell = ws.cell(row=current_row, column=1, value=dept_name)
+            dept_cell.font = font_dept_header
+            dept_cell.alignment = align_left
+            for c in range(1, 11):
+                ws.cell(row=current_row, column=c).border = thin_border
+            ws.row_dimensions[current_row].height = 22.0
+            current_row += 1
 
         for idx, o in enumerate(off_list, 1):
             deg, skill = _extract_officer_degree_and_skill(o)
@@ -4938,7 +4938,7 @@ def _build_e1_ministry_workbook(officers_list, department=None):
     c_s2.font = font_stat
     c_s2.alignment = align_stat_left
 
-    # Right: ប៉ៃលិន, ថ្ងៃទី....... ខែ................ ឆ្នាំ២០២៥
+    # Right: ប៉ៃលិន, ថ្ងៃទី....... ខែ................ ឆ្នាំ
     ws.merge_cells(start_row=current_row + 1, start_column=7, end_row=current_row + 1, end_column=10)
     c_r2 = ws.cell(row=current_row + 1, column=7, value=f"ប៉ៃលិន, ថ្ងៃទី....... ខែ................ ឆ្នាំ{year_kh}")
     c_r2.font = font_stat
@@ -4951,9 +4951,9 @@ def _build_e1_ministry_workbook(officers_list, department=None):
     c_s3.font = font_stat
     c_s3.alignment = align_stat_left
 
-    # Right: Head of Office Title
+    # Right: Signer Title (អ្នកធ្វើតារាង for specialized, or Head of Admin-HR for full dept)
     ws.merge_cells(start_row=current_row + 2, start_column=7, end_row=current_row + 2, end_column=10)
-    sig_right_title = _get_department_head_title(department) if (is_specialized and department) else "ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក"
+    sig_right_title = "អ្នកធ្វើតារាង" if (is_specialized and department) else "ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក"
     c_r3 = ws.cell(row=current_row + 2, column=7, value=sig_right_title)
     c_r3.font = font_dept_header
     c_r3.alignment = align_sig_center
@@ -4971,9 +4971,10 @@ def _build_e1_ministry_workbook(officers_list, department=None):
     c_c1.font = font_dept_header
     c_c1.alignment = align_sig_center
 
-    # Row 6 (Center: ប្រធាន)
+    # Row 6 (Center: Head of Office/Canton for specialized, or Provincial Director)
     ws.merge_cells(start_row=current_row + 5, start_column=3, end_row=current_row + 5, end_column=5)
-    c_c2 = ws.cell(row=current_row + 5, column=3, value="ប្រធាន")
+    center_title = _get_department_head_title(department) if (is_specialized and department) else "ប្រធាន"
+    c_c2 = ws.cell(row=current_row + 5, column=3, value=center_title)
     c_c2.font = font_dept_header
     c_c2.alignment = align_sig_center
 
@@ -4997,9 +4998,13 @@ def _build_e2_provincial_workbook(officers_list):
     ws.page_margins.top = 0.4
     ws.page_margins.bottom = 0.4
 
-    # Page Numbering: -1-, -2-, ...
-    ws.oddFooter.center.text = "-&P-"
-    ws.evenFooter.center.text = "-&P-"
+    # Page Numbering: -1-, -2-, ... (Only if more than 1 page)
+    if len(officers_list) > 12:
+        ws.oddFooter.center.text = "-&P-"
+        ws.evenFooter.center.text = "-&P-"
+    else:
+        ws.oddFooter.center.text = ""
+        ws.evenFooter.center.text = ""
 
     font_title = Font(name='Khmer OS Muol Light', size=11, bold=False)
     font_org = Font(name='Khmer OS Muol Light', size=10, bold=False)
@@ -5505,7 +5510,12 @@ def officer_preview_pdf_e1(request):
         selected_dept = Department.objects.filter(id=dept_filter).first()
 
     is_specialized = _is_specialized_department(selected_dept)
-    office_head_title = _get_department_head_title(selected_dept) if (is_specialized and selected_dept) else "ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក"
+    if is_specialized and selected_dept:
+        office_head_title = _get_department_head_title(selected_dept)
+        office_right_title = "អ្នកធ្វើតារាង"
+    else:
+        office_head_title = "ប្រធាន"
+        office_right_title = "ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក"
 
     if search_q:
         q_arabic = to_arabic_digits(search_q)
@@ -5559,13 +5569,18 @@ def officer_preview_pdf_e1(request):
 
     # Build sequential items for A4 pages
     table_items = []
+    # Omit department header row inside table when filtered to a specific department or specialized office
+    include_dept_headers = not bool(selected_dept)
+
     if leadership_officers:
-        table_items.append({'is_header': True, 'title': 'ថ្នាក់ដឹកនាំមន្ទីរ'})
+        if include_dept_headers:
+            table_items.append({'is_header': True, 'title': 'ថ្នាក់ដឹកនាំមន្ទីរ'})
         for idx, o in enumerate(leadership_officers, 1):
             table_items.append({'is_header': False, 'officer': o, 'num': idx})
 
     for dept_name, off_list in dept_map.items():
-        table_items.append({'is_header': True, 'title': dept_name})
+        if include_dept_headers:
+            table_items.append({'is_header': True, 'title': dept_name})
         for idx, o in enumerate(off_list, 1):
             table_items.append({'is_header': False, 'officer': o, 'num': idx})
 
@@ -5591,6 +5606,7 @@ def officer_preview_pdf_e1(request):
         'is_specialized': is_specialized,
         'selected_department': selected_dept,
         'office_head_title': office_head_title,
+        'office_right_title': office_right_title,
     }
     return render(request, 'dms/officer_preview_e1_pdf.html', context)
 
@@ -8303,6 +8319,8 @@ def officer_tracking_export_excel(request):
 def get_khmer_lunar_and_solar_date(d=None):
     """
     Computes official formatted solar date and lunar calendar text for formal Cambodian administrative reports.
+    Accurately calculates the Khmer animal year (ឆ្នាំមមី...), sak (អដ្ឋស័ក...), and Buddhist Era (ព.ស)
+    according to traditional Cambodian calendar rules.
     """
     import datetime
     if d is None:
@@ -8318,17 +8336,26 @@ def get_khmer_lunar_and_solar_date(d=None):
     zodiac_animals = ['ជូត', 'ឆ្លូវ', 'ខាល', 'ថោះ', 'រោង', 'ម្សាញ់', 'មមី', 'មមែ', 'វក', 'រកា', 'ចរ', 'កុរ']
     sak_names = ['ឯកស័ក', 'ទោស័ក', 'ត្រីស័ក', 'ចត្វាស័ក', 'បញ្ចស័ក', 'ឆស័ក', 'សប្តស័ក', 'អដ្ឋស័ក', 'នព្វស័ក', 'សំរឹទ្ធិស័ក']
 
-    be_year = d.year + 544 if d.month >= 5 else d.year + 543
-    zodiac = zodiac_animals[(d.year - 4) % 12]
-    sak = sak_names[(d.year - 4) % 10]
+    # In Cambodia, Khmer New Year occurs around April 13-14.
+    # Before Khmer New Year, the traditional animal year & sak remain of the previous year.
+    year_for_khmer = d.year if (d.month > 4 or (d.month == 4 and d.day >= 14)) else (d.year - 1)
+    
+    # Buddhist Era (ព.ស) advances around Visak Bochea in April/May
+    be_year = d.year + 544 if (d.month > 4 or (d.month == 4 and d.day >= 14)) else (d.year + 543)
+
+    zodiac = zodiac_animals[(year_for_khmer - 4) % 12]
+    sak = sak_names[(year_for_khmer + 1) % 10]
     day_name = kh_days.get(d.weekday(), 'ចន្ទ')
     month_name = kh_months.get(d.month, 'មករា')
 
     solar_date_str = f"ថ្ងៃទី{to_khmer_digits(d.day)} ខែ{month_name} ឆ្នាំ{to_khmer_digits(d.year)}"
-    lunar_date_str = f"ថ្ងៃ{day_name} ...កើត/រោច ខែ... ឆ្នាំ{zodiac} {sak} ព.ស {to_khmer_digits(be_year)}"
+    solar_date_handwritten_str = f"ថ្ងៃទី................ ខែ................ ឆ្នាំ{to_khmer_digits(d.year)}"
+    # ថ្ងៃ............ខែ.......... ត្រូវបំពេញដោយដៃ, ឆ្នាំសត្វ ស័ក ព.ស. ត្រូវប្រែប្រួលតាមប្រតិទិនខ្មែរស្វ័យប្រវត្តិ
+    lunar_date_str = f"ថ្ងៃ..................... ខែ.................. ឆ្នាំ{zodiac} {sak} ព.ស. {to_khmer_digits(be_year)}"
 
     return {
         'solar_date_str': solar_date_str,
+        'solar_date_handwritten_str': solar_date_handwritten_str,
         'lunar_date_str': lunar_date_str,
         'day_kh': to_khmer_digits(d.day),
         'month_kh': month_name,
@@ -8338,6 +8365,15 @@ def get_khmer_lunar_and_solar_date(d=None):
         'zodiac_kh': zodiac,
         'sak_kh': sak,
     }
+
+
+def can_access_officer_status_pdf_report(user, profile=None):
+    """
+    ស្ថានភាពមន្ត្រី view PDF គឺសម្រាប់ Admin, ថ្នាក់ដឹកនាំ, ការិយាល័យរដ្ឋបាល-បុគ្គលិក និង ការិយាល័យជំនាញ/ខណ្ឌទាំងអស់
+    """
+    if not user.is_authenticated:
+        return False
+    return True
 
 
 @login_required
@@ -8440,6 +8476,8 @@ def officer_status_report_view(request):
     selected_dept_obj = None
     if dept_id:
         selected_dept_obj = Department.objects.filter(id=dept_id).first()
+    elif not has_global_access and user_dept:
+        selected_dept_obj = user_dept
 
     today = date.today()
     date_info = get_khmer_lunar_and_solar_date(today)
@@ -8456,7 +8494,7 @@ def officer_status_report_view(request):
         'is_system_admin': is_system_admin,
         'user_dept': user_dept,
         'departments': departments,
-        'selected_dept': dept_id,
+        'selected_dept': dept_id or (str(user_dept.id) if not has_global_access and user_dept else ''),
         'selected_dept_obj': selected_dept_obj,
         'fw_filter': fw_filter,
         'degree_filter': degree_filter,
@@ -8517,18 +8555,112 @@ def officer_status_report_view(request):
         'today': today,
         'is_window_open': is_window_open,
         'can_export_officer_excel': can_export_civil_servants_to_excel(request.user, profile),
-        'can_view_e2_report': can_access_officer_e2_report(request.user, profile),
+        'can_access_status_pdf': can_access_officer_status_pdf_report(request.user, profile),
     }
     return render(request, 'dms/officer_status_report.html', context)
+
+
+def _clean_officer_degree_for_status_report(deg_label):
+    if not deg_label:
+        return '-'
+    import re
+    s = str(deg_label)
+    s = re.sub(r'\(?\s*អនុបណ្ឌិត\s*\)?', '', s).strip()
+    return s or '-'
+
+
+def _format_rank_step_clean(rank_str, framework_category):
+    s = (rank_str or '').strip()
+    if s:
+        return s
+    fw = (framework_category or '').strip().upper()
+    fw_map = {'A': 'ក.១', 'B': 'ខ.១', 'C': 'គ.១', 'D': 'ឃ.១'}
+    return fw_map.get(fw, 'គ.១')
+
+
+def _format_date_as_khmer_digits(date_val):
+    if not date_val:
+        return '-'
+    std_date = _format_khmer_date_standard(date_val)
+    if not std_date:
+        return '-'
+    return to_khmer_digits(std_date)
+
+
+def _extract_single_phone_number(phone_str):
+    if not phone_str:
+        return '-'
+    import re
+    s = str(phone_str).strip()
+    parts = re.split(r'[\n,;]+', s)
+    first_part = parts[0].strip()
+    first_part = re.sub(r'(?:telegram|តេលេក្រាម|លេខ|tg).*$', '', first_part, flags=re.IGNORECASE).strip()
+    if ' / ' in first_part:
+        first_part = first_part.split(' / ')[0].strip()
+    elif '/' in first_part:
+        sub = first_part.split('/')
+        digits_sub0 = re.sub(r'\D', '', sub[0])
+        if len(digits_sub0) >= 8:
+            first_part = sub[0].strip()
+        else:
+            suffix = re.search(r'\s+([\d\s]+)$', first_part)
+            if suffix:
+                first_part = sub[0].strip() + ' ' + suffix.group(1).strip()
+            else:
+                first_part = sub[0].strip()
+    digits_only = re.sub(r'\D', '', first_part)
+    if len(digits_only) >= 18:
+        m = re.match(r'^(0\d{1,2}\s*\d{3}\s*\d{3,4})', first_part)
+        if m:
+            first_part = m.group(1).strip()
+    first_part = re.sub(r'^[^\d\(]+', '', first_part)
+    first_part = re.sub(r'[^\d\)]+$', '', first_part).strip()
+    return first_part or '-'
+
+
+def _format_officer_item_for_status_roster(idx, o):
+    dob_kh = _format_date_as_khmer_digits(o.dob)
+    start_date_kh = _format_date_as_khmer_digits(o.civil_service_start_date)
+    rank_f = _format_rank_step_clean(o.current_rank_and_step, o.framework_category)
+    deg_f = _clean_officer_degree_for_status_report(o.highest_degree_label)
+    phone_f = _extract_single_phone_number(o.phone)
+    raw_dept = o.department.name_kh.strip() if o.department else '-'
+    return {
+        'is_header': False,
+        'num': idx,
+        'num_kh': to_khmer_digits(idx),
+        'officer': o,
+        'dob_kh': dob_kh,
+        'start_date_kh': start_date_kh,
+        'dept_full': raw_dept,
+        'dept_short': raw_dept,
+        'rank_formatted': rank_f,
+        'degree_formatted': deg_f,
+        'single_phone': phone_f,
+    }
 
 
 @login_required
 def officer_status_report_print_view(request):
     """
-    Official Printable Format of Civil Servant Status Report (ស្ថានភាពមន្ត្រីរាជការ)
-    Designed 1-to-1 to perfectly match the formal Cambodian administration document layout.
+    Official Printable Format and PDF Preview of Civil Servant Status Report (ស្ថានភាពមន្ត្រីរាជការ)
+    Designed 1-to-1 to perfectly match the formal Cambodian administration document layout (02-2025.pdf).
+    Permission: Strictly for Administration-Personnel office and ADMIN only.
     """
     profile = getattr(request.user, 'profile', None)
+    if not can_access_officer_status_pdf_report(request.user, profile):
+        messages.error(
+            request,
+            "ទម្រង់ PDF ស្ថានភាពមន្ត្រី គឺសម្រាប់តែការិយាល័យរដ្ឋបាល-បុគ្គលិក និង ADMIN ប៉ុណ្ណោះ!"
+        )
+        return HttpResponseForbidden(
+            "<div style='font-family: Khmer OS Battambang, sans-serif; text-align: center; margin-top: 80px;'>"
+            "<h2 style='color: #dc2626;'>⛔ គ្មានសិទ្ធិពិនិត្យមើល PDF ស្ថានភាពមន្ត្រីឡើយ</h2>"
+            "<p style='font-size: 16px; color: #475569;'>មុខងារពិនិត្យមើល PDF ស្ថានភាពមន្ត្រី គឺសម្រាប់តែការិយាល័យរដ្ឋបាល-បុគ្គលិក និង ADMIN ប៉ុណ្ណោះ ដែលប្រើប្រាស់។</p>"
+            "<a href='javascript:history.back()' style='display: inline-block; margin-top: 15px; padding: 8px 20px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 20px;'>ត្រឡប់ក្រោយ</a>"
+            "</div>"
+        )
+
     user_dept = profile.department if profile else None
     has_global_access = check_has_global_hr_tracking_access(request.user, profile)
 
@@ -8536,21 +8668,66 @@ def officer_status_report_print_view(request):
     custom_date_str = request.GET.get('date', '').strip()
     custom_lunar_str = request.GET.get('lunar_text', '').strip()
     location_str = request.GET.get('location', 'ប៉ៃលិន').strip()
-    include_roster = request.GET.get('include_roster') == '1'
+    
+    # Roster inclusion defaults to True so all sheets after Sheet 1 are landscape roster sheets
+    include_roster_param = request.GET.get('include_roster')
+    if include_roster_param is not None:
+        include_roster = include_roster_param in ['1', 'true', 'True', 'yes']
+    else:
+        include_roster = True
+
+    fw_filter = request.GET.get('framework', '').strip()
+    degree_filter = request.GET.get('degree', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    gender_filter = request.GET.get('gender', '').strip()
+    search_q = request.GET.get('q', '').strip()
 
     base_qs = CivilServantProfile.objects.select_related('department').all()
 
     if not has_global_access:
         if user_dept:
             base_qs = base_qs.filter(department=user_dept)
+            target_dept = user_dept
         else:
             base_qs = base_qs.filter(created_by=request.user)
+            target_dept = None
     elif dept_id:
         base_qs = base_qs.filter(department_id=dept_id)
+        target_dept = Department.objects.filter(id=dept_id).first()
+    else:
+        target_dept = None
 
-    selected_dept_obj = Department.objects.filter(id=dept_id).first() if dept_id else None
+    selected_dept_obj = target_dept
+    is_specialized = bool(selected_dept_obj)
+    lead_type_param = request.GET.get('lead_type', '').strip()
+    lead_info = _get_specialized_office_leadership_info(selected_dept_obj, override_type=lead_type_param) if selected_dept_obj else None
 
-    # Aggregations
+    if selected_dept_obj:
+        office_head_title = lead_info['center_title']
+        office_right_title = lead_info['right_title']
+        is_solo_officer = (lead_info['type'] == 'solo')
+    else:
+        office_head_title = "ប្រធានមន្ទីរ"
+        office_right_title = "មន្ត្រីទទួលបន្ទុក"
+        is_solo_officer = False
+
+    lead_type_display = ""
+    if lead_info:
+        is_canton = 'ខណ្ឌ' in (selected_dept_obj.name_kh or '')
+        if lead_info['type'] == 'head':
+            lead_type_display = f"មានប្រធាន{'ខណ្ឌ' if is_canton else 'ការិយាល័យ'}"
+        elif lead_info['type'] == 'deputy':
+            lead_type_display = "នាយរងខណ្ឌទទួលបន្ទុករួម" if is_canton else "អនុប្រធានការិយាល័យទទួលបន្ទុករួម"
+        else:
+            lead_type_display = "មន្ត្រីតែ១នាក់ (មន្ត្រីទទួលបន្ទុករួម)"
+
+    get_params = request.GET.copy()
+    get_params_no_lead = get_params.copy()
+    if 'lead_type' in get_params_no_lead:
+        del get_params_no_lead['lead_type']
+    base_query_string = get_params_no_lead.urlencode()
+
+    # Aggregations for Department / Entity Overview (Sections ក, ខ, គ)
     total_officers = base_qs.count()
     female_count = base_qs.filter(gender='FEMALE').count()
     male_count = base_qs.filter(gender='MALE').count()
@@ -8579,11 +8756,136 @@ def officer_status_report_print_view(request):
     date_info = get_khmer_lunar_and_solar_date(today)
 
     from .models import officer_sort_key
-    officers_list = list(base_qs)
+    roster_qs = base_qs
+    if search_q:
+        q_arabic = to_arabic_digits(search_q)
+        roster_qs = roster_qs.filter(
+            Q(khmer_last_name__icontains=search_q) |
+            Q(khmer_first_name__icontains=search_q) |
+            Q(latin_last_name__icontains=search_q) |
+            Q(latin_first_name__icontains=search_q) |
+            Q(officer_id_number__icontains=search_q) |
+            Q(officer_id_number__icontains=q_arabic) |
+            Q(national_id_number__icontains=search_q) |
+            Q(national_id_number__icontains=q_arabic) |
+            Q(phone__icontains=search_q) |
+            Q(phone__icontains=q_arabic) |
+            Q(current_rank_and_step__icontains=search_q) |
+            Q(current_position_title__icontains=search_q)
+        )
+    if fw_filter:
+        roster_qs = roster_qs.filter(framework_category=fw_filter)
+    if degree_filter:
+        roster_qs = roster_qs.filter(highest_degree=degree_filter)
+    if status_filter:
+        roster_qs = roster_qs.filter(officer_status=status_filter)
+    if gender_filter:
+        roster_qs = roster_qs.filter(gender=gender_filter)
+
+    officers_list = list(roster_qs)
     officers_list.sort(key=officer_sort_key)
+
+    # Group officers by Department / Canton in exact administrative order (like E-1)
+    leadership_officers = []
+    dept_map = {}
+
+    for o in officers_list:
+        pos = (o.current_position_title or '').strip()
+        dept_name = o.department.name_kh if o.department else 'ផ្សេងៗ'
+        is_lead = (o.department and (o.department.code in ['LEAD', 'LEADERSHIP'] or 'ថ្នាក់ដឹកនាំ' in o.department.name_kh)) or \
+                  any(lead_title in pos for lead_title in ['ប្រធានមន្ទីរ', 'អនុប្រធានមន្ទីរ'])
+        if is_lead:
+            leadership_officers.append(o)
+        else:
+            if dept_name not in dept_map:
+                dept_map[dept_name] = []
+            dept_map[dept_name].append(o)
+
+    table_items = []
+    include_dept_headers = (selected_dept_obj is None)
+
+    if leadership_officers:
+        if include_dept_headers:
+            table_items.append({'is_header': True, 'title': 'ថ្នាក់ដឹកនាំមន្ទីរ'})
+        for idx, o in enumerate(leadership_officers, 1):
+            table_items.append(_format_officer_item_for_status_roster(idx, o))
+
+    dept_idx = 1
+    for dept_name, off_list in dept_map.items():
+        if include_dept_headers:
+            if not (dept_name.startswith('ខណ្ឌ') or 'ខណ្ឌ' in dept_name):
+                display_title = f"{to_khmer_digits(dept_idx)}. {dept_name}"
+                dept_idx += 1
+            else:
+                display_title = dept_name
+            table_items.append({'is_header': True, 'title': display_title})
+        for idx, o in enumerate(off_list, 1):
+            table_items.append(_format_officer_item_for_status_roster(idx, o))
+
+    # Paginate Detailed Roster for A4 Landscape sheets (Pages 2..N)
+    # The final roster page accommodates the formal 3-level signatures block
+    MAX_PER_PAGE = 20
+    MAX_LAST_PAGE = 14
+    roster_pages = []
+
+    if table_items:
+        if len(table_items) <= MAX_LAST_PAGE:
+            roster_pages.append({
+                'page_num': 2,
+                'page_num_kh': to_khmer_digits(2),
+                'items': table_items,
+                'is_first_roster_page': True,
+                'is_last_roster_page': True,
+            })
+        else:
+            remaining = list(table_items)
+            page_num = 2
+            while remaining:
+                rem_count = len(remaining)
+                if rem_count <= MAX_LAST_PAGE:
+                    take = rem_count
+                    is_last = True
+                elif rem_count <= (MAX_PER_PAGE + MAX_LAST_PAGE):
+                    half = rem_count // 2
+                    take = min(MAX_PER_PAGE, max(half, rem_count - MAX_LAST_PAGE))
+                    is_last = False
+                else:
+                    take = MAX_PER_PAGE
+                    is_last = False
+
+                # Prevent leaving a department group header orphaned at the bottom of a page
+                if take < rem_count and remaining[take - 1].get('is_header'):
+                    take -= 1
+
+                chunk = remaining[:take]
+                remaining = remaining[take:]
+
+                roster_pages.append({
+                    'page_num': page_num,
+                    'page_num_kh': to_khmer_digits(page_num),
+                    'items': chunk,
+                    'is_first_roster_page': (page_num == 2),
+                    'is_last_roster_page': is_last,
+                })
+                page_num += 1
+
+    total_roster_pages = len(roster_pages)
+    total_pages = 1 + total_roster_pages if include_roster else 1
+
+    departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh') if has_global_access else []
 
     context = {
         'selected_dept_obj': selected_dept_obj,
+        'selected_dept': dept_id,
+        'is_specialized': is_specialized,
+        'office_head_title': office_head_title,
+        'office_right_title': office_right_title,
+        'is_solo_officer': is_solo_officer,
+        'lead_type_param': lead_type_param,
+        'lead_info': lead_info,
+        'lead_type_display': lead_type_display,
+        'base_query_string': base_query_string,
+        'departments': departments,
         'user_dept': user_dept,
         'has_global_access': has_global_access,
         'location_str': location_str,
@@ -8591,6 +8893,12 @@ def officer_status_report_print_view(request):
         'custom_lunar_str': custom_lunar_str,
         'include_roster': include_roster,
         'officers_list': officers_list,
+        'roster_pages': roster_pages,
+        'total_roster_pages': total_roster_pages,
+        'total_pages': total_pages,
+        'total_pages_kh': to_khmer_digits(total_pages),
+        'query_params': request.GET.urlencode(),
+        'can_export_officer_excel': can_export_civil_servants_to_excel(request.user, profile),
 
         # Section ក
         'total_officers': total_officers,
@@ -8642,6 +8950,7 @@ def officer_status_report_print_view(request):
         'today': today,
     }
     return render(request, 'dms/officer_status_report_print.html', context)
+
 
 
 @login_required
@@ -10457,6 +10766,8 @@ def _get_department_head_title(dept):
         return "ប្រធានការិយាល័យ"
     dname = dept.name_kh.strip()
     code = (dept.code or '').upper()
+    if 'ថ្នាក់ដឹកនាំ' in dname or code in ['LEAD', 'LEADERSHIP']:
+        return 'ប្រធានមន្ទីរ'
     if 'ខណ្ឌ' in dname or code.startswith('CANTON'):
         if dname.startswith('ខណ្ឌ'):
             return 'នាយ' + dname
@@ -10470,8 +10781,8 @@ def _get_specialized_office_leadership_info(dept, override_type=None):
     """
     Returns leadership configuration for a specialized office/canton:
     - 'head': Has Head of Office/Canton -> Center: 'ប្រធាន...' or 'នាយ...', Right: 'អ្នកធ្វើតារាង'
-    - 'deputy': No Head, but has Deputy in charge -> Center: 'អនុប្រធានទទួលបន្ទុករួមការិយាល័យ' (or 'អនុប្រធានទទួលបន្ទុករួមខណ្ឌ'), Right: 'អ្នកធ្វើតារាង'
-    - 'solo': Solo Officer (មន្ត្រីទោល) -> No Center signature, Right: 'មន្ត្រីទទួលបន្ទុកដឹកនាំរួម'
+    - 'deputy': No Head, but has Deputy in charge -> Center: 'អនុប្រធានការិយាល័យទទួលបន្ទុករួម' (or 'នាយរងខណ្ឌទទួលបន្ទុករួម'), Right: 'អ្នកធ្វើតារាង'
+    - 'solo': Solo Officer (មន្ត្រីតែ១នាក់) -> Center: 'មន្ត្រីទទួលបន្ទុករួម', Right: 'មន្ត្រីទទួលបន្ទុករួម'
     """
     if not dept:
         return {
@@ -10482,6 +10793,15 @@ def _get_specialized_office_leadership_info(dept, override_type=None):
         }
 
     is_canton = 'ខណ្ឌ' in (dept.name_kh or '') or (dept.code or '').upper().startswith('CANTON')
+    is_leadership = 'ថ្នាក់ដឹកនាំ' in (dept.name_kh or '') or (dept.code or '').upper() in ['LEAD', 'LEADERSHIP']
+
+    if is_leadership:
+        return {
+            'type': 'head',
+            'center_title': 'ប្រធានមន្ទីរ',
+            'right_title': 'អ្នកធ្វើតារាង',
+            'has_center': True
+        }
 
     if override_type in ['head', 'deputy', 'solo']:
         lead_type = override_type
@@ -10495,7 +10815,7 @@ def _get_specialized_office_leadership_info(dept, override_type=None):
 
         for cs in cs_list:
             pos = (cs.current_position_title or '').strip()
-            if ('ប្រធាន' in pos and 'អនុ' not in pos) or ('នាយខណ្ឌ' in pos and 'រង' not in pos):
+            if ('ប្រធាន' in pos and 'អនុ' not in pos) or ('នាយខណ្ឌ' in pos and 'រង' not in pos) or ('នាយ' in pos and 'រង' not in pos and is_canton):
                 has_head = True
             elif 'អនុប្រធាន' in pos or 'នាយរង' in pos or 'រង' in pos:
                 has_deputy = True
@@ -10503,29 +10823,33 @@ def _get_specialized_office_leadership_info(dept, override_type=None):
         if not has_head and not has_deputy:
             for up in up_list:
                 pos = (up.position_title or '').strip()
-                if ('ប្រធាន' in pos and 'អនុ' not in pos) or ('នាយខណ្ឌ' in pos and 'រង' not in pos):
+                if ('ប្រធាន' in pos and 'អនុ' not in pos) or ('នាយខណ្ឌ' in pos and 'រង' not in pos) or ('នាយ' in pos and 'រង' not in pos and is_canton):
                     has_head = True
                 elif 'អនុប្រធាន' in pos or 'នាយរង' in pos or 'រង' in pos:
                     has_deputy = True
 
-        if has_head:
+        # Rule: "បញ្ជាក់ រាល់ការការិយាល័យណា គ្មានប្រធាន ដាក់ អនុប្រធានការិយាល័យទទួលបន្ទុករួម ឬ មន្ត្រីតែ១នាក់ ដាក់មន្ត្រីទទួលបន្ទុករួម"
+        total_staff_count = len(cs_list) if cs_list else len(up_list)
+        if total_staff_count == 1:
+            lead_type = 'solo'
+        elif has_head:
             lead_type = 'head'
-        elif has_deputy:
+        elif has_deputy or total_staff_count > 1:
             lead_type = 'deputy'
         else:
-            lead_type = 'solo'
+            lead_type = 'head'
 
     if lead_type == 'head':
         center_title = _get_department_head_title(dept)
         right_title = 'អ្នកធ្វើតារាង'
         has_center = True
     elif lead_type == 'deputy':
-        center_title = 'អនុប្រធានទទួលបន្ទុករួមខណ្ឌ' if is_canton else 'អនុប្រធានទទួលបន្ទុករួមការិយាល័យ'
+        center_title = 'នាយរងខណ្ឌទទួលបន្ទុករួម' if is_canton else 'អនុប្រធានការិយាល័យទទួលបន្ទុករួម'
         right_title = 'អ្នកធ្វើតារាង'
         has_center = True
     else:  # solo
-        center_title = ''
-        right_title = 'មន្ត្រីទទួលបន្ទុកដឹកនាំរួម'
+        center_title = 'មន្ត្រីទទួលបន្ទុករួម'
+        right_title = 'មន្ត្រីទទួលបន្ទុករួម'
         has_center = False
 
     return {
