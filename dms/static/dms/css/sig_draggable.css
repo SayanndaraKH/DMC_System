@@ -1,6 +1,10 @@
 /**
- * DCM System - Draggable Signatures Stylesheet
- * Allows free positioning of signature blocks on PDF/Print views with 100% print fidelity.
+ * DCM System - Draggable Signatures, Page Margin Resizer & Print Page Range Controller Stylesheet
+ * Allows:
+ *  1. Free positioning of signature blocks & headers on PDF/Print views.
+ *  2. Interactive draggable margin guides with handles (■) to adjust/tune (សេរ៉េ) margins.
+ *  3. Page selection & page range controls to print specific pages (ពីទំព័រមួយ ទៅលេខរៀងណាមួយ).
+ *  4. Fixed absolute bottom anchoring for page numbers (never intruding into workspace).
  */
 
 .sig-draggable,
@@ -11,6 +15,71 @@
     position: relative;
     touch-action: none;
     transition: outline 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Page Number Footer - In natural block flow directly underneath table/signatures */
+.page-footer-number,
+.page-footer-center {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    text-align: center !important;
+    margin-top: 6px !important;
+    margin-bottom: 2px !important;
+    padding: 0 !important;
+    font-size: 8.5pt !important;
+    font-family: 'Khmer OS Battambang', 'Battambang', Arial, sans-serif !important;
+    font-weight: bold !important;
+    color: #475569 !important;
+    clear: both !important;
+    line-height: 1 !important;
+    pointer-events: none !important;
+}
+
+/* Enforce Balanced A4 Layout: Show maximum rows cleanly without artificial overflow gaps */
+.a4-page,
+.page,
+.page-sheet {
+    position: relative !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    padding: 8mm 10mm 6mm 10mm !important;
+}
+
+.page-content-wrapper {
+    flex-grow: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.a4-page table,
+.page table,
+.page-sheet table,
+table.e1-table,
+table.d1-table,
+table.roster-table,
+table.bulletin-print-table,
+table.data-table {
+    margin-bottom: 4px !important;
+}
+
+/* Compact Table Cells to maximize row count and prevent unnecessary page splits */
+table.e1-table tbody tr,
+table.d1-table tbody tr,
+table.roster-table tbody tr {
+    height: 23px !important;
+    max-height: 25px !important;
+}
+
+table.e1-table tbody td,
+table.d1-table tbody td,
+table.roster-table tbody td {
+    height: 23px !important;
+    max-height: 25px !important;
+    padding: 1.5px 4px !important;
+    font-size: 8.5pt !important;
+    line-height: 1.25 !important;
 }
 
 /* Subtle hover hint on screen (never shown on print) */
@@ -29,7 +98,7 @@
         outline: 1.5px dashed #2563eb !important;
         outline-offset: 4px;
         border-radius: 4px;
-        background-color: rgba(37, 99, 235, 0.05);
+        background-color: rgba(37, 99, 235, 0.06);
         z-index: 1000 !important;
         user-select: none !important;
     }
@@ -39,8 +108,29 @@
         transition: left 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
     }
 
-    /* Small badge or button styles in preview toolbar */
-    .btn-reset-sig {
+    /* Live Coordinates Tooltip while Dragging Signatures / Headers */
+    .sig-coord-tooltip {
+        position: absolute;
+        top: -26px;
+        right: 0;
+        background: #0f172a;
+        color: #38bdf8;
+        font-family: monospace, sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        pointer-events: none;
+        z-index: 1010;
+        white-space: nowrap;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    /* Action Buttons in preview toolbar */
+    .btn-reset-sig,
+    .btn-toggle-margins,
+    .btn-reset-margins {
         background: rgba(255, 255, 255, 0.12);
         color: #f8fafc;
         border: 1px solid rgba(255, 255, 255, 0.22);
@@ -54,31 +144,399 @@
         cursor: pointer;
         white-space: nowrap;
         font-family: 'Khmer OS Battambang', 'Battambang', sans-serif;
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        user-select: none;
     }
 
-    .btn-reset-sig:hover {
+    .btn-reset-sig:hover,
+    .btn-reset-margins:hover {
         background: rgba(239, 68, 68, 0.2);
         border-color: rgba(239, 68, 68, 0.5);
         color: #fca5a5;
     }
 
-    .sig-drag-hint {
-        font-size: 11.5px;
-        color: #94a3b8;
+    .btn-toggle-margins:hover {
+        background: rgba(56, 189, 248, 0.2);
+        border-color: rgba(56, 189, 248, 0.5);
+        color: #e0f2fe;
+    }
+
+    .btn-toggle-margins.active {
+        background: #0284c7 !important;
+        border-color: #38bdf8 !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+
+    /* ========================================================================= */
+    /* Interactive Margin Guidelines & Drag Resizer System (Show Margins)        */
+    /* ========================================================================= */
+    .a4-page,
+    .page,
+    .page-sheet,
+    .doc-border-frame,
+    .print-container {
+        position: relative !important;
+    }
+
+    .page-margin-guide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 900;
+        box-sizing: border-box;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    body.show-margins .page-margin-guide,
+    .show-margins .page-margin-guide {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Inner Safe Printable Margin Frame */
+    .page-margin-frame {
+        position: absolute;
+        top: 10mm;
+        bottom: 10mm;
+        left: 12mm;
+        right: 12mm;
+        border: 1px dashed rgba(37, 99, 235, 0.65);
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5);
+        box-sizing: border-box;
+        pointer-events: none;
+    }
+
+    body.show-margins.margin-active-resizing .page-margin-frame {
+        border-color: #2563eb !important;
+        border-style: solid !important;
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.25), 0 0 8px rgba(37, 99, 235, 0.3) !important;
+    }
+
+    /* 4 Interactive Draggable Border Edges (Top, Bottom, Left, Right) */
+    .margin-edge {
+        position: absolute;
+        pointer-events: auto !important;
+        z-index: 920;
+        touch-action: none;
+    }
+
+    .margin-edge-top {
+        top: -5px;
+        left: 0;
+        right: 0;
+        height: 10px;
+        cursor: ns-resize;
+    }
+
+    .margin-edge-bottom {
+        bottom: -5px;
+        left: 0;
+        right: 0;
+        height: 10px;
+        cursor: ns-resize;
+    }
+
+    .margin-edge-left {
+        left: -5px;
+        top: 0;
+        bottom: 0;
+        width: 10px;
+        cursor: ew-resize;
+    }
+
+    .margin-edge-right {
+        right: -5px;
+        top: 0;
+        bottom: 0;
+        width: 10px;
+        cursor: ew-resize;
+    }
+
+    .margin-edge:hover {
+        background: rgba(37, 99, 235, 0.15);
+    }
+
+    /* Interactive Draggable Square Handles (■ Solid Black Squares with White Border) */
+    .margin-handle {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background-color: #000000;
+        border: 1px solid #ffffff;
+        box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+        box-sizing: border-box;
+        transform: translate(-50%, -50%);
+        pointer-events: auto !important;
+        z-index: 950;
+        touch-action: none;
+        transition: transform 0.1s ease, background-color 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .margin-handle:hover,
+    .margin-handle.active {
+        background-color: #2563eb !important;
+        transform: translate(-50%, -50%) scale(1.4) !important;
+        border-color: #ffffff !important;
+        box-shadow: 0 0 6px rgba(37, 99, 235, 0.9) !important;
+        z-index: 999 !important;
+    }
+
+    /* Handle Cursors */
+    .margin-handle[data-handle="tl"],
+    .margin-handle[data-handle="br"] {
+        cursor: nwse-resize;
+    }
+
+    .margin-handle[data-handle="tr"],
+    .margin-handle[data-handle="bl"] {
+        cursor: nesw-resize;
+    }
+
+    .margin-handle[data-handle="top"],
+    .margin-handle[data-handle="bottom"] {
+        cursor: ns-resize;
+    }
+
+    .margin-handle[data-handle="left"],
+    .margin-handle[data-handle="right"] {
+        cursor: ew-resize;
+    }
+
+    /* Floating Margin Indicator HUD Badge */
+    .page-margin-badge {
+        position: absolute;
+        top: -24px;
+        right: 0;
+        background: rgba(15, 23, 42, 0.92);
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        font-family: 'Khmer OS Battambang', 'Kantumruy Pro', monospace, sans-serif;
+        font-size: 9.5px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 4px;
+        user-select: none;
+        pointer-events: none;
+        z-index: 960;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        padding: 4px 8px;
-        background: rgba(255, 255, 255, 0.06);
-        border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        white-space: nowrap;
+    }
+
+    /* Active Margin Live Drag Tooltip */
+    .margin-live-tooltip {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #0f172a;
+        color: #38bdf8;
+        border: 1.5px solid #38bdf8;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        padding: 8px 18px;
+        border-radius: 50px;
+        font-family: 'Khmer OS Battambang', 'Kantumruy Pro', sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        z-index: 99999;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        letter-spacing: 0.3px;
+        animation: tooltipPulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes tooltipPulse {
+        0%, 100% { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 0 rgba(56, 189, 248, 0.4); }
+        50% { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 8px rgba(56, 189, 248, 0); }
+    }
+
+    /* Midline Alignment Guide */
+    .page-margin-centerline {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        border-left: 1px dotted rgba(37, 99, 235, 0.3);
+        transform: translateX(-50%);
+        pointer-events: none;
+    }
+
+    /* ========================================================================= */
+    /* Print Page Range & Selective Page Print Control Styles                   */
+    /* ========================================================================= */
+    .print-page-range-widget {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        padding: 4px 10px;
+        border-radius: 8px;
+        color: #f8fafc;
+        font-family: 'Khmer OS Battambang', 'Battambang', sans-serif;
+        font-size: 12px;
         user-select: none;
+    }
+
+    .range-selector-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .range-label {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #94a3b8;
+        white-space: nowrap;
+        margin: 0;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .range-select {
+        background: #1e293b;
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 11.5px;
+        font-family: 'Khmer OS Battambang', 'Battambang', sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.2s ease;
+    }
+
+    .range-select:focus,
+    .range-select:hover {
+        border-color: #38bdf8;
+        box-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
+    }
+
+    .range-inputs-container {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .range-text {
+        font-size: 11px;
+        color: #cbd5e1;
+        white-space: nowrap;
+    }
+
+    .range-input {
+        width: 48px;
+        background: #0f172a;
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        padding: 2px 4px;
+        font-size: 11.5px;
+        font-weight: bold;
+        text-align: center;
+        outline: none;
+    }
+
+    .range-input:focus {
+        border-color: #38bdf8;
+        box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+    }
+
+    .range-badge {
+        background: rgba(56, 189, 248, 0.15);
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 10.5px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    /* Page on-screen indicator badge with checkbox */
+    .page-print-indicator {
+        position: absolute;
+        top: 4px;
+        left: 6px;
+        background: rgba(15, 23, 42, 0.85);
+        color: #f8fafc;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-size: 10.5px;
+        font-family: 'Khmer OS Battambang', 'Battambang', sans-serif;
+        font-weight: 600;
+        z-index: 850;
+        cursor: pointer;
+        user-select: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.2s ease;
+    }
+
+    .page-print-indicator input[type="checkbox"] {
+        cursor: pointer;
+        width: 13px;
+        height: 13px;
+        accent-color: #0284c7;
+        margin: 0;
+    }
+
+    .page-print-indicator:hover {
+        background: #0f172a;
+        border-color: #38bdf8;
+        color: #38bdf8;
+    }
+
+    /* Excluded Page Visual Effect on Screen */
+    .page-print-excluded {
+        position: relative !important;
+        opacity: 0.35 !important;
+        filter: grayscale(0.6) !important;
+        transition: opacity 0.2s ease, filter 0.2s ease;
+    }
+
+    .page-print-excluded::before {
+        content: "🚫 មិនបោះពុម្ពទំព័រនេះ (Excluded from Print)";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-10deg);
+        background: rgba(220, 38, 38, 0.92);
+        color: #ffffff;
+        font-family: 'Khmer OS Battambang', 'Battambang', sans-serif;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 12px 28px;
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        z-index: 999;
+        pointer-events: none;
+        letter-spacing: 0.5px;
+        border: 2px solid #ffffff;
+        white-space: nowrap;
     }
 }
 
-/* STRICT PRINT RULES: Remove all outlines, borders, hints, or effects */
+/* STRICT PRINT RULES: Remove all outlines, borders, hints, guides, handles, toolbars, and EXCLUDED pages */
 @media print {
     .sig-draggable,
     .header-draggable,
@@ -93,8 +551,40 @@
         background: transparent !important;
     }
 
-    .sig-drag-hint,
-    .btn-reset-sig {
+    /* Excluded pages completely vanish from print */
+    .page-print-excluded {
         display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        page-break-before: unset !important;
+        page-break-after: unset !important;
+        break-before: unset !important;
+        break-after: unset !important;
+    }
+
+    .page-margin-guide,
+    .page-margin-frame,
+    .margin-edge,
+    .margin-handle,
+    .page-margin-badge,
+    .page-margin-centerline,
+    .margin-live-tooltip,
+    .sig-coord-tooltip,
+    .sig-drag-hint,
+    .btn-reset-sig,
+    .btn-toggle-margins,
+    .btn-reset-margins,
+    .print-page-range-widget,
+    .page-print-indicator,
+    .page-print-excluded::before {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        outline: none !important;
+        border: none !important;
     }
 }

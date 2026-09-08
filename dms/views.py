@@ -5420,23 +5420,47 @@ def officer_export_excel(request):
     return response
 
 
-def _paginate_preview_items(all_items, first_page_cap=20, mid_page_cap=26, last_page_cap=18, single_page_cap=14):
+def _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=18, single_page_cap=14, min_last_page=3):
     """
     រៀបចំទំព័រ A4 Landscape ដាច់ៗពីគ្នាសម្រាប់ PDF Preview
+    ធានាថាទំព័របន្តនីមួយៗផ្ទុកទិន្នន័យបានពេញទំព័រគៀកនឹងលេខទំព័រ មិនដាច់ពាក់កណ្តាលទំព័រចោលចន្លោះទទេឡើយ។
     """
-    pages = []
+    if not all_items:
+        return [{
+            'page_num': 1,
+            'is_first': True,
+            'is_last': True,
+            'items': [],
+            'total_pages': 1,
+            'page_num_kh': to_khmer_digits(1) if 'to_khmer_digits' in globals() else '១',
+            'total_pages_kh': to_khmer_digits(1) if 'to_khmer_digits' in globals() else '១',
+        }]
+
     if len(all_items) <= single_page_cap:
-        pages.append({
+        return [{
             'page_num': 1,
             'is_first': True,
             'is_last': True,
             'items': all_items,
-        })
-        return pages
+            'total_pages': 1,
+            'page_num_kh': to_khmer_digits(1) if 'to_khmer_digits' in globals() else '១',
+            'total_pages_kh': to_khmer_digits(1) if 'to_khmer_digits' in globals() else '១',
+        }]
 
-    # Page 1 (has full Header and Table Header)
-    p1_take = min(len(all_items), first_page_cap)
-    p1_items = all_items[:p1_take]
+    pages = []
+    remaining = list(all_items)
+
+    # Page 1 (has full Header and Table Header) - Fill as much as possible down to footer
+    rem_count = len(remaining)
+    if rem_count <= (first_page_cap + last_page_cap):
+        p1_take = min(first_page_cap, rem_count - min_last_page)
+    else:
+        p1_take = first_page_cap
+
+    if p1_take < rem_count and remaining[p1_take - 1].get('is_header'):
+        p1_take -= 1
+
+    p1_items = remaining[:p1_take]
     pages.append({
         'page_num': 1,
         'is_first': True,
@@ -5444,41 +5468,35 @@ def _paginate_preview_items(all_items, first_page_cap=20, mid_page_cap=26, last_
         'items': p1_items,
     })
 
-    remaining = all_items[p1_take:]
+    remaining = remaining[p1_take:]
     page_num = 2
     while remaining:
-        if len(remaining) <= last_page_cap:
-            pages.append({
-                'page_num': page_num,
-                'is_first': False,
-                'is_last': True,
-                'items': remaining,
-            })
-            break
-        elif len(remaining) <= (mid_page_cap + last_page_cap):
-            half = len(remaining) // 2
-            take = max(half, len(remaining) - last_page_cap)
-            pages.append({
-                'page_num': page_num,
-                'is_first': False,
-                'is_last': False,
-                'items': remaining[:take],
-            })
-            remaining = remaining[take:]
-            page_num += 1
+        rem_count = len(remaining)
+        if rem_count <= last_page_cap:
+            take = rem_count
+            is_last = True
         else:
-            pages.append({
-                'page_num': page_num,
-                'is_first': False,
-                'is_last': False,
-                'items': remaining[:mid_page_cap],
-            })
-            remaining = remaining[mid_page_cap:]
-            page_num += 1
+            is_last = False
+            # Fill the continuation page fully up to mid_page_cap close to page footer
+            take = min(mid_page_cap, rem_count - min_last_page)
+
+        if not is_last and take < rem_count and remaining[take - 1].get('is_header'):
+            take -= 1
+
+        pages.append({
+            'page_num': page_num,
+            'is_first': False,
+            'is_last': is_last,
+            'items': remaining[:take],
+        })
+        remaining = remaining[take:]
+        page_num += 1
 
     total_pages = len(pages)
     for p in pages:
         p['total_pages'] = total_pages
+        p['page_num_kh'] = to_khmer_digits(p['page_num']) if 'to_khmer_digits' in globals() else str(p['page_num'])
+        p['total_pages_kh'] = to_khmer_digits(total_pages) if 'to_khmer_digits' in globals() else str(total_pages)
     return pages
 
 
@@ -5576,15 +5594,23 @@ def officer_preview_pdf_e1(request):
         if include_dept_headers:
             table_items.append({'is_header': True, 'title': 'ថ្នាក់ដឹកនាំមន្ទីរ'})
         for idx, o in enumerate(leadership_officers, 1):
-            table_items.append({'is_header': False, 'officer': o, 'num': idx})
+            table_items.append({'is_header': False, 'officer': o, 'num': idx, 'dept_name': 'ថ្នាក់ដឹកនាំមន្ទីរ'})
 
     for dept_name, off_list in dept_map.items():
         if include_dept_headers:
             table_items.append({'is_header': True, 'title': dept_name})
         for idx, o in enumerate(off_list, 1):
-            table_items.append({'is_header': False, 'officer': o, 'num': idx})
+            table_items.append({'is_header': False, 'officer': o, 'num': idx, 'dept_name': dept_name})
 
-    pages = _paginate_preview_items(table_items, first_page_cap=23, mid_page_cap=24, last_page_cap=14, single_page_cap=12)
+    pages = _paginate_preview_items(table_items, first_page_cap=23, mid_page_cap=26, last_page_cap=18, single_page_cap=14, min_last_page=3)
+
+    # If subsequent page starts with an ongoing department, insert continuation header
+    if include_dept_headers:
+        for p in pages:
+            if not p['is_first'] and p['items'] and not p['items'][0].get('is_header'):
+                d_name = p['items'][0].get('dept_name')
+                if d_name:
+                    p['items'].insert(0, {'is_header': True, 'title': f"{d_name} (បន្ត)"})
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
@@ -5694,7 +5720,7 @@ def officer_preview_pdf_e2(request):
     for idx, o in enumerate(officers_list, 1):
         e2_items.append({'officer': o, 'num': idx})
 
-    pages = _paginate_preview_items(e2_items, first_page_cap=22, mid_page_cap=24, last_page_cap=22, single_page_cap=12)
+    pages = _paginate_preview_items(e2_items, first_page_cap=23, mid_page_cap=26, last_page_cap=23, single_page_cap=14)
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
@@ -7523,44 +7549,286 @@ def officer_promotion_batch_status_update(request):
     return redirect(request.META.get('HTTP_REFERER', 'officer_promotion'))
 
 
-@login_required
-def officer_medals_master_export_excel(request):
+ROMAN_NUMS_LIST = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV']
+
+
+def _get_officer_last_medal_and_decree(officer):
     """
-    Excel Export សម្រាប់តារាងស្នើសុំគ្រឿងឥស្សរិយយស & មេដាយសរុប (សម្រាប់កិច្ចប្រជុំ និងបញ្ជូនទៅក្រសួង)
+    Extracts the most recent medal received, corresponding royal/sub-decree info, and remarks.
+    """
+    raw_awards = officer.awards_data or []
+    if raw_awards and isinstance(raw_awards, list):
+        valid_awards = [a for a in raw_awards if isinstance(a, dict) and a.get('description')]
+        if valid_awards:
+            last_a = valid_awards[-1]
+            desc = (last_a.get('description') or '').strip()
+            doc_no = (last_a.get('doc_number') or '').strip()
+            d_date = (last_a.get('date') or '').strip()
+            
+            decree_str = doc_no
+            if d_date and d_date not in doc_no:
+                decree_str = f"{doc_no} {d_date}".strip()
+            if not decree_str or decree_str == '-':
+                decree_str = 'គ្មាន'
+                
+            remarks = 'គ្មាន'
+            if 'ព្រះរាជក្រឹត្យ' in decree_str or 'រកត' in decree_str or 'នស/' in decree_str:
+                remarks = 'មានព្រះរាជក្រឹត្យ'
+            elif 'អនុក្រឹត្យ' in decree_str or 'អនក្រ' in decree_str:
+                remarks = 'មានអនុក្រឹត្យ'
+            elif 'ប្រកាស' in decree_str:
+                remarks = 'មានប្រកាស'
+            elif desc and desc != 'គ្មាន':
+                remarks = 'មានអនុក្រឹត្យ'
+                
+            return desc or 'គ្មាន', decree_str, remarks
+            
+    return 'គ្មាន', 'គ្មាន', 'គ្មាន'
+
+
+def _infer_next_proposed_medal(last_medal, officer=None):
+    """
+    Infers the next medal in the Cambodian civil service honor succession hierarchy.
+    """
+    if not last_medal or last_medal == 'គ្មាន' or last_medal == '-':
+        return 'មេដាយការងារ ថ្នាក់សំរិទ្ធ'
+        
+    lm = last_medal.strip()
+    if 'សំរឹទ្ធ' in lm or 'សំរិទ្ធ' in lm:
+        return 'មេដាយការងារ ថ្នាក់ប្រាក់'
+    elif 'ប្រាក់' in lm:
+        return 'មេដាយការងារ ថ្នាក់មាស'
+    elif 'មាស' in lm:
+        return 'មេដាយសុវត្ថារា ថ្នាក់អស្សឫទ្ធិ'
+    elif 'អស្សឫទ្ធិ' in lm or 'អស្សឬទិ្ធ' in lm:
+        return 'មេដាយសុវត្ថារា ថ្នាក់សេនា'
+    elif 'សេនា' in lm and 'មហាសេនា' not in lm:
+        return 'មេដាយសុវត្ថារា ថ្នាក់ធិបឌិន្ទ'
+    elif 'ធិបឌិន្ទ' in lm or 'ធិបឌី' in lm:
+        return 'មេដាយសុវត្ថារា ថ្នាក់មហាសេនា'
+    elif 'មហាសេនា' in lm:
+        return 'មេដាយសុវត្ថារា ថ្នាក់មហាសេរីវឌ្ឍន៍'
+    elif 'មហាសេរីវឌ្ឍន៍' in lm:
+        return 'គ្រឿងឥស្សរិយយសព្រះរាជាណាចក្រកម្ពុជា ថ្នាក់អស្សឫទ្ធិ'
+        
+    if officer:
+        proc = process_officer_medals(officer)
+        return proc.get('recommended_medal', 'មេដាយការងារ ថ្នាក់សំរិទ្ធ')
+        
+    return 'មេដាយការងារ ថ្នាក់សំរិទ្ធ'
+
+
+def _prepare_officer_medals_m0_items(officers_list):
+    """
+    Builds structured items with Roman numeral department groupings matching Excel/M-0.xlsx.
+    """
+    leadership_officers = []
+    dept_map = {}
+    
+    for o in officers_list:
+        pos = (o.current_position_title or '').strip()
+        dept_name = o.department.name_kh if o.department else 'ផ្សេងៗ'
+        is_lead = (o.department and (o.department.code in ['LEAD', 'LEADERSHIP'] or 'ថ្នាក់ដឹកនាំ' in o.department.name_kh)) or \
+                  any(lead_title in pos for lead_title in ['ប្រធានមន្ទីរ', 'អនុប្រធានមន្ទីរ'])
+                  
+        if is_lead:
+            leadership_officers.append(o)
+        else:
+            if dept_name not in dept_map:
+                dept_map[dept_name] = []
+            dept_map[dept_name].append(o)
+            
+    items = []
+    roman_idx = 0
+    
+    # 1. Leadership group
+    if leadership_officers:
+        roman = ROMAN_NUMS_LIST[roman_idx] if roman_idx < len(ROMAN_NUMS_LIST) else f"{roman_idx+1}"
+        roman_idx += 1
+        items.append({
+            'is_header': True,
+            'title': f"{roman}. ថ្នាក់ដឹកនាំមន្ទីរ",
+            'num': '',
+        })
+        for num, off in enumerate(leadership_officers, 1):
+            last_med, decree, rem = _get_officer_last_medal_and_decree(off)
+            prop_med = _infer_next_proposed_medal(last_med, off)
+            gender_kh = 'ប្រុស' if off.gender == 'MALE' or str(off.gender).upper() in ['M', 'ប្រុស', 'ប'] else 'ស្រី'
+            items.append({
+                'is_header': False,
+                'num': num,
+                'officer': off,
+                'gender_kh': gender_kh,
+                'position_title': off.current_position_title or 'មន្ត្រី',
+                'last_medal': last_med,
+                'legal_decree': decree,
+                'proposed_medal': prop_med,
+                'remarks': rem,
+            })
+            
+    # 2. Departments
+    for dept_name, off_list in dept_map.items():
+        roman = ROMAN_NUMS_LIST[roman_idx] if roman_idx < len(ROMAN_NUMS_LIST) else f"{roman_idx+1}"
+        roman_idx += 1
+        items.append({
+            'is_header': True,
+            'title': f"{roman}. {dept_name}",
+            'num': '',
+        })
+        for num, off in enumerate(off_list, 1):
+            last_med, decree, rem = _get_officer_last_medal_and_decree(off)
+            prop_med = _infer_next_proposed_medal(last_med, off)
+            gender_kh = 'ប្រុស' if off.gender == 'MALE' or str(off.gender).upper() in ['M', 'ប្រុស', 'ប'] else 'ស្រី'
+            items.append({
+                'is_header': False,
+                'num': num,
+                'officer': off,
+                'gender_kh': gender_kh,
+                'position_title': off.current_position_title or 'មន្ត្រី',
+                'last_medal': last_med,
+                'legal_decree': decree,
+                'proposed_medal': prop_med,
+                'remarks': rem,
+            })
+            
+    return items
+
+
+def _prepare_officer_medals_m1_items(requests_qs):
+    items = []
+    for num, req in enumerate(requests_qs, 1):
+        off = req.officer
+        last_med, decree, rem = _get_officer_last_medal_and_decree(off)
+        gender_kh = 'ប្រុស' if off.gender == 'MALE' or str(off.gender).upper() in ['M', 'ប្រុស', 'ប'] else 'ស្រី'
+        dept_str = req.department.name_kh if req.department else (off.department.name_kh if off.department else '')
+        pos_str = off.current_position_title or 'មន្ត្រី'
+        if dept_str and dept_str not in pos_str:
+            pos_title = f"{pos_str} ({dept_str})"
+        else:
+            pos_title = pos_str
+            
+        items.append({
+            'is_header': False,
+            'num': num,
+            'officer': off,
+            'gender_kh': gender_kh,
+            'position_title': pos_title,
+            'last_medal': last_med,
+            'legal_decree': decree,
+            'proposed_medal': req.proposed_medal or _infer_next_proposed_medal(last_med, off),
+            'remarks': rem if rem != '-' and rem != 'គ្មាន' else (req.admin_notes or 'មានអនុក្រឹត្យ'),
+            'request': req,
+        })
+    return items
+
+
+@login_required
+def officer_medals_m0_print_view(request):
+    """
+    Print Preview សម្រាប់ទម្រង់ M-0 (បញ្ជីបច្ចុប្បន្នភាពគ្រឿងឥស្សរិយយស)
+    """
+    profile = getattr(request.user, 'profile', None)
+    dept = profile.department if profile else None
+    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+    
+    dept_filter = request.GET.get('department', '').strip()
+    search_q = request.GET.get('q', '').strip()
+    
+    queryset = CivilServantProfile.objects.select_related('department').all()
+    selected_dept = None
+    if not has_global_access:
+        if dept:
+            queryset = queryset.filter(department=dept)
+            selected_dept = dept
+        else:
+            queryset = queryset.none()
+    elif dept_filter:
+        queryset = queryset.filter(department_id=dept_filter)
+        selected_dept = Department.objects.filter(id=dept_filter).first()
+        
+    if search_q:
+        queryset = queryset.filter(
+            Q(khmer_last_name__icontains=search_q) |
+            Q(khmer_first_name__icontains=search_q) |
+            Q(officer_id_number__icontains=search_q)
+        )
+        
+    from .models import officer_sort_key
+    officers_list = list(queryset)
+    officers_list.sort(key=officer_sort_key)
+    
+    all_items = _prepare_officer_medals_m0_items(officers_list)
+    pages = _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=18, single_page_cap=14)
+    
+    dates_info = get_khmer_lunar_and_solar_date()
+    total_count = len(officers_list)
+    female_count = sum(1 for o in officers_list if o.gender == 'FEMALE' or str(o.gender).upper() in ['F', 'ស្រី', 'ស'])
+    
+    is_specialized = _is_specialized_department(selected_dept)
+    
+    context = {
+        'pages': pages,
+        'total_count': total_count,
+        'female_count': female_count,
+        'selected_department': selected_dept,
+        'is_specialized': is_specialized,
+        'solar_date_str': dates_info['solar_date_str'],
+        'solar_date_handwritten_str': dates_info['solar_date_handwritten_str'],
+        'lunar_date_str': dates_info['lunar_date_str'],
+        'year_kh': dates_info['year_kh'],
+        'query_params': request.GET.urlencode(),
+    }
+    return render(request, 'dms/officer_medals_preview_m0_pdf.html', context)
+
+
+@login_required
+def officer_medals_m0_export_excel(request):
+    """
+    Excel Export សម្រាប់ទម្រង់ M-0 (បញ្ជីបច្ចុប្បន្នភាពគ្រឿងឥស្សរិយយស)
     """
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     
     profile = getattr(request.user, 'profile', None)
-    user_dept = profile.department if profile else None
+    dept = profile.department if profile else None
     has_global_access = check_has_global_hr_tracking_access(request.user, profile)
     
-    req_year = request.GET.get('year') or date.today().year
-    dept_id = request.GET.get('department')
-    status_filter = request.GET.get('status')
+    dept_filter = request.GET.get('department', '').strip()
+    search_q = request.GET.get('q', '').strip()
     
-    qs = OfficerMedalRequest.objects.select_related('officer', 'department').filter(request_year=req_year)
+    queryset = CivilServantProfile.objects.select_related('department').all()
+    selected_dept = None
     if not has_global_access:
-        if user_dept:
-            qs = qs.filter(department=user_dept)
+        if dept:
+            queryset = queryset.filter(department=dept)
+            selected_dept = dept
         else:
-            qs = qs.filter(submitted_by=request.user)
-    elif dept_id:
-        qs = qs.filter(department_id=dept_id)
+            queryset = queryset.none()
+    elif dept_filter:
+        queryset = queryset.filter(department_id=dept_filter)
+        selected_dept = Department.objects.filter(id=dept_filter).first()
         
-    if status_filter and status_filter != 'ALL':
-        qs = qs.filter(status=status_filter)
+    if search_q:
+        queryset = queryset.filter(
+            Q(khmer_last_name__icontains=search_q) |
+            Q(khmer_first_name__icontains=search_q) |
+            Q(officer_id_number__icontains=search_q)
+        )
         
-    qs = qs.order_by('department__order_index', 'officer__khmer_last_name', 'officer__khmer_first_name')
-
+    from .models import officer_sort_key
+    officers_list = list(queryset)
+    officers_list.sort(key=officer_sort_key)
+    
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f"តារាងមេដាយ {req_year}"
-
-    # Styling
-    font_royal_muol = Font(name='Khmer OS Muol Light', size=11, bold=True)
-    font_title_muol = Font(name='Khmer OS Muol Light', size=13, bold=True, color='15803D')
+    ws.title = "M-0 បច្ចុប្បន្នភាព"
+    
+    font_muol = Font(name='Khmer OS Muol Light', size=11, bold=True)
+    font_title = Font(name='Khmer OS Muol Light', size=12, bold=True, color='15803D')
+    font_subtitle = Font(name='Khmer OS Battambang', size=10, bold=True)
     font_body = Font(name='Khmer OS Battambang', size=10)
+    font_header = Font(name='Khmer OS Muol Light', size=9.5, bold=True, color='FFFFFF')
+    font_group = Font(name='Khmer OS Muol Light', size=10, bold=True, color='1E3A8A')
     
     align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
     align_left = Alignment(horizontal='left', vertical='center', wrap_text=True)
@@ -7572,120 +7840,121 @@ def officer_medals_master_export_excel(request):
         bottom=Side(style='thin', color='A0A0A0')
     )
     header_fill = PatternFill(start_color='16A34A', end_color='16A34A', fill_type='solid')
-    header_font = Font(name='Khmer OS Muol Light', size=9.5, bold=True, color='FFFFFF')
-
-    # Row 1-3: Royal Header
-    ws.merge_cells('A1:D1')
-    ws['A1'] = "ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"
-    ws['A1'].font = font_royal_muol
-
-    ws.merge_cells('A2:D2')
-    ws['A2'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ ខេត្តប៉ៃលិន"
-    ws['A2'].font = font_royal_muol
-
-    ws.merge_cells('I1:L1')
-    ws['I1'] = "ព្រះរាជាណាចក្រកម្ពុជា"
-    ws['I1'].font = font_royal_muol
-    ws['I1'].alignment = align_center
-
-    ws.merge_cells('I2:L2')
-    ws['I2'] = "ជាតិ សាសនា ព្រះមហាក្សត្រ"
-    ws['I2'].font = font_royal_muol
-    ws['I2'].alignment = align_center
-
-    # Royal Divider Flourish
-    ws.merge_cells('I3:L3')
-    ws['I3'] = ""
-    _add_excel_khmer_divider(ws, col_idx=9, col_offset_px=40, row_idx=2, row_offset_px=2, width_px=65, height_px=18)
-
-    # Title Row
-    ws.merge_cells('A4:L4')
-    ws['A4'] = f"តារាងបូកសរុបសំណើសុំគ្រឿងឥស្សរិយយស និងមេដាយការងារ ប្រចាំឆ្នាំ {req_year}"
-    ws['A4'].font = font_title_muol
-    ws['A4'].alignment = align_center
-
-    ws.merge_cells('A5:L5')
-    ws['A5'] = "(សម្រាប់ដាក់ឆ្លងកិច្ចប្រជុំគណៈកម្មការវាយតម្លៃ និងរៀបចំឯកសារបញ្ជូនទៅក្រសួង)"
-    ws['A5'].font = font_body
-    ws['A5'].alignment = align_center
-
+    group_fill = PatternFill(start_color='F1F5F9', end_color='F1F5F9', fill_type='solid')
+    
+    # Royal Header
+    ws.merge_cells('A4:D4')
+    ws['A4'] = "ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"
+    ws['A4'].font = font_muol
+    
+    ws.merge_cells('A5:D5')
+    ws['A5'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+    ws['A5'].font = font_muol
+    
+    ws.merge_cells('G4:H4')
+    ws['G4'] = "ព្រះរាជាណាចក្រកម្ពុជា"
+    ws['G4'].font = font_muol
+    ws['G4'].alignment = align_center
+    
+    ws.merge_cells('G5:H5')
+    ws['G5'] = "ជាតិ សាសនា ព្រះមហាក្សត្រ"
+    ws['G5'].font = font_muol
+    ws['G5'].alignment = align_center
+    
+    _add_excel_khmer_divider(ws, col_idx=7, col_offset_px=30, row_idx=5, row_offset_px=2, width_px=65, height_px=18)
+    
+    # Title & Subtitle
+    dates_info = get_khmer_lunar_and_solar_date()
+    ws.merge_cells('A7:H7')
+    ws['A7'] = "បញ្ជីបច្ចុប្បន្នភាពថ្នាក់ដឹកនាំ ខណ្ឌរដ្ឋបាល និងមន្ដ្រីការិ. ដែលត្រូវទទួលគ្រឿងឥស្សរិយយស"
+    ws['A7'].font = font_title
+    ws['A7'].alignment = align_center
+    
+    ws.merge_cells('A8:H8')
+    ws['A8'] = f"គិតត្រឹម{dates_info['solar_date_str']}"
+    ws['A8'].font = font_subtitle
+    ws['A8'].alignment = align_center
+    
     headers = [
-        'ល.រ', 'អត្តលេខ', 'គោត្តនាម-នាម', 'ភេទ', 'ថ្ងៃខែឆ្នាំកំណើត',
-        'មុខតំណែង & អង្គភាព', 'ថ្ងៃចូលបម្រើ', 'អតីតភាពការងារ',
-        'គ្រឿងឥស្សរិយយស / មេដាយស្នើសុំ', 'មេដាយធ្លាប់ទទួលបាន', 'ស្នាដៃ & គុណសម្បត្តិការងារ',
-        'មតិអង្គប្រជុំ / គណៈកម្មការ'
+        'ល.រ', 'គោត្ដនាម នាម', 'ភេទ', 'ឋានៈតួនាទីបច្ចុប្បន្ន',
+        'ប្រភេទគ្រឿងឥស្សរិយយសដែលត្រូវទទួលបានចុងក្រោយ',
+        'ព្រះរាជក្រឹត្យ និងអនុក្រឹត្យ(បញ្ជាក់អំពីលេខថ្ងៃខែឆ្នាំនៃព្រះរាជក្រឹត្យ និងអនុក្រឹត្យ)',
+        'ប្រភេទគ្រឿងឥស្សរិយយសដែលត្រូវស្នើសុំ', 'សេចក្ដីផ្សេងៗ'
     ]
     
-    ws.append([]) # Row 6 empty
-    ws.append(headers) # Row 7
-    for col_idx in range(1, len(headers) + 1):
-        cell = ws.cell(row=7, column=col_idx)
+    ws.row_dimensions[9].height = 30
+    for col_idx, h_text in enumerate(headers, 1):
+        cell = ws.cell(row=9, column=col_idx, value=h_text)
         cell.fill = header_fill
-        cell.font = header_font
+        cell.font = font_header
         cell.alignment = align_center
         cell.border = thin_border
-    ws.row_dimensions[7].height = 28
-
-    current_row = 8
-    for idx, r in enumerate(qs, 1):
-        o = r.officer
-        # Past awards summary string
-        past_awards = [a.get('description', '') for a in (o.awards_data or []) if a.get('description')]
-        past_str = ", ".join(past_awards[:2]) if past_awards else '-'
-
-        row_data = [
-            idx,
-            o.officer_id_number or '-',
-            o.full_name_kh,
-            o.get_gender_display(),
-            o.birth_date or '-',
-            f"{o.current_position_title or '-'} / {r.department.name_kh if r.department else '-'}",
-            o.civil_service_start_date or '-',
-            f"{r.years_of_service} ឆ្នាំ" if r.years_of_service else '-',
-            r.proposed_medal,
-            past_str,
-            r.achievements or '-',
-            r.meeting_decision or 'ឯកភាពតាមការស្នើសុំ'
-        ]
-        ws.append(row_data)
-        for col_idx in range(1, len(row_data) + 1):
-            c = ws.cell(row=current_row, column=col_idx)
-            c.font = font_body
-            c.border = thin_border
-            if col_idx in [1, 2, 4, 5, 7, 8]:
-                c.alignment = align_center
-            else:
-                c.alignment = align_left
+        
+    all_items = _prepare_officer_medals_m0_items(officers_list)
+    current_row = 10
+    
+    for it in all_items:
+        if it.get('is_header'):
+            ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=8)
+            cell = ws.cell(row=current_row, column=1, value=it['title'])
+            cell.font = font_group
+            cell.fill = group_fill
+            cell.alignment = align_left
+            for c_idx in range(1, 9):
+                ws.cell(row=current_row, column=c_idx).border = thin_border
+            ws.row_dimensions[current_row].height = 24
+        else:
+            row_vals = [
+                it['num'],
+                it['officer'].full_name_kh,
+                it['gender_kh'],
+                it['position_title'],
+                it['last_medal'],
+                it['legal_decree'],
+                it['proposed_medal'],
+                it['remarks'],
+            ]
+            for col_idx, val in enumerate(row_vals, 1):
+                c = ws.cell(row=current_row, column=col_idx, value=val)
+                c.font = font_body
+                c.border = thin_border
+                if col_idx in [1, 3, 8]:
+                    c.alignment = align_center
+                else:
+                    c.alignment = align_left
+            ws.row_dimensions[current_row].height = 22
         current_row += 1
-
-    # Signature rows
+        
+    # Signatures
     current_row += 2
-    ws.cell(row=current_row, column=2, value="អ្នករៀបចំតារាង").font = font_royal_muol
-    ws.cell(row=current_row, column=5, value="បានឃើញ និងពិនិត្យត្រឹមត្រូវ\nប្រធានការិយាល័យរដ្ឋបាល និងបុគ្គលិក").font = font_royal_muol
+    ws.cell(row=current_row, column=2, value="មន្ត្រីទទួលបន្ទុក").font = font_muol
+    ws.cell(row=current_row, column=2).alignment = align_center
+    
+    ws.cell(row=current_row, column=5, value="បានឃើញ និងពិនិត្យត្រឹមត្រូវ\nប្រធានការិយាល័យរដ្ឋបាល និងបុគ្គលិក").font = font_muol
     ws.cell(row=current_row, column=5).alignment = align_center
-    ws.cell(row=current_row, column=10, value=f"ថ្ងៃ................... ខែ............. ឆ្នាំ{date.today().year}\nបានឃើញ និងឯកភាព\nប្រធានមន្ទីរ").font = font_royal_muol
-    ws.cell(row=current_row, column=10).alignment = align_center
-
-    # Column widths
-    col_widths = [6, 12, 22, 8, 14, 28, 14, 15, 28, 22, 30, 28]
-    for i, w in enumerate(col_widths, 1):
-        col_letter = openpyxl.utils.get_column_letter(i)
-        ws.column_dimensions[col_letter].width = w
-
+    
+    ws.merge_cells(start_row=current_row, start_column=7, end_row=current_row, end_column=8)
+    ws.cell(row=current_row, column=7, value=f"{dates_info['solar_date_handwritten_str']}\nបានឃើញ និងឯកភាព\nប្រធានមន្ទីរ").font = font_muol
+    ws.cell(row=current_row, column=7).alignment = align_center
+    
+    col_widths = {'A': 6.5, 'B': 20.0, 'C': 7.0, 'D': 28.0, 'E': 30.0, 'F': 32.0, 'G': 28.0, 'H': 16.0}
+    for col_letter, width in col_widths.items():
+        ws.column_dimensions[col_letter].width = width
+        
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    filename = f"master_medals_dossier_{req_year}_{date.today().strftime('%Y%m%d')}.xlsx"
+    filename = f"M-0_Medals_Status_{date.today().strftime('%Y%m%d')}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
 
 
 @login_required
-def officer_medals_master_print_view(request):
+def officer_medals_m1_print_view(request):
     """
-    Print View សម្រាប់តារាងស្នើសុំមេដាយសរុប (A4 Landscape Formatted)
+    Print Preview សម្រាប់ទម្រង់ M-1 (ស្នើសុំគ្រឿងឥស្សរិយយសតាមឆ្នាំ - គាំទ្រកម្រិតមន្ទីរ និងការិយាល័យជំនាញ)
     """
     profile = getattr(request.user, 'profile', None)
-    user_dept = profile.department if profile else None
+    dept = profile.department if profile else None
     has_global_access = check_has_global_hr_tracking_access(request.user, profile)
     
     req_year = request.GET.get('year') or date.today().year
@@ -7693,32 +7962,230 @@ def officer_medals_master_print_view(request):
     status_filter = request.GET.get('status')
     
     qs = OfficerMedalRequest.objects.select_related('officer', 'department').filter(request_year=req_year)
+    selected_dept = None
     if not has_global_access:
-        if user_dept:
-            qs = qs.filter(department=user_dept)
+        if dept:
+            qs = qs.filter(department=dept)
+            selected_dept = dept
         else:
             qs = qs.filter(submitted_by=request.user)
     elif dept_id:
         qs = qs.filter(department_id=dept_id)
+        selected_dept = Department.objects.filter(id=dept_id).first()
         
     if status_filter and status_filter != 'ALL':
         qs = qs.filter(status=status_filter)
         
     qs = qs.order_by('department__order_index', 'officer__khmer_last_name', 'officer__khmer_first_name')
     
-    for r in qs:
-        past_awards = [a.get('description', '') for a in (r.officer.awards_data or []) if a.get('description')]
-        r.past_awards_str = ", ".join(past_awards[:2]) if past_awards else '-'
-        
+    all_items = _prepare_officer_medals_m1_items(qs)
+    pages = _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=18, single_page_cap=14)
+    
+    is_specialized = _is_specialized_department(selected_dept)
+    office_head_title = _get_department_head_title(selected_dept) if is_specialized and selected_dept else "ប្រធានមន្ទីរ"
+    
+    dates_info = get_khmer_lunar_and_solar_date()
+    total_count = qs.count()
     female_count = qs.filter(officer__gender='FEMALE').count()
-
+    
     context = {
+        'pages': pages,
         'req_year': req_year,
-        'requests_list': qs,
+        'req_year_kh': to_khmer_digits(req_year) if 'to_khmer_digits' in globals() else str(req_year),
+        'total_count': total_count,
         'female_count': female_count,
-        'today': date.today(),
+        'selected_department': selected_dept,
+        'is_specialized': is_specialized,
+        'office_head_title': office_head_title,
+        'solar_date_str': dates_info['solar_date_str'],
+        'solar_date_handwritten_str': dates_info['solar_date_handwritten_str'],
+        'lunar_date_str': dates_info['lunar_date_str'],
+        'year_kh': dates_info['year_kh'],
+        'query_params': request.GET.urlencode(),
     }
-    return render(request, 'dms/officer_medals_master_print.html', context)
+    return render(request, 'dms/officer_medals_preview_m1_pdf.html', context)
+
+
+@login_required
+def officer_medals_m1_export_excel(request):
+    """
+    Excel Export សម្រាប់ទម្រង់ M-1 (ស្នើសុំគ្រឿងឥស្សរិយយសតាមឆ្នាំ - គាំទ្រកម្រិតមន្ទីរ និងការិយាល័យជំនាញ)
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    
+    profile = getattr(request.user, 'profile', None)
+    dept = profile.department if profile else None
+    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+    
+    req_year = request.GET.get('year') or date.today().year
+    dept_id = request.GET.get('department')
+    status_filter = request.GET.get('status')
+    
+    qs = OfficerMedalRequest.objects.select_related('officer', 'department').filter(request_year=req_year)
+    selected_dept = None
+    if not has_global_access:
+        if dept:
+            qs = qs.filter(department=dept)
+            selected_dept = dept
+        else:
+            qs = qs.filter(submitted_by=request.user)
+    elif dept_id:
+        qs = qs.filter(department_id=dept_id)
+        selected_dept = Department.objects.filter(id=dept_id).first()
+        
+    if status_filter and status_filter != 'ALL':
+        qs = qs.filter(status=status_filter)
+        
+    qs = qs.order_by('department__order_index', 'officer__khmer_last_name', 'officer__khmer_first_name')
+    
+    is_specialized = _is_specialized_department(selected_dept)
+    office_head_title = _get_department_head_title(selected_dept) if is_specialized and selected_dept else "ប្រធានមន្ទីរ"
+    
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"M-1 ស្នើសុំមេដាយ {req_year}"
+    
+    font_muol = Font(name='Khmer OS Muol Light', size=11, bold=True)
+    font_title = Font(name='Khmer OS Muol Light', size=12, bold=True, color='15803D')
+    font_body = Font(name='Khmer OS Battambang', size=10)
+    font_header = Font(name='Khmer OS Muol Light', size=9.5, bold=True, color='FFFFFF')
+    
+    align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    align_left = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    
+    thin_border = Border(
+        left=Side(style='thin', color='A0A0A0'),
+        right=Side(style='thin', color='A0A0A0'),
+        top=Side(style='thin', color='A0A0A0'),
+        bottom=Side(style='thin', color='A0A0A0')
+    )
+    header_fill = PatternFill(start_color='16A34A', end_color='16A34A', fill_type='solid')
+    
+    # Royal Header
+    ws.merge_cells('A4:D4')
+    if is_specialized and selected_dept:
+        ws['A4'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+        ws.merge_cells('A5:D5')
+        ws['A5'] = selected_dept.name_kh
+    else:
+        ws['A4'] = "ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"
+        ws.merge_cells('A5:D5')
+        ws['A5'] = "មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
+        
+    ws['A4'].font = font_muol
+    ws['A5'].font = font_muol
+    
+    ws.merge_cells('G4:H4')
+    ws['G4'] = "ព្រះរាជាណាចក្រកម្ពុជា"
+    ws['G4'].font = font_muol
+    ws['G4'].alignment = align_center
+    
+    ws.merge_cells('G5:H5')
+    ws['G5'] = "ជាតិ សាសនា ព្រះមហាក្សត្រ"
+    ws['G5'].font = font_muol
+    ws['G5'].alignment = align_center
+    
+    _add_excel_khmer_divider(ws, col_idx=7, col_offset_px=30, row_idx=5, row_offset_px=2, width_px=65, height_px=18)
+    
+    # Title Row
+    req_year_kh_str = to_khmer_digits(req_year) if 'to_khmer_digits' in globals() else str(req_year)
+    ws.merge_cells('A7:H7')
+    if is_specialized and selected_dept:
+        ws['A7'] = f"បញ្ជីរាយនាមមន្ត្រីរាជការ នៃ{selected_dept.name_kh} ដែលត្រូវទទួលគ្រឿងឥស្សរិយយស ឆ្នាំ{req_year_kh_str}"
+    else:
+        ws['A7'] = f"បញ្ជីរាយនាមថ្នាក់ដឹកនាំ ខណ្ឌរដ្ឋបាល និងមន្ដ្រីការិ. ដែលត្រូវទទួលគ្រឿងឥស្សរិយយស ឆ្នាំ{req_year_kh_str}"
+    ws['A7'].font = font_title
+    ws['A7'].alignment = align_center
+    
+    headers = [
+        'ល.រ', 'គោត្ដនាម នាម', 'ភេទ', 'ឋានៈតួនាទីបច្ចុប្បន្ន',
+        'ប្រភេទគ្រឿងឥស្សរិយយសដែលត្រូវទទួលបានចុងក្រោយ',
+        'ព្រះរាជក្រឹត្យ និងអនុក្រឹត្យ(បញ្ជាក់អំពីលេខថ្ងៃខែឆ្នាំនៃព្រះរាជក្រឹត្យ និងអនុក្រឹត្យ)',
+        'ប្រភេទគ្រឿងឥស្សរិយយសដែលត្រូវស្នើសុំ', 'សេចក្ដីផ្សេងៗ'
+    ]
+    
+    ws.row_dimensions[8].height = 30
+    for col_idx, h_text in enumerate(headers, 1):
+        cell = ws.cell(row=8, column=col_idx, value=h_text)
+        cell.fill = header_fill
+        cell.font = font_header
+        cell.alignment = align_center
+        cell.border = thin_border
+        
+    all_items = _prepare_officer_medals_m1_items(qs)
+    current_row = 9
+    
+    for it in all_items:
+        row_vals = [
+            it['num'],
+            it['officer'].full_name_kh,
+            it['gender_kh'],
+            it['position_title'],
+            it['last_medal'],
+            it['legal_decree'],
+            it['proposed_medal'],
+            it['remarks'],
+        ]
+        for col_idx, val in enumerate(row_vals, 1):
+            c = ws.cell(row=current_row, column=col_idx, value=val)
+            c.font = font_body
+            c.border = thin_border
+            if col_idx in [1, 3, 8]:
+                c.alignment = align_center
+            else:
+                c.alignment = align_left
+        ws.row_dimensions[current_row].height = 22
+        current_row += 1
+        
+    # Signatures
+    dates_info = get_khmer_lunar_and_solar_date()
+    current_row += 2
+    
+    if is_specialized and selected_dept:
+        # 2-Tier Signature for Office level
+        ws.cell(row=current_row, column=2, value="អ្នកធ្វើតារាង").font = font_muol
+        ws.cell(row=current_row, column=2).alignment = align_center
+        
+        ws.merge_cells(start_row=current_row, start_column=7, end_row=current_row, end_column=8)
+        ws.cell(row=current_row, column=7, value=f"{dates_info['solar_date_handwritten_str']}\nបានឃើញ និងឯកភាព\n{office_head_title}").font = font_muol
+        ws.cell(row=current_row, column=7).alignment = align_center
+    else:
+        # 3-Tier Signature for Department / Ministry level
+        ws.cell(row=current_row, column=2, value="មន្ត្រីទទួលបន្ទុក").font = font_muol
+        ws.cell(row=current_row, column=2).alignment = align_center
+        
+        ws.cell(row=current_row, column=5, value="បានឃើញ និងពិនិត្យត្រឹមត្រូវ\nប្រធានការិយាល័យរដ្ឋបាល និងបុគ្គលិក").font = font_muol
+        ws.cell(row=current_row, column=5).alignment = align_center
+        
+        ws.merge_cells(start_row=current_row, start_column=7, end_row=current_row, end_column=8)
+        ws.cell(row=current_row, column=7, value=f"{dates_info['solar_date_handwritten_str']}\nបានឃើញ និងឯកភាព\nប្រធានមន្ទីរ").font = font_muol
+        ws.cell(row=current_row, column=7).alignment = align_center
+        
+    col_widths = {'A': 6.5, 'B': 20.0, 'C': 7.0, 'D': 28.0, 'E': 30.0, 'F': 32.0, 'G': 28.0, 'H': 16.0}
+    for col_letter, width in col_widths.items():
+        ws.column_dimensions[col_letter].width = width
+        
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"M-1_Medals_Proposal_{req_year}_{date.today().strftime('%Y%m%d')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+# Compatibility Aliases for Master Medals
+def officer_medals_master_export_excel(request):
+    return officer_medals_m1_export_excel(request)
+
+def officer_medals_master_print_view(request):
+    return officer_medals_m1_print_view(request)
+
+def officer_medals_export_excel(request):
+    fmt = request.GET.get('format', '').lower()
+    if fmt == 'm0' or fmt == '0':
+        return officer_medals_m0_export_excel(request)
+    return officer_medals_m1_export_excel(request)
+
 
 
 @login_required
@@ -8618,7 +9085,7 @@ def _extract_single_phone_number(phone_str):
     return first_part or '-'
 
 
-def _format_officer_item_for_status_roster(idx, o):
+def _format_officer_item_for_status_roster(idx, o, dept_title=""):
     dob_kh = _format_date_as_khmer_digits(o.dob)
     start_date_kh = _format_date_as_khmer_digits(o.civil_service_start_date)
     rank_f = _format_rank_step_clean(o.current_rank_and_step, o.framework_category)
@@ -8634,6 +9101,7 @@ def _format_officer_item_for_status_roster(idx, o):
         'start_date_kh': start_date_kh,
         'dept_full': raw_dept,
         'dept_short': raw_dept,
+        'dept_display_title': dept_title or raw_dept,
         'rank_formatted': rank_f,
         'degree_formatted': deg_f,
         'single_phone': phone_f,
@@ -8805,27 +9273,31 @@ def officer_status_report_print_view(request):
     include_dept_headers = (selected_dept_obj is None)
 
     if leadership_officers:
+        lead_title = 'ថ្នាក់ដឹកនាំមន្ទីរ'
         if include_dept_headers:
-            table_items.append({'is_header': True, 'title': 'ថ្នាក់ដឹកនាំមន្ទីរ'})
+            table_items.append({'is_header': True, 'title': lead_title})
         for idx, o in enumerate(leadership_officers, 1):
-            table_items.append(_format_officer_item_for_status_roster(idx, o))
+            table_items.append(_format_officer_item_for_status_roster(idx, o, dept_title=lead_title))
 
     dept_idx = 1
     for dept_name, off_list in dept_map.items():
+        if not (dept_name.startswith('ខណ្ឌ') or 'ខណ្ឌ' in dept_name):
+            display_title = f"{to_khmer_digits(dept_idx)}. {dept_name}"
+            dept_idx += 1
+        else:
+            display_title = dept_name
+
         if include_dept_headers:
-            if not (dept_name.startswith('ខណ្ឌ') or 'ខណ្ឌ' in dept_name):
-                display_title = f"{to_khmer_digits(dept_idx)}. {dept_name}"
-                dept_idx += 1
-            else:
-                display_title = dept_name
             table_items.append({'is_header': True, 'title': display_title})
+
         for idx, o in enumerate(off_list, 1):
-            table_items.append(_format_officer_item_for_status_roster(idx, o))
+            table_items.append(_format_officer_item_for_status_roster(idx, o, dept_title=display_title))
 
     # Paginate Detailed Roster for A4 Landscape sheets (Pages 2..N)
     # The final roster page accommodates the formal 3-level signatures block
-    MAX_PER_PAGE = 20
-    MAX_LAST_PAGE = 14
+    MAX_PER_PAGE = 26
+    MAX_LAST_PAGE = 18
+    MIN_LAST_PAGE = 3
     roster_pages = []
 
     if table_items:
@@ -8845,20 +9317,28 @@ def officer_status_report_print_view(request):
                 if rem_count <= MAX_LAST_PAGE:
                     take = rem_count
                     is_last = True
-                elif rem_count <= (MAX_PER_PAGE + MAX_LAST_PAGE):
-                    half = rem_count // 2
-                    take = min(MAX_PER_PAGE, max(half, rem_count - MAX_LAST_PAGE))
-                    is_last = False
                 else:
-                    take = MAX_PER_PAGE
                     is_last = False
+                    # Fill the continuation page fully up to MAX_PER_PAGE close to page footer
+                    take = min(MAX_PER_PAGE, rem_count - MIN_LAST_PAGE)
 
                 # Prevent leaving a department group header orphaned at the bottom of a page
-                if take < rem_count and remaining[take - 1].get('is_header'):
+                if not is_last and take < rem_count and remaining[take - 1].get('is_header'):
                     take -= 1
 
                 chunk = remaining[:take]
                 remaining = remaining[take:]
+
+                # If this is not the first roster page, and chunk starts with an officer (not a header),
+                # and we are showing all departments, insert a continuation header row for seamless context
+                if page_num > 2 and include_dept_headers and chunk and not chunk[0].get('is_header'):
+                    first_item_dept = chunk[0].get('dept_display_title')
+                    if first_item_dept:
+                        chunk.insert(0, {
+                            'is_header': True,
+                            'is_continuation': True,
+                            'title': f"{first_item_dept} (បន្ត)",
+                        })
 
                 roster_pages.append({
                     'page_num': page_num,
@@ -11330,7 +11810,7 @@ def contract_officer_preview_pdf_d1(request):
             'phone': _format_d1_phone(o.phone),
         })
 
-    pages = _paginate_preview_items(table_items, first_page_cap=14, mid_page_cap=18, last_page_cap=11, single_page_cap=9)
+    pages = _paginate_preview_items(table_items, first_page_cap=22, mid_page_cap=25, last_page_cap=17, single_page_cap=13, min_last_page=3)
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)

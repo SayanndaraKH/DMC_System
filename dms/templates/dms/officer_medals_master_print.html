@@ -111,7 +111,17 @@
             }
             @page {
                 size: A4 landscape;
-                margin: 1cm;
+                margin: 8mm 10mm;
+            }
+            table.formal-table {
+                page-break-inside: auto;
+            }
+            table.formal-table thead {
+                display: table-header-group;
+            }
+            table.formal-table tr {
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
             table.formal-table th {
                 background-color: #eee !important;
@@ -126,6 +136,7 @@
 <div class="page">
 
     <div class="no-print">
+        <button type="button" class="btn-print btn-toggle-margins" style="background:#475569; margin-right: 10px;" onclick="window.toggleMargins()" title="ចុចដើម្បីបង្ហាញ/លាក់ បន្ទាត់គម្លាតស្តង់ដា (Show Margins) (Shortkey: M)">📐 បន្ទាត់គម្លាត</button>
         <button type="button" class="btn-print" style="background:#0284c7; margin-right: 10px;" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">🔄 កំណត់ទីតាំងដើម</button>
         <button class="btn-print" onclick="window.print()">🖨️ បោះពុម្ពឯកសារនេះ (Print Document)</button>
         <button class="btn-print" style="background:#64748b; margin-left: 10px;" onclick="window.close()">✖️ បិទ</button>

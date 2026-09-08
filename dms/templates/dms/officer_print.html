@@ -252,10 +252,17 @@
 
         /* Page Number Footer */
         .page-footer-center {
-            margin-top: 6px;
+            position: absolute;
+            bottom: 3.5mm;
+            left: 0;
+            right: 0;
             text-align: center;
             font-size: 8.5pt;
             font-family: 'Khmer OS Battambang', sans-serif;
+            font-weight: bold;
+            pointer-events: none;
+            margin: 0;
+            padding: 0;
         }
 
         /* Floating Controls */
@@ -326,6 +333,9 @@
 
     <!-- Floating Action Buttons -->
         <div class="no-print">
+            <button type="button" class="btn-print btn-toggle-margins" style="background:#475569;" onclick="window.toggleMargins()" title="ចុចដើម្បីបង្ហាញ/លាក់ បន្ទាត់គម្លាតស្តង់ដា (Show Margins) (Shortkey: M)">
+                <i class="fa-solid fa-ruler-combined"></i> <span class="margin-btn-text">បន្ទាត់គម្លាត</span>
+            </button>
             <button type="button" class="btn-print" style="background:#0284c7;" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">
                 <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
             </button>

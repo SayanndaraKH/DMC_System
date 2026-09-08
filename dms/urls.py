@@ -84,6 +84,10 @@ urlpatterns = [
     
     path('officers/medals/', views.officer_medals_view, name='officer_medals'),
     path('officers/medals/export/excel/', views.officer_medals_export_excel, name='officer_medals_export_excel'),
+    path('officers/medals/preview/m0/', views.officer_medals_m0_print_view, name='officer_medals_preview_m0'),
+    path('officers/medals/export/m0/excel/', views.officer_medals_m0_export_excel, name='officer_medals_m0_export_excel'),
+    path('officers/medals/preview/m1/', views.officer_medals_m1_print_view, name='officer_medals_preview_m1'),
+    path('officers/medals/export/m1/excel/', views.officer_medals_m1_export_excel, name='officer_medals_m1_export_excel'),
     path('officers/medals/master/excel/', views.officer_medals_master_export_excel, name='officer_medals_master_export_excel'),
     path('officers/medals/master/print/', views.officer_medals_master_print_view, name='officer_medals_master_print_view'),
     path('officers/medals/batch-update/', views.officer_medals_batch_status_update, name='officer_medals_batch_status_update'),

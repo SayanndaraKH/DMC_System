@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ទម្រង់ E-1 (បញ្ជូនទៅក្រសួង) - បញ្ជីរាយនាមមន្ត្រីរាជការ</title>
+    <title>ទម្រង់ M-0 (បច្ចុប្បន្នភាពគ្រឿងឥស្សរិយយស) - មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</title>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
@@ -169,6 +169,9 @@
         }
         .doc-title-block .title-line-2 {
             font-size: 9.5pt;
+            font-family: 'Khmer OS Battambang', sans-serif !important;
+            font-weight: bold !important;
+            color: #1e293b;
         }
 
         /* Continuation Header for Page 2+ */
@@ -184,14 +187,14 @@
         }
 
         /* Table Design */
-        table.e1-table {
+        table.m0-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 8.5pt;
             table-layout: fixed;
             margin-bottom: 4px;
         }
-        table.e1-table th, table.e1-table td {
+        table.m0-table th, table.m0-table td {
             border: 1px solid #000;
             padding: 2px 4px;
             vertical-align: middle;
@@ -201,7 +204,7 @@
             box-sizing: border-box;
             height: 22px;
         }
-        table.e1-table thead th {
+        table.m0-table thead th {
             background-color: #f8fafc;
             font-family: 'Khmer OS Muol Light', sans-serif;
             font-size: 8pt;
@@ -209,10 +212,10 @@
             font-weight: normal;
             height: 32px;
         }
-        table.e1-table tbody tr {
+        table.m0-table tbody tr {
             height: 22px;
         }
-        table.e1-table tr.dept-header-row td {
+        table.m0-table tr.dept-header-row td {
             background-color: #f1f5f9;
             font-family: 'Khmer OS Muol Light', sans-serif;
             font-size: 8.5pt;
@@ -270,12 +273,12 @@
                 page-break-after: always !important;
                 break-after: page !important;
             }
-            table.e1-table thead th {
+            table.m0-table thead th {
                 background-color: #eee !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            table.e1-table tr.dept-header-row td {
+            table.m0-table tr.dept-header-row td {
                 background-color: #f2f2f2 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -288,19 +291,17 @@
     <!-- Floating Action Toolbar -->
     <div class="preview-toolbar">
         <div class="preview-toolbar-title">
-            <span style="background: rgba(37,99,235,0.2); color: #60a5fa; padding: 4px 10px; border-radius: 6px; font-size: 11px;">E-1</span>
-            <span>ទម្រង់បញ្ជូនទៅក្រសួងកសិកម្ម (Ministry Format) - A4 Landscape Preview</span>
+            <span style="background: rgba(22,163,74,0.2); color: #4ade80; padding: 4px 10px; border-radius: 6px; font-size: 11px;">M-0</span>
+            <span>ទម្រង់បច្ចុប្បន្នភាពគ្រឿងឥស្សរិយយស (M-0) - A4 Landscape Preview</span>
             <span style="font-size: 12px; color: #94a3b8;">| សរុប {{ total_count }} នាក់ (ស្រី {{ female_count }} នាក់) • {{ pages|length }} ទំព័រ</span>
         </div>
         <div class="preview-toolbar-actions">
-            <a href="{% url 'officer_list' %}" class="btn-action btn-back">
+            <a href="{% url 'officer_medals' %}" class="btn-action btn-back">
                 <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
             </a>
-            {% if can_export_officer_excel %}
-            <a href="{% url 'officer_export_excel' %}?format=e1{% if query_params %}&{{ query_params }}{% endif %}" class="btn-action btn-excel">
-                <i class="fa-solid fa-file-excel"></i> ទាញយកជា Excel
+            <a href="{% url 'officer_medals_m0_export_excel' %}{% if query_params %}?{{ query_params }}{% endif %}" class="btn-action btn-excel">
+                <i class="fa-solid fa-file-excel"></i> ទាញយកជា Excel (M-0)
             </a>
-            {% endif %}
             <button type="button" class="btn-action btn-reset-sig" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">
                 <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
             </button>
@@ -344,59 +345,49 @@
 
                 <!-- Title Block (2 Lines) -->
                 <div class="doc-title-block">
-                    <div class="muol-font title-line-1">បញ្ជីរាយនាមមន្ត្រីរាជការ{% if is_specialized and selected_department %} របស់{{ selected_department.name_kh }}{% else %} ក្នុងរចនាសម្ព័ន្ធមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន{% endif %}</div>
-                    <div class="muol-font title-line-2">ប្រចាំខែ{{ month_kh }} ឆ្នាំ{{ year_kh }}</div>
+                    <div class="muol-font title-line-1">បញ្ជីបច្ចុប្បន្នភាពថ្នាក់ដឹកនាំ ខណ្ឌរដ្ឋបាល និងមន្ដ្រីការិ. ដែលត្រូវទទួលគ្រឿងឥស្សរិយយស</div>
+                    <div class="title-line-2">គិតត្រឹម{{ solar_date_str }}</div>
                 </div>
                 {% else %}
                 <!-- Continuation Header for subsequent pages -->
                 <div class="page-continuation-header">
-                    {% if is_specialized and selected_department %}
-                    <span>បញ្ជីរាយនាមមន្ត្រីរាជការ - {{ selected_department.name_kh }} (តចប់/បន្ត)</span>
-                    {% else %}
-                    <span>បញ្ជីរាយនាមមន្ត្រីរាជការ - មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន (តចប់/បន្ត)</span>
-                    {% endif %}
+                    <span>បញ្ជីបច្ចុប្បន្នភាពគ្រឿងឥស្សរិយយស (M-0) - មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន (តចប់/បន្ត)</span>
                     <span>ទំព័រទី {{ page.page_num }}/{{ page.total_pages }}</span>
                 </div>
                 {% endif %}
 
-                <!-- Table -->
-                <table class="e1-table">
+                <!-- Table (8 Columns matching M-0.xlsx) -->
+                <table class="m0-table">
                     <thead>
                         <tr style="height: 34px;">
-                            <th style="width: 3.5%;">ល.រ</th>
-                            <th style="width: 8%;">អត្តលេខ</th>
-                            <th style="width: 12%;">ឈ្មោះ</th>
-                            <th style="width: 4%;">ភេទ</th>
-                            <th style="width: 8%;">ថ្ងៃ-ខែ-ឆ្នាំ<br>កំណើត</th>
-                            <th style="width: 8%;">ថ្ងៃខែឆ្នាំ<br>បម្រើការងារ</th>
-                            <th style="width: 6.5%;">កាំបៀវត្ស</th>
-                            <th style="width: 13.5%;">មុខដំណែង</th>
-                            <th style="width: 10.5%;">សញ្ញាប័ត្រ</th>
-                            <th style="width: 26%;">ជំនាញ</th>
+                            <th style="width: 4%;">ល.រ</th>
+                            <th style="width: 13%;">គោត្ដនាម នាម</th>
+                            <th style="width: 4.5%;">ភេទ</th>
+                            <th style="width: 17.5%;">ឋានៈតួនាទីបច្ចុប្បន្ន</th>
+                            <th style="width: 19%;">ប្រភេទគ្រឿងឥស្សរិយយស<br>ដែលត្រូវទទួលបានចុងក្រោយ</th>
+                            <th style="width: 19%;">ព្រះរាជក្រឹត្យ និងអនុក្រឹត្យ<br>(បញ្ជាក់អំពីលេខថ្ងៃខែឆ្នាំ)</th>
+                            <th style="width: 15%;">ប្រភេទគ្រឿងឥស្សរិយយស<br>ដែលត្រូវស្នើសុំ</th>
+                            <th style="width: 8%;">សេចក្ដីផ្សេងៗ</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for it in page.items %}
                         {% if it.is_header %}
-                        {% if not selected_department %}
-                        <!-- Department Group Header -->
+                        <!-- Department / Section Group Header -->
                         <tr class="dept-header-row" style="height: 24px;">
-                            <td colspan="10" style="font-weight: normal;">{{ it.title }}</td>
+                            <td colspan="8" style="font-weight: normal;">{{ it.title }}</td>
                         </tr>
-                        {% endif %}
                         {% else %}
                         <!-- Officer Row -->
                         <tr>
                             <td class="text-center" style="font-weight: normal;">{{ it.num }}</td>
-                            <td class="text-center" style="font-weight: normal;">{{ it.officer.officer_id_number|default:"-" }}</td>
                             <td class="text-left" style="font-weight: normal;">{{ it.officer.full_name_kh }}</td>
-                            <td class="text-center" style="font-weight: normal;">{{ it.officer.e1_gender_kh }}</td>
-                            <td class="text-center" style="font-weight: normal;">{{ it.officer.e1_dob|default:"-" }}</td>
-                            <td class="text-center" style="font-weight: normal;">{{ it.officer.e1_start_date|default:"-" }}</td>
-                            <td class="text-center" style="font-weight: normal;">{{ it.officer.current_rank_and_step|default:"-" }}</td>
-                            <td class="text-left" style="font-weight: normal;">{{ it.officer.current_position_title|default:"-" }}</td>
-                            <td class="text-left" style="font-weight: normal;">{{ it.officer.e1_degree|default:"-" }}</td>
-                            <td class="text-left" style="font-weight: normal;">{{ it.officer.e1_skill|default:"-" }}</td>
+                            <td class="text-center" style="font-weight: normal;">{{ it.gender_kh }}</td>
+                            <td class="text-left" style="font-weight: normal;">{{ it.position_title|default:"-" }}</td>
+                            <td class="text-left" style="font-weight: normal;">{{ it.last_medal|default:"គ្មាន" }}</td>
+                            <td class="text-left" style="font-weight: normal;">{{ it.legal_decree|default:"គ្មាន" }}</td>
+                            <td class="text-left" style="font-weight: normal; color: #166534;">{{ it.proposed_medal|default:"-" }}</td>
+                            <td class="text-center" style="font-weight: normal;">{{ it.remarks|default:"-" }}</td>
                         </tr>
                         {% endif %}
                         {% endfor %}
@@ -404,45 +395,31 @@
                 </table>
 
                 {% if page.is_last %}
-                <!-- Bottom Summary & Signatures Section (Matching Image 2 Layout) -->
-                <div class="e1-bottom-section" style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 16px; page-break-inside: avoid;">
+                <!-- Bottom 3-Tier Signatures Section for M-0 -->
+                <div class="m0-bottom-section" style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 18px; page-break-inside: avoid;">
                     
-                    <!-- Left & Approval Grouped Closely Together -->
-                    <div style="display: flex; gap: 35px; align-items: flex-start;">
-                        <!-- Left: Cadre & Staff Summary Stats -->
-                        <div style="line-height: 1.85; font-size: 9.5pt; white-space: nowrap;">
-                            <div>សរុបរួម៖ ...{{ cadre_stats.total }}..នាក់ , ស្រី...{{ cadre_stats.female_total }}..នាក់</div>
-                            <div style="padding-left: 20px;">ក្របខ័ណ្ឌ ក...{{ cadre_stats.cadre_a_total }}..នាក់ , ស្រី...{{ cadre_stats.cadre_a_female }}..នាក់</div>
-                            <div style="padding-left: 20px;">ក្របខ័ណ្ឌ ខ...{{ cadre_stats.cadre_b_total }}..នាក់ , ស្រី...{{ cadre_stats.cadre_b_female }}..នាក់</div>
-                            <div style="padding-left: 20px;">ក្របខ័ណ្ឌ គ...{{ cadre_stats.cadre_c_total }}..នាក់ , ស្រី...{{ cadre_stats.cadre_c_female }}..នាក់</div>
-                        </div>
-
-                        <!-- Center: Approval (Dropped down slightly below Stats) -->
-                        <div class="sig-draggable" style="text-align: center; line-height: 1.8; padding-top: 65px; min-width: 180px;">
-                            <div class="muol-font" style="font-size: 10pt; color: #111;">បានឃើញ និងឯកភាព</div>
-                            <div class="muol-font" style="font-size: 10pt; margin-top: 4px; color: #111;">
-                                {% if is_specialized and selected_department %}
-                                {{ office_head_title }}
-                                {% else %}
-                                ប្រធាន
-                                {% endif %}
-                            </div>
-                            <div style="height: 50px;"></div>
-                        </div>
+                    <!-- Left: Officer in Charge / Preparer -->
+                    <div class="sig-draggable" style="text-align: center; line-height: 1.8; min-width: 200px;">
+                        <div class="muol-font" style="font-size: 10pt; color: #111;">មន្ត្រីទទួលបន្ទុក</div>
+                        <div style="height: 55px;"></div>
+                        <div style="font-weight: bold; font-size: 9.5pt;">........................................</div>
                     </div>
 
-                    <!-- Right: Date & Signer Title -->
-                    <div class="sig-draggable" style="text-align: center; line-height: 1.85; font-size: 9.5pt; min-width: 280px;">
-                        <div>ថ្ងៃ..................... ខែ.................. {{ lunar_year_text }}</div>
-                        <div>ប៉ៃលិន, ថ្ងៃទី....... ខែ................ ឆ្នាំ{{ year_kh }}</div>
-                        <div class="muol-font" style="font-size: 10pt; margin-top: 4px; color: #111;">
-                            {% if is_specialized and selected_department %}
-                            {{ office_right_title|default:"អ្នកធ្វើតារាង" }}
-                            {% else %}
-                            ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក
-                            {% endif %}
-                        </div>
-                        <div style="height: 50px;"></div>
+                    <!-- Center: Head of Admin-HR Office -->
+                    <div class="sig-draggable" style="text-align: center; line-height: 1.8; min-width: 250px;">
+                        <div style="font-size: 9.5pt;">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
+                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក</div>
+                        <div style="height: 55px;"></div>
+                        <div style="font-weight: bold; font-size: 9.5pt;">........................................</div>
+                    </div>
+
+                    <!-- Right: Department Director -->
+                    <div class="sig-draggable" style="text-align: center; line-height: 1.8; min-width: 250px;">
+                        <div style="font-size: 9.5pt;">{{ solar_date_handwritten_str|default:"ថ្ងៃទី................ ខែ................ ឆ្នាំ២០២៦" }}</div>
+                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">បានឃើញ និងឯកភាព</div>
+                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">ប្រធានមន្ទីរ</div>
+                        <div style="height: 55px;"></div>
+                        <div style="font-weight: bold; font-size: 9.5pt;">........................................</div>
                     </div>
 
                 </div>
@@ -450,7 +427,7 @@
 
             </div>
 
-            <!-- Page Number on each distinct sheet (Only if more than 1 page) -->
+            <!-- Page Number on each distinct sheet -->
             {% if pages|length > 1 %}
             <div class="page-footer-number">
                 - {{ page.page_num }} -

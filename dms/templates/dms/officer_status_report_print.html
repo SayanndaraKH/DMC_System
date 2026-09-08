@@ -317,7 +317,7 @@
             width: 297mm;
             min-height: 210mm;
             max-height: 210mm;
-            padding: 8mm 10mm 6mm 10mm;
+            padding: 8mm 10mm 12mm 10mm;
         }
 
         /* 100% Identical Outer Frame Border matching 02-2025.pdf */
@@ -551,10 +551,18 @@
             font-size: 8.5pt;
             margin-top: 4px;
             table-layout: fixed;
+            page-break-inside: auto;
+        }
+        table.roster-table thead {
+            display: table-header-group;
+        }
+        table.roster-table tbody tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
         table.roster-table th, table.roster-table td {
             border: 1px solid #334155;
-            padding: 3px 5px;
+            padding: 3.5px 5px;
             vertical-align: middle;
             box-sizing: border-box;
             line-height: 1.35;
@@ -653,13 +661,18 @@
         }
 
         .page-footer-number {
+            display: block;
+            position: relative;
+            width: 100%;
             text-align: center;
-            font-size: 9pt;
+            margin-top: 6px;
+            margin-bottom: 2px;
+            font-size: 8.5pt;
             color: #475569;
             font-family: 'Khmer OS Battambang', sans-serif;
-            padding-top: 5px;
-            border-top: 1px solid #e2e8f0;
-            margin-top: auto;
+            font-weight: bold;
+            pointer-events: none;
+            line-height: 1;
         }
 
         /* Specialized Office 2-Part Signatures (ឆ្វេង: ប្រធានការិយាល័យ/នាយខណ្ឌ, ស្តាំ: អ្នកធ្វើតារាង) */
@@ -813,6 +826,12 @@
             <button type="button" class="btn-action btn-reset-sig" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាទាំងអស់ត្រឡប់មកដើមវិញ (ចុច ២ដងលើប្លុកដើម្បី Reset មួយៗ)">
                 <i class="fa-solid fa-arrows-rotate"></i>
                 <span>កំណត់ទីតាំងដើម</span>
+            </button>
+
+            <!-- Show Margins Toggle Button -->
+            <button type="button" class="btn-action btn-toggle-margins" onclick="window.toggleMargins()" title="ចុចដើម្បីបង្ហាញ/លាក់ បន្ទាត់គម្លាតស្តង់ដា (Show Margins) (Shortkey: M)">
+                <i class="fa-solid fa-ruler-combined"></i>
+                <span class="margin-btn-text">បន្ទាត់គម្លាត</span>
             </button>
         </div>
 

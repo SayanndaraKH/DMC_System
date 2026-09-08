@@ -105,12 +105,53 @@
             <button type="button" class="btn btn-success rounded-pill px-3.5 py-2 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#createMedalRequestModal" onclick="openMedalModalForOfficer('', '', '', '')">
                 <i class="fa-solid fa-paper-plane me-1.5 fs-6"></i> + ស្នើសុំមេដាយ Online
             </button>
-            <a href="{% url 'officer_medals_master_export_excel' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-outline-success rounded-pill px-3.5 py-2 shadow-xs fw-bold" title="ទាញយកតារាងស្នើសុំសរុបជាផ្លូវការជូនក្រសួង">
-                <i class="fa-solid fa-file-excel me-1.5 fs-6"></i> Excel ជូនក្រសួង
-            </a>
-            <a href="{% url 'officer_medals_master_print_view' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-outline-dark rounded-pill px-3.5 py-2 fw-bold" title="បើកមើលទម្រង់បោះពុម្ពផ្លូវការ">
-                <i class="fa-solid fa-print me-1.5"></i> បោះពុម្ពតារាងផ្លូវការ
-            </a>
+            
+            <!-- M-0 Dropdown / Actions -->
+            <div class="btn-group">
+                <a href="{% url 'officer_medals_preview_m0' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-outline-success rounded-start-pill px-3 py-2 fw-bold" title="បើកមើលទម្រង់បច្ចុប្បន្នភាពគ្រឿងឥស្សរិយយស (M-0)">
+                    <i class="fa-solid fa-file-pdf me-1 text-danger"></i> ទម្រង់ M-0 (បច្ចុប្បន្នភាព)
+                </a>
+                <button type="button" class="btn btn-outline-success dropdown-toggle dropdown-toggle-split rounded-end-pill px-2.5" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="visually-hidden">Toggle Dropdown</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 fs-8">
+                    <li><h6 class="dropdown-header text-muted fw-bold">ទម្រង់ M-0 (បច្ចុប្បន្នភាពគ្រឿងឥស្សរិយយស)</h6></li>
+                    <li>
+                        <a class="dropdown-item py-2" href="{% url 'officer_medals_preview_m0' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" target="_blank">
+                            <i class="fa-solid fa-print text-primary me-2"></i> មើល និងបោះពុម្ព PDF (Print Preview)
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item py-2" href="{% url 'officer_medals_m0_export_excel' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}">
+                            <i class="fa-solid fa-file-excel text-success me-2"></i> ទាញយកជា Excel (M-0.xlsx)
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- M-1 Dropdown / Actions -->
+            <div class="btn-group">
+                <a href="{% url 'officer_medals_preview_m1' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-outline-dark rounded-start-pill px-3 py-2 fw-bold" title="បើកមើលទម្រង់ស្នើសុំគ្រឿងឥស្សរិយយស (M-1)">
+                    <i class="fa-solid fa-award me-1 text-warning"></i> ទម្រង់ M-1 (ស្នើសុំ)
+                </a>
+                <button type="button" class="btn btn-outline-dark dropdown-toggle dropdown-toggle-split rounded-end-pill px-2.5" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="visually-hidden">Toggle Dropdown</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 fs-8">
+                    <li><h6 class="dropdown-header text-muted fw-bold">ទម្រង់ M-1 (ស្នើសុំគ្រឿងឥស្សរិយយស ឆ្នាំ{{ master_year }})</h6></li>
+                    <li>
+                        <a class="dropdown-item py-2" href="{% url 'officer_medals_preview_m1' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" target="_blank">
+                            <i class="fa-solid fa-print text-primary me-2"></i> មើល និងបោះពុម្ព PDF (Print Preview)
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item py-2" href="{% url 'officer_medals_m1_export_excel' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}">
+                            <i class="fa-solid fa-file-excel text-success me-2"></i> ទាញយកជា Excel (M-1.xlsx)
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
             <a href="{% url 'officer_list' %}" class="btn btn-outline-secondary rounded-pill px-3.5 py-2 fw-bold">
                 <i class="fa-solid fa-arrow-left me-1.5"></i> ត្រឡប់ទៅបញ្ជីមន្ត្រី
             </a>
@@ -608,11 +649,11 @@
                             <i class="fa-solid fa-bolt me-1"></i> កែប្រែទិន្នន័យរួម (Bulk Action)
                         </button>
                         {% endif %}
-                        <a href="{% url 'officer_medals_master_export_excel' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
-                            <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel ជូនក្រសួង
+                        <a href="{% url 'officer_medals_m1_export_excel' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
+                            <i class="fa-solid fa-file-excel me-1"></i> ទាញយក Excel (M-1)
                         </a>
-                        <a href="{% url 'officer_medals_master_print_view' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold">
-                            <i class="fa-solid fa-print me-1"></i> បោះពុម្ពផ្លូវការ
+                        <a href="{% url 'officer_medals_preview_m1' %}?year={{ master_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" target="_blank" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold">
+                            <i class="fa-solid fa-print me-1"></i> បោះពុម្ព PDF (M-1)
                         </a>
                     </div>
                 </div>

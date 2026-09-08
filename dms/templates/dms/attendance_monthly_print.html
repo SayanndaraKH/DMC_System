@@ -110,6 +110,16 @@
             .no-print {
                 display: none !important;
             }
+            table.table-print {
+                page-break-inside: auto;
+            }
+            table.table-print thead {
+                display: table-header-group;
+            }
+            table.table-print tr {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
         }
     </style>
 </head>
@@ -120,6 +130,9 @@
             <strong>ទម្រង់បោះពុម្ពវត្តមានប្រចាំខែ</strong> ({{ dept.name_kh|default:'' }} - ខែ {{ month_name_kh }} ឆ្នាំ {{ year }})
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn btn-outline btn-toggle-margins" onclick="window.toggleMargins()" title="ចុចដើម្បីបង្ហាញ/លាក់ បន្ទាត់គម្លាតស្តង់ដា (Show Margins) (Shortkey: M)">
+                <i class="fa-solid fa-ruler-combined"></i> <span class="margin-btn-text">បន្ទាត់គម្លាត</span>
+            </button>
             <button type="button" class="btn btn-outline btn-reset-sig" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">
                 <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
             </button>
