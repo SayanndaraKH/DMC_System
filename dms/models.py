@@ -873,6 +873,45 @@ class CivilServantProfile(models.Model):
         if self.pob_province: parts.append(self._format_address_part(self.pob_province, 'province'))
         return " ".join(parts) or "មិនទាន់បញ្ជាក់"
 
+    @property
+    def bulletin_template_code(self):
+        fw = getattr(self, 'framework_category', '') or ''
+        rank = getattr(self, 'current_rank_and_step', '') or ''
+        if fw == 'A' or rank.strip().startswith('ក') or 'ក.' in rank:
+            return 'D01'
+        elif fw == 'B' or rank.strip().startswith('ខ') or 'ខ.' in rank:
+            return 'D02'
+        elif fw in ['C', 'D'] or rank.strip().startswith('គ') or 'គ.' in rank or rank.strip().startswith('ឃ') or 'ឃ.' in rank:
+            return 'D03'
+        return 'D01'
+
+    @property
+    def bulletin_template_label(self):
+        code = self.bulletin_template_code
+        if code == 'D01':
+            return 'ក (D-01)'
+        elif code == 'D02':
+            return 'ខ (D-02)'
+        return 'គ (D-03)'
+
+    @property
+    def bulletin_code_display(self):
+        code = self.bulletin_template_code
+        if code == 'D01':
+            return 'D-01'
+        elif code == 'D02':
+            return 'D-02'
+        return 'D-03'
+
+    @property
+    def bulletin_badge_color(self):
+        code = self.bulletin_template_code
+        if code == 'D01':
+            return 'primary'
+        elif code == 'D02':
+            return 'info'
+        return 'success' 
+
 
 class OfficerAttachment(models.Model):
     """
@@ -1273,6 +1312,16 @@ class OfficerPromotionRequest(models.Model):
     ministry_decision_notes = models.TextField(blank=True, verbose_name="កំណត់សម្គាល់ការសម្រេចរបស់ក្រសួង")
     is_profile_updated = models.BooleanField(default=False, verbose_name="បាន Update Profile រួច")
 
+    # 📊 ទិន្នន័យព្រឹត្តិប័ត្រពិន្ទុ & មូលវិចារណ៍ (Score Bulletin & Remarks per Year)
+    template_code = models.CharField(max_length=20, default='D01', blank=True, verbose_name="កម្រងក្របខណ្ឌ (D01, D02, D03)")
+    unit_proposal = models.CharField(max_length=255, blank=True, verbose_name="សំណើរបស់ប្រធានអង្គភាព (ស្នើសុំដំឡើងថ្នាក់)")
+    unit_head_comment = models.TextField(blank=True, verbose_name="ចំណារ ឬ មូលវិចារណ៍របស់ប្រធានស្ថាប័ន ឬអង្គភាពផ្ទាល់")
+    minister_comment = models.TextField(blank=True, verbose_name="ចំណារ ឬ មូលវិចារណ៍របស់រដ្ឋមន្ត្រី ឬប្រធានស្ថាប័នមានសមត្ថកិច្ច")
+    scores_data = models.JSONField(default=dict, blank=True, verbose_name="ទិន្នន័យពិន្ទុតាមលក្ខណៈវិនិច្ឆ័យនីមួយៗ")
+    average_score = models.CharField(max_length=50, blank=True, verbose_name="ពិន្ទុមធ្យមភាគ")
+    grade = models.CharField(max_length=50, blank=True, verbose_name="និទ្ទេស")
+    bulletin_custom_data = models.JSONField(default=dict, blank=True, verbose_name="ទិន្នន័យកែសម្រួលបន្ថែមសម្រាប់ព្រឹត្តិប័ត្រ")
+
     submitted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='submitted_promotion_requests', verbose_name="អ្នកស្នើសុំ")
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_promotion_requests', verbose_name="អ្នកពិនិត្យ/អនុម័ត")
     reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="កាលបរិច្ឆេទពិនិត្យ")
@@ -1286,6 +1335,30 @@ class OfficerPromotionRequest(models.Model):
 
     def __str__(self):
         return f"សំណើសុំដំឡើងថ្នាក់: {self.officer.full_name_kh} -> {self.proposed_rank_and_step} ({self.get_status_display()})"
+
+    @property
+    def bulletin_template_code(self):
+        if self.officer:
+            return self.officer.bulletin_template_code
+        return 'D01'
+
+    @property
+    def bulletin_template_label(self):
+        if self.officer:
+            return self.officer.bulletin_template_label
+        return 'ក (D-01)'
+
+    @property
+    def bulletin_code_display(self):
+        if self.officer:
+            return self.officer.bulletin_code_display
+        return 'D-01'
+
+    @property
+    def bulletin_badge_color(self):
+        if self.officer:
+            return self.officer.bulletin_badge_color
+        return 'primary' 
 
 
 class OfficerMedalRequest(models.Model):

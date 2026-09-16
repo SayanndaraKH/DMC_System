@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Kantumruy+Pro:wght@400;500;600;700&family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260908_1445">
     
     <style>
         @font-face {
@@ -662,17 +662,20 @@
 
         .page-footer-number {
             display: block;
-            position: relative;
+            position: absolute;
+            bottom: 3mm;
+            left: 0;
+            right: 0;
             width: 100%;
             text-align: center;
-            margin-top: 6px;
-            margin-bottom: 2px;
+            margin: 0;
             font-size: 8.5pt;
             color: #475569;
             font-family: 'Khmer OS Battambang', sans-serif;
             font-weight: bold;
             pointer-events: none;
             line-height: 1;
+            z-index: 99;
         }
 
         /* Specialized Office 2-Part Signatures (ឆ្វេង: ប្រធានការិយាល័យ/នាយខណ្ឌ, ស្តាំ: អ្នកធ្វើតារាង) */
@@ -1242,7 +1245,7 @@
                 </div>
 
                 <!-- Running Footer Number -->
-                <div class="page-footer-number">
+                <div class="page-footer-number" style="position: absolute !important; bottom: 3mm !important; left: 0 !important; right: 0 !important; width: 100% !important; text-align: center !important; margin: 0 !important; padding: 0 !important; pointer-events: none !important; z-index: 99 !important;">
                     - {{ p.page_num_kh }} -
                 </div>
             </section>
@@ -1448,6 +1451,6 @@
             });
         });
     </script>
-    <script src="/static/dms/js/sig_draggable.js"></script>
+    <script src="/static/dms/js/sig_draggable.js?v=20260908_1445"></script>
 </body>
 </html>

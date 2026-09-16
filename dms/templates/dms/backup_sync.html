@@ -1,0 +1,835 @@
+{% extends 'dms/base.html' %}
+{% load static %}
+
+{% block title %}មជ្ឈមណ្ឌល Backup & សមកាលកម្មទិន្នន័យ - DMS Cambodia{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <!-- Header Title Banner -->
+    <div class="card shadow-sm border-0 mb-4 bg-primary text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a4294 100%);">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="rounded-circle bg-white bg-opacity-25 p-3 d-flex align-items-center justify-content-center" style="width: 58px; height: 58px;">
+                            <i class="fa-solid fa-server fa-2x text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="fw-bold mb-1">មជ្ឈមណ្ឌល Backup & សមកាលកម្មទិន្នន័យ (Data Center)</h3>
+                            <p class="mb-0 text-white-50 fs-6">
+                                ទាញយកទិន្នន័យរក្សាទុកក្នុង Local PC ដោយសេរី, ស្តារទិន្នន័យឡើងវិញដោយមិនបាត់បង់, សមកាលកម្ម (Sync) ជាមួយ Cloud/ម៉ាស៊ីនមេ, និងដំណើរការតាម LAN/Wi-Fi
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <a href="{% url 'download_full_backup' %}" class="btn btn-warning btn-lg fw-bold shadow-sm px-4">
+                        <i class="fa-solid fa-cloud-arrow-down me-2"></i>ទាញយក Full Backup (.zip)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert / Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm mb-4" role="alert">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid {% if message.tags == 'success' %}fa-circle-check text-success{% elif message.tags == 'error' %}fa-triangle-exclamation text-danger{% else %}fa-circle-info text-info{% endif %} fs-5"></i>
+                    <div>{{ message|safe }}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- 📊 System Stats Counters -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-white">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold text-uppercase mb-1">👥 មន្ត្រីរាជការ & កិច្ចសន្យា</div>
+                        <div class="fs-4 fw-bold text-dark">{{ stats.civil_servants }} <span class="fs-7 text-muted fw-normal">នាក់ (+{{ stats.contract_officers }} កិច្ចសន្យា)</span></div>
+                    </div>
+                    <div class="rounded-3 bg-info bg-opacity-10 text-info p-3">
+                        <i class="fa-solid fa-id-card fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-white">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold text-uppercase mb-1">📁 ឯកសារ & Version</div>
+                        <div class="fs-4 fw-bold text-dark">{{ stats.documents }} <span class="fs-7 text-muted fw-normal">ច្បាប់ ({{ stats.document_versions }} ឯកសារ)</span></div>
+                    </div>
+                    <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-3">
+                        <i class="fa-solid fa-folder-open fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-white">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold text-uppercase mb-1">📋 វត្តមាន & យានយន្ត</div>
+                        <div class="fs-4 fw-bold text-dark">{{ stats.attendance_records }} <span class="fs-7 text-muted fw-normal">វត្តមាន ({{ stats.vehicles }} យានយន្ត)</span></div>
+                    </div>
+                    <div class="rounded-3 bg-success bg-opacity-10 text-success p-3">
+                        <i class="fa-solid fa-clipboard-check fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-white">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fs-8 fw-semibold text-uppercase mb-1">🖼️ ឯកសារ Media (Uploads)</div>
+                        <div class="fs-4 fw-bold text-dark">{{ stats.media_files_count }} <span class="fs-7 text-muted fw-normal">Files ({{ stats.media_total_size_mb }} MB)</span></div>
+                    </div>
+                    <div class="rounded-3 bg-warning bg-opacity-10 text-warning p-3">
+                        <i class="fa-solid fa-photo-film fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-pills mb-4 nav-justified bg-white p-2 rounded-3 shadow-sm border" id="backupSyncTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold py-2.5" id="download-tab" data-bs-toggle="tab" data-bs-target="#tab-download" type="button" role="tab">
+                <i class="fa-solid fa-download me-1.5 text-primary"></i> ១. ទាញយក Backup (Export)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2.5" id="restore-tab" data-bs-toggle="tab" data-bs-target="#tab-restore" type="button" role="tab">
+                <i class="fa-solid fa-upload me-1.5 text-success"></i> ២. បញ្ចូលទិន្នន័យវិញ (Restore)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2.5" id="sync-tab" data-bs-toggle="tab" data-bs-target="#tab-sync" type="button" role="tab">
+                <i class="fa-solid fa-rotate me-1.5 text-info"></i> ៣. សមកាលកម្មជាមួយម៉ាស៊ីនមេ (Sync)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2.5" id="lan-tab" data-bs-toggle="tab" data-bs-target="#tab-lan" type="button" role="tab">
+                <i class="fa-solid fa-wifi me-1.5 text-warning"></i> ៤. បណ្តាញ LAN / Wi-Fi Network
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2.5" id="snapshots-tab" data-bs-toggle="tab" data-bs-target="#tab-snapshots" type="button" role="tab">
+                <i class="fa-solid fa-clock-rotate-left me-1.5 text-secondary"></i> ៥. ប្រវត្តិ Snapshots ({{ local_backups|length }})
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="backupSyncTabContent">
+        
+        <!-- =================================================================== -->
+        <!-- TAB 1: DOWNLOAD BACKUP (EXPORT) -->
+        <!-- =================================================================== -->
+        <div class="tab-pane fade show active" id="tab-download" role="tabpanel">
+            <div class="row g-4">
+                <!-- Option 1: Full System Backup (Database + Media) -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 position-relative overflow-hidden border-top border-4 border-primary">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <span class="badge bg-primary px-3 py-1.5 rounded-pill fs-8">🌟 ជម្រើសពេញលេញ និងសុវត្ថិភាពបំផុត (Recommended)</span>
+                                <span class="badge bg-light text-dark border">~{{ stats.media_total_size_mb|add:3 }} MB</span>
+                            </div>
+                            <h4 class="fw-bold text-primary mb-2">
+                                <i class="fa-solid fa-box-archive me-2"></i>Full System Backup (.zip)
+                            </h4>
+                            <p class="text-secondary fs-7 mb-3">
+                                កញ្ចប់បម្រុងទុកពេញលេញ រួមមាន <strong>ទិន្នន័យទាំងអស់ (Database JSON)</strong> បូករួមទាំង <strong>ឯកសារ Media ទាំងអស់ (រូបថតមន្ត្រី, ឯកសារស្កេន PDF, យានយន្ត)</strong> និង Metadata Manifest ធានាសុវត្ថិភាពទិន្នន័យ ១០០%។
+                            </p>
+                            <div class="bg-light p-3 rounded-3 mb-4 fs-7 text-muted">
+                                <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> រួមបញ្ចូលព័ត៌មានមន្ត្រី, ឯកសារ, វត្តមាន, យានយន្ត, គណនី</div>
+                                <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> រួមបញ្ចូលរូបថត និងឯកសារ PDF ភ្ជាប់ទាំងអស់ក្នុង `media/`</div>
+                                <div class="d-flex align-items-center"><i class="fa-solid fa-check text-success me-2"></i> អាចយកទៅ Restore លើ PC ផ្សេងទៀត ឬលើ Cloud បានភ្លាមៗ</div>
+                            </div>
+                            <a href="{% url 'download_full_backup' %}" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
+                                <i class="fa-solid fa-file-zipper me-2"></i>ទាញយក Full Backup ZIP ឥឡូវនេះ
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Option 2: Database Only Backup -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 border-top border-4 border-success">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <span class="badge bg-success px-3 py-1.5 rounded-pill fs-8">⚡ ទំហំតូច និងរហ័សទាន់ចិត្ត (Fast)</span>
+                                <span class="badge bg-light text-dark border">~3 MB</span>
+                            </div>
+                            <h4 class="fw-bold text-success mb-2">
+                                <i class="fa-solid fa-database me-2"></i>Database Only Backup (.zip)
+                            </h4>
+                            <p class="text-secondary fs-7 mb-3">
+                                ទាញយកតែ <strong>មូលដ្ឋានទិន្នន័យ (Database Records)</strong> ជាទម្រង់ UTF-8 JSON ដែលបានបង្ហាប់ជា ZIP។ សមស្របសម្រាប់រក្សាទុកប្រចាំថ្ងៃ ឬផ្ញើតាម Telegram/Email ព្រោះទំហំស្រាលខ្លាំង។
+                            </p>
+                            <div class="bg-light p-3 rounded-3 mb-4 fs-7 text-muted">
+                                <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> ទិន្នន័យអត្ថបទ និងតារាងទាំងអស់ក្នុងប្រព័ន្ធ</div>
+                                <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> គាំទ្រអក្សរខ្មែរពេញលេញ (UTF-8 Encoded)</div>
+                                <div class="d-flex align-items-center text-warning"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> មិនរួមបញ្ចូលរូបថត និងឯកសារ PDF ឡើយ</div>
+                            </div>
+                            <a href="{% url 'download_db_backup' %}" class="btn btn-outline-success btn-lg w-100 fw-bold shadow-sm">
+                                <i class="fa-solid fa-download me-2"></i>ទាញយក Database Only (.zip)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Option 3: Media Only Backup -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 border-top border-4 border-warning">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill fs-8">🖼️ ឯកសារមេឌា & រូបភាព</span>
+                                <span class="badge bg-light text-dark border">~{{ stats.media_total_size_mb }} MB</span>
+                            </div>
+                            <h4 class="fw-bold text-warning-emphasis mb-2">
+                                <i class="fa-solid fa-images me-2"></i>Media Attachments Only (.zip)
+                            </h4>
+                            <p class="text-secondary fs-7 mb-3">
+                                ទាញយកឯកសារមេឌាទាំងអស់ (រូបថតមន្ត្រីរាជការ, ឯកសារស្កេនលិខិតចូល-ចេញ, ឯកសារកិច្ចសន្យា, រូបថតយានយន្ត) ដែលមានក្នុងថត `media/`។
+                            </p>
+                            <a href="{% url 'download_media_backup' %}" class="btn btn-outline-warning text-dark btn-lg w-100 fw-bold shadow-sm">
+                                <i class="fa-solid fa-file-image me-2"></i>ទាញយក Media ZIP Only
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Option 4: Local Server Snapshot (Save to Server Disk) -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 border-top border-4 border-info">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <span class="badge bg-info text-white px-3 py-1.5 rounded-pill fs-8">💾 រក្សាទុកលើ Hard Disk ម៉ាស៊ីន</span>
+                                <span class="badge bg-light text-dark border">1-Click</span>
+                            </div>
+                            <h4 class="fw-bold text-info mb-2">
+                                <i class="fa-solid fa-hard-drive me-2"></i>បង្កើត Snapshot លើម៉ាស៊ីនផ្ទាល់
+                            </h4>
+                            <p class="text-secondary fs-7 mb-3">
+                                បង្កើតកញ្ចប់ Backup ពេញលេញមួយភ្លាមៗ ហើយរក្សាទុកដោយស្វ័យប្រវត្តិក្នងថត <code>backups/</code> លើ Hard Drive នៃកុំព្យូទ័រនេះដោយមិនចាំបាច់ទាញយកតាម Browser ឡើយ។
+                            </p>
+                            <form method="POST" action="{% url 'create_local_snapshot_action' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-info text-white btn-lg w-100 fw-bold shadow-sm">
+                                    <i class="fa-solid fa-floppy-disk me-2"></i>បង្កើត Local Snapshot ឥឡូវនេះ
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- TAB 2: RESTORE DATA (IMPORT) -->
+        <!-- =================================================================== -->
+        <div class="tab-pane fade" id="tab-restore" role="tabpanel">
+            <div class="row justify-content-center">
+                <div class="col-lg-9">
+                    <div class="card border-0 shadow-sm rounded-3">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="fa-solid fa-file-import me-2 text-success"></i>បញ្ចូលទិន្នន័យត្រឡប់មកវិញ (Restore & Import)
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <!-- Safety Guarantee Notice -->
+                            <div class="alert alert-success d-flex align-items-center gap-3 p-3 rounded-3 shadow-sm border-0 mb-4" style="background-color: #e8f5e9;">
+                                <i class="fa-solid fa-shield-halved fa-2x text-success"></i>
+                                <div>
+                                    <strong class="text-success fs-6">ការធានាសុវត្ថិភាពទិន្នន័យ ១០០% (Zero Data Loss Guarantee):</strong>
+                                    <div class="fs-7 text-dark-emphasis mt-1">
+                                        រាល់ពេលដែលលោកអ្នកចុច Restore ប្រព័ន្ធនឹងបង្កើត <strong>Safety Pre-Restore Snapshot</strong> ដោយស្វ័យប្រវត្តិរក្សាទុកលើម៉ាស៊ីនជាមុន។ ប្រសិនបើមានបញ្ហា ឬមិនពេញចិត្ត លោកអ្នកអាចស្តារទិន្នន័យត្រឡប់មកស្ថានភាពមុន Restore វិញបានភ្លាមៗ!
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form method="POST" action="{% url 'restore_backup_action' %}" enctype="multipart/form-data" id="restoreForm">
+                                {% csrf_token %}
+
+                                <!-- Mode Selection -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-dark mb-2">ជ្រើសរើសវិធីសាស្ត្រស្តារទិន្នន័យ (Restore Mode)៖</label>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="card h-100 p-3 border-2 border-primary rounded-3 cursor-pointer bg-primary bg-opacity-10 position-relative">
+                                                <div class="d-flex align-items-start gap-2">
+                                                    <input type="radio" name="restore_mode" value="merge" class="form-check-input mt-1" checked>
+                                                    <div>
+                                                        <div class="fw-bold text-primary fs-6">🟢 សមកាលកម្មបញ្ចូលគ្នា (Smart Merge)</div>
+                                                        <div class="badge bg-primary text-white mb-2 fs-9">អនុសាសន៍ (Recommended)</div>
+                                                        <p class="fs-7 text-dark-emphasis mb-0">
+                                                            បញ្ចូលទិន្នន័យថ្មីបន្ថែម និងកែប្រែទិន្នន័យដែលដូចគ្នា ដោយ <strong>មិនលុបទិន្នន័យចាស់</strong> ដែលមានលើម៉ាស៊ីននេះឡើយ។ សមស្របបំផុតសម្រាប់ការបញ្ចូលទិន្នន័យពីសាខា ឬទាញពី Server។
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="card h-100 p-3 border rounded-3 cursor-pointer bg-light position-relative">
+                                                <div class="d-flex align-items-start gap-2">
+                                                    <input type="radio" name="restore_mode" value="replace" class="form-check-input mt-1">
+                                                    <div>
+                                                        <div class="fw-bold text-dark fs-6">🟡 ជំនួសឡើងវិញទាំងស្រុង (Full Replace)</div>
+                                                        <div class="badge bg-secondary text-white mb-2 fs-9">សម្រាប់ជួសជុលប្រព័ន្ធ</div>
+                                                        <p class="fs-7 text-secondary mb-0">
+                                                            លុបទិន្នន័យបច្ចុប្បន្នចេញ ហើយជំនួសដោយទិន្នន័យនៅក្នុងឯកសារ Backup ទាំងស្រុង។ (ប្រព័ន្ធនឹងរក្សាទុក Snapshot ជាមុនស្វ័យប្រវត្តិ)។
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- File Upload -->
+                                <div class="mb-4">
+                                    <label for="backupFile" class="form-label fw-bold text-dark">ជ្រើសរើសឯកសារ Backup (.zip ឬ .json)៖</label>
+                                    <input type="file" class="form-control form-control-lg" id="backupFile" name="backup_file" accept=".zip,.json" required>
+                                    <div class="form-text fs-7 text-muted mt-2">
+                                        <i class="fa-solid fa-circle-info me-1 text-info"></i> គាំទ្រឯកសារកញ្ចប់ Full Backup (.zip), Database Backup (.zip), ឬ Raw Data (.json)។
+                                    </div>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-success btn-lg fw-bold shadow-sm py-3" onclick="confirmRestore()">
+                                        <i class="fa-solid fa-cloud-arrow-up me-2"></i>ចាប់ផ្តើមស្តារទិន្នន័យ (Execute Restore)
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- TAB 3: CLOUD / SERVER SYNCHRONIZATION -->
+        <!-- =================================================================== -->
+        <div class="tab-pane fade" id="tab-sync" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="fa-solid fa-sliders me-2 text-info"></i>ការកំណត់ម៉ាស៊ីនមេ (Server Settings)
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <label for="serverUrlInput" class="form-label fw-bold text-dark">អាសយដ្ឋានម៉ាស៊ីនមេ (Central Server URL)៖</label>
+                                <input type="url" class="form-control" id="serverUrlInput" placeholder="https://dms.railway.app ឬ http://192.168.1.100:8000" value="">
+                                <div class="form-text fs-8 text-muted">
+                                    បញ្ចូល URL នៃម៉ាស៊ីនមេកណ្តាល (Railway Online ឬ Host PC ក្នុង LAN)។
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="syncTokenInput" class="form-label fw-bold text-dark">លេខកូដសម្ងាត់សមកាលកម្ម (Sync Security Token)៖</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="syncTokenInput" value="{{ default_sync_token }}">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleTokenVisibility()">
+                                        <i class="fa-solid fa-eye" id="tokenEyeIcon"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text fs-8 text-muted">
+                                    ប្រើសម្រាប់ផ្ទៀងផ្ទាត់សិទ្ធិសុវត្ថិភាពរវាង Local PC និងម៉ាស៊ីនមេ។
+                                </div>
+                            </div>
+
+                            <div class="p-3 rounded-3 bg-light border mb-4">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="fw-bold text-dark fs-7">ស្ថានភាពការតភ្ជាប់ (Connection Status):</span>
+                                    <span class="badge bg-secondary" id="syncStatusBadge">មិនទាន់ពិនិត្យ</span>
+                                </div>
+                                <div id="syncStatusDetails" class="fs-8 text-muted">
+                                    សូមចុចប៊ូតុង "តេស្តការតភ្ជាប់" ដើម្បីពិនិត្យមើលថាតើម៉ាស៊ីនមេកំពុងដំណើរការឬទេ។
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-outline-info w-100 fw-bold mb-2" onclick="testServerConnection()">
+                                <i class="fa-solid fa-network-wired me-2"></i>តេស្តការតភ្ជាប់ (Ping Server)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="fa-solid fa-arrows-rotate me-2 text-primary"></i>ប្រតិបត្តិការសមកាលកម្ម (Sync Actions)
+                            </h5>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fs-8">2-Way Sync Engine</span>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row g-3 mb-4">
+                                <!-- Push Action -->
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3 rounded-3 bg-light">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <div class="rounded-circle bg-primary text-white p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                                <i class="fa-solid fa-arrow-up"></i>
+                                            </div>
+                                            <h6 class="fw-bold mb-0 text-dark">បញ្ជូនទៅម៉ាស៊ីនមេ (Push)</h6>
+                                        </div>
+                                        <p class="fs-8 text-secondary mb-3">
+                                            ប្រមូលទិន្នន័យ និងឯកសារមេឌាដែលបានបង្កើត/កែប្រែលើ PC នេះ បញ្ជូនឡើងទៅកាន់ម៉ាស៊ីនមេកណ្តាល។
+                                        </p>
+                                        <button type="button" class="btn btn-primary btn-sm fw-bold w-100 mt-auto" onclick="triggerSyncAction('push')">
+                                            <i class="fa-solid fa-cloud-arrow-up me-1"></i>បញ្ជូនទិន្នន័យ (Push)
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Pull Action -->
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3 rounded-3 bg-light">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <div class="rounded-circle bg-success text-white p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </div>
+                                            <h6 class="fw-bold mb-0 text-dark">ទាញពីម៉ាស៊ីនមេ (Pull)</h6>
+                                        </div>
+                                        <p class="fs-8 text-secondary mb-3">
+                                            ទាញយកបច្ចុប្បន្នភាពទិន្នន័យ និងរូបថតពីម៉ាស៊ីនមេកណ្តាល មកបញ្ចូលសមកាលកម្មក្នុង PC នេះ។
+                                        </p>
+                                        <button type="button" class="btn btn-success btn-sm fw-bold w-100 mt-auto" onclick="triggerSyncAction('pull')">
+                                            <i class="fa-solid fa-cloud-arrow-down me-1"></i>ទាញយកទិន្នន័យ (Pull)
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bidirectional Sync (Master Button) -->
+                            <div class="card border-primary border-opacity-50 p-4 rounded-3 text-center bg-primary bg-opacity-10 mb-3">
+                                <h5 class="fw-bold text-primary mb-2">
+                                    <i class="fa-solid fa-rotate me-2"></i>សមកាលកម្មទាំងសងខាង (Bidirectional Sync)
+                                </h5>
+                                <p class="fs-7 text-dark-emphasis mb-3">
+                                    ដំណើរការ Pull ទិន្នន័យថ្មីពី Server ជាមុន រួចធ្វើការ Push ទិន្នន័យថ្មីពី PC នេះឡើងទៅ Server វិញដោយស្វ័យប្រវត្តិ។
+                                </p>
+                                <button type="button" class="btn btn-primary btn-lg fw-bold shadow-sm px-5 py-2.5 mx-auto" onclick="triggerSyncAction('bidirectional')">
+                                    <i class="fa-solid fa-arrows-rotate me-2"></i>ដំណើរការ 2-Way Sync ឥឡូវនេះ
+                                </button>
+                            </div>
+
+                            <!-- Sync Result Display Box -->
+                            <div id="syncResultBox" class="d-none">
+                                <div class="card border p-3 rounded-3 bg-light">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <h6 class="fw-bold text-dark mb-0" id="syncResultTitle">លទ្ធផលសមកាលកម្ម</h6>
+                                        <span class="badge bg-secondary" id="syncResultTime"></span>
+                                    </div>
+                                    <pre id="syncResultContent" class="bg-white p-3 rounded border fs-8 mb-0" style="max-height: 200px; overflow-y: auto;"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- TAB 4: LAN / WI-FI NETWORK OPERATION (NO INTERNET NEEDED) -->
+        <!-- =================================================================== -->
+        <div class="tab-pane fade" id="tab-lan" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="fa-solid fa-wifi me-2 text-warning"></i>ដំណើរការលើបណ្តាញ Local Wi-Fi / LAN (មិនចាំបាច់មាន Internet)
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="alert alert-warning border-0 bg-warning bg-opacity-10 text-dark-emphasis d-flex align-items-start gap-3 p-3 rounded-3 mb-4">
+                                <i class="fa-solid fa-lightbulb fa-2x text-warning mt-1"></i>
+                                <div>
+                                    <strong class="fs-6 text-dark">ការប្រើប្រាស់រួមគ្នាក្នុងការិយាល័យ (Offline Local Server):</strong>
+                                    <div class="fs-7 mt-1">
+                                        ក្នុងករណីដែលមិនមានការ Hosting Online ឬគ្មាន Internet នៅក្នុងការិយាល័យ កុំព្យូទ័រនេះដើរតួជា <strong>ម៉ាស៊ីនមេ (Host Server)</strong>។ កុំព្យូទ័រផ្សេងទៀត ទូរស័ព្ទដៃ ឬ iPad ទាំងអស់ដែលភ្ជាប់ Wi-Fi ឬខ្សែ LAN តែមួយ អាចបើក Browser ចូលប្រើប្រាស់បានភ្លាមៗ!
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card bg-light border-0 p-4 rounded-3 mb-4">
+                                <label class="fs-7 text-muted fw-bold text-uppercase mb-1">📡 អាសយដ្ឋានតភ្ជាប់សម្រាប់ឧបករណ៍ផ្សេងទៀតក្នុង Wi-Fi / LAN៖</label>
+                                <div class="input-group input-group-lg mb-2">
+                                    <input type="text" class="form-control fw-bold text-primary bg-white fs-4" id="lanUrlDisplay" value="{{ lan_url }}" readonly>
+                                    <button class="btn btn-primary px-4 fw-bold" type="button" onclick="copyLanUrl()">
+                                        <i class="fa-regular fa-copy me-2"></i>ចម្លង URL (Copy)
+                                    </button>
+                                </div>
+                                <div class="fs-8 text-muted">
+                                    វាយបញ្ចូលអាសយដ្ឋាននេះលើ Google Chrome, Safari, ឬ Edge នៅលើទូរស័ព្ទ ឬកុំព្យូទ័រផ្សេងទៀតក្នុង Wi-Fi ដើម្បីប្រើប្រាស់។
+                                </div>
+                            </div>
+
+                            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list-check me-2 text-success"></i>ជំហានងាយៗដើម្បីភ្ជាប់ប្រើប្រាស់៖</h6>
+                            <div class="d-flex flex-column gap-3 fs-7 text-secondary">
+                                <div class="d-flex align-items-start gap-3">
+                                    <span class="badge bg-primary rounded-circle p-2 fs-8" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">១</span>
+                                    <div>
+                                        <strong class="text-dark">បើក Server លើកុំព្យូទ័រនេះ៖</strong> រត់ឯកសារ <code>RUN_DMS.bat</code> ដើម្បីឱ្យប្រព័ន្ធចាប់ផ្តើមដំណើរការ។
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-start gap-3">
+                                    <span class="badge bg-primary rounded-circle p-2 fs-8" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">២</span>
+                                    <div>
+                                        <strong class="text-dark">ភ្ជាប់ Wi-Fi តែមួយ៖</strong> ធានាថាកុំព្យូទ័រ ឬទូរស័ព្ទដទៃបានភ្ជាប់ Wi-Fi ឬ Router តែមួយជាមួយម៉ាស៊ីននេះ។
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-start gap-3">
+                                    <span class="badge bg-primary rounded-circle p-2 fs-8" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">៣</span>
+                                    <div>
+                                        <strong class="text-dark">បើក Firewall Port 8000 (ករណីចូលមិនបានលើកដំបូង)៖</strong> រត់ឯកសារ <code>SETUP_LAN_FIREWALL.bat</code> ដើម្បីអនុញ្ញាតឱ្យ Windows Defender Firewall បើកច្រកទទួលការតភ្ជាប់ពីទូរស័ព្ទ។
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 text-center">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="fa-solid fa-qrcode me-2 text-primary"></i>ស្កេន QR Code ចូលប្រើលើទូរស័ព្ទ
+                            </h5>
+                        </div>
+                        <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center">
+                            <div class="p-3 bg-white border rounded-3 shadow-sm mb-3" style="display: inline-block;">
+                                <div id="lanQrCodeBox"></div>
+                            </div>
+                            <h6 class="fw-bold text-dark mb-1">{{ lan_url }}</h6>
+                            <p class="text-muted fs-8 mb-3">
+                                បើកកាមេរ៉ាទូរស័ព្ទដៃ ឬ iPad ដើម្បីស្កេនចូលប្រព័ន្ធបានភ្លាមៗដោយមិនបាច់វាយអក្សរ!
+                            </p>
+                            <div class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill fs-8">
+                                <i class="fa-solid fa-shield-check me-1"></i> CSRF & Host Trusted ស្វ័យប្រវត្តិ
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- TAB 5: LOCAL SERVER SNAPSHOTS LIST -->
+        <!-- =================================================================== -->
+        <div class="tab-pane fade" id="tab-snapshots" role="tabpanel">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-clock-rotate-left me-2 text-secondary"></i>បញ្ជីកញ្ចប់ Backup ដែលមានលើ Hard Drive ម៉ាស៊ីន
+                    </h5>
+                    <form method="POST" action="{% url 'create_local_snapshot_action' %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-primary fw-bold">
+                            <i class="fa-solid fa-plus me-1"></i>បង្កើត Snapshot ថ្មី
+                        </button>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light fs-8 text-uppercase text-secondary">
+                                <tr>
+                                    <th class="ps-4">ឈ្មោះឯកសារ (Filename)</th>
+                                    <th>ប្រភេទ (Type)</th>
+                                    <th>កាលបរិច្ឆេទបង្កើត</th>
+                                    <th>ទំហំ</th>
+                                    <th>ចំណាំ</th>
+                                    <th class="text-end pe-4">សកម្មភាព</th>
+                                </tr>
+                            </thead>
+                            <tbody class="fs-7">
+                                {% for b in local_backups %}
+                                <tr>
+                                    <td class="ps-4 fw-semibold text-dark">
+                                        <i class="fa-solid {% if b.is_safety_snapshot %}fa-shield-halved text-success{% else %}fa-file-zipper text-primary{% endif %} me-2"></i>
+                                        {{ b.filename }}
+                                    </td>
+                                    <td>
+                                        {% if b.is_safety_snapshot %}
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Safety Snapshot</span>
+                                        {% elif b.backup_type == 'FULL' %}
+                                            <span class="badge bg-primary">Full Package</span>
+                                        {% elif b.backup_type == 'DATABASE_ONLY' %}
+                                            <span class="badge bg-info text-white">Database</span>
+                                        {% elif b.backup_type == 'MEDIA_ONLY' %}
+                                            <span class="badge bg-warning text-dark">Media</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ b.backup_type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-muted">{{ b.created_at|date:"d-m-Y H:i:s" }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ b.size_mb }} MB</span></td>
+                                    <td class="text-muted fs-8">{{ b.note|default:"—" }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'download_local_backup_file' b.filename %}" class="btn btn-outline-primary" title="ទាញយកទៅកុំព្យូទ័រ">
+                                                <i class="fa-solid fa-download"></i>
+                                            </a>
+                                            {% if is_admin_user %}
+                                            <button type="button" class="btn btn-outline-danger" title="លុបឯកសារ" onclick="confirmDeleteBackup('{{ b.filename }}')">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        <i class="fa-solid fa-box-open fa-3x mb-3 text-secondary opacity-50"></i>
+                                        <div>មិនទាន់មានឯកសារ Backup រក្សាទុកក្នុងថត `backups/` នៅឡើយទេ។</div>
+                                        <div class="fs-8 mt-1">លោកអ្នកអាចចុច "បង្កើត Snapshot ថ្មី" ដើម្បីរក្សាទុកកញ្ចប់បម្រុងទុកដំបូង។</div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal: Confirmation for Restore -->
+<div class="modal fade" id="confirmRestoreModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark border-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>ផ្ទៀងផ្ទាត់ការស្តារទិន្នន័យ (Confirm Restore)
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="rounded-circle bg-warning bg-opacity-25 p-3 d-inline-block mb-3">
+                    <i class="fa-solid fa-database fa-3x text-warning"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">តើលោកអ្នកពិតជាចង់ស្តារទិន្នន័យនេះមែនទេ?</h5>
+                <p class="fs-7 text-secondary mb-3" id="confirmRestoreModeText">
+                    ប្រព័ន្ធនឹងដំណើរការបញ្ចូលទិន្នន័យ។ ប្រព័ន្ធបានត្រៀមបង្កើត Safety Snapshot ដោយស្វ័យប្រវត្តិដើម្បីការពារសុវត្ថិភាពទិន្នន័យ។
+                </p>
+                <div class="alert alert-light border fs-8 text-start mb-0">
+                    <i class="fa-solid fa-circle-info text-info me-1"></i> ប្រតិបត្តិការនេះអាចចំណាយពេលពីរបីវិនាទី អាស្រ័យលើទំហំឯកសារ Backup។
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់ (Cancel)</button>
+                <button type="button" class="btn btn-success fw-bold px-4" onclick="document.getElementById('restoreForm').submit()">
+                    <i class="fa-solid fa-check me-1"></i>យល់ព្រមស្តារទិន្នន័យ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Live Sync Progress -->
+<div class="modal fade" id="syncProgressModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body p-4 text-center">
+                <div class="spinner-border text-primary mb-3" role="status" style="width: 3.5rem; height: 3.5rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 class="fw-bold text-dark mb-1" id="syncProgressTitle">កំពុងសមកាលកម្មទិន្នន័យ...</h5>
+                <p class="fs-7 text-secondary mb-0" id="syncProgressSubtitle">សូមរង់ចាំមួយភ្លែត ប្រព័ន្ធកំពុងផ្ទេរទិន្នន័យ...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lightweight Client-Side QR Code Generator Script (Offline Ready) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Generate QR code for LAN URL
+    const lanUrl = "{{ lan_url }}";
+    const qrContainer = document.getElementById("lanQrCodeBox");
+    if (qrContainer && typeof QRCode !== 'undefined') {
+        new QRCode(qrContainer, {
+            text: lanUrl,
+            width: 170,
+            height: 170,
+            colorDark : "#0d6efd",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.M
+        });
+    }
+
+    // Load saved server URL from localStorage if exists
+    const savedUrl = localStorage.getItem('dms_sync_server_url');
+    if (savedUrl) {
+        document.getElementById('serverUrlInput').value = savedUrl;
+    }
+});
+
+function copyLanUrl() {
+    const urlInput = document.getElementById("lanUrlDisplay");
+    urlInput.select();
+    urlInput.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(urlInput.value).then(() => {
+        alert("✅ បានចម្លងអាសយដ្ឋាន URL៖ " + urlInput.value + "\nលោកអ្នកអាចផ្ញើទៅកាន់ទូរស័ព្ទ ឬកុំព្យូទ័រផ្សេងទៀតដើម្បីចូលប្រើប្រាស់បាន។");
+    }).catch(() => {
+        document.execCommand("copy");
+        alert("✅ បានចម្លងអាសយដ្ឋាន URL៖ " + urlInput.value);
+    });
+}
+
+function toggleTokenVisibility() {
+    const tokenInput = document.getElementById('syncTokenInput');
+    const eyeIcon = document.getElementById('tokenEyeIcon');
+    if (tokenInput.type === 'password') {
+        tokenInput.type = 'text';
+        eyeIcon.classList.remove('fa-eye');
+        eyeIcon.classList.add('fa-eye-slash');
+    } else {
+        tokenInput.type = 'password';
+        eyeIcon.classList.remove('fa-eye-slash');
+        eyeIcon.classList.add('fa-eye');
+    }
+}
+
+function confirmRestore() {
+    const fileInput = document.getElementById('backupFile');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert("⚠️ សូមជ្រើសរើសឯកសារ Backup (.zip ឬ .json) ជាមុនសិន!");
+        return;
+    }
+    const mode = document.querySelector('input[name="restore_mode"]:checked').value;
+    const modeTextEl = document.getElementById('confirmRestoreModeText');
+    if (mode === 'merge') {
+        modeTextEl.innerHTML = "លោកអ្នកបានជ្រើសរើស <strong>🟢 Smart Merge (សមកាលកម្មបញ្ចូលគ្នា)</strong>៖ ទិន្នន័យចាស់ដែលមានលើកុំព្យូទ័រនេះនឹងមិនត្រូវបានលុបឡើយ។";
+    } else {
+        modeTextEl.innerHTML = "លោកអ្នកបានជ្រើសរើស <strong>🟡 Full Replace (ជំនួសទាំងស្រុង)</strong>៖ ទិន្នន័យចាស់នឹងត្រូវជំនួសដោយឯកសារថ្មី (ប្រព័ន្ធបានរៀបចំ Safety Snapshot រួចជាស្រេច)។";
+    }
+    const modal = new bootstrap.Modal(document.getElementById('confirmRestoreModal'));
+    modal.show();
+}
+
+function confirmDeleteBackup(filename) {
+    if (confirm("តើលោកអ្នកពិតជាចង់លុបឯកសារ Backup (" + filename + ") នេះមែនទេ?")) {
+        window.location.href = "/settings/backup/delete/file/" + encodeURIComponent(filename) + "/";
+    }
+}
+
+function testServerConnection() {
+    const serverUrl = document.getElementById('serverUrlInput').value.trim();
+    const token = document.getElementById('syncTokenInput').value.trim();
+    const badge = document.getElementById('syncStatusBadge');
+    const details = document.getElementById('syncStatusDetails');
+
+    if (!serverUrl) {
+        alert("សូមបញ្ចូល Server URL ជាមុនសិន!");
+        return;
+    }
+    localStorage.setItem('dms_sync_server_url', serverUrl);
+
+    badge.className = 'badge bg-warning text-dark';
+    badge.innerText = 'កំពុងតេស្ត...';
+    details.innerText = 'កំពុងផ្ញើសំណើ Ping ទៅកាន់ ' + serverUrl + '...';
+
+    fetch(`/api/sync/test-connection/?server_url=${encodeURIComponent(serverUrl)}&token=${encodeURIComponent(token)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.online) {
+                badge.className = 'badge bg-success';
+                badge.innerText = 'ភ្ជាប់បានជោគជ័យ (Online)';
+                details.innerHTML = `<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>ម៉ាស៊ីនមេដំណើរការរលូន! ពេលវេលាម៉ាស៊ីនមេ: ${data.server_time || ''}</span>`;
+            } else {
+                badge.className = 'badge bg-danger';
+                badge.innerText = 'មិនអាចភ្ជាប់បាន (Offline)';
+                details.innerHTML = `<span class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>${data.error || 'មិនអាចភ្ជាប់បាន'}</span>`;
+            }
+        })
+        .catch(err => {
+            badge.className = 'badge bg-danger';
+            badge.innerText = 'កំហុស (Error)';
+            details.innerHTML = `<span class="text-danger">${err.message}</span>`;
+        });
+}
+
+function triggerSyncAction(action) {
+    const serverUrl = document.getElementById('serverUrlInput').value.trim();
+    const token = document.getElementById('syncTokenInput').value.trim();
+
+    if (!serverUrl) {
+        alert("សូមបញ្ចូល Server URL ជាមុនសិន!");
+        return;
+    }
+    localStorage.setItem('dms_sync_server_url', serverUrl);
+
+    let actionLabel = "សមកាលកម្មទិន្នន័យ";
+    if (action === 'push') actionLabel = "បញ្ជូនទិន្នន័យទៅម៉ាស៊ីនមេ (Push)";
+    if (action === 'pull') actionLabel = "ទាញទិន្នន័យពីម៉ាស៊ីនមេ (Pull)";
+    if (action === 'bidirectional') actionLabel = "សមកាលកម្មទាំងសងខាង (2-Way Sync)";
+
+    document.getElementById('syncProgressTitle').innerText = `កំពុង${actionLabel}...`;
+    document.getElementById('syncProgressSubtitle').innerText = "សូមកុំបិទ Browser ប្រព័ន្ធកំពុងផ្ទេរទិន្នន័យ និងឯកសារមេឌា...";
+
+    const progressModal = new bootstrap.Modal(document.getElementById('syncProgressModal'));
+    progressModal.show();
+
+    // Get CSRF Token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+    fetch('/api/sync/trigger/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+            server_url: serverUrl,
+            token: token,
+            action: action
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        progressModal.hide();
+        const resultBox = document.getElementById('syncResultBox');
+        const resultContent = document.getElementById('syncResultContent');
+        const resultTime = document.getElementById('syncResultTime');
+
+        resultBox.classList.remove('d-none');
+        resultTime.innerText = new Date().toLocaleTimeString();
+        resultContent.innerText = JSON.stringify(data, null, 2);
+
+        if (data.success) {
+            alert("🎉 " + (data.message || "សមកាលកម្មបានសម្រេចជោគជ័យ!"));
+            setTimeout(() => { location.reload(); }, 1500);
+        } else {
+            alert("❌ ការសមកាលកម្មបានបរាជ័យ៖ " + (data.error || "Unknown error"));
+        }
+    })
+    .catch(err => {
+        progressModal.hide();
+        alert("❌ កំហុសបណ្តាញ៖ " + err.message);
+    });
+}
+</script>
+{% endblock %}

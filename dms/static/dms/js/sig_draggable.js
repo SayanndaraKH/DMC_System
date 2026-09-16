@@ -758,10 +758,16 @@
 
             const footerNum = page.querySelector('.page-footer-number, .page-footer-center');
             if (footerNum) {
-                footerNum.style.position = 'relative';
-                footerNum.style.marginTop = '6px';
-                footerNum.style.marginBottom = '2px';
-                footerNum.style.textAlign = 'center';
+                footerNum.style.setProperty('position', 'absolute', 'important');
+                footerNum.style.setProperty('bottom', '3mm', 'important');
+                footerNum.style.setProperty('left', '0', 'important');
+                footerNum.style.setProperty('right', '0', 'important');
+                footerNum.style.setProperty('width', '100%', 'important');
+                footerNum.style.setProperty('text-align', 'center', 'important');
+                footerNum.style.setProperty('margin', '0', 'important');
+                footerNum.style.setProperty('padding', '0', 'important');
+                footerNum.style.setProperty('pointer-events', 'none', 'important');
+                footerNum.style.setProperty('z-index', '99', 'important');
             }
 
             if (total > 1 && !page.querySelector('.page-print-indicator')) {
@@ -911,15 +917,8 @@
         // Initialize page range & selective print controller
         initPagePrintRangeController();
 
-        // Check stored margin state
-        try {
-            const savedState = localStorage.getItem('dms_show_margins');
-            if (savedState === 'true' || savedState === null) {
-                window.toggleMargins(true);
-            }
-        } catch (e) {
-            window.toggleMargins(true);
-        }
+        // Default margins to hidden on PDF view load until user manually clicks button
+        window.toggleMargins(false);
     }
 
     // Keyboard shortcut (Press 'M' to toggle margins)

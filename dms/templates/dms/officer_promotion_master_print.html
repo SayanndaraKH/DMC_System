@@ -197,11 +197,16 @@
                 <td class="text-center">{{ req.officer.civil_service_start_date|default:"-" }}</td>
                 <td class="text-center">{{ req.officer.civil_service_permanent_date|default:"-" }}</td>
                 <td class="text-center fw-bold">{{ req.current_rank_and_step|default:"-" }}</td>
-                <td class="text-center fw-bold" style="color: #b45309;">{{ req.proposed_rank_and_step }}</td>
+                <td class="text-center fw-bold" style="color: #b45309;">
+                    {{ req.unit_proposal|default:req.proposed_rank_and_step }}
+                    {% if req.grade %}
+                    <br><span style="font-size: 8pt; font-weight: normal; color: #166534;">(ពិន្ទុ៖ {{ req.average_score|default:"-" }} / និទ្ទេស៖ {{ req.grade }})</span>
+                    {% endif %}
+                </td>
                 <td class="text-center">{{ req.get_promotion_type_display }}</td>
                 <td class="text-center">{{ req.years_in_current_rank|default:"-" }}</td>
                 <td>{{ req.reason|default:"-"|truncatewords:20 }}</td>
-                <td>{{ req.meeting_decision|default:"ឯកភាពតាមការស្នើសុំ" }}</td>
+                <td>{{ req.unit_head_comment|default:req.meeting_decision|default:"ឯកភាពតាមការស្នើសុំ" }}</td>
             </tr>
             {% empty %}
             <tr>
@@ -218,7 +223,8 @@
     <!-- Formal Signatures Section -->
     <div class="signatures-section">
         <div class="signature-box sig-draggable">
-            <div class="muol-font">អ្នករៀបចំតារាង</div>
+            <div>បានឃើញ និងឯកភាព</div>
+            <div class="muol-font">ប្រធានមន្ទីរ</div>
             <div class="signature-space"></div>
             <div class="fw-bold">........................................</div>
         </div>
@@ -232,7 +238,7 @@
 
         <div class="signature-box sig-draggable">
             <div>ថ្ងៃ................... ខែ............. ឆ្នាំ២០២៦</div>
-            <div class="muol-font">ប្រធានមន្ទីរ</div>
+            <div class="muol-font">មន្ត្រីទទួលបន្ទុក</div>
             <div class="signature-space"></div>
             <div class="fw-bold">........................................</div>
         </div>

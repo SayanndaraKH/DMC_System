@@ -433,14 +433,14 @@
                                 </span>
                             </td>
                             <td>
-                                {% with last_award=item.past_awards|last %}
-                                {% if last_award %}
-                                <div class="fw-bold text-dark">{{ last_award.description|default:"-" }}</div>
-                                <small class="text-muted fs-9">{{ last_award.date|default:"" }}</small>
+                                {% if item.last_medal_name and item.last_medal_name != 'គ្មាន' %}
+                                <div class="fw-bold text-dark">{{ item.last_medal_name }}</div>
+                                {% if item.last_medal_decree and item.last_medal_decree != 'គ្មាន' %}
+                                <small class="text-muted fs-9 font-monospace"><i class="fa-regular fa-file-lines me-1 text-secondary"></i>{{ item.last_medal_decree }}</small>
+                                {% endif %}
                                 {% else %}
                                 <span class="text-muted fs-9">គ្មានប្រវត្តិ</span>
                                 {% endif %}
-                                {% endwith %}
                             </td>
                             <td class="text-center">
                                 {% if item.past_awards_count > 0 %}
@@ -1327,15 +1327,9 @@ function filterTableRows(tableId, tierFilter, clickedBtn) {
     });
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-// \uD83C\uDFC5 \u1798\u17C1\u178A\u17B6\u1799 & \u1782\u17D2\u179A\u17BF\u1784\u17A5\u179F\u17D2\u179F\u179A\u17B7\u1799\u1799\u179F \u2014 Category \u2192 Grade cascading picker
-// \u179B\u17C6\u178A\u17B6\u1794\u17CB\u1787\u17B6\u1795\u17D2\u179B\u17BC\u179C\u1780\u17B6\u179A\u17D6 \u17E1.\u1798\u17C1\u178A\u17B6\u1799\u1780\u17B6\u179A\u1784\u17B6\u179A (\u17E0\u17E3\u1790\u17D2\u1793\u17B6\u1780\u17CB) \u2192 \u17E2.\u1782\u17D2\u179A\u17BF\u1784\u17A5\u179F\u17D2\u179F\u179A\u17B7\u1799\u1799\u179F\u179F\u17BB\u179C\u178F\u17D2\u1790\u17B6\u179A\u17B6
-// (\u17E0\u17E5\u1790\u17D2\u1793\u17B6\u1780\u17CB) \u2192 \u17E3.\u1782\u17D2\u179A\u17BF\u1784\u17A5\u179F\u17D2\u179F\u179A\u17B7\u1799\u1799\u179F \u1796\u17D2\u179A\u17C7\u179A\u17B6\u1787\u17B6\u178E\u17B6\u1785\u1780\u17D2\u179A\u1780\u1798\u17D2\u1796\u17BB\u1787\u17B6 (\u17E0\u17E5\u1790\u17D2\u1793\u17B6\u1780\u17CB)
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 const MEDAL_HIERARCHY = [
     {
         key: 'WORK',
-        label: '\uD83E\uDD47 \u17E1. \u1798\u17C1\u178A\u17B6\u1799\u1780\u17B6\u179A\u1784\u17B6\u179A (\u17E0\u17E3\u1790\u17D2\u1793\u17B6\u1780\u17CB)',
         grades: [
             { value: '\uD83E\uDD49 \u1798\u17C1\u178A\u17B6\u1799\u1780\u17B6\u179A\u1784\u17B6\u179A (\u1790\u17D2\u1793\u17B6\u1780\u17CB\u179F\u17C6\u179A\u17B9\u1791\u17D2\u1792)', label: '\u17E1. \u1790\u17D2\u1793\u17B6\u1780\u17CB\u179F\u17C6\u179A\u17B9\u1791\u17D2\u1792' },
             { value: '\uD83E\uDD48 \u1798\u17C1\u178A\u17B6\u1799\u1780\u17B6\u179A\u1784\u17B6\u179A (\u1790\u17D2\u1793\u17B6\u1780\u17CB\u1794\u17D2\u179A\u17B6\u1780\u17CB)', label: '\u17E2. \u1790\u17D2\u1793\u17B6\u1780\u17CB\u1794\u17D2\u179A\u17B6\u1780\u17CB' },

@@ -6,7 +6,7 @@
     <title>ទម្រង់ M-1 (ស្នើសុំគ្រឿងឥស្សរិយយស) - {% if is_specialized and selected_department %}{{ selected_department.name_kh }}{% else %}មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន{% endif %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260908_1445">
     <style>
         * {
             box-sizing: border-box;
@@ -98,13 +98,13 @@
             width: 297mm;
             min-height: 210mm;
             background: #ffffff;
-            padding: 8mm 10mm 12mm 10mm;
+            padding: 8mm 10mm 15mm 10mm;
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
             border-radius: 4px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start;
             position: relative;
         }
 
@@ -230,17 +230,20 @@
         /* Page Footer Number */
         .page-footer-number {
             display: block;
-            position: relative;
+            position: absolute;
+            bottom: 3mm;
+            left: 0;
+            right: 0;
             width: 100%;
             text-align: center;
-            margin-top: 6px;
-            margin-bottom: 2px;
+            margin: 0;
             font-size: 8.5pt;
             color: #475569;
             font-family: 'Khmer OS Battambang', 'Battambang', Arial, sans-serif;
             font-weight: bold;
             pointer-events: none;
             line-height: 1;
+            z-index: 99;
         }
 
         @media print {
@@ -410,64 +413,41 @@
                 </table>
 
                 {% if page.is_last %}
-                {% if is_specialized and selected_department %}
-                <!-- Specialized Office / Canton Level Signatures (2 Signatures, NO Department Director) -->
-                <div class="m1-bottom-section" style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 18px; page-break-inside: avoid;">
+                <!-- Signatures Section (ប្រធានមន្ទីរ នៅខាងឆ្វេង, មន្ត្រីទទួលបន្ទុក នៅខាងស្តាំ) -->
+                <div class="m1-bottom-section" style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 12px; margin-bottom: 6px; page-break-inside: avoid;">
                     
-                    <!-- Left/Center: Preparer / Table Creator (អ្នកធ្វើតារាង) -->
-                    <div class="sig-draggable" style="text-align: center; line-height: 1.8; min-width: 220px;">
-                        <div class="muol-font" style="font-size: 10pt; color: #111;">អ្នកធ្វើតារាង</div>
-                        <div style="height: 55px;"></div>
+                    <!-- Left: Department Director (ប្រធានមន្ទីរ) -->
+                    <div class="sig-draggable" style="text-align: center; line-height: 1.8; min-width: 250px;">
+                        <div style="font-size: 9.5pt;">បានឃើញ និងឯកភាព</div>
+                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">ប្រធានមន្ទីរ</div>
+                        <div style="height: 48px;"></div>
                         <div style="font-weight: bold; font-size: 9.5pt;">........................................</div>
                     </div>
 
-                    <!-- Right: Head of Office / Head of Canton (ប្រធានការិយាល័យជំនាញ / នាយខណ្ឌ) -->
-                    <div class="sig-draggable" style="text-align: center; line-height: 1.8; min-width: 280px;">
-                        <div style="font-size: 9.5pt;">{{ solar_date_handwritten_str|default:"ថ្ងៃទី................ ខែ................ ឆ្នាំ២០២៦" }}</div>
-                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">បានឃើញ និងឯកភាព</div>
-                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">{{ office_head_title|default:"ប្រធានការិយាល័យ" }}</div>
-                        <div style="height: 55px;"></div>
-                        <div style="font-weight: bold; font-size: 9.5pt;">........................................</div>
-                    </div>
-
-                </div>
-                {% else %}
-                <!-- Department / Ministry Level Signatures (3-Tier Signatures) -->
-                <div class="m1-bottom-section" style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 18px; page-break-inside: avoid;">
-                    
-                    <!-- Left: Officer in Charge / Preparer -->
-                    <div class="sig-draggable" style="text-align: center; line-height: 1.8; min-width: 200px;">
-                        <div class="muol-font" style="font-size: 10pt; color: #111;">មន្ត្រីទទួលបន្ទុក</div>
-                        <div style="height: 55px;"></div>
-                        <div style="font-weight: bold; font-size: 9.5pt;">........................................</div>
-                    </div>
-
-                    <!-- Center: Head of Admin-HR Office -->
+                    <!-- Center: Head of Office -->
                     <div class="sig-draggable" style="text-align: center; line-height: 1.8; min-width: 250px;">
                         <div style="font-size: 9.5pt;">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
-                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក</div>
-                        <div style="height: 55px;"></div>
+                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">{% if is_specialized and selected_department %}{{ office_head_title|default:"ប្រធានការិយាល័យជំនាញ" }}{% else %}ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក{% endif %}</div>
+                        <div style="height: 48px;"></div>
                         <div style="font-weight: bold; font-size: 9.5pt;">........................................</div>
                     </div>
 
-                    <!-- Right: Department Director -->
+                    <!-- Right: Officer in Charge / Preparer (មន្ត្រីទទួលបន្ទុក) -->
                     <div class="sig-draggable" style="text-align: center; line-height: 1.8; min-width: 250px;">
                         <div style="font-size: 9.5pt;">{{ solar_date_handwritten_str|default:"ថ្ងៃទី................ ខែ................ ឆ្នាំ២០២៦" }}</div>
-                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">បានឃើញ និងឯកភាព</div>
-                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">ប្រធានមន្ទីរ</div>
-                        <div style="height: 55px;"></div>
+                        <div class="muol-font" style="font-size: 10pt; margin-top: 2px; color: #111;">មន្ត្រីទទួលបន្ទុក</div>
+                        <div style="height: 48px;"></div>
                         <div style="font-weight: bold; font-size: 9.5pt;">........................................</div>
                     </div>
 
                 </div>
-                {% endif %}
                 {% endif %}
 
             </div>
 
             <!-- Page Number on each distinct sheet -->
             {% if pages|length > 1 %}
-            <div class="page-footer-number">
+            <div class="page-footer-number" style="position: absolute !important; bottom: 3mm !important; left: 0 !important; right: 0 !important; width: 100% !important; text-align: center !important; margin: 0 !important; padding: 0 !important; pointer-events: none !important; z-index: 99 !important;">
                 - {{ page.page_num }} -
             </div>
             {% endif %}
@@ -476,6 +456,6 @@
 
     </div>
 
-    <script src="/static/dms/js/sig_draggable.js"></script>
+    <script src="/static/dms/js/sig_draggable.js?v=20260908_1445"></script>
 </body>
 </html>

@@ -54,14 +54,17 @@ if not defined PYW_BIN (
 echo [INFO] Checking database migrations...
 "%PY_BIN%" manage.py migrate --noinput >nul 2>&1
 
-:: 3. Start Server in Background
+:: 3. Detect and Update Active LAN / Wi-Fi IP automatically
+"%PY_BIN%" -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(('8.8.8.8', 80)) if True else None; ip = s.getsockname()[0]; s.close(); open('IP.txt', 'w', encoding='utf-8').write(f'✅ អាសយដ្ឋាន IP សម្រាប់ដំណើរការកម្មវិធី DMS៖\n\n🔹 សម្រាប់ប្រើប្រាស់លើកុំព្យូទ័រផ្ទាល់ (Localhost):\n👉 http://127.0.0.1:8000/\n👉 http://localhost:8000/\n\n🔹 សម្រាប់ទូរស័ព្ទ ឬកុំព្យូទ័រផ្សេងទៀតក្នុងបណ្តាញ Wi-Fi / LAN តែមួយ (Network IP):\n👉 http://{ip}:8000/\n\n---\n(បានធ្វើបច្ចុប្បន្នភាពស្វ័យប្រវត្តិតាម IP បណ្តាញ Wi-Fi/LAN ជាក់ស្តែង)\n')" >nul 2>&1
+
+:: 4. Start Server in Background
 start "" "%PYW_BIN%" manage.py runserver 0.0.0.0:8000
 
-:: 4. Wait for server startup
+:: 5. Wait for server startup
 timeout /t 2 >nul
 
-:: 5. Open browser
+:: 6. Open browser
 start "" "http://127.0.0.1:8000"
 
-:: 6. Close CMD window
+:: 7. Close CMD window
 exit

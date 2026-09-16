@@ -17,15 +17,17 @@
     transition: outline 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Page Number Footer - In natural block flow directly underneath table/signatures */
+/* Page Number Footer - Absolutely anchored to the bottom margin of the page sheet */
 .page-footer-number,
 .page-footer-center {
     display: block !important;
-    position: relative !important;
+    position: absolute !important;
+    bottom: 3mm !important;
+    left: 0 !important;
+    right: 0 !important;
     width: 100% !important;
     text-align: center !important;
-    margin-top: 6px !important;
-    margin-bottom: 2px !important;
+    margin: 0 !important;
     padding: 0 !important;
     font-size: 8.5pt !important;
     font-family: 'Khmer OS Battambang', 'Battambang', Arial, sans-serif !important;
@@ -34,6 +36,7 @@
     clear: both !important;
     line-height: 1 !important;
     pointer-events: none !important;
+    z-index: 99 !important;
 }
 
 /* Enforce Balanced A4 Layout: Show maximum rows cleanly without artificial overflow gaps */
@@ -41,11 +44,12 @@
 .page,
 .page-sheet {
     position: relative !important;
+    min-height: 210mm !important;
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
-    padding: 8mm 10mm 6mm 10mm !important;
+    padding: 8mm 10mm 12mm 10mm !important;
 }
 
 .page-content-wrapper {

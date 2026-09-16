@@ -6,7 +6,7 @@
     <title>ទម្រង់ E-1 (បញ្ជូនទៅក្រសួង) - បញ្ជីរាយនាមមន្ត្រីរាជការ</title>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260908_1445">
     <style>
         * {
             box-sizing: border-box;
@@ -98,13 +98,13 @@
             width: 297mm;
             min-height: 210mm;
             background: #ffffff;
-            padding: 8mm 10mm 12mm 10mm;
+            padding: 8mm 10mm 15mm 10mm;
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
             border-radius: 4px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start;
             position: relative;
         }
 
@@ -227,17 +227,20 @@
         /* Page Footer Number */
         .page-footer-number {
             display: block;
-            position: relative;
+            position: absolute;
+            bottom: 3mm;
+            left: 0;
+            right: 0;
             width: 100%;
             text-align: center;
-            margin-top: 6px;
-            margin-bottom: 2px;
+            margin: 0;
             font-size: 8.5pt;
             color: #475569;
             font-family: 'Khmer OS Battambang', 'Battambang', Arial, sans-serif;
             font-weight: bold;
             pointer-events: none;
             line-height: 1;
+            z-index: 99;
         }
 
         @media print {
@@ -452,7 +455,7 @@
 
             <!-- Page Number on each distinct sheet (Only if more than 1 page) -->
             {% if pages|length > 1 %}
-            <div class="page-footer-number">
+            <div class="page-footer-number" style="position: absolute !important; bottom: 3mm !important; left: 0 !important; right: 0 !important; width: 100% !important; text-align: center !important; margin: 0 !important; padding: 0 !important; pointer-events: none !important; z-index: 99 !important;">
                 - {{ page.page_num }} -
             </div>
             {% endif %}
@@ -461,6 +464,6 @@
 
     </div>
 
-    <script src="/static/dms/js/sig_draggable.js"></script>
+    <script src="/static/dms/js/sig_draggable.js?v=20260908_1445"></script>
 </body>
 </html>

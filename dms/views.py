@@ -5420,7 +5420,7 @@ def officer_export_excel(request):
     return response
 
 
-def _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=18, single_page_cap=14, min_last_page=3):
+def _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=12, single_page_cap=12, min_last_page=3):
     """
     រៀបចំទំព័រ A4 Landscape ដាច់ៗពីគ្នាសម្រាប់ PDF Preview
     ធានាថាទំព័របន្តនីមួយៗផ្ទុកទិន្នន័យបានពេញទំព័រគៀកនឹងលេខទំព័រ មិនដាច់ពាក់កណ្តាលទំព័រចោលចន្លោះទទេឡើយ។
@@ -5602,7 +5602,7 @@ def officer_preview_pdf_e1(request):
         for idx, o in enumerate(off_list, 1):
             table_items.append({'is_header': False, 'officer': o, 'num': idx, 'dept_name': dept_name})
 
-    pages = _paginate_preview_items(table_items, first_page_cap=23, mid_page_cap=26, last_page_cap=18, single_page_cap=14, min_last_page=3)
+    pages = _paginate_preview_items(table_items, first_page_cap=23, mid_page_cap=26, last_page_cap=12, single_page_cap=12, min_last_page=3)
 
     # If subsequent page starts with an ongoing department, insert continuation header
     if include_dept_headers:
@@ -5720,7 +5720,7 @@ def officer_preview_pdf_e2(request):
     for idx, o in enumerate(officers_list, 1):
         e2_items.append({'officer': o, 'num': idx})
 
-    pages = _paginate_preview_items(e2_items, first_page_cap=23, mid_page_cap=26, last_page_cap=23, single_page_cap=14)
+    pages = _paginate_preview_items(e2_items, first_page_cap=23, mid_page_cap=26, last_page_cap=14, single_page_cap=12)
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
@@ -6031,7 +6031,14 @@ def process_officer_promotion(officer, today=None, target_year=None, rejected_re
         target_fw = 'ខ' if is_c1 else 'ក'
         rank_name = 'គ.១' if is_c1 else 'ខ.១.១'
         fw_name = 'គ' if is_c1 else 'ខ'
+        t_code = officer.bulletin_template_code
+        t_label = officer.bulletin_template_label
+        t_color = officer.bulletin_badge_color
         return {
+            'template_code': t_code,
+            'template_label': t_label,
+            'bulletin_code': officer.bulletin_code_display,
+            'template_badge_color': t_color,
             'officer': officer,
             'last_promo_date': last_promo_date,
             'last_promo_date_str': last_promo_date.strftime('%d/%m/%Y') if last_promo_date else '-',
@@ -6063,8 +6070,15 @@ def process_officer_promotion(officer, today=None, target_year=None, rejected_re
         }
 
     if not last_promo_date:
+        t_code = officer.bulletin_template_code
+        t_label = officer.bulletin_template_label
+        t_color = officer.bulletin_badge_color
         return {
             'officer': officer,
+            'template_code': t_code,
+            'template_label': t_label,
+            'bulletin_code': officer.bulletin_code_display,
+            'template_badge_color': t_color,
             'last_promo_date': None,
             'last_promo_date_str': '-',
             'years_in_rank': 0,
@@ -6136,8 +6150,15 @@ def process_officer_promotion(officer, today=None, target_year=None, rejected_re
         status_label = f'✅ មិនទាន់ដល់វេន (១៣ មេសា {due_cycle_year})'
         status_badge = 'secondary'
         
+    t_code = officer.bulletin_template_code
+    t_label = officer.bulletin_template_label
+    t_color = officer.bulletin_badge_color
     return {
         'officer': officer,
+        'template_code': t_code,
+        'template_label': t_label,
+        'bulletin_code': officer.bulletin_code_display,
+        'template_badge_color': t_color,
         'last_promo_date': last_promo_date,
         'last_promo_date_str': last_promo_date.strftime('%d/%m/%Y'),
         'years_in_rank': round(years_since, 1),
@@ -6166,6 +6187,185 @@ def process_officer_promotion(officer, today=None, target_year=None, rejected_re
         'past_promotions_count': len(past_promotions),
         'past_promotions': past_promotions,
     }
+
+
+MEDAL_TIER_WEIGHTS = {
+    'សំរឹទ្ធ': 1, 'សំរិទ្ធ': 1, 'សំរិទ្ឋ': 1, 'សំរឹទ្ធិ': 1,
+    'ប្រាក់': 2,
+    'មាស': 3,
+    'អស្សឫទ្ធិ': 4, 'អស្សឬទ្ធិ': 4, 'អស្សឬទិ្ធ': 4, 'អស្សឫទិ្ធ': 4,
+    'សេនា': 5,
+    'ធិបឌិន្ទ': 6, 'ធិបឌិន': 6, 'ធិបឌី': 6,
+    'មហាសេនា': 7,
+    'មហាសេរីវឌ្ឍន៍': 8, 'មហាសិរីវឌ្ឍន៍': 8,
+}
+
+
+def _format_single_medal_name(a):
+    if not isinstance(a, dict):
+        return None
+    desc = (a.get('description') or '').strip()
+    t = (a.get('type') or '').strip()
+    full_text = f"{desc} {t}".strip()
+    
+    if not full_text or full_text == 'គ្មាន':
+        return None
+        
+    is_cert = any(c in full_text for c in ['លិខិតសរសើរ', 'ប័ណ្ណសរសើរ', 'បញ្ជាក់នីតិសម្បទា'])
+    has_medal = any(m in full_text for m in [
+        'មេដាយ', 'ឥស្សរិយយស', 'ឥស្សរិយស', 'សុវត្ថារា', 'សុវត្ថា', 'មុនីសារាភ័ណ្ឌ',
+        'ព្រះរាជាណាចក្រកម្ពុជា', 'ស្ថាបនាជាតិ', 'សំរឹទ្ធ', 'សំរិទ្ធ', 'សំរិទ្ឋ', 'សំរឹទ្ធិ',
+        'ប្រាក់', 'មាស', 'អស្សឫទ្ធិ', 'អស្សឬទ្ធិ', 'អស្សឬទិ្ធ', 'អស្សឫទិ្ធ', 'សេនា', 'ធិបឌិន្ទ', 'ធិបឌិន', 'មហាសេនា'
+    ])
+    if is_cert and not has_medal:
+        return None
+
+    grade = None
+    if any(k in full_text for k in ['មហាសេរីវឌ្ឍន៍', 'មហាសិរីវឌ្ឍន៍']):
+        grade = 'ថ្នាក់មហាសេរីវឌ្ឍន៍'
+    elif 'មហាសេនា' in full_text:
+        grade = 'ថ្នាក់មហាសេនា'
+    elif any(k in full_text for k in ['ធិបឌិន្ទ', 'ធិបឌិន', 'ធិបឌី']):
+        grade = 'ថ្នាក់ធិបឌិន្ទ'
+    elif 'សេនា' in full_text:
+        grade = 'ថ្នាក់សេនា'
+    elif any(k in full_text for k in ['អស្សឫទ្ធិ', 'អស្សឬទ្ធិ', 'អស្សឬទិ្ធ', 'អស្សឫទិ្ធ']):
+        grade = 'ថ្នាក់អស្សឬទិ្ធ'
+    elif 'មាស' in full_text:
+        grade = 'ថ្នាក់មាស'
+    elif 'ប្រាក់' in full_text:
+        grade = 'ថ្នាក់ប្រាក់'
+    elif any(k in full_text for k in ['សំរឹទ្ធ', 'សំរិទ្ធ', 'សំរិទ្ឋ', 'សំរឹទ្ធិ']):
+        grade = 'ថ្នាក់សំរិទ្ធ'
+
+    series = None
+    if 'សុវត្ថារា' in full_text or 'សុវត្ថា' in full_text:
+        series = 'មេដាយសុវត្ថារា'
+    elif 'មុនីសារាភ័ណ្ឌ' in full_text:
+        series = 'មេដាយមុនីសារាភ័ណ្ឌ'
+    elif 'ព្រះរាជាណាចក្រកម្ពុជា' in full_text:
+        series = 'គ្រឿងឥស្សរិយយសព្រះរាជាណាចក្រកម្ពុជា'
+    elif 'ស្ថាបនាជាតិ' in full_text:
+        series = 'មេដាយស្ថាបនាជាតិ'
+    elif grade in ['ថ្នាក់អស្សឬទិ្ធ', 'ថ្នាក់សេនា', 'ថ្នាក់ធិបឌិន្ទ', 'ថ្នាក់មហាសេនា', 'ថ្នាក់មហាសេរីវឌ្ឍន៍']:
+        series = 'មេដាយសុវត្ថារា'
+    elif 'ការងារ' in full_text or grade in ['ថ្នាក់សំរិទ្ធ', 'ថ្នាក់ប្រាក់', 'ថ្នាក់មាស']:
+        series = 'មេដាយការងារ'
+    else:
+        if 'មេដាយ' in full_text:
+            series = 'មេដាយ'
+        elif 'គ្រឿងឥស្សរិយយស' in full_text or 'គ្រឿងឥស្សរិយស' in full_text:
+            series = 'គ្រឿងឥស្សរិយយស'
+        else:
+            series = desc
+
+    if series == 'មេដាយសុវត្ថារា' and not grade:
+        grade = 'ថ្នាក់អស្សឬទិ្ធ'
+
+    if series and grade:
+        return f"{series} {grade}"
+    elif series:
+        return series
+    return full_text
+
+
+def _get_award_hierarchy_rank(full_text):
+    tier = 0
+    if 'ព្រះរាជាណាចក្រកម្ពុជា' in full_text:
+        tier += 40
+    elif 'មុនីសារាភ័ណ្ឌ' in full_text:
+        tier += 30
+    elif 'សុវត្ថារា' in full_text or 'សុវត្ថា' in full_text:
+        tier += 20
+    elif 'ស្ថាបនាជាតិ' in full_text:
+        tier += 15
+    elif 'ការងារ' in full_text or any(k in full_text for k in ['សំរឹទ្ធ', 'សំរិទ្ធ', 'សំរិទ្ឋ', 'សំរឹទ្ធិ', 'ប្រាក់', 'មាស']):
+        tier += 10
+        
+    for k, v in MEDAL_TIER_WEIGHTS.items():
+        if k in full_text:
+            tier += v
+            break
+    return tier
+
+
+def _get_officer_last_medal_and_decree(officer):
+    """
+    Extracts the most recent medal received, corresponding royal/sub-decree info, and remarks.
+    Formats name strictly according to official honor convention (e.g. មេដាយសុវត្ថារា ថ្នាក់អស្សឬទិ្ធ).
+    """
+    import re
+    raw_awards = officer.awards_data or []
+    if raw_awards and isinstance(raw_awards, list):
+        valid_medals = []
+        for a in raw_awards:
+            if not isinstance(a, dict):
+                continue
+            fmt = _format_single_medal_name(a)
+            if not fmt:
+                continue
+            d_str = a.get('date', '') or ''
+            doc_str = a.get('doc_number', '') or ''
+            combined = to_arabic_digits(f"{d_str} {doc_str}")
+            matches = re.findall(r'(19[89]\d|20[0123]\d)', combined)
+            yr = int(matches[-1]) if matches else 0
+            rank = _get_award_hierarchy_rank(f"{a.get('description','')} {a.get('type','')}")
+            valid_medals.append((yr, rank, fmt, a))
+            
+        if valid_medals:
+            valid_medals.sort(key=lambda x: (x[0], x[1]))
+            _, _, formatted_medal, last_a = valid_medals[-1]
+            
+            doc_no = (last_a.get('doc_number') or '').strip()
+            d_date = (last_a.get('date') or '').strip()
+            
+            decree_str = doc_no
+            if d_date and d_date not in doc_no:
+                decree_str = f"{doc_no} {d_date}".strip()
+            if not decree_str or decree_str == '-':
+                decree_str = 'គ្មាន'
+                
+            remarks = 'គ្មាន'
+            if 'ព្រះរាជក្រឹត្យ' in decree_str or 'រកត' in decree_str or 'នស/' in decree_str:
+                remarks = 'មានព្រះរាជក្រឹត្យ'
+            elif 'អនុក្រឹត្យ' in decree_str or 'អនក្រ' in decree_str:
+                remarks = 'មានអនុក្រឹត្យ'
+            elif 'ប្រកាស' in decree_str:
+                remarks = 'មានប្រកាស'
+            elif formatted_medal and formatted_medal != 'គ្មាន':
+                remarks = 'មានអនុក្រឹត្យ'
+                
+            return formatted_medal or 'គ្មាន', decree_str, remarks
+            
+    return 'គ្មាន', 'គ្មាន', 'គ្មាន'
+
+
+def _infer_next_proposed_medal(last_medal, officer=None):
+    """
+    Infers the next medal in the Cambodian civil service honor succession hierarchy.
+    """
+    if not last_medal or last_medal == 'គ្មាន' or last_medal == '-':
+        return 'មេដាយការងារ ថ្នាក់សំរិទ្ធ'
+        
+    lm = last_medal.strip()
+    if 'សំរឹទ្ធ' in lm or 'សំរិទ្ធ' in lm:
+        return 'មេដាយការងារ ថ្នាក់ប្រាក់'
+    elif 'ប្រាក់' in lm:
+        return 'មេដាយការងារ ថ្នាក់មាស'
+    elif 'មាស' in lm:
+        return 'មេដាយសុវត្ថារា ថ្នាក់អស្សឬទិ្ធ'
+    elif any(k in lm for k in ['អស្សឫទ្ធិ', 'អស្សឬទ្ធិ', 'អស្សឬទិ្ធ', 'អស្សឫទិ្ធ']):
+        return 'មេដាយសុវត្ថារា ថ្នាក់សេនា'
+    elif 'សេនា' in lm and 'មហាសេនា' not in lm:
+        return 'មេដាយសុវត្ថារា ថ្នាក់ធិបឌិន្ទ'
+    elif any(k in lm for k in ['ធិបឌិន្ទ', 'ធិបឌិន', 'ធិបឌី']):
+        return 'មេដាយសុវត្ថារា ថ្នាក់មហាសេនា'
+    elif 'មហាសេនា' in lm:
+        return 'មេដាយសុវត្ថារា ថ្នាក់មហាសេរីវឌ្ឍន៍'
+    elif 'មហាសេរីវឌ្ឍន៍' in lm or 'មហាសិរីវឌ្ឍន៍' in lm:
+        return 'គ្រឿងឥស្សរិយយសព្រះរាជាណាចក្រកម្ពុជា ថ្នាក់អស្សឬទិ្ធ'
+        
+    return 'មេដាយការងារ ថ្នាក់សំរិទ្ធ'
 
 
 def process_officer_medals(officer, today=None):
@@ -6219,6 +6419,13 @@ def process_officer_medals(officer, today=None):
         medal_tier = 0
         badge_color = 'primary'
 
+    # Retrieve official last medal and infer succession progression
+    last_med, last_dec, last_rem = _get_officer_last_medal_and_decree(officer)
+    if last_med and last_med != 'គ្មាន':
+        next_succ = _infer_next_proposed_medal(last_med, officer)
+        if next_succ:
+            recommended_medal = next_succ
+
     raw_awards = officer.awards_data or []
     past_awards = []
     for a in raw_awards:
@@ -6229,12 +6436,13 @@ def process_officer_medals(officer, today=None):
             s_arabic = to_arabic_digits(str(d_str))
             y_match = re.search(r'(19\d{2}|20\d{2})', s_arabic)
             yr = y_match.group(1) if y_match else ''
+            formatted_item_name = _format_single_medal_name(a)
             past_awards.append({
                 'doc_number': a.get('doc_number', '') or '-',
                 'date': d_str or '-',
                 'year': yr or '-',
                 'ministry': a.get('ministry', '') or '-',
-                'description': a.get('description', '') or '-',
+                'description': formatted_item_name or a.get('description', '') or '-',
                 'type': a.get('type', '') or '-',
             })
         
@@ -6250,6 +6458,9 @@ def process_officer_medals(officer, today=None):
         'status_label': 'អាចស្នើសុំបាន (រង់ចាំការសម្រេចពីគណៈកម្មការ)',
         'past_awards_count': len(past_awards),
         'past_awards': past_awards,
+        'last_medal_name': last_med,
+        'last_medal_decree': last_dec,
+        'last_medal_remarks': last_rem,
     }
 
 
@@ -7454,6 +7665,301 @@ def officer_promotion_master_print_view(request):
 
 
 @login_required
+def officer_promotion_score_bulletin_view(request):
+    """
+    ទិដ្ឋភាពបោះពុម្ពព្រឹត្តិប័ត្រពិន្ទុសម្រាប់ដំឡើងថ្នាក់ តាមប្រភេទក្របខណ្ឌនីមួយៗ (D01, D02, D03)
+    គាំទ្រទាំង GET និង POST ដើម្បីឆ្លុះបញ្ចាំងទិន្នន័យដែលកែសម្រួលផ្ទាល់ក្នុង Form Modal
+    """
+    params = request.POST if request.method == 'POST' else request.GET
+    officer_id = params.get('officer_id')
+    if not officer_id:
+        messages.error(request, "⚠️ សូមជ្រើសរើសមន្ត្រីដើម្បីបង្កើតព្រឹត្តិប័ត្រពិន្ទុ!")
+        return redirect('officer_promotion')
+        
+    officer = get_object_or_404(CivilServantProfile, pk=officer_id)
+    template_code = params.get('template') or params.get('template_code')
+    target_year = params.get('year') or params.get('target_year') or date.today().year
+    target_date_str = params.get('target_date')
+    
+    # Parse scores if passed
+    raw_scores_str = params.get('scores', '')
+    raw_scores = [s.strip() for s in raw_scores_str.split(',')] if raw_scores_str else None
+    
+    custom_dict = params.dict() if hasattr(params, 'dict') else dict(params)
+    
+    from .score_bulletin_service import get_officer_score_bulletin_context
+    context = get_officer_score_bulletin_context(
+        officer=officer,
+        target_year=target_year,
+        target_date_str=target_date_str,
+        template_code=template_code,
+        raw_scores=raw_scores,
+        custom_data=custom_dict
+    )
+    return render(request, 'dms/officer_promotion_score_bulletin_print.html', context)
+
+
+@login_required
+def officer_promotion_score_bulletin_download(request):
+    """
+    ទាញយកឯកសារព្រឹត្តិប័ត្រពិន្ទុជា Word (.docx ឬ .doc)
+    គាំទ្រទិន្នន័យកែសម្រួលពី Form Modal ទាំងស្រុង
+    """
+    params = request.POST if request.method == 'POST' else request.GET
+    officer_id = params.get('officer_id')
+    if not officer_id:
+        messages.error(request, "⚠️ សូមជ្រើសរើសមន្ត្រីដើម្បីទាញយក!")
+        return redirect('officer_promotion')
+        
+    officer = get_object_or_404(CivilServantProfile, pk=officer_id)
+    template_code = params.get('template') or params.get('template_code')
+    target_year = params.get('year') or params.get('target_year') or date.today().year
+    target_date_str = params.get('target_date')
+    file_format = params.get('format', 'docx').lower() # 'docx' or 'doc'
+    
+    raw_scores_str = params.get('scores', '')
+    raw_scores = [s.strip() for s in raw_scores_str.split(',')] if raw_scores_str else None
+    
+    custom_dict = params.dict() if hasattr(params, 'dict') else dict(params)
+    
+    from .score_bulletin_service import get_officer_score_bulletin_context, generate_score_bulletin_docx
+    context = get_officer_score_bulletin_context(
+        officer=officer,
+        target_year=target_year,
+        target_date_str=target_date_str,
+        template_code=template_code,
+        raw_scores=raw_scores,
+        custom_data=custom_dict
+    )
+    
+    docx_stream = generate_score_bulletin_docx(context)
+    import re
+    safe_name = re.sub(r'[^\w\s-]', '', context.get('full_name_kh') or officer.full_name_kh).strip().replace(' ', '_')
+    tpl = context['template_code']
+    
+    if file_format == 'doc':
+        filename = f"ព្រឹត្តិប័ត្រពិន្ទុ_{tpl}_{safe_name}.doc"
+        content_type = "application/msword"
+    else:
+        filename = f"ព្រឹត្តិប័ត្រពិន្ទុ_{tpl}_{safe_name}.docx"
+        content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        
+    from django.http import HttpResponse
+    import urllib.parse
+    response = HttpResponse(docx_stream.getvalue(), content_type=content_type)
+    encoded_filename = urllib.parse.quote(filename.encode('utf-8'))
+    response['Content-Disposition'] = f"attachment; filename*=UTF-8''{encoded_filename}"
+    return response
+
+
+@login_required
+def officer_promotion_score_bulletin_api(request):
+    """
+    API ផ្តល់ទិន្នន័យ JSON សម្រាប់ Modal ជ្រើសរើសមន្ត្រី និងគំរូ D01, D02, D03
+    ព្រមទាំងអនុញ្ញាតឱ្យ Save Updates ចូលក្នុងប្រវត្តិរូបមន្ត្រី (CivilServantProfile)
+    និងរក្សាទុកទិន្នន័យព្រឹត្តិប័ត្រ (OfficerPromotionRequest) តាមឆ្នាំស្នើសុំនីមួយៗ (request_year)
+    """
+    params = request.POST if request.method == 'POST' else request.GET
+    officer_id = params.get('officer_id')
+    if not officer_id:
+        return JsonResponse({'success': False, 'error': 'Missing officer_id'})
+        
+    officer = get_object_or_404(CivilServantProfile, pk=officer_id)
+    template_code = params.get('template') or params.get('template_code') or 'D01'
+    target_year = params.get('year') or params.get('target_year') or date.today().year
+    try:
+        target_year = int(to_arabic_digits(str(target_year)))
+    except Exception:
+        target_year = date.today().year
+
+    # 🎯 ប្រសិនបើជា POST Action ស្នើសុំ Save ព្រឹត្តិប័ត្រ និងសំណើ (action='save_bulletin' or action='save_profile')
+    if request.method == 'POST' and request.POST.get('action') in ['save_bulletin', 'save_profile']:
+        try:
+            # 1. Update Core Profile Information (បើមានកែប្រែ)
+            if request.POST.get('full_name_kh'):
+                parts = request.POST.get('full_name_kh').strip().split(' ', 1)
+                officer.khmer_last_name = parts[0]
+                if len(parts) > 1:
+                    officer.khmer_first_name = parts[1]
+            if request.POST.get('full_name_latin'):
+                parts = request.POST.get('full_name_latin').strip().split(' ', 1)
+                officer.latin_last_name = parts[0]
+                if len(parts) > 1:
+                    officer.latin_first_name = parts[1]
+            if request.POST.get('gender_kh'):
+                g = request.POST.get('gender_kh').strip()
+                if 'ស្រី' in g or g == 'F' or g == 'FEMALE':
+                    officer.gender = 'FEMALE'
+                elif 'ប្រុស' in g or g == 'M' or g == 'MALE':
+                    officer.gender = 'MALE'
+            if request.POST.get('officer_id_number'):
+                officer.officer_id_number = request.POST.get('officer_id_number').strip()
+            if request.POST.get('dob_kh'):
+                officer.dob = request.POST.get('dob_kh').strip()
+            if request.POST.get('current_rank_and_step'):
+                officer.current_rank_and_step = request.POST.get('current_rank_and_step').strip()
+            if request.POST.get('civil_service_start_date_kh'):
+                officer.civil_service_start_date = request.POST.get('civil_service_start_date_kh').strip()
+            if request.POST.get('civil_service_permanent_date_kh'):
+                officer.civil_service_permanent_date = request.POST.get('civil_service_permanent_date_kh').strip()
+            officer.save()
+
+            # 2. Save / Update OfficerPromotionRequest for this officer & request_year
+            unit_proposal = request.POST.get('unit_proposal', '').strip()
+            unit_head_comment = request.POST.get('unit_head_comment', '').strip()
+            minister_comment = request.POST.get('minister_comment', '').strip()
+            avg_score_kh = request.POST.get('avg_score_kh', '').strip()
+            grade_kh = request.POST.get('grade_kh', '').strip()
+
+            # Build scores_data dict
+            scores_dict = {}
+            raw_scores_str = request.POST.get('scores', '')
+            if raw_scores_str:
+                for idx, s in enumerate(raw_scores_str.split(',')):
+                    scores_dict[f'score_{idx+1}'] = s.strip()
+            for i in range(1, 10):
+                if f'score_{i}' in request.POST:
+                    scores_dict[f'score_{i}'] = request.POST.get(f'score_{i}').strip()
+
+            req_obj, created = OfficerPromotionRequest.objects.get_or_create(
+                officer=officer,
+                request_year=target_year,
+                defaults={
+                    'department': officer.department,
+                    'current_rank_and_step': officer.current_rank_and_step or 'កម្រិតបច្ចុប្បន្ន',
+                    'proposed_rank_and_step': unit_proposal or 'ស្នើសុំដំឡើងថ្នាក់',
+                    'submitted_by': request.user if request.user.is_authenticated else None,
+                }
+            )
+
+            req_obj.template_code = template_code
+            if unit_proposal:
+                req_obj.unit_proposal = unit_proposal
+                req_obj.proposed_rank_and_step = unit_proposal
+            if unit_head_comment:
+                req_obj.unit_head_comment = unit_head_comment
+            if minister_comment:
+                req_obj.minister_comment = minister_comment
+            if avg_score_kh:
+                req_obj.average_score = avg_score_kh
+            if grade_kh:
+                req_obj.grade = grade_kh
+            if scores_dict:
+                req_obj.scores_data = scores_dict
+
+            # Save additional custom fields
+            custom_data = {
+                'seniority_in_rank_str': request.POST.get('seniority_in_rank_str', ''),
+                'total_service_str': request.POST.get('total_service_str', ''),
+                'header_as_of_date_kh': request.POST.get('header_as_of_date_kh', ''),
+                'general_education': request.POST.get('general_education', ''),
+                'skill_major': request.POST.get('skill_major', ''),
+                'civil_service_start_date_kh': request.POST.get('civil_service_start_date_kh', ''),
+                'civil_service_permanent_date_kh': request.POST.get('civil_service_permanent_date_kh', ''),
+                'last_promotion_date_kh': request.POST.get('last_promotion_date_kh', ''),
+                'leave_reason': request.POST.get('leave_reason', 'គ្មាន'),
+                'leave_duration': request.POST.get('leave_duration', 'គ្មាន'),
+            }
+            req_obj.bulletin_custom_data = custom_data
+            req_obj.save()
+
+            # Retrieve updated past requests
+            past_reqs = []
+            for pr in OfficerPromotionRequest.objects.filter(officer=officer).order_by('-request_year', '-created_at'):
+                past_reqs.append({
+                    'id': pr.id,
+                    'request_year': pr.request_year,
+                    'current_rank_and_step': pr.current_rank_and_step,
+                    'proposed_rank_and_step': pr.proposed_rank_and_step,
+                    'unit_proposal': pr.unit_proposal or pr.proposed_rank_and_step,
+                    'unit_head_comment': pr.unit_head_comment,
+                    'minister_comment': pr.minister_comment,
+                    'status': pr.status,
+                    'status_display': pr.get_status_display(),
+                    'average_score': pr.average_score,
+                    'grade': pr.grade,
+                    'template_code': pr.template_code or pr.bulletin_template_code,
+                })
+
+            return JsonResponse({
+                'success': True,
+                'message': f"បានរក្សាទុកទិន្នន័យព្រឹត្តិប័ត្រ និងសំណើដំឡើងថ្នាក់ឆ្នាំ {target_year} ដោយជោគជ័យ!",
+                'past_requests': past_reqs,
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f"បរាជ័យក្នុងការរក្សាទុក៖ {str(e)}"})
+
+    from .score_bulletin_service import get_officer_score_bulletin_context
+    context = get_officer_score_bulletin_context(
+        officer=officer,
+        target_year=target_year,
+        template_code=template_code
+    )
+    
+    # Retrieve past promotion requests history for this officer across all years
+    past_requests = []
+    for pr in OfficerPromotionRequest.objects.filter(officer=officer).order_by('-request_year', '-created_at'):
+        past_requests.append({
+            'id': pr.id,
+            'request_year': pr.request_year,
+            'current_rank_and_step': pr.current_rank_and_step,
+            'proposed_rank_and_step': pr.proposed_rank_and_step,
+            'unit_proposal': pr.unit_proposal or pr.proposed_rank_and_step,
+            'unit_head_comment': pr.unit_head_comment,
+            'minister_comment': pr.minister_comment,
+            'status': pr.status,
+            'status_display': pr.get_status_display(),
+            'average_score': pr.average_score,
+            'grade': pr.grade,
+            'template_code': pr.template_code or pr.bulletin_template_code,
+        })
+
+    return JsonResponse({
+        'success': True,
+        'officer_id': officer.id,
+        'full_name_kh': context['full_name_kh'],
+        'full_name_latin': context['full_name_latin'] or '',
+        'gender': context['gender_kh'],
+        'officer_id_number': context['officer_id_number'],
+        'dob': context['dob_kh'],
+        'current_rank_and_step': context['current_rank_and_step'],
+        'framework_category': officer.framework_category,
+        'department': context['dept_name'],
+        'detected_template': context['template_code'],
+        'template_config': {
+            'code': context['template_config']['code'],
+            'framework_name': context['template_config']['framework_name'],
+            'title': context['template_config']['title'],
+            'sub_title': context['template_config']['sub_title'],
+            'divisor': context['template_config']['divisor'],
+            'criteria': context['template_config']['criteria'],
+            'note_text': context['template_config']['note_text'],
+        },
+        'seniority_in_rank_str': context['seniority_in_rank_str'],
+        'years_in_rank_kh': context['years_in_rank_kh'],
+        'total_service_str': context['total_service_str'],
+        'general_education': context['general_education'],
+        'skill_major': context['skill_major'],
+        'civil_service_start_date_kh': context['civil_service_start_date_kh'],
+        'civil_service_permanent_date_kh': context['civil_service_permanent_date_kh'],
+        'last_promotion_date_kh': context['last_promotion_date_kh'],
+        'leave_reason': context['leave_reason'],
+        'leave_duration': context['leave_duration'],
+        'header_as_of_date_kh': context['header_as_of_date_kh'],
+        'criteria_items': context['criteria_items'],
+        'raw_scores': context['raw_scores'],
+        'avg_score_kh': context['avg_score_kh'],
+        'grade_kh': context['grade_kh'],
+        'sign_day_kh': context['sign_day_kh'],
+        'sign_month_kh': context['sign_month_kh'],
+        'sign_year_kh': context['sign_year_kh'],
+        'unit_proposal': context.get('unit_proposal', ''),
+        'unit_head_comment': context.get('unit_head_comment', ''),
+        'minister_comment': context.get('minister_comment', ''),
+        'past_requests': past_requests,
+    })
+
+
 def officer_promotion_batch_status_update(request):
     """
     Admin Bulk Update: Supports Department Approval, Ministry Submission, and Official Ministry Approval / Rejection
@@ -7550,72 +8056,6 @@ def officer_promotion_batch_status_update(request):
 
 
 ROMAN_NUMS_LIST = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV']
-
-
-def _get_officer_last_medal_and_decree(officer):
-    """
-    Extracts the most recent medal received, corresponding royal/sub-decree info, and remarks.
-    """
-    raw_awards = officer.awards_data or []
-    if raw_awards and isinstance(raw_awards, list):
-        valid_awards = [a for a in raw_awards if isinstance(a, dict) and a.get('description')]
-        if valid_awards:
-            last_a = valid_awards[-1]
-            desc = (last_a.get('description') or '').strip()
-            doc_no = (last_a.get('doc_number') or '').strip()
-            d_date = (last_a.get('date') or '').strip()
-            
-            decree_str = doc_no
-            if d_date and d_date not in doc_no:
-                decree_str = f"{doc_no} {d_date}".strip()
-            if not decree_str or decree_str == '-':
-                decree_str = 'គ្មាន'
-                
-            remarks = 'គ្មាន'
-            if 'ព្រះរាជក្រឹត្យ' in decree_str or 'រកត' in decree_str or 'នស/' in decree_str:
-                remarks = 'មានព្រះរាជក្រឹត្យ'
-            elif 'អនុក្រឹត្យ' in decree_str or 'អនក្រ' in decree_str:
-                remarks = 'មានអនុក្រឹត្យ'
-            elif 'ប្រកាស' in decree_str:
-                remarks = 'មានប្រកាស'
-            elif desc and desc != 'គ្មាន':
-                remarks = 'មានអនុក្រឹត្យ'
-                
-            return desc or 'គ្មាន', decree_str, remarks
-            
-    return 'គ្មាន', 'គ្មាន', 'គ្មាន'
-
-
-def _infer_next_proposed_medal(last_medal, officer=None):
-    """
-    Infers the next medal in the Cambodian civil service honor succession hierarchy.
-    """
-    if not last_medal or last_medal == 'គ្មាន' or last_medal == '-':
-        return 'មេដាយការងារ ថ្នាក់សំរិទ្ធ'
-        
-    lm = last_medal.strip()
-    if 'សំរឹទ្ធ' in lm or 'សំរិទ្ធ' in lm:
-        return 'មេដាយការងារ ថ្នាក់ប្រាក់'
-    elif 'ប្រាក់' in lm:
-        return 'មេដាយការងារ ថ្នាក់មាស'
-    elif 'មាស' in lm:
-        return 'មេដាយសុវត្ថារា ថ្នាក់អស្សឫទ្ធិ'
-    elif 'អស្សឫទ្ធិ' in lm or 'អស្សឬទិ្ធ' in lm:
-        return 'មេដាយសុវត្ថារា ថ្នាក់សេនា'
-    elif 'សេនា' in lm and 'មហាសេនា' not in lm:
-        return 'មេដាយសុវត្ថារា ថ្នាក់ធិបឌិន្ទ'
-    elif 'ធិបឌិន្ទ' in lm or 'ធិបឌី' in lm:
-        return 'មេដាយសុវត្ថារា ថ្នាក់មហាសេនា'
-    elif 'មហាសេនា' in lm:
-        return 'មេដាយសុវត្ថារា ថ្នាក់មហាសេរីវឌ្ឍន៍'
-    elif 'មហាសេរីវឌ្ឍន៍' in lm:
-        return 'គ្រឿងឥស្សរិយយសព្រះរាជាណាចក្រកម្ពុជា ថ្នាក់អស្សឫទ្ធិ'
-        
-    if officer:
-        proc = process_officer_medals(officer)
-        return proc.get('recommended_medal', 'មេដាយការងារ ថ្នាក់សំរិទ្ធ')
-        
-    return 'មេដាយការងារ ថ្នាក់សំរិទ្ធ'
 
 
 def _prepare_officer_medals_m0_items(officers_list):
@@ -7758,7 +8198,7 @@ def officer_medals_m0_print_view(request):
     officers_list.sort(key=officer_sort_key)
     
     all_items = _prepare_officer_medals_m0_items(officers_list)
-    pages = _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=18, single_page_cap=14)
+    pages = _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=12, single_page_cap=12)
     
     dates_info = get_khmer_lunar_and_solar_date()
     total_count = len(officers_list)
@@ -7979,7 +8419,7 @@ def officer_medals_m1_print_view(request):
     qs = qs.order_by('department__order_index', 'officer__khmer_last_name', 'officer__khmer_first_name')
     
     all_items = _prepare_officer_medals_m1_items(qs)
-    pages = _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=18, single_page_cap=14)
+    pages = _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=12, single_page_cap=12)
     
     is_specialized = _is_specialized_department(selected_dept)
     office_head_title = _get_department_head_title(selected_dept) if is_specialized and selected_dept else "ប្រធានមន្ទីរ"
@@ -11810,7 +12250,7 @@ def contract_officer_preview_pdf_d1(request):
             'phone': _format_d1_phone(o.phone),
         })
 
-    pages = _paginate_preview_items(table_items, first_page_cap=22, mid_page_cap=25, last_page_cap=17, single_page_cap=13, min_last_page=3)
+    pages = _paginate_preview_items(table_items, first_page_cap=22, mid_page_cap=25, last_page_cap=12, single_page_cap=12, min_last_page=3)
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)

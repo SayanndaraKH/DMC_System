@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import backup_views
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
@@ -81,6 +82,9 @@ urlpatterns = [
     path('officers/promotion/requests/<int:pk>/edit/', views.officer_promotion_request_edit, name='officer_promotion_request_edit'),
     path('officers/promotion/requests/<int:pk>/review/', views.officer_promotion_request_review, name='officer_promotion_request_review'),
     path('officers/promotion/requests/<int:pk>/delete/', views.officer_promotion_request_delete, name='officer_promotion_request_delete'),
+    path('officers/promotion/score-bulletin/', views.officer_promotion_score_bulletin_view, name='officer_promotion_score_bulletin_view'),
+    path('officers/promotion/score-bulletin/download/', views.officer_promotion_score_bulletin_download, name='officer_promotion_score_bulletin_download'),
+    path('officers/promotion/score-bulletin/api/', views.officer_promotion_score_bulletin_api, name='officer_promotion_score_bulletin_api'),
     
     path('officers/medals/', views.officer_medals_view, name='officer_medals'),
     path('officers/medals/export/excel/', views.officer_medals_export_excel, name='officer_medals_export_excel'),
@@ -202,5 +206,22 @@ urlpatterns = [
     path('attendance/leadership/monthly/', views.attendance_leadership_monthly, name='attendance_leadership_monthly'),
     path('attendance/leadership/monthly/print/', views.attendance_leadership_monthly_print, name='attendance_leadership_monthly_print'),
     path('attendance/leadership/monthly/export/excel/', views.attendance_leadership_monthly_export_excel, name='attendance_leadership_monthly_export_excel'),
+
+    # 💾 Backup, Restore & Data Synchronization
+    path('settings/backup-sync/', backup_views.backup_sync_dashboard, name='backup_sync_dashboard'),
+    path('settings/backup/download/full/', backup_views.download_full_backup, name='download_full_backup'),
+    path('settings/backup/download/db/', backup_views.download_db_backup, name='download_db_backup'),
+    path('settings/backup/download/media/', backup_views.download_media_backup, name='download_media_backup'),
+    path('settings/backup/download/file/<str:filename>/', backup_views.download_local_backup_file, name='download_local_backup_file'),
+    path('settings/backup/delete/file/<str:filename>/', backup_views.delete_local_backup_file, name='delete_local_backup_file'),
+    path('settings/backup/create-snapshot/', backup_views.create_local_snapshot_action, name='create_local_snapshot_action'),
+    path('settings/backup/restore/', backup_views.restore_backup_action, name='restore_backup_action'),
+
+    # 🌐 Central Server & LAN Synchronization APIs
+    path('api/sync/ping/', backup_views.api_sync_ping, name='api_sync_ping'),
+    path('api/sync/export/', backup_views.api_sync_export, name='api_sync_export'),
+    path('api/sync/receive/', backup_views.api_sync_receive, name='api_sync_receive'),
+    path('api/sync/trigger/', backup_views.api_trigger_sync, name='api_trigger_sync'),
+    path('api/sync/test-connection/', backup_views.api_test_server_connection, name='api_test_server_connection'),
 ]
 

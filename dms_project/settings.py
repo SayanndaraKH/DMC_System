@@ -37,13 +37,34 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.up.railway.app',
 ]
 
+# Auto-detect all active LAN / Wi-Fi IP addresses on this host
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(0.5)
+    s.connect(('8.8.8.8', 80))
+    detected_lan_ip = s.getsockname()[0]
+    s.close()
+    if detected_lan_ip and not detected_lan_ip.startswith('127.'):
+        CSRF_TRUSTED_ORIGINS.extend([
+            f'http://{detected_lan_ip}:8000',
+            f'http://{detected_lan_ip}',
+            f'https://{detected_lan_ip}:8000',
+            f'https://{detected_lan_ip}',
+        ])
+except Exception:
+    pass
+
 try:
     hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
-    CSRF_TRUSTED_ORIGINS.extend([
-        f'http://{local_ip}:8000',
-        f'http://{local_ip}',
-    ])
+    for addr_info in socket.getaddrinfo(hostname, None):
+        ip = addr_info[4][0]
+        if ':' not in ip and not ip.startswith('127.') and not ip.startswith('169.254.'):
+            CSRF_TRUSTED_ORIGINS.extend([
+                f'http://{ip}:8000',
+                f'http://{ip}',
+                f'https://{ip}:8000',
+                f'https://{ip}',
+            ])
 except Exception:
     pass
 
@@ -52,6 +73,12 @@ if csrf_origins_env:
     CSRF_TRUSTED_ORIGINS.extend([
         origin.strip() for origin in csrf_origins_env.split(',') if origin.strip()
     ])
+
+# Deduplicate origins
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
+
+# Synchronization Security Token
+SYNC_AUTH_TOKEN = os.environ.get('SYNC_AUTH_TOKEN', 'dms-secure-sync-token-2026-cambodia-gov')
 
 # CSRF & Security settings
 CSRF_COOKIE_HTTPONLY = False

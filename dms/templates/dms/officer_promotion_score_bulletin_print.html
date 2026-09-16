@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ព្រឹត្តិប័ត្រពិន្ទុសម្រាប់ដំឡើងថ្នាក់ - {{ full_name_kh }} ({{ template_code }})</title>
+    <!-- Google Fonts for Authentic Khmer Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* ==========================================================================
+           GLOBAL & PRINT STYLESHEET: STRICT A4 PORTRAIT SPECIFICATION (100% DOCX MATCH)
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: 'Siemreap', 'Khmer OS Siemreap', 'Battambang', 'Khmer OS Battambang', sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.6;
+            color: #000;
+            background-color: #f1f5f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .muol-font {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-weight: normal;
+        }
+
+        .font-latin {
+            font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+        }
+
+        /* Screen Sticky Action Toolbar */
+        .no-print-bar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: #ffffff;
+            border-bottom: 1px solid #cbd5e1;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 10px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .toolbar-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: 'Battambang', 'Khmer OS Battambang', sans-serif;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-print {
+            background-color: #d97706;
+            color: #ffffff;
+        }
+        .btn-print:hover {
+            background-color: #b45309;
+            color: #ffffff;
+        }
+
+        .btn-docx {
+            background-color: #2563eb;
+            color: #ffffff;
+        }
+        .btn-docx:hover {
+            background-color: #1d4ed8;
+            color: #ffffff;
+        }
+
+        .btn-doc {
+            background-color: #0284c7;
+            color: #ffffff;
+        }
+        .btn-doc:hover {
+            background-color: #0369a1;
+            color: #ffffff;
+        }
+
+        .btn-close-window {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-close-window:hover {
+            background-color: #e2e8f0;
+            color: #0f172a;
+        }
+
+        /* Document Container */
+        .doc-wrapper {
+            max-width: 210mm;
+            margin: 24px auto 40px auto;
+        }
+
+        /* Physical A4 Sheet Specification */
+        .a4-page {
+            background: #ffffff;
+            width: 210mm;
+            height: 297mm;
+            min-height: 297mm;
+            max-height: 297mm;
+            margin: 0 auto 30px auto;
+            padding: 12mm 16mm 10mm 16mm;
+            box-sizing: border-box;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        /* Header Layout */
+        .header-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .header-left {
+            text-align: center;
+            line-height: 1.45;
+        }
+        .header-left .org-title {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 10.5pt;
+        }
+        .header-left .org-sub {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 9.5pt;
+        }
+
+        .header-right {
+            text-align: center;
+            line-height: 1.45;
+        }
+        .header-right .kingdom-title {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 11pt;
+        }
+        .header-right .motto-title {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 10pt;
+        }
+
+        .flourish-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 3px;
+            color: #000;
+        }
+        .flourish-line::before, .flourish-line::after {
+            content: '';
+            display: inline-block;
+            width: 42px;
+            border-top: 1px solid #000;
+            margin: 0 4px;
+        }
+        .flourish-dot {
+            font-size: 8pt;
+        }
+
+        /* Title Block */
+        .title-block {
+            text-align: center;
+            margin: 6px 0 12px 0;
+            line-height: 1.5;
+        }
+        .title-main {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 12pt;
+        }
+        .title-sub {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 12pt;
+        }
+
+        /* Seniority Table */
+        table.seniority-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 10pt;
+        }
+        table.seniority-tbl th, table.seniority-tbl td {
+            border: 1px solid #000;
+            text-align: center;
+            vertical-align: middle;
+            padding: 4px 8px;
+        }
+        .tbl-date-header {
+            font-size: 10.5pt;
+            font-weight: normal;
+        }
+        table.seniority-tbl th {
+            font-size: 9.8pt;
+            font-weight: normal;
+            padding: 5px 8px;
+        }
+        table.seniority-tbl td.data-cell {
+            height: 38px;
+            font-weight: bold;
+            font-size: 11pt;
+        }
+
+        /* Section Titles */
+        .section-title {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 11pt;
+            text-align: center;
+            margin-bottom: 10px;
+            text-decoration: underline;
+        }
+        .section-title-p2 {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 11pt;
+            text-align: center;
+            margin: 2px 0 10px 0;
+            text-decoration: underline;
+        }
+
+        /* ==========================================================================
+           BIODATA LIST (Page 1) — DATA DIRECTLY ON OFFICIAL DOTTED LINES (............)
+           ========================================================================== */
+        .bio-container {
+            line-height: 1.95;
+            font-size: 10.5pt;
+        }
+        .bio-line {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .bio-lbl {
+            white-space: nowrap;
+            padding-right: 4px;
+        }
+        
+        /* The Dotted Box: Seamless continuous dotted baseline across the entire field */
+        .bio-dotted-box {
+            display: inline-flex;
+            align-items: baseline;
+            border-bottom: 1.5px dotted #000;
+            min-height: 1.35em;
+            padding: 0 4px;
+            margin-bottom: 1px;
+            overflow: hidden;
+        }
+        .bio-dotted-box strong {
+            font-weight: bold;
+            color: #000;
+            white-space: nowrap;
+        }
+
+        .declaration-line {
+            text-align: center;
+            margin: 14px 0 10px 0;
+            font-size: 10pt;
+        }
+
+        /* Signatures Layout */
+        .signatures-p1 {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 6px;
+            font-size: 10pt;
+        }
+        .sig-p1-left, .sig-p1-right {
+            width: 48%;
+            text-align: center;
+            line-height: 1.45;
+        }
+        .sig-role-muol {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 9.5pt;
+            margin-top: 3px;
+        }
+        .sig-space-box {
+            height: 52px;
+        }
+
+        /* ==========================================================================
+           PAGE 2: EVALUATION TABLE — 100% PRESERVING OFFICIAL DOTTED LINES
+           ========================================================================== */
+        table.crit-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 10pt;
+        }
+        table.crit-tbl td {
+            padding: 3px 2px;
+            vertical-align: middle;
+        }
+        .crit-col-num {
+            width: 25px;
+            white-space: nowrap;
+        }
+        .crit-col-name {
+            display: flex;
+            align-items: baseline;
+            overflow: hidden;
+            white-space: nowrap;
+            width: 100%;
+        }
+        .crit-name-text {
+            white-space: nowrap;
+            padding-right: 4px;
+            font-size: 10.5pt;
+        }
+        .crit-dots-run {
+            letter-spacing: 1.2px;
+            color: #222;
+            overflow: hidden;
+            white-space: nowrap;
+            flex: 1;
+        }
+        .crit-col-box {
+            width: 68px;
+            height: 28px;
+            border: 1px solid #000;
+            text-align: center;
+            vertical-align: middle;
+            font-weight: bold;
+            font-size: 11pt;
+            padding: 0;
+        }
+        .crit-col-max {
+            width: 38px;
+            white-space: nowrap;
+            padding-left: 6px;
+            font-size: 10.5pt;
+        }
+
+        .avg-row td {
+            padding-top: 6px;
+            padding-bottom: 6px;
+        }
+        .avg-label-muol {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 10.5pt;
+            text-align: right;
+            padding-right: 12px;
+        }
+
+        .grade-row td {
+            padding-top: 6px;
+            padding-bottom: 8px;
+        }
+
+        /* Remarks Box */
+        .remarks-container {
+            border: 1px solid #000;
+            padding: 8px 12px;
+            margin-top: 4px;
+            font-size: 9.8pt;
+            line-height: 1.75;
+            box-sizing: border-box;
+        }
+        .remarks-head-title {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .remarks-sub-title {
+            font-weight: bold;
+            margin-top: 4px;
+            margin-bottom: 2px;
+        }
+        .remarks-dotted-stream {
+            letter-spacing: 1.2px;
+            color: #222;
+            overflow: hidden;
+            white-space: nowrap;
+            line-height: 1.9;
+            height: 20px;
+        }
+
+        /* Page 2: Signatures */
+        .signatures-p2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 10px;
+            font-size: 10pt;
+        }
+        .sig-p2-left, .sig-p2-right {
+            width: 48%;
+            text-align: center;
+            line-height: 1.45;
+        }
+        .sig-title-muol {
+            font-family: 'Moul', 'Khmer OS Muol Light', serif;
+            font-size: 10pt;
+        }
+        .sig-date-str {
+            font-size: 9.8pt;
+            margin-top: 2px;
+        }
+        .sig-role-detail {
+            font-size: 9pt;
+            margin-top: 2px;
+        }
+        .sig-space-box-p2 {
+            height: 55px;
+        }
+
+        /* ==========================================================================
+           PRINT MODE RULES: STRICT A4 PORTRAIT (បញ្ឈរ) 2-PAGE LOCK
+           ========================================================================== */
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        @media print {
+            html, body {
+                width: 210mm !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+            }
+
+            .no-print-bar {
+                display: none !important;
+            }
+
+            .doc-wrapper {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 210mm !important;
+                max-width: 210mm !important;
+            }
+
+            .a4-page {
+                width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                margin: 0 !important;
+                padding: 12mm 16mm 10mm 16mm !important;
+                box-sizing: border-box !important;
+                box-shadow: none !important;
+                border: none !important;
+                page-break-before: always;
+                page-break-after: always;
+                page-break-inside: avoid;
+                overflow: hidden !important;
+            }
+
+            .a4-page:first-child {
+                page-break-before: avoid !important;
+            }
+
+            .screen-score-inp {
+                display: none !important;
+            }
+            .print-score-val {
+                display: inline !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sticky Screen Action Toolbar (Hidden during Print / PDF Export) -->
+    <div class="no-print-bar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button onclick="window.print()" class="toolbar-btn btn-print shadow-sm">
+                <i class="fa-solid fa-print"></i> បោះពុម្ពជា PDF (Print / Save as PDF)
+            </button>
+            <span style="font-size: 12px; color: #64748b; font-family: 'Battambang', sans-serif;">
+                <i class="fa-solid fa-circle-info text-primary"></i> ទំហំក្រដាស A4 បញ្ឈរ ស្តង់ដាររដ្ឋបាល ២ ទំព័រ (កម្រង {{ template_code }})
+            </span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <form method="POST" action="/officers/promotion/score-bulletin/download/?format=docx" style="display: inline;" target="_blank">
+                {% csrf_token %}
+                <input type="hidden" name="officer_id" value="{{ officer_id }}">
+                <input type="hidden" name="template" value="{{ template_code }}">
+                <input type="hidden" name="year" value="{{ evaluation_year }}">
+                <input type="hidden" name="header_as_of_date_kh" value="{{ header_as_of_date_kh }}">
+                <input type="hidden" name="seniority_in_rank_str" value="{{ seniority_in_rank_str }}">
+                <input type="hidden" name="total_service_str" value="{{ total_service_str }}">
+                <input type="hidden" name="full_name_kh" value="{{ full_name_kh }}">
+                <input type="hidden" name="full_name_latin" value="{{ full_name_latin }}">
+                <input type="hidden" name="gender_kh" value="{{ gender_kh }}">
+                <input type="hidden" name="officer_id_number" value="{{ officer_id_number }}">
+                <input type="hidden" name="dob_kh" value="{{ dob_kh }}">
+                <input type="hidden" name="general_education" value="{{ general_education }}">
+                <input type="hidden" name="skill_major" value="{{ skill_major }}">
+                <input type="hidden" name="civil_service_start_date_kh" value="{{ civil_service_start_date_kh }}">
+                <input type="hidden" name="civil_service_permanent_date_kh" value="{{ civil_service_permanent_date_kh }}">
+                <input type="hidden" name="current_rank_and_step" value="{{ current_rank_and_step }}">
+                <input type="hidden" name="years_in_rank_kh" value="{{ years_in_rank_kh }}">
+                <input type="hidden" name="last_promotion_date_kh" value="{{ last_promotion_date_kh }}">
+                <input type="hidden" name="leave_reason" value="{{ leave_reason }}">
+                <input type="hidden" name="leave_duration" value="{{ leave_duration }}">
+                <input type="hidden" name="scores" value="{{ scores_csv }}">
+                <input type="hidden" name="unit_proposal" value="{{ unit_proposal }}">
+                <input type="hidden" name="unit_head_comment" value="{{ unit_head_comment }}">
+                <input type="hidden" name="minister_comment" value="{{ minister_comment }}">
+                <button type="submit" class="toolbar-btn btn-docx">
+                    <i class="fa-solid fa-file-word"></i> ទាញយក Word (.docx)
+                </button>
+            </form>
+
+            <form method="POST" action="/officers/promotion/score-bulletin/download/?format=doc" style="display: inline;" target="_blank">
+                {% csrf_token %}
+                <input type="hidden" name="officer_id" value="{{ officer_id }}">
+                <input type="hidden" name="template" value="{{ template_code }}">
+                <input type="hidden" name="year" value="{{ evaluation_year }}">
+                <input type="hidden" name="header_as_of_date_kh" value="{{ header_as_of_date_kh }}">
+                <input type="hidden" name="seniority_in_rank_str" value="{{ seniority_in_rank_str }}">
+                <input type="hidden" name="total_service_str" value="{{ total_service_str }}">
+                <input type="hidden" name="full_name_kh" value="{{ full_name_kh }}">
+                <input type="hidden" name="full_name_latin" value="{{ full_name_latin }}">
+                <input type="hidden" name="gender_kh" value="{{ gender_kh }}">
+                <input type="hidden" name="officer_id_number" value="{{ officer_id_number }}">
+                <input type="hidden" name="dob_kh" value="{{ dob_kh }}">
+                <input type="hidden" name="general_education" value="{{ general_education }}">
+                <input type="hidden" name="skill_major" value="{{ skill_major }}">
+                <input type="hidden" name="civil_service_start_date_kh" value="{{ civil_service_start_date_kh }}">
+                <input type="hidden" name="civil_service_permanent_date_kh" value="{{ civil_service_permanent_date_kh }}">
+                <input type="hidden" name="current_rank_and_step" value="{{ current_rank_and_step }}">
+                <input type="hidden" name="years_in_rank_kh" value="{{ years_in_rank_kh }}">
+                <input type="hidden" name="last_promotion_date_kh" value="{{ last_promotion_date_kh }}">
+                <input type="hidden" name="leave_reason" value="{{ leave_reason }}">
+                <input type="hidden" name="leave_duration" value="{{ leave_duration }}">
+                <input type="hidden" name="scores" value="{{ scores_csv }}">
+                <input type="hidden" name="unit_proposal" value="{{ unit_proposal }}">
+                <input type="hidden" name="unit_head_comment" value="{{ unit_head_comment }}">
+                <input type="hidden" name="minister_comment" value="{{ minister_comment }}">
+                <button type="submit" class="toolbar-btn btn-doc">
+                    <i class="fa-solid fa-file-lines"></i> ទាញយក Word (.doc)
+                </button>
+            </form>
+
+            <button onclick="window.close()" class="toolbar-btn btn-close-window">
+                <i class="fa-solid fa-xmark"></i> បិទផ្ទាំង
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Document Container -->
+    <div class="doc-wrapper">
+        
+        <!-- ====================================================================
+             PAGE 1: BIODATA & SENIORITY (ទំព័រទី ១ - ដូចគ្នា បេះបិត)
+             ==================================================================== -->
+        <div class="a4-page">
+            <!-- Header (Ministry & Kingdom) -->
+            <div class="header-grid">
+                <div class="header-left">
+                    <div class="org-title">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
+                    <div class="org-sub">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</div>
+                    <div class="flourish-line"><span class="flourish-dot">❖</span></div>
+                </div>
+                <div class="header-right">
+                    <div class="kingdom-title">ព្រះរាជាណាចក្រកម្ពុជា</div>
+                    <div class="motto-title">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                    <div class="flourish-line"><span class="flourish-dot">❖</span></div>
+                </div>
+            </div>
+
+            <!-- Bulletin Title Block -->
+            <div class="title-block">
+                <div class="title-main">ព្រឹត្តិប័ត្រពិន្ទុសម្រាប់ដំឡើងថ្នាក់</div>
+                <div class="title-sub">{{ template_config.sub_title }}</div>
+            </div>
+
+            <!-- Table 0: As-of Date & Service Durations -->
+            <table class="seniority-tbl">
+                <tr>
+                    <td colspan="2" class="tbl-date-header">
+                        គិតត្រឹម{% if header_as_of_date_kh %} {{ header_as_of_date_kh }}{% else %}ថ្ងៃទី..............ខែ..............ឆ្នាំ២០......{% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th style="width: 50%;">រយៈពេលបំពេញការងារក្នុងឋានន្តរស័ក្តិ និងថ្នាក់បច្ចុប្បន្ន</th>
+                    <th style="width: 50%;">រយៈពេលសរុប បំពេញការងារ</th>
+                </tr>
+                <tr>
+                    <td class="data-cell">{{ seniority_in_rank_str }}</td>
+                    <td class="data-cell">{{ total_service_str }}</td>
+                </tr>
+            </table>
+
+            <!-- Section I: Personal Biodata -->
+            <div class="section-title">I- ជីវប្រវត្តិផ្ទាល់ខ្លួន</div>
+
+            <!-- Biodata List: DATA DIRECTLY ON OFFICIAL DOTTED LINES -->
+            <div class="bio-container">
+                <div class="bio-line">
+                    <span class="bio-lbl">១- គោត្តនាម និងនាម</span>
+                    <span class="bio-dotted-box" style="flex: 2.2;">
+                        {% if full_name_kh %}<strong>{{ full_name_kh }}</strong>{% endif %}
+                    </span>
+                    <span class="bio-lbl" style="margin-left: 10px;">ជាអក្សរឡាតាំង</span>
+                    <span class="bio-dotted-box font-latin" style="flex: 2.2;">
+                        {% if full_name_latin %}<strong>{{ full_name_latin }}</strong>{% endif %}
+                    </span>
+                    <span class="bio-lbl" style="margin-left: 10px;">ភេទ</span>
+                    <span class="bio-dotted-box" style="width: 65px; flex: none;">
+                        {% if gender_kh %}<strong>{{ gender_kh }}</strong>{% endif %}
+                    </span>
+                </div>
+
+                <div class="bio-line">
+                    <span class="bio-lbl">២- អត្តលេខ</span>
+                    <span class="bio-dotted-box font-monospace" style="flex: 1.8;">
+                        {% if officer_id_number %}<strong>{{ officer_id_number }}</strong>{% endif %}
+                    </span>
+                    <span class="bio-lbl" style="margin-left: 15px;">ថ្ងៃ-ខែ-ឆ្នាំកំណើត</span>
+                    <span class="bio-dotted-box" style="flex: 2.5;">
+                        {% if dob_kh %}<strong>{{ dob_kh }}</strong>{% endif %}
+                    </span>
+                </div>
+
+                <div class="bio-line">
+                    <span class="bio-lbl">៣- កម្រិតវប្បធម៌ទូទៅ</span>
+                    <span class="bio-dotted-box" style="flex: 2;">
+                        {% if general_education %}<strong>{{ general_education }}</strong>{% endif %}
+                    </span>
+                    <span class="bio-lbl" style="margin-left: 15px;">កម្រិតជំនាញ</span>
+                    <span class="bio-dotted-box" style="flex: 2;">
+                        {% if skill_major %}<strong>{{ skill_major }}</strong>{% endif %}
+                    </span>
+                </div>
+
+                <div class="bio-line">
+                    <span class="bio-lbl">៤- កាលបរិច្ឆេទចូលបម្រើការងាររដ្ឋ</span>
+                    <span class="bio-dotted-box" style="flex: 1;">
+                        {% if civil_service_start_date_kh %}<strong>{{ civil_service_start_date_kh }}</strong>{% endif %}
+                    </span>
+                </div>
+
+                <div class="bio-line">
+                    <span class="bio-lbl">៥- កាលបរិច្ឆេទដែលបានតាំងស៊ប់ក្នុងក្របខ័ណ្ឌ</span>
+                    <span class="bio-dotted-box" style="flex: 1;">
+                        {% if civil_service_permanent_date_kh %}<strong>{{ civil_service_permanent_date_kh }}</strong>{% endif %}
+                    </span>
+                </div>
+
+                <div class="bio-line">
+                    <span class="bio-lbl">៦- ឋានន្តរស័ក្តិ និងថ្នាក់បច្ចុប្បន្ន</span>
+                    <span class="bio-dotted-box" style="flex: 1.8;">
+                        {% if current_rank_and_step %}<strong>{{ current_rank_and_step }}</strong>{% endif %}
+                    </span>
+                    <span class="bio-lbl" style="margin-left: 15px;">អតីតភាពក្នុងឋានន្តរស័ក្តិនិងថ្នាក់បច្ចុប្បន្ន</span>
+                    <span class="bio-dotted-box" style="width: 55px; flex: none;">
+                        {% if years_in_rank_kh %}<strong>{{ years_in_rank_kh }}</strong>{% endif %}
+                    </span>
+                    <span class="bio-lbl" style="margin-left: 4px;">ឆ្នាំ</span>
+                </div>
+
+                <div class="bio-line">
+                    <span class="bio-lbl">៧- កាលបរិឆ្ឆេទក្នុងថ្នាក់បច្ចុប្បន្ន (ថ្ងៃ ខែ ឆ្នាំ ឡើងថ្នាក់ចុងក្រោយ )</span>
+                    <span class="bio-dotted-box" style="flex: 1;">
+                        {% if last_promotion_date_kh %}<strong>{{ last_promotion_date_kh }}</strong>{% endif %}
+                    </span>
+                </div>
+
+                <div class="bio-line">
+                    <span class="bio-lbl">៨- ការឈប់ពីការងារក្នុងឋានន្តរស័ក្តិ និងថ្នាក់បច្ចុប្បន្ន</span>
+                </div>
+                <div class="bio-line" style="padding-left: 28px;">
+                    <span class="bio-lbl">- មូលហេតុ</span>
+                    <span class="bio-dotted-box" style="flex: 1;">
+                        {% if leave_reason %}<strong>{{ leave_reason }}</strong>{% endif %}
+                    </span>
+                </div>
+                <div class="bio-line" style="padding-left: 28px;">
+                    <span class="bio-lbl">- រយៈពេល</span>
+                    <span class="bio-dotted-box" style="flex: 1;">
+                        {% if leave_duration %}<strong>{{ leave_duration }}</strong>{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Self Declaration -->
+            <div class="declaration-line">
+                ខ្ញុំសូមធានាខុសត្រូវចំពោះមុខច្បាប់ថាព័ត៌មានខាងលើនេះពិតជាត្រឹមត្រូវពិតប្រាកដមែន ។
+            </div>
+
+            <!-- Page 1 Signatures -->
+            <div class="signatures-p1">
+                <div class="sig-p1-left">
+                    <div>បានឃើញ និងបញ្ជាក់ថាព័ត៌មានដែល</div>
+                    <div style="display: flex; align-items: baseline; justify-content: center; overflow: hidden; white-space: nowrap;">
+                        <span>លោក/លោកស្រី</span>
+                        <span class="bio-dotted-box" style="width: 190px; margin-left: 4px;">
+                            {% if full_name_kh %}<strong>{{ full_name_kh }}</strong>{% endif %}
+                        </span>
+                    </div>
+                    <div>បានអះអាងខាងលើពិតជាត្រឹមត្រូវប្រាកដមែន។</div>
+                    <div style="margin-top: 3px;">ប៉ៃលិន ថ្ងៃទី..........ខែ............ឆ្នាំ២០.....</div>
+                    <div class="sig-role-muol">ហត្ថលេខា ( មន្ត្រីទទួលបន្ទុកការងារបុគ្គលិក )</div>
+                    <div class="sig-space-box"></div>
+                </div>
+
+                <div class="sig-p1-right">
+                    <div>ប៉ៃលិន ថ្ងៃទី..........ខែ............ឆ្នាំ២០.....</div>
+                    <div class="sig-role-muol">ហត្ថលេខាសាមីខ្លួន</div>
+                    <div class="sig-space-box"></div>
+                    <div style="font-weight: bold; font-size: 10.5pt;">{{ full_name_kh }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================================================
+             PAGE 2: EVALUATION & SCORING (ទំព័រទី ២ - ដូចគ្នា បេះបិត)
+             ==================================================================== -->
+        <div class="a4-page">
+            <!-- Section II Title -->
+            <div class="section-title-p2">II- ការវាយតម្លៃដាក់ពិន្ទុ</div>
+
+            <!-- Criteria Scoring Table with Preserved Dotted Lines -->
+            <table class="crit-tbl">
+                {% for item in criteria_items %}
+                <tr>
+                    <td class="crit-col-num">{{ item.num }}</td>
+                    <td class="crit-col-name">
+                        <span class="crit-name-text">{{ item.label }}</span>
+                        <span class="crit-dots-run">............................................................................................................................................................</span>
+                    </td>
+                    <td class="crit-col-box">
+                        <span class="print-score-val">{% if item.score %}{{ item.score_kh }}{% endif %}</span>
+                    </td>
+                    <td class="crit-col-max">/២០</td>
+                </tr>
+                {% endfor %}
+
+                <!-- Average Row -->
+                <tr class="avg-row">
+                    <td colspan="2" class="avg-label-muol">ពិន្ទុដែលត្រូវបាន</td>
+                    <td class="crit-col-box" style="background-color: #f8fafc;">
+                        <span class="print-score-val">{% if avg_score %}{{ avg_score_kh }}{% endif %}</span>
+                    </td>
+                    <td class="crit-col-max">/២០</td>
+                </tr>
+
+                <!-- Grade Row -->
+                <tr class="grade-row">
+                    <td colspan="4">
+                        <div style="display: flex; align-items: baseline; padding-left: 35px;">
+                            <span style="font-weight: bold; padding-right: 6px;">និទ្ទេស</span>
+                            <span class="bio-dotted-box" style="width: 220px;">
+                                {% if grade_kh %}<strong>{{ grade_kh }}</strong>{% endif %}
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Administrative Remarks Box with Dotted Stream Lines & Filled Data on Dotted Lines -->
+            <div class="remarks-container">
+                <div class="remarks-head-title">១. ចំណារ និងមូលវិចារណ៍របស់ប្រធានស្ថាប័ន ឬអង្គភាពផ្ទាល់៖</div>
+                {% if unit_head_comment %}
+                <div class="bio-dotted-box" style="width: 100%; display: flex; align-items: baseline; min-height: 24px; padding: 1px 4px; margin-bottom: 3px;">
+                    <strong>{{ unit_head_comment }}</strong>
+                </div>
+                {% else %}
+                <div class="remarks-dotted-stream">...............................................................................................................................................................................</div>
+                <div class="remarks-dotted-stream">...............................................................................................................................................................................</div>
+                {% endif %}
+
+                <div class="remarks-sub-title" style="margin-top: 5px;">២. សំណើរបស់ប្រធានអង្គភាព (ស្នើសុំដំឡើងថ្នាក់)៖</div>
+                {% if unit_proposal %}
+                <div class="bio-dotted-box" style="width: 100%; display: flex; align-items: baseline; min-height: 24px; padding: 1px 4px; margin-bottom: 3px;">
+                    <strong>{{ unit_proposal }}</strong>
+                </div>
+                {% else %}
+                <div class="remarks-dotted-stream">...............................................................................................................................................................................</div>
+                {% endif %}
+
+                <div class="remarks-sub-title" style="margin-top: 5px;">៣. ចំណាររបស់រដ្ឋមន្ត្រី ឬប្រធានស្ថាប័នមានសមត្ថកិច្ច៖</div>
+                {% if minister_comment %}
+                <div class="bio-dotted-box" style="width: 100%; display: flex; align-items: baseline; min-height: 24px; padding: 1px 4px; margin-bottom: 2px;">
+                    <strong>{{ minister_comment }}</strong>
+                </div>
+                {% else %}
+                <div class="remarks-dotted-stream">...............................................................................................................................................................................</div>
+                <div class="remarks-dotted-stream">...............................................................................................................................................................................</div>
+                {% endif %}
+            </div>
+
+            <!-- Page 2 Signatures Block -->
+            <div class="signatures-p2">
+                <div class="sig-p2-left">
+                    <div class="sig-date-str">ប៉ៃលិន ថ្ងៃទី..........ខែ............ឆ្នាំ២០.....</div>
+                    <div class="sig-title-muol">ប្រធានអង្គភាពវាយតម្លៃ</div>
+                    <div class="sig-space-box-p2"></div>
+                </div>
+
+                <div class="sig-p2-right">
+                    <div class="sig-date-str">ប៉ៃលិន ថ្ងៃទី..........ខែ............ឆ្នាំ២០.....</div>
+                    <div class="sig-title-muol">ប្រធានស្ថាប័ន ឬអង្គភាព</div>
+                    <div class="sig-role-detail">( រដ្ឋមន្ត្រី ឬ ប្រធានស្ថាប័ន )</div>
+                    <div class="sig-space-box-p2"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

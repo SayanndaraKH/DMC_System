@@ -864,7 +864,7 @@
                                             <th style="width: 50px;">ល.រ</th>
                                             <th>គោត្តនាម និងនាមខ្លួន</th>
                                             <th style="width: 120px;">ភេទ</th>
-                                            <th>ថ្ងៃខែឆ្នាំកំណើត</th>
+                                            <th style="width: 175px; min-width: 175px;">ថ្ងៃខែឆ្នាំកំណើត</th>
                                             <th>មុខរបរ</th>
                                             <th style="width: 50px;">លុប</th>
                                         </tr>
@@ -880,7 +880,7 @@
                                                     <option value="ប្រុស" {% if c.gender == 'ប្រុស' or c.gender == 'MALE' %}selected{% endif %}>ប្រុស</option>
                                                 </select>
                                             </td>
-                                            <td><input type="text" name="child_dob" value="{{ c.dob }}" class="form-control form-control-sm" placeholder="ថ្ងៃខែឆ្នាំកំណើត"></td>
+                                            <td><input type="text" name="child_dob" value="{{ c.dob }}" class="form-control form-control-sm text-center" style="min-width: 160px;" placeholder="ថ្ងៃខែឆ្នាំកំណើត"></td>
                                             <td><input type="text" name="child_occupation" value="{{ c.occupation }}" class="form-control form-control-sm" placeholder="មុខរបរ (ឧ. ក្នុងបន្ទុក, សិស្ស...)"></td>
                                             <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger p-1 border-0" onclick="removeTableRow(this)"><i class="fa-solid fa-trash"></i></button></td>
                                         </tr>
@@ -1097,14 +1097,14 @@
                             <table class="table table-bordered table-hover align-middle mb-0" id="eduTable">
                                 <thead class="bg-light text-muted fs-8 text-center">
                                     <tr>
-                                        <th style="width: 140px;">ផ្នែក/កម្រិត</th>
-                                        <th>កម្រិតសិក្សា (Level)</th>
-                                        <th>គ្រឹះស្ថានសិក្សា បណ្តុះបណ្តាល</th>
-                                        <th>រាជធានី ខេត្ត ប្រទេស</th>
-                                        <th>សញ្ញាបត្រ</th>
-                                        <th>ជំនាញ</th>
-                                        <th style="width: 110px;">ថ្ងៃចូលសិក្សា</th>
-                                        <th style="width: 110px;">ថ្ងៃបញ្ចប់សិក្សា</th>
+                                        <th style="width: 200px; min-width: 200px;">ផ្នែក/កម្រិត</th>
+                                        <th style="min-width: 130px;">កម្រិតសិក្សា (Level)</th>
+                                        <th style="min-width: 180px;">គ្រឹះស្ថានសិក្សា បណ្តុះបណ្តាល</th>
+                                        <th style="min-width: 120px;">រាជធានី ខេត្ត ប្រទេស</th>
+                                        <th style="min-width: 130px;">សញ្ញាបត្រ</th>
+                                        <th style="min-width: 130px;">ជំនាញ</th>
+                                        <th style="width: 155px; min-width: 155px;">ថ្ងៃចូលសិក្សា</th>
+                                        <th style="width: 155px; min-width: 155px;">ថ្ងៃបញ្ចប់សិក្សា</th>
                                         <th style="width: 45px;">លុប</th>
                                     </tr>
                                 </thead>
@@ -1112,7 +1112,7 @@
                                     {% for e in officer.education_data %}
                                     <tr>
                                         <td>
-                                            <select name="edu_category" class="form-select form-select-sm">
+                                            <select name="edu_category" class="form-select form-select-sm" style="min-width: 190px;">
                                                 <option value="1" {% if e.category == '1' %}selected{% endif %}>១- វប្បធម៌ទូទៅ</option>
                                                 <option value="2" {% if e.category == '2' %}selected{% endif %}>២- វិជ្ជាជីវៈ/ឧត្តម</option>
                                                 <option value="3" {% if e.category == '3' %}selected{% endif %}>៣- វគ្គបណ្តុះបណ្តាលបន្ត</option>
@@ -1123,8 +1123,8 @@
                                         <td><input type="text" name="edu_location" value="{{ e.location }}" class="form-control form-control-sm" placeholder="ទីតាំង/ប្រទេស"></td>
                                         <td><input type="text" name="edu_degree" value="{{ e.degree }}" class="form-control form-control-sm" placeholder="បរិញ្ញាបត្រ, វិញ្ញាបនបត្រ..."></td>
                                         <td><input type="text" name="edu_skill" value="{{ e.skill }}" class="form-control form-control-sm" placeholder="ជំនាញឯកទេស"></td>
-                                        <td><input type="text" name="edu_start_date" value="{{ e.start_date }}" class="form-control form-control-sm" placeholder="ឆ្នាំ/ថ្ងៃចូល"></td>
-                                        <td><input type="text" name="edu_end_date" value="{{ e.end_date }}" class="form-control form-control-sm" placeholder="ឆ្នាំ/ថ្ងៃបញ្ចប់"></td>
+                                        <td><input type="text" name="edu_start_date" value="{{ e.start_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ឆ្នាំ/ថ្ងៃចូល"></td>
+                                        <td><input type="text" name="edu_end_date" value="{{ e.end_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ឆ្នាំ/ថ្ងៃបញ្ចប់"></td>
                                         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger p-1 border-0" onclick="removeTableRow(this)"><i class="fa-solid fa-trash"></i></button></td>
                                     </tr>
                                     {% empty %}
@@ -1220,9 +1220,9 @@
                                 <thead class="bg-light text-muted fs-8 text-center">
                                     <tr>
                                         <th>ភាសាបរទេស</th>
-                                        <th>ការអាន (Reading)</th>
-                                        <th>ការសន្ទនា (Speaking)</th>
-                                        <th>ការសរសេរ (Writing)</th>
+                                        <th style="width: 160px; min-width: 160px;">ការអាន (Reading)</th>
+                                        <th style="width: 160px; min-width: 160px;">ការសន្ទនា (Speaking)</th>
+                                        <th style="width: 160px; min-width: 160px;">ការសរសេរ (Writing)</th>
                                         <th style="width: 50px;">លុប</th>
                                     </tr>
                                 </thead>
@@ -1231,21 +1231,21 @@
                                     <tr>
                                         <td><input type="text" name="lang_language" value="{{ l.language }}" class="form-control form-control-sm" placeholder="ឧ. អង់គ្លេស, បារាំង, ចិន..."></td>
                                         <td>
-                                            <select name="lang_reading" class="form-select form-select-sm">
+                                            <select name="lang_reading" class="form-select form-select-sm" style="min-width: 145px;">
                                                 <option value="ល្អ" {% if l.reading == 'ល្អ' %}selected{% endif %}>ល្អ (Good)</option>
                                                 <option value="មធ្យម" {% if l.reading == 'មធ្យម' %}selected{% endif %}>មធ្យម (Fair)</option>
                                                 <option value="ខ្សោយ" {% if l.reading == 'ខ្សោយ' %}selected{% endif %}>ខ្សោយ (Poor)</option>
                                             </select>
                                         </td>
                                         <td>
-                                            <select name="lang_speaking" class="form-select form-select-sm">
+                                            <select name="lang_speaking" class="form-select form-select-sm" style="min-width: 145px;">
                                                 <option value="ល្អ" {% if l.speaking == 'ល្អ' %}selected{% endif %}>ល្អ (Good)</option>
                                                 <option value="មធ្យម" {% if l.speaking == 'មធ្យម' %}selected{% endif %}>មធ្យម (Fair)</option>
                                                 <option value="ខ្សោយ" {% if l.speaking == 'ខ្សោយ' %}selected{% endif %}>ខ្សោយ (Poor)</option>
                                             </select>
                                         </td>
                                         <td>
-                                            <select name="lang_writing" class="form-select form-select-sm">
+                                            <select name="lang_writing" class="form-select form-select-sm" style="min-width: 145px;">
                                                 <option value="ល្អ" {% if l.writing == 'ល្អ' %}selected{% endif %}>ល្អ (Good)</option>
                                                 <option value="មធ្យម" {% if l.writing == 'មធ្យម' %}selected{% endif %}>មធ្យម (Fair)</option>
                                                 <option value="ខ្សោយ" {% if l.writing == 'ខ្សោយ' %}selected{% endif %}>ខ្សោយ (Poor)</option>
@@ -1555,8 +1555,8 @@
                                 <table class="table table-bordered table-hover align-middle mb-0" id="pubHistoryTable">
                                     <thead class="bg-light text-muted fs-8 text-center">
                                         <tr>
-                                            <th style="width: 120px;">ថ្ងៃខែឆ្នាំចូល</th>
-                                            <th style="width: 120px;">ថ្ងៃខែឆ្នាំបញ្ចប់</th>
+                                            <th style="width: 155px; min-width: 155px;">ថ្ងៃខែឆ្នាំចូល</th>
+                                            <th style="width: 155px; min-width: 155px;">ថ្ងៃខែឆ្នាំបញ្ចប់</th>
                                             <th>ក្រសួង-ស្ថាប័ន</th>
                                             <th>នាយកដ្ឋាន-អង្គភាព</th>
                                             <th>មុខតំណែង</th>
@@ -1567,8 +1567,8 @@
                                     <tbody class="fs-8">
                                         {% for h in officer.history_public_sector %}
                                         <tr>
-                                            <td><input type="text" name="pub_start_date" value="{{ h.start_date }}" class="form-control form-control-sm" placeholder="ថ្ងៃចូល"></td>
-                                            <td><input type="text" name="pub_end_date" value="{{ h.end_date }}" class="form-control form-control-sm" placeholder="ថ្ងៃបញ្ចប់/បច្ចុប្បន្ន"></td>
+                                            <td><input type="text" name="pub_start_date" value="{{ h.start_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃចូល"></td>
+                                            <td><input type="text" name="pub_end_date" value="{{ h.end_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃបញ្ចប់/បច្ចុប្បន្ន"></td>
                                             <td><input type="text" name="pub_ministry" value="{{ h.ministry }}" class="form-control form-control-sm" placeholder="ក្រសួង"></td>
                                             <td><input type="text" name="pub_department" value="{{ h.department }}" class="form-control form-control-sm" placeholder="មន្ទីរ/នាយកដ្ឋាន"></td>
                                             <td><input type="text" name="pub_position" value="{{ h.position }}" class="form-control form-control-sm" placeholder="មុខតំណែង"></td>
@@ -1594,8 +1594,8 @@
                                 <table class="table table-bordered table-hover align-middle mb-0" id="privHistoryTable">
                                     <thead class="bg-light text-muted fs-8 text-center">
                                         <tr>
-                                            <th style="width: 120px;">ថ្ងៃខែឆ្នាំចូល</th>
-                                            <th style="width: 120px;">ថ្ងៃខែឆ្នាំបញ្ចប់</th>
+                                            <th style="width: 155px; min-width: 155px;">ថ្ងៃខែឆ្នាំចូល</th>
+                                            <th style="width: 155px; min-width: 155px;">ថ្ងៃខែឆ្នាំបញ្ចប់</th>
                                             <th>ស្ថាប័ន/ក្រុមហ៊ុន/អង្គការ</th>
                                             <th>មុខតំណែង</th>
                                             <th>ជំនាញ/បច្ចេកទេស</th>
@@ -1605,8 +1605,8 @@
                                     <tbody class="fs-8">
                                         {% for h in officer.history_private_sector %}
                                         <tr>
-                                            <td><input type="text" name="priv_start_date" value="{{ h.start_date }}" class="form-control form-control-sm"></td>
-                                            <td><input type="text" name="priv_end_date" value="{{ h.end_date }}" class="form-control form-control-sm"></td>
+                                            <td><input type="text" name="priv_start_date" value="{{ h.start_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃចូល"></td>
+                                            <td><input type="text" name="priv_end_date" value="{{ h.end_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃបញ្ចប់"></td>
                                             <td><input type="text" name="priv_org" value="{{ h.org }}" class="form-control form-control-sm"></td>
                                             <td><input type="text" name="priv_role" value="{{ h.role }}" class="form-control form-control-sm"></td>
                                             <td><input type="text" name="priv_skill" value="{{ h.skill }}" class="form-control form-control-sm"></td>
@@ -1631,7 +1631,7 @@
                                 <table class="table table-bordered table-hover align-middle mb-0" id="promoSenTable">
                                     <thead class="bg-light text-muted fs-8 text-center">
                                         <tr>
-                                            <th style="width: 120px;">ថ្ងៃសុពលភាព</th>
+                                            <th style="width: 155px; min-width: 155px;">ថ្ងៃសុពលភាព</th>
                                             <th>ក្រសួង-ស្ថាប័ន</th>
                                             <th>នាយកដ្ឋាន-អង្គភាព</th>
                                             <th>ការិយាល័យ</th>
@@ -1644,7 +1644,7 @@
                                     <tbody class="fs-8">
                                         {% for p in officer.promotions_by_seniority %}
                                         <tr>
-                                            <td><input type="text" name="promo_sen_effective_date" value="{{ p.effective_date }}" class="form-control form-control-sm" placeholder="ថ្ងៃសុពលភាព"></td>
+                                            <td><input type="text" name="promo_sen_effective_date" value="{{ p.effective_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃសុពលភាព"></td>
                                             <td><input type="text" name="promo_sen_ministry" value="{{ p.ministry }}" class="form-control form-control-sm" placeholder="ក្រសួង"></td>
                                             <td><input type="text" name="promo_sen_department" value="{{ p.department }}" class="form-control form-control-sm" placeholder="មន្ទីរ/នាយកដ្ឋាន"></td>
                                             <td><input type="text" name="promo_sen_office" value="{{ p.office }}" class="form-control form-control-sm" placeholder="ការិយាល័យ"></td>
@@ -1775,7 +1775,7 @@
                                 <table class="table table-bordered table-hover align-middle mb-0" id="promoDegTable">
                                     <thead class="bg-light text-muted fs-8 text-center">
                                         <tr>
-                                            <th style="width: 120px;">ថ្ងៃសុពលភាព</th>
+                                            <th style="width: 155px; min-width: 155px;">ថ្ងៃសុពលភាព</th>
                                             <th>គ្រឹះស្ថានបណ្តុះបណ្តាល</th>
                                             <th>ទីកន្លែងសិក្សា</th>
                                             <th>សញ្ញាបត្រទទួលបាន</th>
@@ -1787,7 +1787,7 @@
                                     <tbody class="fs-8">
                                         {% for p in officer.promotions_by_degree %}
                                         <tr>
-                                            <td><input type="text" name="promo_deg_effective_date" value="{{ p.effective_date }}" class="form-control form-control-sm"></td>
+                                            <td><input type="text" name="promo_deg_effective_date" value="{{ p.effective_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃសុពលភាព"></td>
                                             <td><input type="text" name="promo_deg_school" value="{{ p.school }}" class="form-control form-control-sm"></td>
                                             <td><input type="text" name="promo_deg_location" value="{{ p.location }}" class="form-control form-control-sm"></td>
                                             <td><input type="text" name="promo_deg_degree" value="{{ p.degree }}" class="form-control form-control-sm"></td>
@@ -1907,12 +1907,12 @@
                                         <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill" onclick="addOutsideFwRow()">+ បន្ថែម</button>
                                     </div>
                                     <table class="table table-bordered table-sm mb-0" id="outFwTable">
-                                        <thead class="bg-white fs-9 text-center"><tr><th>ថ្ងៃចាប់ផ្តើម</th><th>ថ្ងៃបញ្ចប់</th><th>ក្រសួង</th><th>មុខតំណែង</th><th></th></tr></thead>
+                                        <thead class="bg-white fs-9 text-center"><tr><th style="width: 135px; min-width: 135px;">ថ្ងៃចាប់ផ្តើម</th><th style="width: 135px; min-width: 135px;">ថ្ងៃបញ្ចប់</th><th>ក្រសួង</th><th>មុខតំណែង</th><th></th></tr></thead>
                                         <tbody class="fs-9">
                                             {% for o in officer.outside_framework_status %}
                                             <tr>
-                                                <td><input type="text" name="out_fw_start_date" value="{{ o.start_date }}" class="form-control form-control-xs"></td>
-                                                <td><input type="text" name="out_fw_end_date" value="{{ o.end_date }}" class="form-control form-control-xs"></td>
+                                                <td><input type="text" name="out_fw_start_date" value="{{ o.start_date }}" class="form-control form-control-xs text-center" style="min-width: 125px;"></td>
+                                                <td><input type="text" name="out_fw_end_date" value="{{ o.end_date }}" class="form-control form-control-xs text-center" style="min-width: 125px;"></td>
                                                 <td><input type="text" name="out_fw_ministry" value="{{ o.ministry }}" class="form-control form-control-xs"></td>
                                                 <td><input type="text" name="out_fw_position" value="{{ o.position }}" class="form-control form-control-xs"></td>
                                                 <td class="text-center"><button type="button" class="btn btn-xs text-danger p-0" onclick="removeTableRow(this)"><i class="fa-solid fa-xmark"></i></button></td>
@@ -1930,12 +1930,12 @@
                                         <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill" onclick="addUnpaidLeaveRow()">+ បន្ថែម</button>
                                     </div>
                                     <table class="table table-bordered table-sm mb-0" id="unpaidTable">
-                                        <thead class="bg-white fs-9 text-center"><tr><th>ថ្ងៃចាប់ផ្តើម</th><th>ថ្ងៃបញ្ចប់</th><th>ក្រសួង</th><th>ចំនួន(ខែ/ឆ្នាំ)</th><th></th></tr></thead>
+                                        <thead class="bg-white fs-9 text-center"><tr><th style="width: 135px; min-width: 135px;">ថ្ងៃចាប់ផ្តើម</th><th style="width: 135px; min-width: 135px;">ថ្ងៃបញ្ចប់</th><th>ក្រសួង</th><th>ចំនួន(ខែ/ឆ្នាំ)</th><th></th></tr></thead>
                                         <tbody class="fs-9">
                                             {% for u in officer.unpaid_leave_status %}
                                             <tr>
-                                                <td><input type="text" name="unpaid_start_date" value="{{ u.start_date }}" class="form-control form-control-xs"></td>
-                                                <td><input type="text" name="unpaid_end_date" value="{{ u.end_date }}" class="form-control form-control-xs"></td>
+                                                <td><input type="text" name="unpaid_start_date" value="{{ u.start_date }}" class="form-control form-control-xs text-center" style="min-width: 125px;"></td>
+                                                <td><input type="text" name="unpaid_end_date" value="{{ u.end_date }}" class="form-control form-control-xs text-center" style="min-width: 125px;"></td>
                                                 <td><input type="text" name="unpaid_ministry" value="{{ u.ministry }}" class="form-control form-control-xs"></td>
                                                 <td><input type="text" name="unpaid_duration" value="{{ u.duration }}" class="form-control form-control-xs"></td>
                                                 <td class="text-center"><button type="button" class="btn btn-xs text-danger p-0" onclick="removeTableRow(this)"><i class="fa-solid fa-xmark"></i></button></td>
@@ -2037,7 +2037,7 @@
                                     <thead class="bg-light text-muted fs-8 text-center">
                                         <tr>
                                             <th style="width: 140px;">លេខលិខិត</th>
-                                            <th style="width: 120px;">កាលបរិច្ឆេទ</th>
+                                            <th style="width: 155px; min-width: 155px;">កាលបរិច្ឆេទ</th>
                                             <th>ក្រសួង/ស្ថាប័ន (ស្នើសុំ)</th>
                                             <th>បរិយាយ</th>
                                             <th style="width: 180px;">ប្រភេទ (មេដាយ/ថ្នាក់)</th>
@@ -2048,7 +2048,7 @@
                                         {% for a in officer.awards_data %}
                                         <tr>
                                             <td><input type="text" name="award_doc_number" value="{{ a.doc_number }}" class="form-control form-control-sm" placeholder="ឧ. ៣៣៥ អនក្រ.តត"></td>
-                                            <td><input type="text" name="award_date" value="{{ a.date }}" class="form-control form-control-sm" placeholder="ឧ. ២៥/មេសា/២០២៥"></td>
+                                            <td><input type="text" name="award_date" value="{{ a.date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ឧ. ២៥/មេសា/២០២៥"></td>
                                             <td><input type="text" name="award_ministry" value="{{ a.ministry }}" class="form-control form-control-sm" placeholder="ក្រសួងកសិកម្ម..."></td>
                                             <td><input type="text" name="award_description" value="{{ a.description }}" class="form-control form-control-sm" placeholder="គ្រឿងឥស្សរិយយស..."></td>
                                             <td><input type="text" name="award_type" value="{{ a.type }}" class="form-control form-control-sm" placeholder="សុវត្ថារា ថ្នាក់ សេនា, មាស..."></td>
@@ -2074,7 +2074,7 @@
                                     <thead class="bg-light text-muted fs-8 text-center">
                                         <tr>
                                             <th style="width: 140px;">លេខលិខិត</th>
-                                            <th style="width: 120px;">កាលបរិច្ឆេទ</th>
+                                            <th style="width: 155px; min-width: 155px;">កាលបរិច្ឆេទ</th>
                                             <th>ក្រសួង/ស្ថាប័ន</th>
                                             <th>បរិយាយ</th>
                                             <th style="width: 180px;">ប្រភេទពិន័យ</th>
@@ -2085,7 +2085,7 @@
                                         {% for s in officer.sanctions_data %}
                                         <tr>
                                             <td><input type="text" name="sanct_doc_number" value="{{ s.doc_number }}" class="form-control form-control-sm"></td>
-                                            <td><input type="text" name="sanct_date" value="{{ s.date }}" class="form-control form-control-sm"></td>
+                                            <td><input type="text" name="sanct_date" value="{{ s.date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="កាលបរិច្ឆេទ"></td>
                                             <td><input type="text" name="sanct_ministry" value="{{ s.ministry }}" class="form-control form-control-sm"></td>
                                             <td><input type="text" name="sanct_description" value="{{ s.description }}" class="form-control form-control-sm"></td>
                                             <td><input type="text" name="sanct_type" value="{{ s.type }}" class="form-control form-control-sm"></td>
@@ -2201,7 +2201,7 @@
                                         <th>ផ្នែក / មុខងារ</th>
                                         <th>ចំណងជើង / ឈ្មោះឯកសារ</th>
                                         <th>លេខលិខិត</th>
-                                        <th>កាលបរិច្ឆេទ</th>
+                                        <th style="width: 140px; min-width: 140px;">កាលបរិច្ឆេទ</th>
                                         <th>ទំហំ</th>
                                         <th style="width: 130px;">សកម្មភាព</th>
                                     </tr>
@@ -2451,7 +2451,7 @@ function addChildRow() {
                 <option value="ប្រុស">ប្រុស</option>
             </select>
         </td>
-        <td><input type="text" name="child_dob" class="form-control form-control-sm" placeholder="ឧ. ថ្ងៃទី០៤ ខែមករា ឆ្នាំ២០១៧"></td>
+        <td><input type="text" name="child_dob" class="form-control form-control-sm text-center" style="min-width: 160px;" placeholder="ឧ. ថ្ងៃទី០៤ ខែមករា ឆ្នាំ២០១៧"></td>
         <td><input type="text" name="child_occupation" class="form-control form-control-sm" placeholder="ឧ. ក្នុងបន្ទុក, សិស្ស..."></td>
         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger p-1 border-0" onclick="removeTableRow(this)"><i class="fa-solid fa-trash"></i></button></td>
     `;
@@ -2464,7 +2464,7 @@ function addEducationRow() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
         <td>
-            <select name="edu_category" class="form-select form-select-sm">
+            <select name="edu_category" class="form-select form-select-sm" style="min-width: 190px;">
                 <option value="1">១- វប្បធម៌ទូទៅ</option>
                 <option value="2" selected>២- វិជ្ជាជីវៈ/ឧត្តម</option>
                 <option value="3">៣- វគ្គបណ្តុះបណ្តាលបន្ត</option>
@@ -2475,8 +2475,8 @@ function addEducationRow() {
         <td><input type="text" name="edu_location" class="form-control form-control-sm" placeholder="ទីតាំង/ប្រទេស"></td>
         <td><input type="text" name="edu_degree" class="form-control form-control-sm" placeholder="បរិញ្ញាបត្រ, វិញ្ញាបនបត្រ..."></td>
         <td><input type="text" name="edu_skill" class="form-control form-control-sm" placeholder="ជំនាញឯកទេស"></td>
-        <td><input type="text" name="edu_start_date" class="form-control form-control-sm" placeholder="ឆ្នាំ/ថ្ងៃចូល"></td>
-        <td><input type="text" name="edu_end_date" class="form-control form-control-sm" placeholder="ឆ្នាំ/ថ្ងៃបញ្ចប់"></td>
+        <td><input type="text" name="edu_start_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ឆ្នាំ/ថ្ងៃចូល"></td>
+        <td><input type="text" name="edu_end_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ឆ្នាំ/ថ្ងៃបញ្ចប់"></td>
         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger p-1 border-0" onclick="removeTableRow(this)"><i class="fa-solid fa-trash"></i></button></td>
     `;
     tbody.appendChild(tr);
@@ -2488,21 +2488,21 @@ function addLanguageRow() {
     tr.innerHTML = `
         <td><input type="text" name="lang_language" class="form-control form-control-sm" placeholder="ឧ. អង់គ្លេស, បារាំង, ចិន..."></td>
         <td>
-            <select name="lang_reading" class="form-select form-select-sm">
+            <select name="lang_reading" class="form-select form-select-sm" style="min-width: 145px;">
                 <option value="ល្អ">ល្អ (Good)</option>
                 <option value="មធ្យម" selected>មធ្យម (Fair)</option>
                 <option value="ខ្សោយ">ខ្សោយ (Poor)</option>
             </select>
         </td>
         <td>
-            <select name="lang_speaking" class="form-select form-select-sm">
+            <select name="lang_speaking" class="form-select form-select-sm" style="min-width: 145px;">
                 <option value="ល្អ">ល្អ (Good)</option>
                 <option value="មធ្យម" selected>មធ្យម (Fair)</option>
                 <option value="ខ្សោយ">ខ្សោយ (Poor)</option>
             </select>
         </td>
         <td>
-            <select name="lang_writing" class="form-select form-select-sm">
+            <select name="lang_writing" class="form-select form-select-sm" style="min-width: 145px;">
                 <option value="ល្អ">ល្អ (Good)</option>
                 <option value="មធ្យម" selected>មធ្យម (Fair)</option>
                 <option value="ខ្សោយ">ខ្សោយ (Poor)</option>
@@ -2517,8 +2517,8 @@ function addPublicHistoryRow() {
     const tbody = document.querySelector('#pubHistoryTable tbody');
     const tr = document.createElement('tr');
     tr.innerHTML = `
-        <td><input type="text" name="pub_start_date" class="form-control form-control-sm" placeholder="ថ្ងៃចូល"></td>
-        <td><input type="text" name="pub_end_date" class="form-control form-control-sm" placeholder="ថ្ងៃបញ្ចប់/បច្ចុប្បន្ន"></td>
+        <td><input type="text" name="pub_start_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃចូល"></td>
+        <td><input type="text" name="pub_end_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃបញ្ចប់/បច្ចុប្បន្ន"></td>
         <td><input type="text" name="pub_ministry" class="form-control form-control-sm" placeholder="ក្រសួង"></td>
         <td><input type="text" name="pub_department" class="form-control form-control-sm" placeholder="មន្ទីរ/នាយកដ្ឋាន"></td>
         <td><input type="text" name="pub_position" class="form-control form-control-sm" placeholder="មុខតំណែង"></td>
@@ -2532,8 +2532,8 @@ function addPrivateHistoryRow() {
     const tbody = document.querySelector('#privHistoryTable tbody');
     const tr = document.createElement('tr');
     tr.innerHTML = `
-        <td><input type="text" name="priv_start_date" class="form-control form-control-sm"></td>
-        <td><input type="text" name="priv_end_date" class="form-control form-control-sm"></td>
+        <td><input type="text" name="priv_start_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃចូល"></td>
+        <td><input type="text" name="priv_end_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃបញ្ចប់"></td>
         <td><input type="text" name="priv_org" class="form-control form-control-sm"></td>
         <td><input type="text" name="priv_role" class="form-control form-control-sm"></td>
         <td><input type="text" name="priv_skill" class="form-control form-control-sm"></td>
@@ -2608,7 +2608,7 @@ function addPromoSeniorityRow() {
     const tbody = document.querySelector('#promoSenTable tbody');
     const tr = document.createElement('tr');
     tr.innerHTML = `
-        <td><input type="text" name="promo_sen_effective_date" class="form-control form-control-sm" placeholder="ថ្ងៃសុពលភាព"></td>
+        <td><input type="text" name="promo_sen_effective_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃសុពលភាព"></td>
         <td><input type="text" name="promo_sen_ministry" class="form-control form-control-sm" placeholder="ក្រសួង"></td>
         <td><input type="text" name="promo_sen_department" class="form-control form-control-sm" placeholder="មន្ទីរ/នាយកដ្ឋាន"></td>
         <td><input type="text" name="promo_sen_office" class="form-control form-control-sm" placeholder="ការិយាល័យ"></td>
@@ -2727,7 +2727,7 @@ function addPromoDegreeRow() {
     const tbody = document.querySelector('#promoDegTable tbody');
     const tr = document.createElement('tr');
     tr.innerHTML = `
-        <td><input type="text" name="promo_deg_effective_date" class="form-control form-control-sm"></td>
+        <td><input type="text" name="promo_deg_effective_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃសុពលភាព"></td>
         <td><input type="text" name="promo_deg_school" class="form-control form-control-sm"></td>
         <td><input type="text" name="promo_deg_location" class="form-control form-control-sm"></td>
         <td><input type="text" name="promo_deg_degree" class="form-control form-control-sm"></td>
@@ -2838,8 +2838,8 @@ function addOutsideFwRow() {
     const tbody = document.querySelector('#outFwTable tbody');
     const tr = document.createElement('tr');
     tr.innerHTML = `
-        <td><input type="text" name="out_fw_start_date" class="form-control form-control-xs"></td>
-        <td><input type="text" name="out_fw_end_date" class="form-control form-control-xs"></td>
+        <td><input type="text" name="out_fw_start_date" class="form-control form-control-xs text-center" style="min-width: 125px;"></td>
+        <td><input type="text" name="out_fw_end_date" class="form-control form-control-xs text-center" style="min-width: 125px;"></td>
         <td><input type="text" name="out_fw_ministry" class="form-control form-control-xs"></td>
         <td><input type="text" name="out_fw_position" class="form-control form-control-xs"></td>
         <td class="text-center"><button type="button" class="btn btn-xs text-danger p-0" onclick="removeTableRow(this)"><i class="fa-solid fa-xmark"></i></button></td>
@@ -2851,8 +2851,8 @@ function addUnpaidLeaveRow() {
     const tbody = document.querySelector('#unpaidTable tbody');
     const tr = document.createElement('tr');
     tr.innerHTML = `
-        <td><input type="text" name="unpaid_start_date" class="form-control form-control-xs"></td>
-        <td><input type="text" name="unpaid_end_date" class="form-control form-control-xs"></td>
+        <td><input type="text" name="unpaid_start_date" class="form-control form-control-xs text-center" style="min-width: 125px;"></td>
+        <td><input type="text" name="unpaid_end_date" class="form-control form-control-xs text-center" style="min-width: 125px;"></td>
         <td><input type="text" name="unpaid_ministry" class="form-control form-control-xs"></td>
         <td><input type="text" name="unpaid_duration" class="form-control form-control-xs"></td>
         <td class="text-center"><button type="button" class="btn btn-xs text-danger p-0" onclick="removeTableRow(this)"><i class="fa-solid fa-xmark"></i></button></td>
@@ -2865,7 +2865,7 @@ function addAwardRow() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
         <td><input type="text" name="award_doc_number" class="form-control form-control-sm" placeholder="ឧ. ៣៣៥ អនក្រ.តត"></td>
-        <td><input type="text" name="award_date" class="form-control form-control-sm" placeholder="ឧ. ២៥/មេសា/២០២៥"></td>
+        <td><input type="text" name="award_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ឧ. ២៥/មេសា/២០២៥"></td>
         <td><input type="text" name="award_ministry" class="form-control form-control-sm" placeholder="ក្រសួងកសិកម្ម..."></td>
         <td><input type="text" name="award_description" class="form-control form-control-sm" placeholder="គ្រឿងឥស្សរិយយស..."></td>
         <td><input type="text" name="award_type" class="form-control form-control-sm" placeholder="សុវត្ថារា ថ្នាក់ សេនា, មាស..."></td>
@@ -2879,7 +2879,7 @@ function addSanctionRow() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
         <td><input type="text" name="sanct_doc_number" class="form-control form-control-sm"></td>
-        <td><input type="text" name="sanct_date" class="form-control form-control-sm"></td>
+        <td><input type="text" name="sanct_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="កាលបរិច្ឆេទ"></td>
         <td><input type="text" name="sanct_ministry" class="form-control form-control-sm"></td>
         <td><input type="text" name="sanct_description" class="form-control form-control-sm"></td>
         <td><input type="text" name="sanct_type" class="form-control form-control-sm"></td>

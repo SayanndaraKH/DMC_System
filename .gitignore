@@ -38,3 +38,7 @@ scratch/
 scratch_run.ps1
 scratch_doc_text.txt
 ប្រវត្តិរូប HRMIS MCS/
+
+# Backup archives
+backups/
+*.zip

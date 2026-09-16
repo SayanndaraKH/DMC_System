@@ -342,6 +342,10 @@
                                 <i class="fa-solid fa-map-location-dot text-success"></i>
                                 <span>គ្រប់គ្រង ស្រុក-ឃុំ-ភូមិ</span>
                             </a>
+                            <a href="{% url 'backup_sync_dashboard' %}" class="submenu-link {% if 'backup' in request.resolver_match.url_name %}active{% endif %} text-warning">
+                                <i class="fa-solid fa-cloud-arrow-up text-warning"></i>
+                                <span>Backup & សមកាលកម្ម</span>
+                            </a>
                             <a href="/admin/" target="_blank" class="submenu-link text-warning">
                                 <i class="fa-solid fa-user-shield text-warning"></i>
                                 <span>ផ្ទាំង Admin (Django)</span>
@@ -350,6 +354,14 @@
                     </div>
                 </div>
                 {% endwith %}
+                {% else %}
+                <!-- Regular user access to Backup & Download -->
+                <div class="nav-item px-2 mt-2">
+                    <a href="{% url 'backup_sync_dashboard' %}" class="nav-link text-white d-flex align-items-center gap-2 py-2 px-3 rounded-3 bg-white bg-opacity-10 hover-bg-opacity-20 {% if 'backup' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fa-solid fa-cloud-arrow-down text-warning"></i>
+                        <span class="fs-8 fw-bold">Backup ទិន្នន័យ (Local PC)</span>
+                    </a>
+                </div>
                 {% endif %}
             </nav>
 
@@ -489,6 +501,12 @@
                         </div>
                     </div>
 
+                    <!-- 💾 Backup & Sync Center Quick Access -->
+                    <a href="{% url 'backup_sync_dashboard' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5 shadow-xs d-flex align-items-center gap-1.5" title="Backup & សមកាលកម្មទិន្នន័យ">
+                        <i class="fa-solid fa-cloud-arrow-down text-primary"></i>
+                        <span class="fs-8 fw-bold d-none d-md-inline">Backup & Sync</span>
+                    </a>
+
                     <!-- User Profile Dropdown -->
                     <div class="dropdown">
                         <button class="btn btn-light d-flex align-items-center gap-2 border rounded-pill px-3 py-1.5 shadow-sm" type="button" data-bs-toggle="dropdown">
@@ -507,6 +525,11 @@
                                 <div class="fw-bold text-dark fs-7">{{ user.get_full_name|default:user.username }}</div>
                                 <div class="small text-muted">@{{ user.username }}</div>
                                 <div class="badge bg-success bg-opacity-10 text-success mt-1">{{ user_profile.get_role_display|default:"អ្នកប្រើប្រាស់" }}</div>
+                            </li>
+                            <li>
+                                <a class="dropdown-item fs-7 py-2 rounded-2 text-primary fw-semibold" href="{% url 'backup_sync_dashboard' %}">
+                                    <i class="fa-solid fa-cloud-arrow-down me-2"></i>Backup & សមកាលកម្ម
+                                </a>
                             </li>
                             {% if is_impersonating %}
                             <li>

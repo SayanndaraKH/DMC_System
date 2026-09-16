@@ -102,6 +102,17 @@
         </div>
 
         <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="dropdown">
+                <button class="btn btn-primary rounded-pill px-3.5 py-2 shadow-sm fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-file-signature me-1.5 fs-6"></i> ព្រឹត្តិបត្រពិន្ទុតាមក្របខ័ណ្ឌ
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-3 border-0 fs-8">
+                    <li><h6 class="dropdown-header fs-9 text-muted text-uppercase fw-bold">ជ្រើសរើសតាមក្របខ័ណ្ឌ (ទម្រង់ដាច់ដោយឡែក)</h6></li>
+                    <li><a class="dropdown-item py-2 fw-bold text-primary" href="#" data-bs-toggle="modal" data-bs-target="#scoreBulletinModal" onclick="openScoreBulletinModal('', '{{ forecast_year }}', 'D01')"><i class="fa-solid fa-file-circle-check me-2"></i> ព្រឹត្តិបត្រ ក្របខ័ណ្ឌ ក (D-01)</a></li>
+                    <li><a class="dropdown-item py-2 fw-bold text-info" href="#" data-bs-toggle="modal" data-bs-target="#scoreBulletinModal" onclick="openScoreBulletinModal('', '{{ forecast_year }}', 'D02')"><i class="fa-solid fa-file-circle-check me-2"></i> ព្រឹត្តិបត្រ ក្របខ័ណ្ឌ ខ (D-02)</a></li>
+                    <li><a class="dropdown-item py-2 fw-bold text-success" href="#" data-bs-toggle="modal" data-bs-target="#scoreBulletinModal" onclick="openScoreBulletinModal('', '{{ forecast_year }}', 'D03')"><i class="fa-solid fa-file-circle-check me-2"></i> ព្រឹត្តិបត្រ ក្របខ័ណ្ឌ គ/ឃ (D-03)</a></li>
+                </ul>
+            </div>
             <button type="button" class="btn btn-warning text-dark rounded-pill px-3.5 py-2 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#createPromotionRequestModal" onclick="openPromotionModalForOfficer('', '', '', '')">
                 <i class="fa-solid fa-paper-plane me-1.5 fs-6"></i> + ស្នើសុំដំឡើងថ្នាក់ Online
             </button>
@@ -353,6 +364,7 @@
                 <table class="table table-hover align-middle mb-0 fs-8" id="promotionTable">
                     <thead>
                         <tr class="table-light text-secondary">
+                            <th class="text-center" style="width: 145px; min-width: 135px;">សកម្មភាព</th>
                             <th class="text-center" style="width: 45px;">ល.រ</th>
                             <th class="text-center" style="width: 55px;">រូបថត</th>
                             <th style="width: 110px;">អត្តលេខ</th>
@@ -366,12 +378,27 @@
                             <th class="text-center" style="width: 145px;" title="គិតត្រឹមថ្ងៃទី ១៣ ខែមេសា នៃឆ្នាំនីមួយៗ">កាលបរិច្ឆេទដល់វេន (១៣ មេសា)</th>
                             <th class="text-center" style="width: 135px;">ថ្នាក់ស្នើសុំបន្ទាប់</th>
                             <th class="text-center" style="width: 165px;">ស្ថានភាព & ប្រវត្តិធ្លាក់ឆ្នាំមុន</th>
-                            <th class="text-center" style="width: 130px;">សកម្មភាព</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in promotion_list %}
                         <tr data-status="{{ item.status }}" class="{% if item.status == 'DUE_NEW' %}table-danger bg-opacity-25{% elif item.status == 'CARRIED_OVER' %}table-warning bg-opacity-25{% elif item.status == 'DUE_SOON' %}table-primary bg-opacity-10{% elif item.status == 'MAX_RANK_EXAM_ONLY' %}table-light{% endif %}">
+                                                        <td class="text-center">
+                                <div class="d-flex align-items-center justify-content-center gap-1 flex-nowrap">
+                                    {% if item.is_max_rank %}
+                                    <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-1 fw-bold shadow-xs text-nowrap" onclick="openPromotionModalForOfficer('{{ item.officer.id }}', '{{ item.officer.full_name_kh|escapejs }}', '{{ item.officer.current_rank_and_step|escapejs }}', 'ក្របខ័ណ្ឌ {{ item.target_framework_name }} ({{ item.target_framework_name }}.៣.៤)', '{{ item.years_in_rank }} ឆ្នាំ ({{ item.months_in_rank }} ខែ)', '{{ forecast_year }}', 'EXAM')" title="ស្នើសុំប្រឡងផ្ទៃក្នុងថ្នាក់ក្រសួងដើម្បីប្តូរក្របខ័ណ្ឌ">
+                                        <i class="fa-solid fa-graduation-cap me-1 text-primary"></i> ស្នើប្រឡង
+                                    </button>
+                                    {% else %}
+                                    <button type="button" class="btn btn-xs btn-outline-warning text-dark rounded-pill px-2 py-1 fw-bold shadow-xs text-nowrap" onclick="openPromotionModalForOfficer('{{ item.officer.id }}', '{{ item.officer.full_name_kh|escapejs }}', '{{ item.officer.current_rank_and_step|escapejs }}', '{{ item.next_suggested_rank|escapejs }}', '{{ item.years_in_rank }} ឆ្នាំ ({{ item.months_in_rank }} ខែ)', '{{ forecast_year }}', 'SENIORITY')" title="ស្នើសុំដំឡើងថ្នាក់សម្រាប់មន្ត្រីរូបនេះ ក្នុងឆ្នាំ {{ forecast_year }}">
+                                        <i class="fa-solid fa-paper-plane me-1"></i> ស្នើសុំ
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-xs btn-outline-{{ item.template_badge_color }} rounded-pill px-2 py-1 fw-bold shadow-xs d-inline-flex align-items-center gap-1 text-nowrap" data-bs-toggle="modal" data-bs-target="#scoreBulletinModal" onclick="openScoreBulletinModal('{{ item.officer.id }}', '{{ forecast_year }}', '{{ item.template_code }}')" title="📋 បង្កើតព្រឹត្តិបត្រពិន្ទុដំឡើងថ្នាក់ ក្របខ័ណ្ឌ {{ item.template_label }} សម្រាប់ {{ item.officer.full_name_kh }}">
+                                        <i class="fa-solid fa-file-signature"></i> {% if item.bulletin_code %}{{ item.bulletin_code }}{% elif item.template_code == 'D01' %}D-01{% elif item.template_code == 'D02' %}D-02{% else %}D-03{% endif %}
+                                    </button>
+                                </div>
+                            </td>
                             <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
                             <td class="text-center">
                                 {% if item.officer.photo %}
@@ -466,17 +493,7 @@
                                 </div>
                                 {% endif %}
                             </td>
-                            <td class="text-center">
-                                {% if item.is_max_rank %}
-                                <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 fw-bold shadow-xs" onclick="openPromotionModalForOfficer('{{ item.officer.id }}', '{{ item.officer.full_name_kh|escapejs }}', '{{ item.officer.current_rank_and_step|escapejs }}', 'ក្របខ័ណ្ឌ {{ item.target_framework_name }} ({{ item.target_framework_name }}.៣.៤)', '{{ item.years_in_rank }} ឆ្នាំ ({{ item.months_in_rank }} ខែ)', '{{ forecast_year }}', 'EXAM')" title="ស្នើសុំប្រឡងផ្ទៃក្នុងថ្នាក់ក្រសួងដើម្បីប្តូរក្របខ័ណ្ឌ">
-                                    <i class="fa-solid fa-graduation-cap me-1 text-primary"></i> ស្នើប្រឡងប្តូរក្របខ័ណ្ឌ
-                                </button>
-                                {% else %}
-                                <button type="button" class="btn btn-xs btn-outline-warning text-dark rounded-pill px-2.5 py-1 fw-bold shadow-xs" onclick="openPromotionModalForOfficer('{{ item.officer.id }}', '{{ item.officer.full_name_kh|escapejs }}', '{{ item.officer.current_rank_and_step|escapejs }}', '{{ item.next_suggested_rank|escapejs }}', '{{ item.years_in_rank }} ឆ្នាំ ({{ item.months_in_rank }} ខែ)', '{{ forecast_year }}', 'SENIORITY')" title="ស្នើសុំដំឡើងថ្នាក់សម្រាប់មន្ត្រីរូបនេះ ក្នុងឆ្នាំ {{ forecast_year }}">
-                                    <i class="fa-solid fa-paper-plane me-1"></i> ស្នើសុំ
-                                </button>
-                                {% endif %}
-                            </td>
+
                         </tr>
                         {% empty %}
                         <tr>
@@ -511,6 +528,7 @@
                 <table class="table table-hover align-middle mb-0 fs-8">
                     <thead>
                         <tr class="table-light text-secondary">
+                            <th class="text-center" style="width: 140px;">សកម្មភាព</th>
                             <th class="text-center" style="width: 45px;">ល.រ</th>
                             <th style="min-width: 180px;">មន្ត្រីស្នើសុំ</th>
                             <th style="min-width: 170px;">ការិយាល័យ/អង្គភាព</th>
@@ -521,12 +539,42 @@
                             <th class="text-center" style="width: 100px;">ឯកសារយោង</th>
                             <th class="text-center" style="width: 150px;">ស្ថានភាពដំណើរការ</th>
                             <th style="min-width: 150px;">អ្នកដាក់សំណើ / កាលបរិច្ឆេទ</th>
-                            <th class="text-center" style="width: 140px;">សកម្មភាព</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for req in promotion_requests %}
                         <tr>
+                                                        <td class="text-center">
+                                <div class="d-flex align-items-center justify-content-center gap-1 flex-nowrap">
+                                    <!-- Score Bulletin button -->
+                                    <button type="button" class="btn btn-xs btn-outline-{{ req.bulletin_badge_color }} rounded-pill px-2 py-1 fw-bold shadow-xs d-inline-flex align-items-center gap-1 text-nowrap" data-bs-toggle="modal" data-bs-target="#scoreBulletinModal" onclick="openScoreBulletinModal('{{ req.officer.id }}', '{{ req.request_year }}', '{{ req.bulletin_template_code }}')" title="📋 បង្កើតព្រឹត្តិបត្រពិន្ទុដំឡើងថ្នាក់ ក្របខ័ណ្ឌ {{ req.bulletin_template_label }} សម្រាប់ {{ req.officer.full_name_kh }}">
+                                        <i class="fa-solid fa-file-signature"></i> <span>{% if req.bulletin_code_display %}{{ req.bulletin_code_display }}{% elif req.bulletin_template_code == 'D01' %}D-01{% elif req.bulletin_template_code == 'D02' %}D-02{% else %}D-03{% endif %}</span>
+                                    </button>
+                                    {% if has_global_access %}
+                                    <!-- Edit Request (in case office submitted wrong rank) -->
+                                    <button type="button" class="btn btn-xs btn-outline-warning text-dark rounded-pill px-2 py-1 fw-bold" onclick="openEditPromotionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.current_rank_and_step|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}', '{{ req.promotion_type }}', '{{ req.years_in_current_rank|escapejs }}', '{{ req.reason|escapejs }}', '{{ req.department_id|default:'' }}', '{{ req.meeting_decision|escapejs }}')" title="✏️ កែតម្រូវទិន្នន័យ (ពេលការិយាល័យស្នើសុំខុស)">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <!-- Dept Review Action -->
+                                    <button type="button" class="btn btn-xs btn-primary rounded-pill px-2 py-1 fw-bold" onclick="openReviewPromotionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.current_rank_and_step|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}', '{{ req.reason|escapejs }}', '{{ req.admin_notes|escapejs }}', '{{ req.meeting_decision|escapejs }}', '{{ req.status }}')" title="ពិនិត្យ & សម្រេចកម្រិតមន្ទីរ">
+                                        <i class="fa-solid fa-gavel"></i>
+                                    </button>
+                                    <!-- Ministry Decision Action -->
+                                    <button type="button" class="btn btn-xs btn-success rounded-pill px-2 py-1 fw-bold" onclick="openMinistryDecisionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}')" title="👑 កត់ត្រាការអនុម័តផ្លូវការពីក្រសួង">
+                                        <i class="fa-solid fa-building-columns"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% if has_global_access or req.status == 'PENDING' %}
+                                    <form method="post" action="{% url 'officer_promotion_request_delete' req.id %}" onsubmit="return confirm('តើលោកអ្នកពិតជាចង់លុបសំណើសុំដំឡើងថ្នាក់នេះមែនទេ?');" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-xs btn-outline-danger border-0 rounded-circle p-1" title="លុបសំណើ">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
                             <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
@@ -599,33 +647,7 @@
                                 <div class="text-danger fs-9 mt-0.5"><em>មតិ Admin៖ {{ req.admin_notes }}</em></div>
                                 {% endif %}
                             </td>
-                            <td class="text-center">
-                                <div class="d-flex align-items-center justify-content-center gap-1">
-                                    {% if has_global_access %}
-                                    <!-- Edit Request (in case office submitted wrong rank) -->
-                                    <button type="button" class="btn btn-xs btn-outline-warning text-dark rounded-pill px-2 py-1 fw-bold" onclick="openEditPromotionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.current_rank_and_step|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}', '{{ req.promotion_type }}', '{{ req.years_in_current_rank|escapejs }}', '{{ req.reason|escapejs }}', '{{ req.department_id|default:'' }}', '{{ req.meeting_decision|escapejs }}')" title="✏️ កែតម្រូវទិន្នន័យ (ពេលការិយាល័យស្នើសុំខុស)">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
-                                    <!-- Dept Review Action -->
-                                    <button type="button" class="btn btn-xs btn-primary rounded-pill px-2 py-1 fw-bold" onclick="openReviewPromotionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.current_rank_and_step|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}', '{{ req.reason|escapejs }}', '{{ req.admin_notes|escapejs }}', '{{ req.meeting_decision|escapejs }}', '{{ req.status }}')" title="ពិនិត្យ & សម្រេចកម្រិតមន្ទីរ">
-                                        <i class="fa-solid fa-gavel"></i>
-                                    </button>
-                                    <!-- Ministry Decision Action -->
-                                    <button type="button" class="btn btn-xs btn-success rounded-pill px-2 py-1 fw-bold" onclick="openMinistryDecisionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}')" title="👑 កត់ត្រាការអនុម័តផ្លូវការពីក្រសួង">
-                                        <i class="fa-solid fa-building-columns"></i>
-                                    </button>
-                                    {% endif %}
-                                    
-                                    {% if has_global_access or req.status == 'PENDING' %}
-                                    <form method="post" action="{% url 'officer_promotion_request_delete' req.id %}" onsubmit="return confirm('តើលោកអ្នកពិតជាចង់លុបសំណើសុំដំឡើងថ្នាក់នេះមែនទេ?');" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-xs btn-outline-danger border-0 rounded-circle p-1" title="លុបសំណើ">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    </form>
-                                    {% endif %}
-                                </div>
-                            </td>
+
                         </tr>
                         {% empty %}
                         <tr>
@@ -680,6 +702,7 @@
                                 <th class="text-center" style="width: 35px;">
                                     <input class="form-check-input" type="checkbox" id="selectAllMasterPromo" onchange="toggleSelectAllMasterPromo(this)">
                                 </th>
+                                <th class="text-center" style="width: 120px;">សកម្មភាព</th>
                                 <th class="text-center" style="width: 45px;">ល.រ</th>
                                 <th style="width: 100px;">អត្តលេខ</th>
                                 <th style="min-width: 160px;">គោត្តនាម-នាម</th>
@@ -690,7 +713,6 @@
                                 <th class="text-center" style="width: 120px;">ប្រភេទ & អតីតភាព</th>
                                 <th style="min-width: 180px;">មតិអង្គប្រជុំ / គណៈកម្មការ</th>
                                 <th class="text-center" style="width: 150px;">ស្ថានភាពដំណើរការ</th>
-                                <th class="text-center" style="width: 120px;">សកម្មភាព</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -698,6 +720,24 @@
                             <tr>
                                 <td class="text-center">
                                     <input class="form-check-input master-promo-checkbox" type="checkbox" name="selected_request_ids" value="{{ req.id }}">
+                                </td>
+                                                                <td class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center gap-1 flex-nowrap">
+                                        <!-- Score Bulletin button -->
+                                        <button type="button" class="btn btn-xs btn-outline-{{ req.bulletin_badge_color }} rounded-pill px-2 py-1 fw-bold shadow-xs d-inline-flex align-items-center gap-1 text-nowrap" data-bs-toggle="modal" data-bs-target="#scoreBulletinModal" onclick="openScoreBulletinModal('{{ req.officer.id }}', '{{ req.request_year }}', '{{ req.bulletin_template_code }}')" title="📋 បង្កើតព្រឹត្តិបត្រពិន្ទុដំឡើងថ្នាក់ ក្របខ័ណ្ឌ {{ req.bulletin_template_label }} សម្រាប់ {{ req.officer.full_name_kh }}">
+                                            <i class="fa-solid fa-file-signature"></i> <span>{% if req.bulletin_code_display %}{{ req.bulletin_code_display }}{% elif req.bulletin_template_code == 'D01' %}D-01{% elif req.bulletin_template_code == 'D02' %}D-02{% else %}D-03{% endif %}</span>
+                                        </button>
+                                        {% if has_global_access %}
+                                        <!-- Edit button -->
+                                        <button type="button" class="btn btn-xs btn-outline-warning text-dark rounded-pill px-2 py-1 fw-bold shadow-xs" onclick="openEditPromotionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.current_rank_and_step|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}', '{{ req.promotion_type }}', '{{ req.years_in_current_rank|escapejs }}', '{{ req.reason|escapejs }}', '{{ req.department_id|default:'' }}', '{{ req.meeting_decision|escapejs }}')" title="✏️ កែតម្រូវសំណើ (ពេលការិយាល័យស្នើសុំខុស)">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <!-- Ministry Official Approval button -->
+                                        <button type="button" class="btn btn-xs btn-success rounded-pill px-2 py-1 fw-bold shadow-xs" onclick="openMinistryDecisionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}')" title="👑 កត់ត្រាការអនុម័តផ្លូវការពីក្រសួង (Update Profile)">
+                                            <i class="fa-solid fa-stamp"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
                                 </td>
                                 <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
                                 <td>
@@ -763,20 +803,7 @@
                                     </span>
                                     {% endif %}
                                 </td>
-                                <td class="text-center">
-                                    <div class="d-flex align-items-center justify-content-center gap-1">
-                                        {% if has_global_access %}
-                                        <!-- Edit button -->
-                                        <button type="button" class="btn btn-xs btn-outline-warning text-dark rounded-pill px-2 py-1 fw-bold shadow-xs" onclick="openEditPromotionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.current_rank_and_step|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}', '{{ req.promotion_type }}', '{{ req.years_in_current_rank|escapejs }}', '{{ req.reason|escapejs }}', '{{ req.department_id|default:'' }}', '{{ req.meeting_decision|escapejs }}')" title="✏️ កែតម្រូវសំណើ (ពេលការិយាល័យស្នើសុំខុស)">
-                                            <i class="fa-solid fa-pen"></i>
-                                        </button>
-                                        <!-- Ministry Official Approval button -->
-                                        <button type="button" class="btn btn-xs btn-success rounded-pill px-2 py-1 fw-bold shadow-xs" onclick="openMinistryDecisionModal('{{ req.id }}', '{{ req.officer.full_name_kh|escapejs }}', '{{ req.proposed_rank_and_step|escapejs }}')" title="👑 កត់ត្រាការអនុម័តផ្លូវការពីក្រសួង (Update Profile)">
-                                            <i class="fa-solid fa-stamp"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </td>
+
                             </tr>
                             {% empty %}
                             <tr>
@@ -1233,6 +1260,349 @@
     </div>
 </div>
 
+<!-- 📋 MODAL: Score Bulletin Modal (Strictly Cadre-Specific: D-01, D-02, D-03) -->
+<div class="modal fade" id="scoreBulletinModal" tabindex="-1" aria-labelledby="scoreBulletinModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 96vw; width: 96vw; height: 92vh; margin: 2vh auto;">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden" style="height: 92vh; max-height: 92vh; display: flex; flex-direction: column;">
+            <!-- Modal Header (Styling and Title strictly determined by cadre) -->
+            <div class="modal-header p-3 border-0 transition-all flex-shrink-0" id="bulletinModalHeader" style="background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" id="modalHeaderIconBox" style="width: 44px; height: 44px; color: #1d4ed8;">
+                        <i class="fa-solid fa-file-signature fa-lg"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="modal-title fw-bold m-0 fs-6" id="scoreBulletinModalLabel">
+                                ព្រឹត្តិបត្រពិន្ទុសម្រាប់ដំឡើងថ្នាក់ នៃក្របខ័ណ្ឌមន្ត្រីគ្រប់គ្រងរដ្ឋបាល (ក្របខ័ណ្ឌ ក - D-01)
+                            </h5>
+                            <span class="badge bg-white rounded-pill fw-bold fs-8 shadow-xs" id="modalActiveCadreBadge" style="color: #1d4ed8;">
+                                ក្របខ័ណ្ឌ ក (D-01)
+                            </span>
+                        </div>
+                        <span class="fs-8 text-white-75" id="scoreBulletinModalSubLabel">
+                            ទម្រង់ផ្លូវការ D-01 នៃក្របខ័ណ្ឌមន្ត្រីគ្រប់គ្រងរដ្ឋបាល — វាយតម្លៃ ៥ ចំណុច (ចែកនឹង ៥)
+                        </span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Form Wrapper for Export/Print/Save -->
+            <form id="bulletinExportForm" method="POST" target="_blank" class="m-0 p-0">
+                {% csrf_token %}
+                <input type="hidden" name="officer_id" id="exportOfficerId">
+                <input type="hidden" name="template" id="exportTemplateCode" value="D01">
+                <input type="hidden" name="year" id="exportYear" value="2026">
+                <input type="hidden" name="scores" id="exportScoresList" value="">
+
+                <div class="modal-body p-3.5 bg-light" style="flex: 1 1 auto; overflow-y: auto; overflow-x: hidden;">
+                    <!-- History of Requests Across Years (ប្រវត្តិការស្នើសុំតាមឆ្នាំ) -->
+                    <div id="modalPastRequestsHistoryBox" class="card border-0 shadow-xs rounded-3 p-2.5 bg-white mb-3 d-none">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fs-8 fw-bold text-dark"><i class="fa-solid fa-clock-rotate-left text-primary me-1"></i> ប្រវត្តិការស្នើសុំកន្លងមក៖</span>
+                                <div id="modalPastRequestsPills" class="d-flex align-items-center flex-wrap gap-1.5"></div>
+                            </div>
+                            <span class="fs-9 text-muted"><i class="fa-solid fa-circle-info me-1"></i> ចុចលើឆ្នាំដើម្បីពិនិត្យ ឬបោះពុម្ពឡើងវិញ</span>
+                        </div>
+                    </div>
+
+                    <!-- Officer Dedicated Banner (Locked strictly to this officer's cadre - NO SWITCHING) -->
+                    <div class="card border-0 shadow-xs rounded-3 p-3 bg-white mb-3" id="officerSummaryBanner">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-xs" id="mSummaryAvatarBox" style="width: 46px; height: 46px; background-color: #eff6ff; color: #1d4ed8;">
+                                    <i class="fa-solid fa-user-tie fa-lg"></i>
+                                </div>
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h6 class="fw-bold text-dark m-0 fs-6" id="mSummaryOfficerName">កំពុងទាញយកទិន្នន័យ...</h6>
+                                        <span class="badge rounded-pill fw-bold fs-8 shadow-xs" id="mSummaryCadreBadge" style="background-color: #1d4ed8; color: #fff;">ក្របខ័ណ្ឌ ក (D-01)</span>
+                                    </div>
+                                    <div class="fs-8 text-muted mt-0.5">
+                                        អត្តលេខ៖ <strong class="font-monospace text-dark" id="mSummaryOfficerId">-</strong> | 
+                                        អង្គភាព៖ <span class="text-dark" id="mSummaryOfficerDept">-</span> | 
+                                        ឋានន្តរស័ក្តិ-ថ្នាក់៖ <strong class="text-primary font-monospace" id="mSummaryOfficerRank">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="text-end">
+                                    <span class="fs-9 text-muted d-block fw-bold mb-0.5">គិតត្រឹមឆ្នាំដំឡើងថ្នាក់</span>
+                                    <input type="number" id="modalBulletinYearInput" name="target_year" class="form-control form-control-sm fs-8 rounded-2 font-monospace text-center fw-bold" style="width: 105px;" value="{{ forecast_year|default:today_year }}" min="2020" max="2040" onchange="onBulletinYearChanged()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Officer Selector (Only visible if opened from top menu without officer preselected, strictly filtered to active cadre) -->
+                    <div id="modalOfficerSelectWrapper" class="card border-0 shadow-xs rounded-3 p-3 bg-white mb-3 d-none">
+                        <label class="form-label fw-bold text-dark fs-7 mb-1">
+                            <i class="fa-solid fa-user-check text-primary me-1"></i> សូមជ្រើសរើសឈ្មោះមន្ត្រីក្នុង <span id="modalSelectCadreFilterName" class="text-primary fw-bold">ក្របខ័ណ្ឌ</span> <span class="text-danger">*</span>
+                        </label>
+                        <select id="modalBulletinOfficerSelect" class="form-select fs-8 rounded-3" onchange="onBulletinOfficerSelected(this.value)">
+                            <option value="">-- ជ្រើសរើសមន្ត្រី --</option>
+                            {% for off in dept_officers %}
+                            <option value="{{ off.id }}" data-rank="{{ off.current_rank_and_step|default:'' }}" data-dept="{{ off.department.name_kh|default:'' }}" data-fw="{{ off.framework_category|default:'' }}" data-template="{{ off.bulletin_template_code }}">
+                                {{ off.full_name_kh }} {% if off.officer_id_number %}[អត្តលេខ: {{ off.officer_id_number }}]{% endif %} - {{ off.bulletin_template_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Loading Indicator -->
+                    <div id="bulletinLoadingIndicator" class="text-center py-5 d-none">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+                        <div class="fs-7 text-muted mt-2 fw-bold">កំពុងផ្ទុកទិន្នន័យជីវប្រវត្តិមន្ត្រីស្វ័យប្រវត្តិ...</div>
+                    </div>
+
+                    <!-- Empty Prompt -->
+                    <div id="bulletinEmptyPrompt" class="text-center py-5 bg-white rounded-3 border border-dashed d-none">
+                        <i class="fa-solid fa-file-circle-question fa-3x text-secondary opacity-50 mb-2"></i>
+                        <h6 class="fw-bold text-dark mb-1">សូមជ្រើសរើសឈ្មោះមន្ត្រីខាងលើ</h6>
+                        <p class="text-muted fs-8 m-0">ជ្រើសរើសមន្ត្រីដើម្បីឱ្យប្រព័ន្ធបង្ហាញទម្រង់ និងបំពេញស្វ័យប្រវត្តិតាមក្របខ័ណ្ឌរបស់មន្ត្រីនោះ។</p>
+                    </div>
+
+                    <!-- Main Editable Form Container -->
+                    <div id="bulletinDetailsContainer" class="d-none">
+                        <!-- Navigation Tabs inside modal -->
+                        <ul class="nav nav-pills nav-fill mb-3 bg-white p-1.5 rounded-3 shadow-xs border" id="bulletinModalTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active fw-bold fs-8 py-2 rounded-2" id="tab-bio-btn" data-bs-toggle="pill" data-bs-target="#tab-bio-pane" type="button" role="tab">
+                                    <i class="fa-solid fa-id-card me-1.5 text-primary"></i> ព័ត៌មានជីវប្រវត្តិ និងការងាររដ្ឋ (ទំព័រទី ១ - អាចកែសម្រួលបាន)
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-bold fs-8 py-2 rounded-2" id="tab-scores-btn" data-bs-toggle="pill" data-bs-target="#tab-scores-pane" type="button" role="tab">
+                                    <i class="fa-solid fa-star-half-stroke me-1.5 text-warning"></i> ការវាយតម្លៃដាក់ពិន្ទុ និងគណនានិទ្ទេស (ទំព័រទី ២ - អាចកែសម្រួលបាន)
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="bulletinModalTabsContent">
+                            <!-- TAB 1: Biodata Editable Form -->
+                            <div class="tab-pane fade show active" id="tab-bio-pane" role="tabpanel">
+                                <div class="card border-0 shadow-xs rounded-3 p-3 bg-white mb-3">
+                                    <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+                                        <h6 class="fw-bold text-dark m-0 fs-7">
+                                            <i class="fa-solid fa-pen-to-square text-primary me-1.5"></i> ទិន្នន័យជីវប្រវត្តិមន្ត្រី (អាចកែសម្រួលបានតាមការជាក់ស្តែង)
+                                        </h6>
+                                        <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-2.5 py-1 fw-bold shadow-xs" onclick="saveOfficerProfileChanges()">
+                                            <i class="fa-solid fa-floppy-disk me-1"></i> រក្សាទុកចូលប្រវត្តិរូបមន្ត្រី
+                                        </button>
+                                    </div>
+
+                                    <div class="row g-2.5 fs-8">
+                                        <div class="col-12 col-md-4">
+                                            <label class="form-label text-muted fs-8 mb-1">១. គោត្តនាម និងនាម (ខ្មែរ) *</label>
+                                            <input type="text" class="form-control form-control-sm fw-bold rounded-2" id="bEditNameKh" name="full_name_kh" required>
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label class="form-label text-muted fs-8 mb-1">ជាអក្សរពុម្ពឡាតាំង</label>
+                                            <input type="text" class="form-control form-control-sm font-monospace rounded-2" id="bEditNameLatin" name="full_name_latin">
+                                        </div>
+                                        <div class="col-12 col-md-2">
+                                            <label class="form-label text-muted fs-8 mb-1">ភេទ *</label>
+                                            <select class="form-select form-select-sm rounded-2" id="bEditGender" name="gender_kh">
+                                                <option value="ប្រុស">ប្រុស</option>
+                                                <option value="ស្រី">ស្រី</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-12 col-md-2">
+                                            <label class="form-label text-muted fs-8 mb-1">ថ្ងៃខែឆ្នាំកំណើត *</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2 font-monospace" id="bEditDob" name="dob_kh" placeholder="ថ្ងៃ-ខែ-ឆ្នាំ">
+                                        </div>
+
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label text-muted fs-8 mb-1">២. អត្តលេខមន្ត្រី</label>
+                                            <input type="text" class="form-control form-control-sm font-monospace rounded-2" id="bEditIdNum" name="officer_id_number">
+                                        </div>
+                                        <div class="col-12 col-md-5">
+                                            <label class="form-label text-muted fs-8 mb-1">អង្គភាព / មន្ទីរ / ការិយាល័យ</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2" id="bEditDept" name="dept_name">
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label class="form-label text-muted fs-8 mb-1">គិតត្រឹមកាលបរិច្ឆេទ</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2" id="bEditAsOfDate" name="header_as_of_date_kh" placeholder="ថ្ងៃទី... ខែ... ឆ្នាំ...">
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-muted fs-8 mb-1">៣. កម្រិតវប្បធម៌ទូទៅ</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2" id="bEditEdu" name="general_education">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-muted fs-8 mb-1">កម្រិតជំនាញ / ឯកទេស</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2" id="bEditSkill" name="skill_major">
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-muted fs-8 mb-1">៤. កាលបរិច្ឆេទចូលបម្រើការងាររដ្ឋ</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2 font-monospace" id="bEditStartDate" name="civil_service_start_date_kh">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-muted fs-8 mb-1">៥. កាលបរិច្ឆេទតាំងស៊ប់ក្នុងក្របខ័ណ្ឌ</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2 font-monospace" id="bEditPermDate" name="civil_service_permanent_date_kh">
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-muted fs-8 mb-1">៦. ឋានន្តរស័ក្តិ និងថ្នាក់បច្ចុប្បន្ន *</label>
+                                            <input type="text" class="form-control form-control-sm fw-bold text-primary rounded-2" id="bEditRank" name="current_rank_and_step">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-muted fs-8 mb-1">អតីតភាពក្នុងឋានន្តរស័ក្តិនិងថ្នាក់ (ឧ. ២ ឆ្នាំ ០ ខែ)</label>
+                                            <input type="text" class="form-control form-control-sm fw-bold rounded-2 font-monospace" id="bEditSeniority" name="seniority_in_rank_str">
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-muted fs-8 mb-1">៧. ថ្ងៃ ខែ ឆ្នាំ ឡើងថ្នាក់ចុងក្រោយ</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2 font-monospace" id="bEditLastPromo" name="last_promotion_date_kh">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-muted fs-8 mb-1">រយៈពេលបម្រើការងារសរុប</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2 fw-bold font-monospace" id="bEditTotalService" name="total_service_str">
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-muted fs-8 mb-1">៨. មូលហេតុឈប់សម្រាក (បើមាន)</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2" id="bEditLeaveReason" name="leave_reason">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-muted fs-8 mb-1">រយៈពេលឈប់សម្រាក (បើមាន)</label>
+                                            <input type="text" class="form-control form-control-sm rounded-2" id="bEditLeaveDuration" name="leave_duration">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB 2: Scoring & Evaluation Form (Strictly matches Cadre criteria) -->
+                            <div class="tab-pane fade" id="tab-scores-pane" role="tabpanel">
+                                <div class="row g-3">
+                                    <!-- LEFT COLUMN: Scoring & Calculation -->
+                                    <div class="col-12 col-lg-6">
+                                        <div class="card border-0 shadow-xs rounded-3 p-3 bg-white h-100 d-flex flex-column justify-content-between">
+                                            <div>
+                                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom pb-2 mb-2">
+                                                    <div>
+                                                        <h6 class="fw-bold text-dark m-0 fs-7" id="bulletinCriteriaTitle">
+                                                            <i class="fa-solid fa-star-half-stroke text-warning me-1.5"></i> ការវាយតម្លៃដាក់ពិន្ទុ និងគណនានិទ្ទេស (ទំព័រទី ២)
+                                                        </h6>
+                                                        <span class="fs-9 text-muted" id="bulletinCriteriaSubtitle">ពិន្ទុក្នុង ១ ចំណុច មានពី ០ ដល់ ២០</span>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <span class="fs-9 text-muted me-1">រហ័ស៖</span>
+                                                        <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-2 py-0.5 fw-bold" onclick="setModalPresetScores(20)">២០ (ពេញ)</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 fw-bold" onclick="setModalPresetScores(18)">១៨ (ល្អ)</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning rounded-pill px-2 py-0.5 fw-bold" onclick="setModalPresetScores(15)">១៥ (បង្គួរ)</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0.5" onclick="setModalPresetScores('')">ទទេ</button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Dynamic Criteria Rows -->
+                                                <div id="bulletinCriteriaRowsContainer">
+                                                    <!-- Populated via JS strictly per cadre -->
+                                                </div>
+                                            </div>
+
+                                            <!-- Summary Calculation Card -->
+                                            <div class="bg-light rounded-3 p-2.5 mt-2.5 border border-dashed">
+                                                <div class="row align-items-center g-2">
+                                                    <div class="col-6 col-sm-4">
+                                                        <span class="fs-9 text-muted d-block">ពិន្ទុមធ្យមភាគ៖</span>
+                                                        <div class="d-flex align-items-center gap-1">
+                                                            <input type="text" class="form-control form-control-sm fw-bold font-monospace text-center fs-7" id="modalAvgScoreInput" name="avg_score_kh" style="width: 85px;" readonly>
+                                                            <span class="fs-8 text-muted fw-bold">/២០</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6 col-sm-4">
+                                                        <span class="fs-9 text-muted d-block">និទ្ទេស៖</span>
+                                                        <input type="text" class="form-control form-control-sm fw-bold text-center fs-8" id="modalGradeInput" name="grade_kh" readonly>
+                                                    </div>
+                                                    <div class="col-12 col-sm-4 text-sm-end">
+                                                        <span id="modalDivisorFormulaText" class="d-block mb-1 fs-9 text-muted">បូកសរុប រួចចែករកមធ្យមភាគ</span>
+                                                        <span class="badge bg-white text-dark border p-1.5 fs-8" id="modalGradeDisplay">
+                                                            មិនទាន់ដាក់ពិន្ទុ
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- RIGHT COLUMN: Proposals & Remarks -->
+                                    <div class="col-12 col-lg-6">
+                                        <div class="card border-0 shadow-xs rounded-3 p-3 bg-white h-100 d-flex flex-column justify-content-between">
+                                            <div>
+                                                <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-2">
+                                                    <h6 class="fw-bold text-dark m-0 fs-7 text-primary">
+                                                        <i class="fa-solid fa-file-pen me-1.5"></i> សំណើរបស់ប្រធានអង្គភាព និងមូលវិចារណ៍ (Proposals & Remarks)
+                                                    </h6>
+                                                    <span class="badge bg-success bg-opacity-10 text-success fs-9 rounded-pill px-2.5 py-1">
+                                                        <i class="fa-solid fa-floppy-disk me-1"></i> រក្សាទុកតាមឆ្នាំស្នើសុំ
+                                                    </span>
+                                                </div>
+
+                                                <div class="mb-2.5">
+                                                    <label class="form-label fw-bold text-dark fs-8 mb-1">
+                                                        <i class="fa-solid fa-paper-plane text-success me-1"></i> សំណើរបស់ប្រធានអង្គភាព (ស្នើសុំដំឡើងថ្នាក់) <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input type="text" class="form-control form-control-sm fs-8 rounded-2" id="modalUnitProposalInput" name="unit_proposal" placeholder="ឧ. ស្នើសុំដំឡើងថ្នាក់ ឧត្តមមន្ត្រី ថ្នាក់លេខ ១ តាមវេនជ្រើសរើស">
+                                                </div>
+
+                                                <div class="mb-2.5">
+                                                    <label class="form-label fw-bold text-dark fs-8 mb-1">
+                                                        <i class="fa-solid fa-comment-dots text-primary me-1"></i> ១. ចំណារ និងមូលវិចារណ៍របស់ប្រធានស្ថាប័ន ឬអង្គភាពផ្ទាល់
+                                                    </label>
+                                                    <textarea class="form-control fs-8 rounded-2" id="modalUnitHeadCommentInput" name="unit_head_comment" rows="3" placeholder="វាយបញ្ចូលចំណារ ឬមូលវិចារណ៍របស់ប្រធានអង្គភាពផ្ទាល់..."></textarea>
+                                                </div>
+
+                                                <div class="mb-1">
+                                                    <label class="form-label fw-bold text-dark fs-8 mb-1">
+                                                        <i class="fa-solid fa-stamp text-warning me-1"></i> ២. ចំណាររបស់រដ្ឋមន្ត្រី ឬប្រធានស្ថាប័នមានសមត្ថកិច្ច
+                                                    </label>
+                                                    <textarea class="form-control fs-8 rounded-2" id="modalMinisterCommentInput" name="minister_comment" rows="3" placeholder="វាយបញ្ចូលចំណាររបស់រដ្ឋមន្ត្រី ឬប្រធានស្ថាប័ន (បើមាន)..."></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer (STICKY BOTTOM - NEVER HIDDEN) -->
+                <div class="modal-footer bg-white px-3 px-md-4 py-2.5 border-top flex-shrink-0 d-flex flex-wrap align-items-center justify-content-between gap-2 shadow-sm" style="position: sticky; bottom: 0; z-index: 1055; background: #ffffff !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-9 text-muted d-none d-md-inline">
+                            <i class="fa-solid fa-circle-info text-primary me-1"></i> ទម្រង់បោះពុម្ពត្រូវបានតម្រឹមតាមទំហំ A4 ស្តង់ដាររដ្ឋបាល ២ ទំព័រ។
+                        </span>
+                        <div id="modalSaveProfileStatus" class="fs-8"></div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3.5 fs-8 fw-bold" data-bs-dismiss="modal">
+                            <i class="fa-solid fa-xmark me-1"></i> បិទ
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success text-white rounded-pill px-3.5 fs-8 fw-bold shadow-xs" onclick="saveBulletinFullData()" id="modalSaveAllBtn">
+                            <i class="fa-solid fa-floppy-disk me-1.5"></i> រក្សាទុកទិន្នន័យ
+                        </button>
+                        <button type="button" class="btn btn-sm btn-warning text-dark rounded-pill px-3.5 fs-8 fw-bold shadow-xs" onclick="submitBulletinPrintView()" id="modalPrintBtn" disabled>
+                            <i class="fa-solid fa-print me-1.5"></i> បើកមើលទម្រង់ពេញ / បោះពុម្ព (PDF)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3.5 fs-8 fw-bold shadow-xs" onclick="submitBulletinDocDownload('docx')" id="modalDocxBtn" disabled>
+                            <i class="fa-solid fa-file-word me-1.5"></i> ទាញយក Word (.docx)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-info text-white rounded-pill px-3 fs-8 fw-bold shadow-xs" onclick="submitBulletinDocDownload('doc')" id="modalDocBtn" disabled>
+                            <i class="fa-solid fa-file-lines me-1.5"></i> Word (.doc)
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+ </div>
+</div>
+
 <script>
 function openPastPromotionsModal(officerId, officerName, officerIdNum, deptName, positionTitle, currentRank) {
     const modalEl = document.getElementById('pastPromotionsModal');
@@ -1629,6 +1999,538 @@ function submitBatchPromotionForm() {
     }
 
     form.submit();
+}
+
+// ==============================================================
+// 📋 Score Bulletin Modal JavaScript Functions (Strictly Cadre-Specific: D-01, D-02, D-03)
+// ==================================================================================================
+let currentBulletinOfficerData = null;
+
+const CADRE_CONFIGS = {
+    'D01': {
+        cadreName: 'ក្របខ័ណ្ឌ ក',
+        code: 'D-01',
+        title: 'ព្រឹត្តិបត្រពិន្ទុសម្រាប់ដំឡើងថ្នាក់ នៃក្របខ័ណ្ឌមន្ត្រីគ្រប់គ្រងរដ្ឋបាល (ក្របខ័ណ្ឌ ក - D-01)',
+        subtitle: 'ទម្រង់ផ្លូវការ D-01 នៃក្របខ័ណ្ឌមន្ត្រីគ្រប់គ្រងរដ្ឋបាល — វាយតម្លៃ ៥ ចំណុច (ចែកនឹង ៥)',
+        badgeText: 'ក្របខ័ណ្ឌ ក (D-01)',
+        gradient: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+        badgeColor: '#1d4ed8',
+        avatarBg: '#eff6ff',
+        avatarColor: '#1d4ed8',
+        divisorText: 'បូកសរុបពិន្ទុដែលទទួលបានទាំង ៥ចំណុច រួចចែក នឹង ៥ ដើម្បីរកមធ្យមភាគ ។'
+    },
+    'D02': {
+        cadreName: 'ក្របខ័ណ្ឌ ខ',
+        code: 'D-02',
+        title: 'ព្រឹត្តិបត្រពិន្ទុសម្រាប់ដំឡើងថ្នាក់ នៃក្របខ័ណ្ឌមន្ត្រីក្រមការ (ក្របខ័ណ្ឌ ខ - D-02)',
+        subtitle: 'ទម្រង់ផ្លូវការ D-02 នៃក្របខ័ណ្ឌមន្ត្រីក្រមការ — វាយតម្លៃ ៤ ចំណុច (ចែកនឹង ៤)',
+        badgeText: 'ក្របខ័ណ្ឌ ខ (D-02)',
+        gradient: 'linear-gradient(135deg, #0284c7, #06b6d4)',
+        badgeColor: '#0284c7',
+        avatarBg: '#f0fdfa',
+        avatarColor: '#0284c7',
+        divisorText: 'បូកសរុបពិន្ទុដែលទទួលបានទាំង ៤ចំណុច រួចចែក នឹង ៤ ដើម្បីរកមធ្យមភាគ ។'
+    },
+    'D03': {
+        cadreName: 'ក្របខ័ណ្ឌ គ/ឃ',
+        code: 'D-03',
+        title: 'ព្រឹត្តិបត្រពិន្ទុសម្រាប់ដំឡើងថ្នាក់ នៃក្របខ័ណ្ឌមន្ត្រីលេខាធិការរដ្ឋបាល (ក្របខ័ណ្ឌ គ/ឃ - D-03)',
+        subtitle: 'ទម្រង់ផ្លូវការ D-03 នៃក្របខ័ណ្ឌមន្ត្រីលេខាធិការរដ្ឋបាល — វាយតម្លៃ ៣ ចំណុច (ចែកនឹង ៣)',
+        badgeText: 'ក្របខ័ណ្ឌ គ/ឃ (D-03)',
+        gradient: 'linear-gradient(135deg, #15803d, #16a34a)',
+        badgeColor: '#15803d',
+        avatarBg: '#f0fdf4',
+        avatarColor: '#15803d',
+        divisorText: 'បូកសរុបពិន្ទុដែលទទួលបានទាំង ៣ចំណុច រួចចែក នឹង ៣ ដើម្បីរកមធ្យមភាគ ។'
+    }
+};
+
+function applyCadreTheme(tplCode) {
+    const cfg = CADRE_CONFIGS[tplCode] || CADRE_CONFIGS['D01'];
+    
+    const header = document.getElementById('bulletinModalHeader');
+    if (header) header.style.background = cfg.gradient;
+
+    const iconBox = document.getElementById('modalHeaderIconBox');
+    if (iconBox) iconBox.style.color = cfg.badgeColor;
+
+    const titleEl = document.getElementById('scoreBulletinModalLabel');
+    if (titleEl) titleEl.textContent = cfg.title;
+
+    const subLabelEl = document.getElementById('scoreBulletinModalSubLabel');
+    if (subLabelEl) subLabelEl.textContent = cfg.subtitle;
+
+    const badgeEl = document.getElementById('modalActiveCadreBadge');
+    if (badgeEl) {
+        badgeEl.textContent = cfg.badgeText;
+        badgeEl.style.color = cfg.badgeColor;
+    }
+
+    const summaryBadge = document.getElementById('mSummaryCadreBadge');
+    if (summaryBadge) {
+        summaryBadge.textContent = cfg.badgeText;
+        summaryBadge.style.backgroundColor = cfg.badgeColor;
+        summaryBadge.style.color = '#fff';
+    }
+
+    const summaryAvatar = document.getElementById('mSummaryAvatarBox');
+    if (summaryAvatar) {
+        summaryAvatar.style.backgroundColor = cfg.avatarBg;
+        summaryAvatar.style.color = cfg.avatarColor;
+    }
+
+    const expTpl = document.getElementById('exportTemplateCode');
+    if (expTpl) expTpl.value = tplCode;
+
+    const filterNameEl = document.getElementById('modalSelectCadreFilterName');
+    if (filterNameEl) filterNameEl.textContent = cfg.badgeText;
+}
+
+function filterOfficerSelectByCadre(tplCode) {
+    const selectEl = document.getElementById('modalBulletinOfficerSelect');
+    if (!selectEl) return;
+    
+    let firstVisibleVal = '';
+    for (let i = 0; i < selectEl.options.length; i++) {
+        const opt = selectEl.options[i];
+        if (!opt.value) continue;
+        const optTpl = opt.getAttribute('data-template') || 'D01';
+        if (optTpl === tplCode) {
+            opt.style.display = '';
+            if (!firstVisibleVal) firstVisibleVal = opt.value;
+        } else {
+            opt.style.display = 'none';
+        }
+    }
+}
+
+function openScoreBulletinModal(officerId, year, preferredTemplate) {
+    const modalEl = document.getElementById('scoreBulletinModal');
+    if (!modalEl) return;
+    
+    // 1. Immediately determine cadre and apply strict theme
+    const initialTpl = preferredTemplate || 'D01';
+    applyCadreTheme(initialTpl);
+
+    // 2. Show modal immediately
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+    
+    // 3. Set year
+    const targetYear = year || (document.getElementById('modalBulletinYearInput') ? document.getElementById('modalBulletinYearInput').value : '') || new Date().getFullYear();
+    const yInput = document.getElementById('modalBulletinYearInput');
+    if (yInput) yInput.value = targetYear;
+    const expY = document.getElementById('exportYear');
+    if (expY) expY.value = targetYear;
+    
+    // 4. Handle officer preselection vs cadre-filtered selection
+    const selectEl = document.getElementById('modalBulletinOfficerSelect');
+    const selectWrapper = document.getElementById('modalOfficerSelectWrapper');
+    const summaryBanner = document.getElementById('officerSummaryBanner');
+
+    if (officerId) {
+        // Opened from an officer row: strictly show banner, completely hide select wrapper
+        if (selectWrapper) selectWrapper.classList.add('d-none');
+        if (summaryBanner) summaryBanner.classList.remove('d-none');
+        if (selectEl) selectEl.value = officerId;
+        onBulletinOfficerSelected(officerId, preferredTemplate);
+    } else {
+        // Opened from top header dropdown for a specific cadre
+        if (selectWrapper) selectWrapper.classList.remove('d-none');
+        if (summaryBanner) summaryBanner.classList.add('d-none');
+        filterOfficerSelectByCadre(initialTpl);
+        
+        const detailsC = document.getElementById('bulletinDetailsContainer');
+        if (detailsC) detailsC.classList.add('d-none');
+        const emptyP = document.getElementById('bulletinEmptyPrompt');
+        if (emptyP) emptyP.classList.remove('d-none');
+        
+        const pBtn = document.getElementById('modalPrintBtn');
+        if (pBtn) pBtn.disabled = true;
+        const dBtn = document.getElementById('modalDocxBtn');
+        if (dBtn) dBtn.disabled = true;
+        const docBtn = document.getElementById('modalDocBtn');
+        if (docBtn) docBtn.disabled = true;
+    }
+}
+
+function onBulletinOfficerSelected(officerId, preferredTemplate) {
+    if (!officerId) {
+        const detailsC = document.getElementById('bulletinDetailsContainer');
+        if (detailsC) detailsC.classList.add('d-none');
+        const emptyP = document.getElementById('bulletinEmptyPrompt');
+        if (emptyP) emptyP.classList.remove('d-none');
+        const pBtn = document.getElementById('modalPrintBtn');
+        if (pBtn) pBtn.disabled = true;
+        const dBtn = document.getElementById('modalDocxBtn');
+        if (dBtn) dBtn.disabled = true;
+        const docBtn = document.getElementById('modalDocBtn');
+        if (docBtn) docBtn.disabled = true;
+        return;
+    }
+    
+    const year = (document.getElementById('modalBulletinYearInput') ? document.getElementById('modalBulletinYearInput').value : '') || new Date().getFullYear();
+    let tpl = preferredTemplate;
+    
+    // Check if option in select has template attribute
+    const selectEl = document.getElementById('modalBulletinOfficerSelect');
+    if (!tpl && selectEl && selectEl.selectedIndex >= 0) {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        if (opt && opt.dataset.template) {
+            tpl = opt.dataset.template;
+        }
+    }
+    if (!tpl) tpl = 'D01';
+    
+    const expId = document.getElementById('exportOfficerId');
+    if (expId) expId.value = officerId;
+    const expYr = document.getElementById('exportYear');
+    if (expYr) expYr.value = year;
+    const expTpl = document.getElementById('exportTemplateCode');
+    if (expTpl) expTpl.value = tpl;
+    
+    applyCadreTheme(tpl);
+
+    const emptyPrompt = document.getElementById('bulletinEmptyPrompt');
+    if (emptyPrompt) emptyPrompt.classList.add('d-none');
+    const loadingInd = document.getElementById('bulletinLoadingIndicator');
+    if (loadingInd) loadingInd.classList.remove('d-none');
+    const detailsContainer = document.getElementById('bulletinDetailsContainer');
+    if (detailsContainer) detailsContainer.classList.add('d-none');
+    
+    fetch(`{% url 'officer_promotion_score_bulletin_api' %}?officer_id=${officerId}&year=${year}&template=${tpl}`)
+        .then(res => res.json())
+        .then(data => {
+            if (loadingInd) loadingInd.classList.add('d-none');
+            if (data.success) {
+                currentBulletinOfficerData = data;
+                const activeTpl = preferredTemplate || data.detected_template || tpl;
+                if (expTpl) expTpl.value = activeTpl;
+                applyCadreTheme(activeTpl);
+                
+                // Update Summary Banner
+                const sumName = document.getElementById('mSummaryOfficerName');
+                if (sumName) sumName.textContent = data.full_name_kh + (data.full_name_latin ? ` (${data.full_name_latin})` : '');
+                const sumId = document.getElementById('mSummaryOfficerId');
+                if (sumId) sumId.textContent = data.officer_id_number || '-';
+                const sumDept = document.getElementById('mSummaryOfficerDept');
+                if (sumDept) sumDept.textContent = data.department || '-';
+                const sumRank = document.getElementById('mSummaryOfficerRank');
+                if (sumRank) sumRank.textContent = data.current_rank_and_step || '-';
+
+                populateBulletinFormInputs(data);
+                renderBulletinCriteriaInputs(data);
+                
+                // Populate proposals and remarks
+                const propInp = document.getElementById('modalUnitProposalInput');
+                if (propInp) propInp.value = data.unit_proposal || '';
+                const headCmInp = document.getElementById('modalUnitHeadCommentInput');
+                if (headCmInp) headCmInp.value = data.unit_head_comment || '';
+                const minCmInp = document.getElementById('modalMinisterCommentInput');
+                if (minCmInp) minCmInp.value = data.minister_comment || '';
+                
+                // Render past requests history
+                renderPastRequestsHistory(data.past_requests, officerId);
+                
+                if (detailsContainer) detailsContainer.classList.remove('d-none');
+                const pBtn = document.getElementById('modalPrintBtn');
+                if (pBtn) pBtn.disabled = false;
+                const dBtn = document.getElementById('modalDocxBtn');
+                if (dBtn) dBtn.disabled = false;
+                const docBtn = document.getElementById('modalDocBtn');
+                if (docBtn) docBtn.disabled = false;
+            } else {
+                alert('⚠️ មិនអាចទាញយកទិន្នន័យមន្ត្រីបានទេ៖ ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            console.error('Error loading bulletin officer data', err);
+            if (loadingInd) loadingInd.classList.add('d-none');
+            alert('⚠️ មានបញ្ហាក្នុងការតភ្ជាប់ប្រព័ន្ធ!');
+        });
+}
+
+function onBulletinYearChanged() {
+    const expId = document.getElementById('exportOfficerId');
+    const officerId = expId ? expId.value : '';
+    const expTpl = document.getElementById('exportTemplateCode');
+    const tpl = expTpl ? expTpl.value : '';
+    if (officerId) {
+        onBulletinOfficerSelected(officerId, tpl);
+    }
+}
+
+function populateBulletinFormInputs(data) {
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+    setVal('bEditNameKh', data.full_name_kh);
+    setVal('bEditNameLatin', data.full_name_latin);
+    setVal('bEditGender', data.gender);
+    setVal('bEditIdNum', data.officer_id_number);
+    setVal('bEditDob', data.dob);
+    setVal('bEditDept', data.department);
+    setVal('bEditAsOfDate', data.header_as_of_date_kh);
+    setVal('bEditEdu', data.general_education);
+    setVal('bEditSkill', data.skill_major);
+    setVal('bEditStartDate', data.civil_service_start_date_kh);
+    setVal('bEditPermDate', data.civil_service_permanent_date_kh);
+    setVal('bEditRank', data.current_rank_and_step);
+    setVal('bEditSeniority', data.seniority_in_rank_str);
+    setVal('bEditLastPromo', data.last_promotion_date_kh);
+    setVal('bEditTotalService', data.total_service_str);
+    setVal('bEditLeaveReason', data.leave_reason || 'គ្មាន');
+    setVal('bEditLeaveDuration', data.leave_duration || 'គ្មាន');
+}
+
+function renderBulletinCriteriaInputs(data) {
+    const divText = document.getElementById('modalDivisorFormulaText');
+    if (divText) divText.textContent = data.template_config.note_text;
+    
+    const critTitle = document.getElementById('bulletinCriteriaTitle');
+    if (critTitle) {
+        critTitle.innerHTML = `<i class="fa-solid fa-star-half-stroke text-warning me-1.5"></i> ការវាយតម្លៃដាក់ពិន្ទុ និងគណនានិទ្ទេស — ${data.template_config.framework_name} (${data.template_config.code})`;
+    }
+
+    const subtitleEl = document.getElementById('bulletinCriteriaSubtitle');
+    if (subtitleEl) {
+        const cnt = data.template_config.criteria.length;
+        subtitleEl.textContent = `ពិន្ទុក្នុង ១ ចំណុច មានពី ០ ដល់ ២០ (សរុប ${cnt} ចំណុចនៃ${data.template_config.framework_name})`;
+    }
+
+    const container = document.getElementById('bulletinCriteriaRowsContainer');
+    if (!container) return;
+
+    let html = '';
+    data.template_config.criteria.forEach((crit, idx) => {
+        const rawScore = (data.raw_scores && data.raw_scores[idx]) ? data.raw_scores[idx] : '';
+        html += `
+            <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                <div class="fs-8 text-dark pe-2">
+                    <strong class="me-1 text-primary">${crit.num}</strong> ${crit.label}
+                </div>
+                <div class="d-flex align-items-center gap-1.5 font-monospace">
+                    <input type="number" min="0" max="20" class="form-control form-control-sm text-center modal-crit-score-input fw-bold" 
+                           name="score_${idx+1}" id="critScoreInput_${idx+1}" data-index="${idx}" value="${rawScore}" style="width: 75px;" placeholder="...." oninput="calculateModalScores()">
+                    <span class="fs-8 text-muted">/២០</span>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+    calculateModalScores();
+}
+
+function setModalPresetScores(val) {
+    const inputs = document.querySelectorAll('.modal-crit-score-input');
+    inputs.forEach(inp => inp.value = val);
+    calculateModalScores();
+}
+
+function calculateModalScores() {
+    if (!currentBulletinOfficerData) return;
+    const divisor = currentBulletinOfficerData.template_config.divisor || 5;
+    const inputs = document.querySelectorAll('.modal-crit-score-input');
+    let sum = 0;
+    let count = 0;
+    let scoresArr = [];
+
+    inputs.forEach(inp => {
+        const val = parseFloat(inp.value.trim());
+        scoresArr.push(inp.value.trim());
+        if (!isNaN(val)) {
+            sum += val;
+            count++;
+        }
+    });
+
+    const expScores = document.getElementById('exportScoresList');
+    if (expScores) expScores.value = scoresArr.join(',');
+
+    const avgInput = document.getElementById('modalAvgScoreInput');
+    const gradeInput = document.getElementById('modalGradeInput');
+    const gradeBadge = document.getElementById('modalGradeDisplay');
+
+    if (count > 0) {
+        const avg = sum / divisor;
+        const formatted = (Math.round(avg * 100) / 100).toString();
+        if (avgInput) avgInput.value = formatted;
+
+        let grade = 'ខ្សោយ';
+        let badgeClass = 'bg-danger bg-opacity-20 text-danger border-danger';
+        if (avg >= 19.0) {
+            grade = 'ល្អណាស់';
+            badgeClass = 'bg-success bg-opacity-20 text-success border-success';
+        } else if (avg >= 16.0) {
+            grade = 'ល្អ';
+            badgeClass = 'bg-primary bg-opacity-20 text-primary border-primary';
+        } else if (avg >= 13.0) {
+            grade = 'ល្អបង្គួរ';
+            badgeClass = 'bg-info bg-opacity-20 text-info border-info';
+        } else if (avg >= 10.0) {
+            grade = 'មធ្យម';
+            badgeClass = 'bg-warning bg-opacity-20 text-dark border-warning';
+        }
+
+        if (gradeInput) gradeInput.value = grade;
+        if (gradeBadge) {
+            gradeBadge.textContent = 'និទ្ទេស ' + grade;
+            gradeBadge.className = 'badge border px-2.5 py-1 fw-bold fs-8 ' + badgeClass;
+        }
+    } else {
+        if (avgInput) avgInput.value = '';
+        if (gradeInput) gradeInput.value = '';
+        if (gradeBadge) {
+            gradeBadge.textContent = 'មិនទាន់ដាក់ពិន្ទុ (ទុកទទេបំពេញដោយដៃ)';
+            gradeBadge.className = 'badge bg-secondary bg-opacity-15 text-dark border px-2.5 py-1 fw-bold fs-8';
+        }
+    }
+}
+
+function submitBulletinPrintView() {
+    calculateModalScores();
+    const form = document.getElementById('bulletinExportForm');
+    if (form) {
+        form.action = "{% url 'officer_promotion_score_bulletin_view' %}";
+        form.target = "_blank";
+        form.submit();
+    }
+}
+
+function submitBulletinDocDownload(format) {
+    calculateModalScores();
+    const form = document.getElementById('bulletinExportForm');
+    if (form) {
+        form.action = "{% url 'officer_promotion_score_bulletin_download' %}?format=" + format;
+        form.target = "_self";
+        form.submit();
+    }
+}
+
+function renderPastRequestsHistory(pastRequests, officerId) {
+    const box = document.getElementById('modalPastRequestsHistoryBox');
+    const pills = document.getElementById('modalPastRequestsPills');
+    if (!box || !pills) return;
+    
+    if (!pastRequests || pastRequests.length === 0) {
+        box.classList.add('d-none');
+        pills.innerHTML = '';
+        return;
+    }
+    
+    box.classList.remove('d-none');
+    let html = '';
+    pastRequests.forEach(req => {
+        const gradeBadge = req.grade ? ` (${req.grade})` : '';
+        html += `<button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 fw-bold shadow-2xs" 
+                         onclick="loadBulletinForYear(${officerId}, ${req.year})">
+                    <i class="fa-solid fa-calendar-check me-1"></i> ឆ្នាំ ${req.year}${gradeBadge}
+                 </button>`;
+    });
+    pills.innerHTML = html;
+}
+
+function loadBulletinForYear(officerId, year) {
+    const yInp = document.getElementById('modalBulletinYearInput');
+    if (yInp) yInp.value = year;
+    const expY = document.getElementById('exportYear');
+    if (expY) expY.value = year;
+    onBulletinYearChanged();
+}
+
+function saveBulletinFullData() {
+    const expId = document.getElementById('exportOfficerId');
+    const officerId = expId ? expId.value : '';
+    if (!officerId) {
+        alert('⚠️ សូមជ្រើសរើសមន្ត្រីជាមុនសិន!');
+        return;
+    }
+
+    calculateModalScores();
+
+    const statusEl = document.getElementById('modalSaveProfileStatus');
+    if (statusEl) statusEl.innerHTML = '<span class="text-primary fw-bold"><i class="fa-solid fa-spinner fa-spin me-1"></i> កំពុងរក្សាទុកទិន្នន័យ...</span>';
+
+    const saveBtn = document.getElementById('modalSaveAllBtn');
+    if (saveBtn) saveBtn.disabled = true;
+
+    const formEl = document.getElementById('bulletinExportForm');
+    const formData = new FormData(formEl);
+    formData.append('action', 'save_bulletin');
+
+    const yearVal = document.getElementById('modalBulletinYearInput') ? document.getElementById('modalBulletinYearInput').value : '';
+    formData.append('year', yearVal);
+    formData.append('officer_id', officerId);
+
+    const propVal = document.getElementById('modalUnitProposalInput') ? document.getElementById('modalUnitProposalInput').value : '';
+    formData.append('unit_proposal', propVal);
+
+    const headVal = document.getElementById('modalUnitHeadCommentInput') ? document.getElementById('modalUnitHeadCommentInput').value : '';
+    formData.append('unit_head_comment', headVal);
+
+    const minVal = document.getElementById('modalMinisterCommentInput') ? document.getElementById('modalMinisterCommentInput').value : '';
+    formData.append('minister_comment', minVal);
+
+    fetch(`{% url 'officer_promotion_score_bulletin_api' %}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (saveBtn) saveBtn.disabled = false;
+        if (data.success) {
+            if (statusEl) statusEl.innerHTML = `<span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> ${data.message}</span>`;
+            setTimeout(() => { if (statusEl) statusEl.innerHTML = ''; }, 4000);
+            if (data.past_requests) {
+                renderPastRequestsHistory(data.past_requests, officerId);
+            }
+        } else {
+            if (statusEl) statusEl.innerHTML = `<span class="text-danger fw-bold"><i class="fa-solid fa-circle-exclamation me-1"></i> ${data.error}</span>`;
+        }
+    })
+    .catch(err => {
+        if (saveBtn) saveBtn.disabled = false;
+        console.error('Error saving bulletin', err);
+        if (statusEl) statusEl.innerHTML = '<span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i> មានបញ្ហាក្នុងការរក្សាទុក!</span>';
+    });
+}
+
+function saveOfficerProfileChanges() {
+    const expId = document.getElementById('exportOfficerId');
+    const officerId = expId ? expId.value : '';
+    if (!officerId) return;
+    
+    const statusEl = document.getElementById('modalSaveProfileStatus');
+    if (statusEl) statusEl.innerHTML = '<span class="text-primary"><i class="fa-solid fa-spinner fa-spin me-1"></i> កំពុងរក្សាទុក...</span>';
+    
+    const formEl = document.getElementById('bulletinExportForm');
+    const formData = new FormData(formEl);
+    formData.append('action', 'save_profile');
+    
+    fetch(`{% url 'officer_promotion_score_bulletin_api' %}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            if (statusEl) statusEl.innerHTML = `<span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> ${data.message}</span>`;
+            setTimeout(() => { if (statusEl) statusEl.innerHTML = ''; }, 4000);
+        } else {
+            if (statusEl) statusEl.innerHTML = `<span class="text-danger fw-bold"><i class="fa-solid fa-circle-exclamation me-1"></i> ${data.error}</span>`;
+        }
+    })
+    .catch(err => {
+        console.error('Error saving profile', err);
+        if (statusEl) statusEl.innerHTML = '<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> មានបញ្ហាក្នុងការរក្សាទុក!</span>';
+    });
 }
 </script>
 {% endblock %}
