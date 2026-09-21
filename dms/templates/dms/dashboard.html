@@ -17,7 +17,7 @@
         {% endif %}
         {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_view_reports %}
         <a href="{% url 'reports' %}" class="btn btn-outline-secondary shadow-sm rounded-pill px-3">
-            <i class="fa-solid fa-file-excel me-1"></i> ទាញយករបាយការណ៍
+            <i class="fa-solid fa-chart-pie me-1"></i> របាយការណ៍ស្ថិតិ
         </a>
         {% endif %}
     </div>

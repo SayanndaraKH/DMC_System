@@ -97,10 +97,18 @@ def detect_officer_template(officer):
 
 def parse_date_safely(date_str):
     """
-    Attempts to parse date strings like '13/04/2025', '01-12-1999', '២០០០', etc.
+    Attempts to parse date strings like '13/04/2025', '01-12-1999', '២០០០', '២៧/កក្តដា/១៩៨០', etc.
     """
     if not date_str:
         return None
+    try:
+        from dms.views import parse_date_flexible
+        res = parse_date_flexible(date_str)
+        if res:
+            return res
+    except Exception:
+        pass
+
     cleaned = to_arabic_digits(str(date_str)).strip()
     
     patterns = [

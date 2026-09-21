@@ -56,9 +56,6 @@
             </div>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
-            <a href="{% url 'vehicle_request_export_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-success rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold">
-                <i class="fa-solid fa-file-excel me-1.5 text-success"></i> ទាញយក Excel
-            </a>
             {% if is_admin_or_lead %}
             <a href="{% url 'vehicle_list' %}" class="btn btn-outline-dark rounded-pill px-3.5 py-2 fs-7 shadow-sm fw-bold">
                 <i class="fa-solid fa-warehouse me-1.5"></i> បញ្ជីរថយន្ត & ម៉ូតូ

@@ -247,9 +247,6 @@
             <a href="{% url 'attendance_annual_bulletin' %}?department={{ officer.department_id|default:'' }}&officer_id={{ officer.id }}&year={{ year }}" class="btn-action btn-back">
                 <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
             </a>
-            <a href="{% url 'attendance_annual_bulletin_export_excel' %}?officer_id={{ officer.id }}&year={{ year }}" class="btn-action btn-excel">
-                <i class="fa-solid fa-file-excel"></i> ទាញយកជា EXCEL
-            </a>
             <button type="button" class="btn-action btn-toggle-margins" onclick="window.toggleMargins()" title="ចុចដើម្បីបង្ហាញ/លាក់ បន្ទាត់គម្លាតស្តង់ដា (Show Margins) (Shortkey: M)">
                 <i class="fa-solid fa-ruler-combined"></i> <span class="margin-btn-text">បន្ទាត់គម្លាត</span>
             </button>

@@ -39,3 +39,14 @@ def get_item(dictionary, key):
     if isinstance(dictionary, dict):
         return dictionary.get(key)
     return None
+
+@register.filter
+def format_date_dmy(val):
+    """
+    Standardizes any date value (date object or Khmer/Arabic string)
+    into strictly 'DD-MM-YYYY' format (e.g. '27-07-1980').
+    """
+    if not val:
+        return '-'
+    from dms.views import _format_khmer_date_standard
+    return _format_khmer_date_standard(val) or '-'

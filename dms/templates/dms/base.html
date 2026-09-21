@@ -97,7 +97,7 @@
                             </a>
                             {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_view_reports %}
                             <a href="{% url 'reports' %}" class="submenu-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
-                                <i class="fa-solid fa-file-excel text-success"></i>
+                                <i class="fa-solid fa-chart-pie text-success"></i>
                                 <span>របាយការណ៍ (Reports)</span>
                             </a>
                             {% endif %}
@@ -182,15 +182,15 @@
                                 <i class="fa-solid fa-users-gear text-primary"></i>
                                 <span>ស្ថានភាពមន្ត្រី (Status & Cadre)</span>
                             </a>
-                            <a href="{% url 'officer_retirement' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_retirement,officer_retirement_export_excel' %}active{% endif %}">
+                            <a href="{% url 'officer_retirement' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_retirement,officer_retirement_preview_pdf' %}active{% endif %}">
                                 <i class="fa-solid fa-person-walking-luggage text-danger"></i>
                                 <span>មន្ត្រីចូលនិវត្តន៍ (Retirement)</span>
                             </a>
-                            <a href="{% url 'officer_promotion' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_promotion,officer_promotion_export_excel' %}active{% endif %}">
+                            <a href="{% url 'officer_promotion' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_promotion,officer_promotion_export_excel,officer_promotion_master_export_excel' %}active{% endif %}">
                                 <i class="fa-solid fa-chart-line text-warning"></i>
                                 <span>ស្នើសុំដំឡើងថ្នាក់ & ឋានន្តរស័ក្តិ</span>
                             </a>
-                            <a href="{% url 'officer_medals' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_medals,officer_medals_export_excel' %}active{% endif %}">
+                            <a href="{% url 'officer_medals' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_medals,officer_medals_preview_m0,officer_medals_preview_m1' %}active{% endif %}">
                                 <i class="fa-solid fa-medal text-success"></i>
                                 <span>ស្នើសុំមេដាយ & គ្រឿងឥស្សរិយយស</span>
                             </a>
@@ -345,6 +345,10 @@
                             <a href="{% url 'backup_sync_dashboard' %}" class="submenu-link {% if 'backup' in request.resolver_match.url_name %}active{% endif %} text-warning">
                                 <i class="fa-solid fa-cloud-arrow-up text-warning"></i>
                                 <span>Backup & សមកាលកម្ម</span>
+                            </a>
+                            <a href="{% url 'backup_sync_dashboard' %}#tab-clean" class="submenu-link text-danger">
+                                <i class="fa-solid fa-broom text-danger"></i>
+                                <span>សម្អាតទិន្នន័យដាក់ដំណើរការ</span>
                             </a>
                             <a href="/admin/" target="_blank" class="submenu-link text-warning">
                                 <i class="fa-solid fa-user-shield text-warning"></i>

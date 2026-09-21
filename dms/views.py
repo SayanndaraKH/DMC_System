@@ -2769,9 +2769,9 @@ def officer_create(request):
                 languages_data=_parse_tabular_json(request.POST, 'lang', ['language', 'reading', 'speaking', 'writing']),
                 history_public_sector=_parse_tabular_json(request.POST, 'pub', ['start_date', 'end_date', 'ministry', 'department', 'position', 'skill']),
                 history_private_sector=_parse_tabular_json(request.POST, 'priv', ['start_date', 'end_date', 'org', 'role', 'skill']),
-                promotions_by_seniority=_parse_tabular_json(request.POST, 'promo_sen', ['effective_date', 'ministry', 'department', 'office', 'old_rank_step', 'new_rank_step', 'promo_type']),
-                promotions_by_degree=_parse_tabular_json(request.POST, 'promo_deg', ['effective_date', 'school', 'location', 'degree', 'old_rank_step', 'new_rank_step']),
-                outside_framework_status=_parse_tabular_json(request.POST, 'out_fw', ['start_date', 'end_date', 'ministry', 'position']),
+                promotions_by_seniority=_parse_tabular_json(request.POST, 'promo_sen', ['effective_date', 'ministry', 'department', 'office', 'old_rank_step', 'new_rank_step', 'promo_type', 'doc_number']),
+                promotions_by_degree=_parse_tabular_json(request.POST, 'promo_deg', ['effective_date', 'school', 'location', 'degree', 'old_rank_step', 'new_rank_step', 'doc_number']),
+                outside_framework_status=_parse_tabular_json(request.POST, 'out_fw', ['start_date', 'end_date', 'ministry', 'position', 'doc_number']),
                 unpaid_leave_status=_parse_tabular_json(request.POST, 'unpaid', ['start_date', 'end_date', 'ministry', 'duration']),
                 awards_data=_parse_tabular_json(request.POST, 'award', ['doc_number', 'date', 'ministry', 'description', 'type']),
                 sanctions_data=_parse_tabular_json(request.POST, 'sanct', ['doc_number', 'date', 'ministry', 'description', 'type']),
@@ -3466,9 +3466,9 @@ def officer_edit(request, pk):
             officer.languages_data = _parse_tabular_json(request.POST, 'lang', ['language', 'reading', 'speaking', 'writing'])
             officer.history_public_sector = _parse_tabular_json(request.POST, 'pub', ['start_date', 'end_date', 'ministry', 'department', 'position', 'skill'])
             officer.history_private_sector = _parse_tabular_json(request.POST, 'priv', ['start_date', 'end_date', 'org', 'role', 'skill'])
-            officer.promotions_by_seniority = _parse_tabular_json(request.POST, 'promo_sen', ['effective_date', 'ministry', 'department', 'office', 'old_rank_step', 'new_rank_step', 'promo_type'])
-            officer.promotions_by_degree = _parse_tabular_json(request.POST, 'promo_deg', ['effective_date', 'school', 'location', 'degree', 'old_rank_step', 'new_rank_step'])
-            officer.outside_framework_status = _parse_tabular_json(request.POST, 'out_fw', ['start_date', 'end_date', 'ministry', 'position'])
+            officer.promotions_by_seniority = _parse_tabular_json(request.POST, 'promo_sen', ['effective_date', 'ministry', 'department', 'office', 'old_rank_step', 'new_rank_step', 'promo_type', 'doc_number'])
+            officer.promotions_by_degree = _parse_tabular_json(request.POST, 'promo_deg', ['effective_date', 'school', 'location', 'degree', 'old_rank_step', 'new_rank_step', 'doc_number'])
+            officer.outside_framework_status = _parse_tabular_json(request.POST, 'out_fw', ['start_date', 'end_date', 'ministry', 'position', 'doc_number'])
             officer.unpaid_leave_status = _parse_tabular_json(request.POST, 'unpaid', ['start_date', 'end_date', 'ministry', 'duration'])
             officer.awards_data = _parse_tabular_json(request.POST, 'award', ['doc_number', 'date', 'ministry', 'description', 'type'])
             officer.sanctions_data = _parse_tabular_json(request.POST, 'sanct', ['doc_number', 'date', 'ministry', 'description', 'type'])
@@ -4456,25 +4456,129 @@ def _to_khmer_digits(num_val):
     return ''.join(KHMER_NUM_MAP.get(c, c) for c in str(num_val))
 
 def _format_khmer_date_standard(val):
+    """
+    Standardizes any date value (date object, string in Khmer or Arabic digits,
+    with Khmer month names or typographical variations like 'កក្តដា', 'កុម្ភះ', 'ឆ្នូ')
+    into strictly 'DD-MM-YYYY' format (e.g. '27-07-1980').
+    """
     if not val:
         return ''
-    import re
+    import re, datetime
+    if isinstance(val, (datetime.date, datetime.datetime)):
+        return f'{val.day:02d}-{val.month:02d}-{val.year:04d}'
+
     val_str = str(val).strip()
+    if not val_str:
+        return ''
+
+    # Clean invisible zero-width characters and non-breaking spaces
+    val_str = re.sub(r'[\u200b\u200c\u200d\uFEFF\xa0]', '', val_str)
+
+    # Convert Khmer digits to Arabic digits
     KHMER_DIGITS_REV = {'០': '0', '១': '1', '២': '2', '៣': '3', '៤': '4', '៥': '5', '៦': '6', '៧': '7', '៨': '8', '៩': '9'}
     for kh, ar in KHMER_DIGITS_REV.items():
         val_str = val_str.replace(kh, ar)
+
+    # Comprehensive dictionary of Khmer month names & typographical variations
     KHMER_MONTHS_REV = {
-        'មករា': '01', 'កុម្ភៈ': '02', 'មីនា': '03', 'មេសា': '04', 'ឧសភា': '05', 'មិថុនា': '06',
-        'កក្កដា': '07', 'សីហា': '08', 'កញ្ញា': '09', 'តុលា': '10', 'វិច្ឆិកា': '11', 'ធ្នូ': '12'
+        # Month 1 (January)
+        'មករា': '01', 'ខែមករា': '01',
+        # Month 2 (February)
+        'កុម្ភៈ': '02', 'កុម្ភះ': '02', 'កុម្ភ': '02', 'ខែកុម្ភៈ': '02', 'ខែកុម្ភះ': '02',
+        # Month 3 (March)
+        'មីនា': '03', 'ខែមីនា': '03',
+        # Month 4 (April)
+        'មេសា': '04', 'ខែមេសា': '04',
+        # Month 5 (May)
+        'ឧសភា': '05', 'ខែឧសភា': '05',
+        # Month 6 (June)
+        'មិថុនា': '06', 'ខែមិថុនា': '06',
+        # Month 7 (July - including common typographical variants like កក្តដា, កក្ដដា)
+        'កក្កដា': '07', 'កក្តដា': '07', 'កក្ដដា': '07', 'ខែកក្កដា': '07', 'ខែកក្តដា': '07', 'ខែកក្ដដា': '07',
+        # Month 8 (August)
+        'សីហា': '08', 'ខែសីហា': '08',
+        # Month 9 (September)
+        'កញ្ញា': '09', 'ខែកញ្ញា': '09',
+        # Month 10 (October)
+        'តុលា': '10', 'ខែតុលា': '10',
+        # Month 11 (November)
+        'វិច្ឆិកា': '11', 'វិច្ឆកា': '11', 'ខែវិច្ឆិកា': '11', 'ខែវិច្ឆកា': '11',
+        # Month 12 (December - including typographical variant ឆ្នូ)
+        'ធ្នូ': '12', 'ឆ្នូ': '12', 'ខែធ្នូ': '12', 'ខែឆ្នូ': '12'
     }
-    m = re.search(r'(\d{1,2})\s*[-/ខែ\s]+\s*([^\s/-]+)\s*[-/ឆ្នាំ\s]+\s*(\d{4})', val_str)
+
+    def _resolve_month(m_raw):
+        if not m_raw:
+            return '01'
+        m_clean = re.sub(r'^ខែ\s*', '', str(m_raw).strip())
+        if m_clean in KHMER_MONTHS_REV:
+            return KHMER_MONTHS_REV[m_clean]
+        m_digits = re.sub(r'\D', '', m_clean)
+        if m_digits:
+            n = int(m_digits)
+            if 1 <= n <= 12:
+                return f'{n:02d}'
+        # Substring matching for partial text or typos
+        if 'មករា' in m_clean: return '01'
+        if 'កុម្ភ' in m_clean: return '02'
+        if 'មីនា' in m_clean: return '03'
+        if 'មេសា' in m_clean: return '04'
+        if 'ឧសភា' in m_clean: return '05'
+        if 'មិថុនា' in m_clean: return '06'
+        if 'កក្ក' in m_clean or 'កក្ត' in m_clean or 'កក្ដ' in m_clean: return '07'
+        if 'សីហា' in m_clean: return '08'
+        if 'កញ្ញា' in m_clean: return '09'
+        if 'តុលា' in m_clean: return '10'
+        if 'វិច្ឆិ' in m_clean or 'វិច្ឆក' in m_clean: return '11'
+        if 'ធ្នូ' in m_clean or 'ឆ្នូ' in m_clean: return '12'
+        return m_clean.zfill(2)
+
+    # 1. Try tokenizing by delimiters (/ - . space)
+    # Handles: '27/កក្តដា/1980', '14 / តុលា / 1998', '6 តុលា 2003', '19.02.02'
+    clean_delims = val_str.replace('ថ្ងៃទី', ' ').replace('ថ្ងៃ', ' ')
+    tokens = re.split(r'[/.\s-]+', clean_delims.strip())
+    tokens = [t for t in tokens if t and t not in ['ខែ', 'ឆ្នាំ']]
+
+    if len(tokens) == 3:
+        if len(tokens[0]) == 4 and tokens[0].isdigit():
+            y_tok, m_tok, d_tok = tokens[0], tokens[1], tokens[2]
+        else:
+            d_tok, m_tok, y_tok = tokens[0], tokens[1], tokens[2]
+        d_digits = re.sub(r'\D', '', d_tok)
+        y_digits = re.sub(r'\D', '', y_tok)
+        if d_digits and y_digits:
+            d = int(d_digits)
+            y = int(y_digits)
+            if y < 50:
+                y += 2000
+            elif y < 100:
+                y += 1900
+            mon = _resolve_month(m_tok)
+            return f'{d:02d}-{mon}-{y:04d}'
+
+    # 2. Regex match fallbacks
+    m = re.search(r'(\d{1,2})\s*[-/.\sខែ]+\s*([^\s/.-]+)\s*[-/.\sឆ្នាំ]+\s*(\d{2,4})', val_str)
     if m:
-        d, mon, y = m.group(1).zfill(2), m.group(2).strip(), m.group(3)
-        mon = KHMER_MONTHS_REV.get(mon, mon.zfill(2))
-        return f'{d}-{mon}-{y}'
-    m_dmy = re.search(r'(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})', val_str)
+        d = int(m.group(1))
+        mon = _resolve_month(m.group(2))
+        y = int(m.group(3))
+        if y < 50:
+            y += 2000
+        elif y < 100:
+            y += 1900
+        return f'{d:02d}-{mon}-{y:04d}'
+
+    m_dmy = re.search(r'(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})', val_str)
     if m_dmy:
-        return f'{m_dmy.group(1).zfill(2)}-{m_dmy.group(2).zfill(2)}-{m_dmy.group(3)}'
+        d = int(m_dmy.group(1))
+        mon = int(m_dmy.group(2))
+        y = int(m_dmy.group(3))
+        if y < 50:
+            y += 2000
+        elif y < 100:
+            y += 1900
+        return f'{d:02d}-{mon:02d}-{y:04d}'
+
     return val_str
 
 def _extract_officer_degree_and_skill(o):
@@ -5399,9 +5503,12 @@ def officer_export_excel(request):
     if marital_filter:
         queryset = queryset.filter(marital_status=marital_filter)
 
-    from .models import officer_sort_key
+    from .models import officer_sort_key, officer_e2_sort_key
     officers_list = list(queryset)
-    officers_list.sort(key=officer_sort_key)
+    if export_format in ['e2', 'provincial', 'mcs', '2']:
+        officers_list.sort(key=officer_e2_sort_key)
+    else:
+        officers_list.sort(key=officer_sort_key)
 
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -5698,9 +5805,9 @@ def officer_preview_pdf_e2(request):
     if marital_filter:
         queryset = queryset.filter(marital_status=marital_filter)
 
-    from .models import officer_sort_key
+    from .models import officer_e2_sort_key
     officers_list = list(queryset)
-    officers_list.sort(key=officer_sort_key)
+    officers_list.sort(key=officer_e2_sort_key)
 
     for o in officers_list:
         deg, skill = _extract_officer_degree_and_skill(o)
@@ -5710,27 +5817,38 @@ def officer_preview_pdf_e2(request):
         o.e2_start_date = _format_khmer_date_standard(o.civil_service_start_date)
         o.e2_degree = deg
         o.e2_skill = skill
+        o.e2_phone = _extract_single_phone_number(o.phone)
         o.e2_prom_date = prom_date
         o.e2_legal_doc = legal_doc
-        o.e2_deg_prom_date = deg_prom_date
-        o.e2_deg_doc_no = deg_doc_no
+        o.e2_deg_prom_date = ''
+        o.e2_deg_doc_no = ''
 
     # Build sequential items for E-2
     e2_items = []
     for idx, o in enumerate(officers_list, 1):
         e2_items.append({'officer': o, 'num': idx})
 
-    pages = _paginate_preview_items(e2_items, first_page_cap=23, mid_page_cap=26, last_page_cap=14, single_page_cap=12)
+    pages = _paginate_preview_items(e2_items, first_page_cap=24, mid_page_cap=27, last_page_cap=22, single_page_cap=13, min_last_page=3)
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
     year_kh = _to_khmer_digits(str(now.year))
+    lunar_year_text = _get_khmer_lunar_year_info(now.year)
+    total_count = len(officers_list)
+    female_count = sum(1 for o in officers_list if o.gender == 'FEMALE' or str(o.gender).upper() in ['FEMALE', 'F', 'ស្រី', 'ស'])
+    male_count = total_count - female_count
+    last_officer = officers_list[-1] if officers_list else None
 
     context = {
         'pages': pages,
-        'total_count': len(officers_list),
-        'female_count': sum(1 for o in officers_list if o.gender == 'FEMALE'),
-        'male_count': sum(1 for o in officers_list if o.gender == 'MALE'),
+        'total_count': total_count,
+        'total_count_kh': _to_khmer_digits(str(total_count)),
+        'female_count': female_count,
+        'female_count_kh': _to_khmer_digits(str(female_count)),
+        'male_count': male_count,
+        'male_count_kh': _to_khmer_digits(str(male_count)),
+        'last_officer': last_officer,
+        'lunar_year_text': lunar_year_text,
         'month_kh': month_kh,
         'year_kh': year_kh,
         'today': date.today(),
@@ -5749,51 +5867,27 @@ def officer_preview_pdf_e2(request):
 def parse_date_flexible(val):
     if not val:
         return None
-    val_str = str(val).strip()
-    
-    KHMER_DIGITS_REV = {'០': '0', '១': '1', '២': '2', '៣': '3', '៤': '4', '៥': '5', '៦': '6', '៧': '7', '៨': '8', '៩': '9'}
-    for kh, ar in KHMER_DIGITS_REV.items():
-        val_str = val_str.replace(kh, ar)
-        
-    KHMER_MONTHS_REV = {
-        'មករា': 1, 'កុម្ភៈ': 2, 'មីនា': 3, 'មេសា': 4, 'ឧសភា': 5, 'មិថុនា': 6,
-        'កក្កដា': 7, 'សីហា': 8, 'កញ្ញា': 9, 'តុលា': 10, 'វិច្ឆិកា': 11, 'ធ្នូ': 12
-    }
-    
     import re, datetime
-    m_kh = re.search(r'(\d{1,2})\s*ខែ\s*([^\s]+)\s*ឆ្នាំ\s*(\d{4})', val_str)
-    if m_kh:
-        day = int(m_kh.group(1))
-        month_name = m_kh.group(2).strip()
-        year = int(m_kh.group(3))
-        month = KHMER_MONTHS_REV.get(month_name, 1)
-        try:
-            return datetime.date(year, month, day)
-        except ValueError:
-            return datetime.date(year, month, 1)
-            
-    m = re.search(r'(\d{1,2})[/-](\d{1,2})[/-](\d{4})', val_str)
-    if m:
-        day, month, year = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        try:
-            return datetime.date(year, month, day)
-        except ValueError:
-            return None
-            
-    m2 = re.search(r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})', val_str)
-    if m2:
-        year, month, day = int(m2.group(1)), int(m2.group(2)), int(m2.group(3))
-        try:
-            return datetime.date(year, month, day)
-        except ValueError:
-            return None
-            
+    if isinstance(val, (datetime.date, datetime.datetime)):
+        return val.date() if isinstance(val, datetime.datetime) else val
+
+    std_str = _format_khmer_date_standard(val)
+    if std_str:
+        m = re.match(r'^(\d{2})-(\d{2})-(\d{4})$', std_str)
+        if m:
+            d, m_num, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            try:
+                return datetime.date(y, m_num, d)
+            except ValueError:
+                pass
+
+    val_str = str(val).strip()
     m3 = re.search(r'(\d{4})', val_str)
     if m3:
         year = int(m3.group(1))
         if 1940 <= year <= 2060:
             return datetime.date(year, 1, 1)
-            
+
     return None
 
 
@@ -8860,6 +8954,214 @@ def officer_retirement_export_excel(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
+
+
+def _paginate_retirement_items(all_items, first_page_cap=8, mid_page_cap=10, last_page_cap=5, single_page_cap=6, min_last_page=2):
+    """
+    រៀបចំទំព័រ A4 Landscape សម្រាប់ PDF Preview នៃតារាងមន្ត្រីចូលនិវត្តន៍ដែលមានរូបថត (4x6)
+    ធានាថាកម្ពស់ជួរដេក និងប្លុកហត្ថលេខាមិនធ្លាក់ចោលទទេស្អាត។
+    """
+    if not all_items:
+        return [{
+            'page_num': 1,
+            'is_first': True,
+            'is_last': True,
+            'items': [],
+            'total_pages': 1,
+            'page_num_kh': to_khmer_digits(1),
+            'total_pages_kh': to_khmer_digits(1),
+        }]
+
+    if len(all_items) <= single_page_cap:
+        return [{
+            'page_num': 1,
+            'is_first': True,
+            'is_last': True,
+            'items': all_items,
+            'total_pages': 1,
+            'page_num_kh': to_khmer_digits(1),
+            'total_pages_kh': to_khmer_digits(1),
+        }]
+
+    pages = []
+    remaining = list(all_items)
+
+    # ទំព័រទី ១ (មានក្បាលលិខិតផ្លូវការ + ចំណងជើងធំ + ក្បាលតារាង)
+    rem_count = len(remaining)
+    if rem_count <= (first_page_cap + last_page_cap):
+        p1_take = min(first_page_cap, max(rem_count - min_last_page, 1))
+    else:
+        p1_take = first_page_cap
+
+    p1_items = remaining[:p1_take]
+    pages.append({
+        'page_num': 1,
+        'is_first': True,
+        'is_last': False,
+        'items': p1_items,
+    })
+
+    remaining = remaining[p1_take:]
+    page_num = 2
+    while remaining:
+        rem_count = len(remaining)
+        if rem_count <= last_page_cap:
+            take = rem_count
+            is_last = True
+        elif rem_count <= (mid_page_cap + last_page_cap):
+            take = min(mid_page_cap, max(rem_count - min_last_page, 1))
+            is_last = False
+        else:
+            take = mid_page_cap
+            is_last = False
+
+        pages.append({
+            'page_num': page_num,
+            'is_first': False,
+            'is_last': is_last,
+            'items': remaining[:take],
+        })
+        remaining = remaining[take:]
+        page_num += 1
+
+    total_pages = len(pages)
+    for p in pages:
+        p['total_pages'] = total_pages
+        p['page_num_kh'] = to_khmer_digits(p['page_num'])
+        p['total_pages_kh'] = to_khmer_digits(total_pages)
+
+    return pages
+
+
+@login_required
+def officer_retirement_preview_pdf(request):
+    """
+    មើលជា PDF / Print Preview សម្រាប់បញ្ជីឈ្មោះមន្ត្រីចូលនិវត្តន៍ (A4 Landscape)
+    អាចជ្រើសរើសបង្ហាញតាមឆ្នាំនីមួយៗ (Year Filter) និងមានរូបថតមន្ត្រី 4x6 ទៅជាមួយផងដែរ។
+    """
+    import datetime
+    today = datetime.date.today()
+
+    profile = getattr(request.user, 'profile', None)
+    user_dept = profile.department if profile else None
+    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+
+    dept_id = request.GET.get('department', '').strip()
+    search_q = request.GET.get('q', '').strip()
+    year_param = request.GET.get('year', '').strip()
+    status_param = request.GET.get('status', '').strip()
+
+    officers = CivilServantProfile.objects.select_related('department').all().order_by('khmer_last_name', 'khmer_first_name')
+
+    selected_dept = None
+    if not has_global_access:
+        if user_dept:
+            officers = officers.filter(department=user_dept)
+            selected_dept = user_dept
+        else:
+            officers = officers.filter(created_by=request.user)
+    elif dept_id:
+        officers = officers.filter(department_id=dept_id)
+        selected_dept = Department.objects.filter(id=dept_id).first()
+
+    if search_q:
+        q_arabic = to_arabic_digits(search_q)
+        officers = officers.filter(
+            Q(khmer_last_name__icontains=search_q) |
+            Q(khmer_first_name__icontains=search_q) |
+            Q(latin_last_name__icontains=search_q) |
+            Q(latin_first_name__icontains=search_q) |
+            Q(officer_id_number__icontains=search_q) |
+            Q(officer_id_number__icontains=q_arabic)
+        )
+
+    retirement_list = []
+    due_this_year_count = 0
+    due_next_year_count = 0
+    already_retired_count = 0
+
+    for off in officers:
+        ret_data = process_officer_retirement(off, today)
+        retirement_list.append(ret_data)
+        if ret_data['status'] == 'THIS_YEAR':
+            due_this_year_count += 1
+        elif ret_data['status'] == 'NEXT_YEAR':
+            due_next_year_count += 1
+        elif ret_data['status'] == 'RETIRED':
+            already_retired_count += 1
+
+    retirement_list.sort(key=lambda x: (x['days_left'] < 0, x['days_left']))
+
+    all_ret_years = set([r['retirement_year'] for r in retirement_list if r.get('retirement_year') and r['retirement_year'] >= 2026])
+    all_ret_years.update([today.year + i for i in range(11)])
+    available_years = sorted(list(all_ret_years))
+
+    selected_year = None
+    if year_param:
+        try:
+            selected_year = int(to_arabic_digits(year_param))
+        except Exception:
+            selected_year = None
+
+    displayed_list = retirement_list
+    if selected_year:
+        displayed_list = [r for r in displayed_list if r.get('retirement_year') == selected_year]
+    if status_param and status_param != 'ALL':
+        displayed_list = [r for r in displayed_list if r.get('status') == status_param]
+
+    for idx, item in enumerate(displayed_list, 1):
+        item['seq_num'] = idx
+
+    pages = _paginate_retirement_items(displayed_list, first_page_cap=8, mid_page_cap=10, last_page_cap=5, single_page_cap=6)
+
+    dates_info = get_khmer_lunar_and_solar_date(today)
+    total_count = len(displayed_list)
+    female_count = sum(1 for r in displayed_list if r['officer'].gender == 'FEMALE' or str(r['officer'].gender).upper() in ['FEMALE', 'F', 'ស្រី', 'ស'])
+
+    if has_global_access:
+        departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh')
+    else:
+        departments = Department.objects.filter(id=user_dept.id) if user_dept else []
+
+    is_specialized = _is_specialized_department(selected_dept)
+    if is_specialized and selected_dept:
+        office_head_title = _get_department_head_title(selected_dept)
+        office_right_title = "អ្នកធ្វើតារាង"
+    else:
+        office_head_title = "ប្រធានមន្ទីរ"
+        office_right_title = "មន្ត្រីទទួលបន្ទុក"
+
+    context = {
+        'pages': pages,
+        'retirement_list': displayed_list,
+        'total_count': total_count,
+        'female_count': female_count,
+        'male_count': total_count - female_count,
+        'total_count_kh': to_khmer_digits(total_count),
+        'female_count_kh': to_khmer_digits(female_count),
+        'male_count_kh': to_khmer_digits(total_count - female_count),
+        'selected_year': selected_year,
+        'selected_year_str': str(selected_year) if selected_year else '',
+        'selected_year_kh': to_khmer_digits(selected_year) if selected_year else '',
+        'available_years': available_years,
+        'status_param': status_param,
+        'selected_dept': dept_id,
+        'selected_department': selected_dept,
+        'departments': departments,
+        'has_global_access': has_global_access,
+        'search_q': search_q,
+        'is_specialized': is_specialized,
+        'office_head_title': office_head_title,
+        'office_right_title': office_right_title,
+        'solar_date_str': dates_info['solar_date_str'],
+        'solar_date_handwritten_str': dates_info['solar_date_handwritten_str'],
+        'lunar_date_str': dates_info['lunar_date_str'],
+        'year_kh': dates_info['year_kh'],
+        'today': today,
+        'today_year': today.year,
+        'query_params': request.GET.urlencode(),
+    }
+    return render(request, 'dms/officer_retirement_preview_pdf.html', context)
 
 
 @login_required

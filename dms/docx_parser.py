@@ -438,23 +438,61 @@ def parse_docx_officer(file_path_or_file, original_filename=None):
             if data['history_public_sector']:
                 data['current_position_title'] = data['history_public_sector'][0]['position']
 
-        # --- Seniority Promotions ---
-        if ('ក្របខណ្ឌ ឋានន្តរស័ក្តិ និងថ្នាក់ចាស់' in tbl_str or 'ដំឡើងថ្នាក់' in tbl_str or 'វេនជ្រើសរើស' in tbl_str) and not data['promotions_by_seniority']:
+        # --- Degree Promotions (ឆ.៣- ការដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់តាមកម្រិតសញ្ញាបត្រ) ---
+        if ('គ្រឹះស្ថាន' in tbl_str or 'ទីកន្លែងសិក្សា' in tbl_str or 'សញ្ញាបត្រទទួលបាន' in tbl_str) and ('ថ្នាក់ចាស់' in tbl_str or 'ថ្នាក់ថ្មី' in tbl_str or 'ក្របខណ្ឌ' in tbl_str or 'ដំឡើង' in tbl_str) and not data['promotions_by_degree']:
             for row in tbl:
                 row_str = ' '.join(row)
-                if 'ថ្ងៃខែឆ្នាំ' in row_str and 'ក្រសួង' in row_str: continue
+                if any(hdr in row_str for hdr in ['គ្រឹះស្ថាន', 'ទីកន្លែងសិក្សា', 'សញ្ញាបត្រទទួលបាន', 'ថ្នាក់ចាស់', 'ថ្នាក់ថ្មី', 'ក្របខណ្ឌ/ថ្នាក់']):
+                    continue
                 if len(row) >= 6:
+                    sch = clean_noise(row[1]) if len(row) > 1 else ''
+                    loc = clean_noise(row[2]) if len(row) > 2 else ''
+                    deg = clean_noise(row[3]) if len(row) > 3 else ''
                     old_r = clean_noise(row[4]) if len(row) > 4 else ''
                     new_r = clean_noise(row[5]) if len(row) > 5 else ''
-                    if old_r or new_r:
-                        data['promotions_by_seniority'].append({
+                    doc_no = clean_noise(row[6]) if len(row) > 6 else ''
+                    if (old_r or new_r or sch or deg) and sch not in ['គ្រឹះស្ថានបណ្តុះបណ្តាល', 'ឈ្មោះសាលា', 'គ្មាន', '(គ្មាន)']:
+                        data['promotions_by_degree'].append({
                             'effective_date': clean_noise(row[0]),
-                            'ministry': clean_noise(row[1]) if len(row) > 1 else '',
-                            'department': clean_noise(row[2]) if len(row) > 2 else '',
-                            'office': clean_noise(row[3]) if len(row) > 3 else '',
+                            'school': sch,
+                            'location': loc,
+                            'degree': deg,
                             'old_rank_step': old_r,
                             'new_rank_step': new_r,
-                            'promo_type': clean_noise(row[6]) if len(row) > 6 else 'វេនជ្រើសរើស'
+                            'doc_number': doc_no
+                        })
+
+        # --- Seniority Promotions (ឆ.២- ការដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់តាមវេនជ្រើសរើស អតីតភាព ឬប្រឡង) ---
+        if ('វេនជ្រើសរើស' in tbl_str or 'អតីតភាព' in tbl_str or ('ដំឡើងថ្នាក់' in tbl_str and not ('គ្រឹះស្ថាន' in tbl_str or 'ទីកន្លែងសិក្សា' in tbl_str))) and not data['promotions_by_seniority']:
+            for row in tbl:
+                row_str = ' '.join(row)
+                if any(hdr in row_str for hdr in ['ក្រសួង-ស្ថាប័ន', 'នាយកដ្ឋាន-អង្គភាព', 'ការិយាល័យ', 'ថ្នាក់ចាស់', 'ថ្នាក់ថ្មី', 'ថ្ងៃសុពលភាព', 'ថ្ងៃខែឆ្នាំ']):
+                    continue
+                if len(row) >= 6:
+                    min_val = clean_noise(row[1]) if len(row) > 1 else ''
+                    dept_val = clean_noise(row[2]) if len(row) > 2 else ''
+                    off_val = clean_noise(row[3]) if len(row) > 3 else ''
+                    old_r = clean_noise(row[4]) if len(row) > 4 else ''
+                    new_r = clean_noise(row[5]) if len(row) > 5 else ''
+                    p_type = clean_noise(row[6]) if len(row) > 6 else 'វេនជ្រើសរើស'
+                    doc_no = clean_noise(row[7]) if len(row) > 7 else ''
+
+                    # Skip header text that leaked into data
+                    if min_val in ['ក្រសួង', 'ក្រសួង-ស្ថាប័ន', 'គ្រឹះស្ថានបណ្តុះបណ្តាល'] or dept_val in ['នាយកដ្ឋាន', 'នាយកដ្ឋាន-អង្គភាព', 'ទីកន្លែងសិក្សា']:
+                        continue
+                    if old_r in ['ក្របខណ្ឌ ឋានន្តរស័ក្តិ និងថ្នាក់ចាស់', 'ក្របខ័ណ្ឌ/ថ្នាក់ចាស់', 'ថ្នាក់ចាស់']:
+                        continue
+
+                    if old_r or new_r or min_val:
+                        data['promotions_by_seniority'].append({
+                            'effective_date': clean_noise(row[0]),
+                            'ministry': min_val,
+                            'department': dept_val,
+                            'office': off_val,
+                            'old_rank_step': old_r,
+                            'new_rank_step': new_r,
+                            'promo_type': p_type,
+                            'doc_number': doc_no
                         })
 
         # --- Awards / Medals ---

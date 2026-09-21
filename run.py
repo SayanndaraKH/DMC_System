@@ -21,11 +21,15 @@ BACKUP_DIR = BASE_DIR / 'backups'
 BACKUP_DIR.mkdir(exist_ok=True)
 DB_FILE = BASE_DIR / 'db.sqlite3'
 
-# If running under pythonw.exe (GUI background mode on Windows), sys.stdout and sys.stderr are None
+# If running detached, background, or under pythonw.exe, redirect stdout & stderr to log_fp
 log_fp = open(str(LOG_FILE), 'a', encoding='utf-8', buffering=1)
-if sys.stdout is None:
+try:
+    if sys.stdout is None or not hasattr(sys.stdout, 'isatty') or not sys.stdout.isatty():
+        sys.stdout = log_fp
+    if sys.stderr is None or not hasattr(sys.stderr, 'isatty') or not sys.stderr.isatty():
+        sys.stderr = log_fp
+except Exception:
     sys.stdout = log_fp
-if sys.stderr is None:
     sys.stderr = log_fp
 
 
@@ -43,9 +47,13 @@ def setup_logging():
             pass
 
     handlers = [logging.FileHandler(str(LOG_FILE), encoding='utf-8', mode='a')]
-    # Only add StreamHandler if standard stdout is a real console (not pythonw)
+    # Only add StreamHandler if standard stdout is a real interactive terminal
     if hasattr(sys, '__stdout__') and sys.__stdout__ is not None:
-        handlers.append(logging.StreamHandler(sys.__stdout__))
+        try:
+            if hasattr(sys.__stdout__, 'isatty') and sys.__stdout__.isatty():
+                handlers.append(logging.StreamHandler(sys.__stdout__))
+        except Exception:
+            pass
 
     # Reconfigure root logger cleanly
     logging.basicConfig(
@@ -291,7 +299,11 @@ def main():
     try:
         logging.info("DMS Server is now running on 0.0.0.0:8000")
         cmd = [sys.executable, str(BASE_DIR / 'manage.py'), 'runserver', '0.0.0.0:8000']
-        subprocess.run(cmd)
+        is_interactive = hasattr(sys, '__stdout__') and sys.__stdout__ is not None and hasattr(sys.__stdout__, 'isatty') and sys.__stdout__.isatty()
+        if not is_interactive:
+            subprocess.run(cmd, stdout=log_fp, stderr=log_fp)
+        else:
+            subprocess.run(cmd)
     except KeyboardInterrupt:
         logging.info("DMS Server stopped by user.")
     except Exception as e:

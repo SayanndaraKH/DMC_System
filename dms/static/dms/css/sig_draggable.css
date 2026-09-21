@@ -43,13 +43,11 @@
 .a4-page,
 .page,
 .page-sheet {
-    position: relative !important;
-    min-height: 210mm !important;
-    box-sizing: border-box !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: flex-start !important;
-    padding: 8mm 10mm 12mm 10mm !important;
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .page-content-wrapper {

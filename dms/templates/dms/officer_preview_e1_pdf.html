@@ -96,9 +96,10 @@
 
         .a4-page {
             width: 297mm;
-            min-height: 210mm;
+            height: 210mm;
+            max-height: 210mm;
             background: #ffffff;
-            padding: 8mm 10mm 15mm 10mm;
+            padding: 4mm 5mm 4mm 5mm !important;
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
             border-radius: 4px;
             box-sizing: border-box;
@@ -106,6 +107,7 @@
             flex-direction: column;
             justify-content: flex-start;
             position: relative;
+            overflow: hidden;
         }
 
         .page-content-wrapper {
@@ -245,33 +247,60 @@
 
         @media print {
             @page {
-                size: A4 landscape;
-                margin: 0;
+                size: 297mm 210mm landscape;
+                margin: 4mm 5mm 4mm 5mm;
             }
-            body {
-                background: #fff;
-                padding: 0;
-                margin: 0;
+            html, body {
+                background: #fff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             .preview-toolbar {
                 display: none !important;
             }
             .pages-container {
-                padding: 0;
-                gap: 0;
-                display: block;
+                padding: 0 !important;
+                gap: 0 !important;
+                display: block !important;
+                margin: 0 !important;
             }
             .a4-page {
-                width: 297mm !important;
-                height: 210mm !important;
-                min-height: 210mm !important;
-                max-height: 210mm !important;
+                width: 100% !important;
+                height: 202mm !important;
+                max-height: 202mm !important;
+                min-height: 0 !important;
                 margin: 0 !important;
-                padding: 10mm 8mm 8mm 8mm !important;
+                padding: 0 !important;
                 box-shadow: none !important;
+                border: none !important;
                 border-radius: 0 !important;
+                page-break-before: auto !important;
                 page-break-after: always !important;
                 break-after: page !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                position: relative !important;
+            }
+            .a4-page:last-child {
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+            table.e1-table {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                margin-bottom: 0 !important;
+            }
+            table.e1-table tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
             table.e1-table thead th {
                 background-color: #eee !important;
@@ -282,6 +311,9 @@
                 background-color: #f2f2f2 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+            }
+            .page-footer-number {
+                bottom: 1.5mm !important;
             }
         }
     </style>
@@ -299,11 +331,6 @@
             <a href="{% url 'officer_list' %}" class="btn-action btn-back">
                 <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
             </a>
-            {% if can_export_officer_excel %}
-            <a href="{% url 'officer_export_excel' %}?format=e1{% if query_params %}&{{ query_params }}{% endif %}" class="btn-action btn-excel">
-                <i class="fa-solid fa-file-excel"></i> ទាញយកជា Excel
-            </a>
-            {% endif %}
             <button type="button" class="btn-action btn-reset-sig" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">
                 <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
             </button>

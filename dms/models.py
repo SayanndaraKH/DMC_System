@@ -427,6 +427,44 @@ def officer_sort_key(o):
     return (dept_w, pos_w, rank_w, name_kh)
 
 
+def officer_e2_sort_key(o):
+    """
+    តម្រៀបបញ្ជីមន្ត្រីទម្រង់ E-2 សម្រាប់ផ្ញើទៅមន្ទីរមុខងារសាធារណៈ៖
+    1. ឋានានុក្រមមុខតំណែង (ពីប្រធានមន្ទីរ មកមន្ត្រី)
+    2. ឋានន្តរស័ក្តិ និងកាំប្រាក់ (មុខតំណែងដូចគ្នា កាំប្រាក់ធំជាងនៅខាងលើ: ក.១.១ > ក.១.៥ > ក.២.១ > ខ... > គ...)
+    3. អតីតភាពការងារ (ថ្ងៃចូលបម្រើការងារ)
+    4. គោត្តនាម និងនាម
+    """
+    pos_w = get_position_sort_weight(o.current_position_title)
+    rank_w = get_rank_step_sort_weight(o.current_rank_and_step)
+    
+    start_d = getattr(o, 'civil_service_start_date', None)
+    import datetime, re
+    start_w = datetime.date(2099, 1, 1)
+    if isinstance(start_d, (datetime.date, datetime.datetime)):
+        start_w = start_d.date() if isinstance(start_d, datetime.datetime) else start_d
+    elif isinstance(start_d, str) and start_d.strip():
+        try:
+            KHMER_NUM_MAP = str.maketrans('០១២៣៤៥៦៧៨៩', '0123456789')
+            s_ar = start_d.translate(KHMER_NUM_MAP).strip()
+            m_yr = re.search(r'\b(19\d\d|20\d\d)\b', s_ar)
+            if m_yr:
+                yr = int(m_yr.group(1))
+                nums = [int(n) for n in re.findall(r'\d+', s_ar)]
+                if len(nums) >= 3:
+                    if nums[0] > 1000:
+                        start_w = datetime.date(nums[0], max(1, min(12, nums[1])), max(1, min(31, nums[2])))
+                    else:
+                        start_w = datetime.date(nums[2], max(1, min(12, nums[1])), max(1, min(31, nums[0])))
+                else:
+                    start_w = datetime.date(yr, 1, 1)
+        except Exception:
+            start_w = datetime.date(2099, 1, 1)
+
+    name_kh = f"{o.khmer_last_name} {o.khmer_first_name}".strip()
+    return (pos_w, rank_w, start_w, name_kh)
+
+
 class CivilServantProfile(models.Model):
     GENDER_CHOICES = [
         ('MALE', 'ប្រុស'),
@@ -662,6 +700,11 @@ class CivilServantProfile(models.Model):
     @property
     def full_name_latin(self):
         return f"{self.latin_last_name} {self.latin_first_name}".strip().upper()
+
+    @property
+    def dob_standard(self):
+        from dms.views import _format_khmer_date_standard
+        return _format_khmer_date_standard(self.dob) or (self.dob or '')
 
     @property
     def position_sort_weight(self):
@@ -1614,6 +1657,11 @@ class ContractOfficer(models.Model):
         if self.contract_end_date:
             return self.contract_end_date < timezone.now().date()
         return False
+
+    @property
+    def dob_standard(self):
+        from dms.views import _format_khmer_date_standard
+        return _format_khmer_date_standard(self.dob) or (self.dob or '')
 
 
 class ContractOfficerRenewalHistory(models.Model):

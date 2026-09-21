@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ទម្រង់ E-2 (មន្ទីរមុខងារសាធារណៈខេត្ត) - បញ្ជីរាយនាមមន្ត្រីរាជការ</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Kantumruy+Pro:wght@400;500;600;700&family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260908_1445">
     <style>
@@ -12,7 +12,7 @@
             box-sizing: border-box;
         }
         body {
-            font-family: 'Siemreap', 'Khmer OS Battambang', 'Kantumruy Pro', sans-serif;
+            font-family: 'Khmer OS Battambang', 'Battambang', 'Kantumruy Pro', sans-serif;
             font-size: 8pt;
             color: #111;
             background: #cbd5e1;
@@ -85,20 +85,21 @@
             color: #fff;
         }
 
-        /* Distinct Multi-Page A4 Container */
+        /* Multi-Page A4 Container */
         .pages-container {
-            padding: 30px 0 50px 0;
+            padding: 20px 0 40px 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 30px;
+            gap: 24px;
         }
 
         .a4-page {
             width: 297mm;
-            min-height: 210mm;
+            height: 210mm;
+            max-height: 210mm;
             background: #ffffff;
-            padding: 8mm 8mm 15mm 8mm;
+            padding: 4mm 5mm 4mm 5mm !important;
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
             border-radius: 4px;
             box-sizing: border-box;
@@ -106,10 +107,14 @@
             flex-direction: column;
             justify-content: flex-start;
             position: relative;
+            overflow: hidden;
         }
 
         .page-content-wrapper {
             flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
 
         @font-face {
@@ -121,7 +126,14 @@
         }
         @font-face {
             font-family: 'Khmer OS Battambang';
-            src: local('Khmer OS Battambang'), local('KhmerOSBattambang'), local('KhmerOS-Battambang'),
+            src: local('Khmer OS Battambang'), local('KhmerOSBattambang'), local('KhmerOS-Battambang'), local('Battambang'),
+                 url('/static/dms/fonts/KhmerOSbattambang.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Battambang';
+            src: local('Khmer OS Battambang'), local('KhmerOSBattambang'), local('KhmerOS-Battambang'), local('Battambang'),
                  url('/static/dms/fonts/KhmerOSbattambang.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
@@ -138,8 +150,8 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 8px;
-            line-height: 1.3;
+            margin-bottom: 2px !important;
+            line-height: 1.25;
         }
         .doc-header-left {
             text-align: center;
@@ -150,23 +162,23 @@
 
         .doc-title-block {
             text-align: center;
-            margin-bottom: 8px;
-            line-height: 1.35;
+            margin-bottom: 3px !important;
+            line-height: 1.25;
         }
         .doc-title-block h2,
         .doc-title-block p,
         .doc-title-block div {
-            margin: 0 0 2px 0;
+            margin: 0 0 1px 0;
             font-family: 'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', serif;
             font-weight: normal !important;
             font-style: normal !important;
             color: #111;
         }
         .doc-title-block h2, .doc-title-block .title-line-1 {
-            font-size: 11pt;
+            font-size: 9.5pt;
         }
         .doc-title-block p, .doc-title-block .title-line-2 {
-            font-size: 9.5pt;
+            font-size: 8.5pt;
         }
 
         /* Continuation Header for Page 2+ */
@@ -174,72 +186,92 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: #475569;
             border-bottom: 1px dashed #cbd5e1;
-            padding-bottom: 2px;
-            margin-bottom: 6px;
+            padding-bottom: 1px;
+            margin-bottom: 3px;
         }
 
         /* Table Design */
         table.e2-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 7.2pt;
+            font-family: 'Khmer OS Battambang', 'Battambang', sans-serif;
+            font-size: 7pt;
             table-layout: fixed;
-            margin-bottom: 4px;
+            margin-bottom: 1px;
         }
         table.e2-table th, table.e2-table td {
+            font-family: 'Khmer OS Battambang', 'Battambang', sans-serif;
             border: 1px solid #333;
-            padding: 2px 2px;
+            padding: 1px 2px;
             vertical-align: middle;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             box-sizing: border-box;
-            height: 22px;
+            line-height: 1.15;
         }
         table.e2-table thead th {
             background-color: #f1f5f9;
-            font-family: 'Khmer OS Muol Light', sans-serif;
+            font-family: 'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', serif;
             font-size: 6.8pt;
             text-align: center;
             font-weight: normal;
-            line-height: 1.2;
-            height: 32px;
+            line-height: 1.15;
+            height: 24px;
+            padding: 1px 1px;
+        }
+        table.e2-table tbody td {
+            font-family: 'Khmer OS Battambang', 'Battambang', sans-serif !important;
+            font-size: 7pt;
+            height: 18px;
         }
         .text-center { text-align: center; }
         .text-left { text-align: left; }
         .text-right { text-align: right; }
 
+        /* Full display without truncation */
+        .cell-show-full {
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            line-height: 1.12 !important;
+        }
+        .cell-nowrap {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: clip !important;
+            line-height: 1.15 !important;
+        }
+
         /* Signatures */
         .signatures-grid {
             display: flex;
             justify-content: space-between;
-            margin-top: 10px;
+            margin-top: 6px;
             page-break-inside: avoid;
-            font-size: 8.5pt;
+            font-size: 8pt;
         }
         .sig-block {
             width: 38%;
             text-align: center;
-            line-height: 1.4;
+            line-height: 1.35;
         }
         .sig-space {
-            height: 40px;
+            height: 25px;
         }
 
         /* Page Footer Number */
         .page-footer-number {
             display: block;
             position: absolute;
-            bottom: 3mm;
+            bottom: 2mm;
             left: 0;
             right: 0;
             width: 100%;
             text-align: center;
             margin: 0;
-            font-size: 8.5pt;
+            font-size: 8pt;
             color: #475569;
             font-family: 'Khmer OS Battambang', 'Battambang', Arial, sans-serif;
             font-weight: bold;
@@ -250,38 +282,68 @@
 
         @media print {
             @page {
-                size: A4 landscape;
-                margin: 0;
+                size: 297mm 210mm landscape;
+                margin: 4mm 5mm 4mm 5mm;
             }
-            body {
-                background: #fff;
-                padding: 0;
-                margin: 0;
+            html, body {
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             .preview-toolbar {
                 display: none !important;
             }
             .pages-container {
-                padding: 0;
-                gap: 0;
-                display: block;
+                padding: 0 !important;
+                gap: 0 !important;
+                display: block !important;
+                margin: 0 !important;
             }
             .a4-page {
-                width: 297mm !important;
-                height: 210mm !important;
-                min-height: 210mm !important;
-                max-height: 210mm !important;
+                width: 100% !important;
+                height: 202mm !important;
+                max-height: 202mm !important;
+                min-height: 0 !important;
                 margin: 0 !important;
-                padding: 8mm 6mm 6mm 6mm !important;
+                padding: 0 !important;
                 box-shadow: none !important;
+                border: none !important;
                 border-radius: 0 !important;
+                page-break-before: auto !important;
                 page-break-after: always !important;
                 break-after: page !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                position: relative !important;
+            }
+            .a4-page:last-child {
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+            table.e2-table {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                margin-bottom: 0 !important;
+            }
+            table.e2-table tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
             table.e2-table thead th {
                 background-color: #eee !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+            }
+            .page-footer-number {
+                bottom: 1.5mm !important;
             }
         }
     </style>
@@ -299,11 +361,6 @@
             <a href="{% url 'officer_list' %}" class="btn-action btn-back">
                 <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
             </a>
-            {% if can_export_officer_excel %}
-            <a href="{% url 'officer_export_excel' %}?format=e2{% if query_params %}&{{ query_params }}{% endif %}" class="btn-action btn-excel">
-                <i class="fa-solid fa-file-excel"></i> ទាញយកជា Excel
-            </a>
-            {% endif %}
             <button type="button" class="btn-action btn-reset-sig" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">
                 <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
             </button>
@@ -327,15 +384,15 @@
                 <!-- Full Header (Logo, Org, Kingdom, Title) -->
                 <div class="doc-header">
                     <div class="doc-header-left header-draggable sig-draggable" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <img src="/static/dms/img/image1.jpeg" alt="MAFF Logo" style="width: 55px; height: 55px; object-fit: contain; margin: 0 auto 4px auto; display: block;" onerror="this.style.display='none'">
-                        <div class="muol-font" style="font-size: 9.5pt; color: #1e3a8a; text-align: center; width: 100%;">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
-                        <div class="muol-font" style="font-size: 9pt; color: #1e3a8a; margin-top: 2px; text-align: center; width: 100%;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</div>
+                        <img src="/static/dms/img/image1.jpeg" alt="MAFF Logo" style="width: 42px; height: 42px; object-fit: contain; margin: 0 auto 2px auto; display: block;" onerror="this.style.display='none'">
+                        <div class="muol-font" style="font-size: 8.5pt; color: #1e3a8a; text-align: center; width: 100%;">ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ</div>
+                        <div class="muol-font" style="font-size: 8pt; color: #1e3a8a; margin-top: 1px; text-align: center; width: 100%;">មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន</div>
                     </div>
                     <div class="doc-header-right header-draggable sig-draggable" style="text-align: center;">
-                        <div class="muol-font" style="font-size: 10pt; color: #1e3a8a;">ព្រះរាជាណាចក្រកម្ពុជា</div>
-                        <div class="muol-font" style="font-size: 10pt; color: #1e3a8a; margin-top: 2px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
-                        <div style="text-align: center; margin-top: 2px;">
-                            <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 22px; width: auto; display: inline-block;">
+                        <div class="muol-font" style="font-size: 9pt; color: #1e3a8a;">ព្រះរាជាណាចក្រកម្ពុជា</div>
+                        <div class="muol-font" style="font-size: 9pt; color: #1e3a8a; margin-top: 1px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                        <div style="text-align: center; margin-top: 1px;">
+                            <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 15px; width: auto; display: inline-block;">
                         </div>
                     </div>
                 </div>
@@ -343,7 +400,7 @@
                 <!-- Title Block -->
                 <div class="doc-title-block">
                     <div class="muol-font title-line-1">បញ្ជីរាយនាមមន្ត្រីរាជការស៊ីវិល និងស្ថានភាពបច្ចុប្បន្នភាព</div>
-                    <div class="muol-font title-line-2" style="margin-top: 3px;">បញ្ជូនទៅកាន់៖ មន្ទីរមុខងារសាធារណៈខេត្តប៉ៃលិន (ប្រចាំខែ{{ month_kh }} ឆ្នាំ{{ year_kh }})</div>
+                    <div class="muol-font title-line-2" style="margin-top: 1px;">បញ្ជូនទៅកាន់៖ មន្ទីរមុខងារសាធារណៈខេត្តប៉ៃលិន (ប្រចាំខែ{{ month_kh }} ឆ្នាំ{{ year_kh }})</div>
                 </div>
                 {% else %}
                 <!-- Continuation Header for subsequent pages -->
@@ -356,44 +413,44 @@
                 <!-- 16 Columns Table -->
                 <table class="e2-table">
                     <thead>
-                        <tr style="height: 34px;">
-                            <th style="width: 2.8%;">ល.រ</th>
-                            <th style="width: 10.5%;">គោត្តនាម និងនាម</th>
-                            <th style="width: 7.2%;">អត្តលេខ</th>
-                            <th style="width: 7.2%;">លេខ អត្ដសញ្ញាណបណ្ណ</th>
-                            <th style="width: 3.2%;">ភេទ</th>
-                            <th style="width: 6.8%;">ថ្ងៃខែឆ្នាំ<br>កំណើត</th>
-                            <th style="width: 6.8%;">ថ្ងៃខែឆ្នាំចូល<br>បម្រើការងារ</th>
-                            <th style="width: 8.5%;">តួនាទី</th>
-                            <th style="width: 5.5%;">កាំប្រាក់</th>
-                            <th style="width: 7.5%;">សញ្ញាបត្រ</th>
-                            <th style="width: 9.5%;">ជំនាញឯកទេស</th>
-                            <th style="width: 6.5%;">លេខទូរស័ព្ទ</th>
-                            <th style="width: 6%;">ថ្ងៃខែឆ្នាំ ឡើង<br>ថ្នាក់ចុងក្រោយ</th>
-                            <th style="width: 6%;">លេខ ប្រកាស/អនុក្រឹត្យ</th>
-                            <th style="width: 6%;">ថ្ងៃខែឆ្នាំ ឡើងថ្នាក់<br>តាមសញ្ញាបត្រ</th>
-                            <th style="width: 6%;">លេខសញ្ញាបត្រ</th>
+                        <tr style="height: 24px;">
+                            <th style="width: 2.3%;">ល.រ</th>
+                            <th style="width: 9.5%;">គោត្តនាម និងនាម</th>
+                            <th style="width: 6.3%;">អត្តលេខ</th>
+                            <th style="width: 6.6%;">លេខ អត្ត<br>សញ្ញាណប័ណ្ណ</th>
+                            <th style="width: 2.2%;">ភេទ</th>
+                            <th style="width: 6.1%;">ថ្ងៃខែឆ្នាំ<br>កំណើត</th>
+                            <th style="width: 6.1%;">ថ្ងៃខែឆ្នាំចូល<br>បម្រើការងារ</th>
+                            <th style="width: 9.2%;">តួនាទី</th>
+                            <th style="width: 4.2%;">កាំប្រាក់</th>
+                            <th style="width: 7.3%;">សញ្ញាបត្រ</th>
+                            <th style="width: 13.2%;">ជំនាញឯកទេស</th>
+                            <th style="width: 6.1%;">លេខ<br>ទូរស័ព្ទ</th>
+                            <th style="width: 6.0%;">ថ្ងៃខែឆ្នាំ ឡើង<br>ថ្នាក់ចុងក្រោយ</th>
+                            <th style="width: 4.9%;">លេខ ប្រកាស/<br>អនុក្រឹត្យ</th>
+                            <th style="width: 6.0%;">ថ្ងៃខែឆ្នាំ ឡើងថ្នាក់<br>តាមសញ្ញាបត្រ</th>
+                            <th style="width: 4.0%;">លេខ<br>សញ្ញាបត្រ</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for it in page.items %}
                         <tr>
-                            <td class="text-center">{{ it.num }}</td>
-                            <td class="text-left" style="font-weight: 600;">{{ it.officer.full_name_kh }}</td>
-                            <td class="text-center">{{ it.officer.officer_id_number|default:"-" }}</td>
-                            <td class="text-center">{{ it.officer.national_id_number|default:"-" }}</td>
-                            <td class="text-center">{{ it.officer.e2_gender_code }}</td>
-                            <td class="text-center">{{ it.officer.e2_dob|default:"-" }}</td>
-                            <td class="text-center">{{ it.officer.e2_start_date|default:"-" }}</td>
-                            <td class="text-left">{{ it.officer.current_position_title|default:"-" }}</td>
-                            <td class="text-center">{{ it.officer.current_rank_and_step|default:"-" }}</td>
-                            <td class="text-center">{{ it.officer.e2_degree|default:"-" }}</td>
-                            <td class="text-left">{{ it.officer.e2_skill|default:"-" }}</td>
-                            <td class="text-center">{{ it.officer.phone|default:"-" }}</td>
-                            <td class="text-center">{{ it.officer.e2_prom_date|default:"-" }}</td>
-                            <td class="text-center">{{ it.officer.e2_legal_doc|default:"-" }}</td>
-                            <td class="text-center">{{ it.officer.e2_deg_prom_date|default:"-" }}</td>
-                            <td class="text-center">{{ it.officer.e2_deg_doc_no|default:"-" }}</td>
+                            <td class="text-center cell-nowrap">{{ it.num }}</td>
+                            <td class="text-left cell-show-full" style="font-weight: 600;">{{ it.officer.full_name_kh }}</td>
+                            <td class="text-center cell-nowrap">{{ it.officer.officer_id_number|default:"-" }}</td>
+                            <td class="text-center cell-nowrap">{{ it.officer.national_id_number|default:"-" }}</td>
+                            <td class="text-center cell-nowrap">{{ it.officer.e2_gender_code }}</td>
+                            <td class="text-center cell-nowrap">{{ it.officer.e2_dob|default:"-" }}</td>
+                            <td class="text-center cell-nowrap">{{ it.officer.e2_start_date|default:"-" }}</td>
+                            <td class="text-left cell-show-full">{{ it.officer.current_position_title|default:"-" }}</td>
+                            <td class="text-center cell-nowrap">{{ it.officer.current_rank_and_step|default:"-" }}</td>
+                            <td class="text-center cell-show-full">{{ it.officer.e2_degree|default:"-" }}</td>
+                            <td class="text-left cell-show-full">{{ it.officer.e2_skill|default:"-" }}</td>
+                            <td class="text-center cell-nowrap">{{ it.officer.e2_phone|default:"-" }}</td>
+                            <td class="text-center cell-nowrap">{{ it.officer.e2_prom_date|default:"-" }}</td>
+                            <td class="text-center cell-show-full">{{ it.officer.e2_legal_doc|default:"-" }}</td>
+                            <td class="text-center cell-nowrap"></td>
+                            <td class="text-center cell-show-full"></td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -404,18 +461,65 @@
                 </table>
 
                 {% if page.is_last %}
-                <!-- Signatures -->
-                <div class="signatures-grid">
-                    <div class="sig-block sig-draggable">
-                        <div>បានឃើញ និងបញ្ជាក់ត្រឹមត្រូវ</div>
-                        <div class="muol-font" style="font-size: 9.5pt; margin-top: 4px;">ប្រធានមន្ទីរ</div>
-                        <div class="sig-space"></div>
+                <!-- Bottom Summary & 3 Signatures Section (3 People Signing) -->
+                <div class="e2-bottom-section" style="margin-top: 3px; font-size: 7.8pt; page-break-inside: avoid;">
+                    
+                    <!-- Row 1: Left Closing Stats & Right Preparer (មន្ត្រីទទួលបន្ទុក) -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
+                        <!-- Left: Closing Line & Total Count -->
+                        <div style="line-height: 1.35; color: #111; font-size: 8pt;">
+                            <div>
+                                {% if last_officer %}
+                                - បិទបញ្ចប់ត្រឹមលេខរៀងទី{{ total_count_kh }} ឈ្មោះ {{ last_officer.full_name_kh }}
+                                {% else %}
+                                - មិនមានទិន្នន័យមន្ត្រី
+                                {% endif %}
+                            </div>
+                            <div style="margin-top: 1px;">
+                                សរុបរួម៖ .....{{ total_count_kh }}..... នាក់ , ស្រី .....{{ female_count_kh }}..... នាក់
+                            </div>
+                            <div style="margin-top: 1px;">
+                                ( ប្រុស .....{{ male_count_kh }}..... នាក់ )
+                            </div>
+                        </div>
+
+                        <!-- Right: Date and Officer In Charge (មន្ត្រីទទួលបន្ទុក) -->
+                        <div class="sig-draggable" style="text-align: center; line-height: 1.35; min-width: 280px; font-size: 8pt;">
+                            <div>ថ្ងៃ..................... ខែ.................. {{ lunar_year_text }}</div>
+                            <div>ប៉ៃលិនថ្ងៃទី................ ខែ................ ឆ្នាំ{{ year_kh }}</div>
+                            <div class="muol-font" style="font-size: 8.5pt; color: #111; margin-top: 2px;">
+                                មន្ត្រីទទួលបន្ទុក
+                            </div>
+                            <div class="sig-space" style="height: 25px;"></div>
+                        </div>
                     </div>
-                    <div class="sig-block sig-draggable">
-                        <div>ប៉ៃលិន, ថ្ងៃទី....... ខែ{{ month_kh }} ឆ្នាំ{{ year_kh }}</div>
-                        <div class="muol-font" style="font-size: 9.5pt; margin-top: 4px;">ប្រធានការិយាល័យរដ្ឋបាល បុគ្គលិក</div>
-                        <div class="sig-space"></div>
+
+                    <!-- Row 2: 3-column Grid for Department Director (Left) & Head of Admin-Personnel (Center) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: start; margin-top: 1px;">
+                        <!-- Col 1 (Left): Provincial Department Director (ប្រធានមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន) -->
+                        <div class="sig-draggable" style="text-align: center; line-height: 1.35; font-size: 8pt;">
+                            <div class="muol-font" style="font-size: 8.5pt; color: #111;">បានឃើញ និងឯកភាព</div>
+                            <div style="margin-top: 1px;">ថ្ងៃ..................... ខែ.................. {{ lunar_year_text }}</div>
+                            <div>ប៉ៃលិនថ្ងៃទី................ ខែ................ ឆ្នាំ{{ year_kh }}</div>
+                            <div class="muol-font" style="font-size: 8pt; margin-top: 2px; color: #111;">
+                                ប្រធានមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន
+                            </div>
+                            <div class="sig-space" style="height: 25px;"></div>
+                        </div>
+
+                        <!-- Col 2 (Center): Head of Administration & Personnel (ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក) -->
+                        <div class="sig-draggable" style="text-align: center; line-height: 1.35; font-size: 8pt;">
+                            <div class="muol-font" style="font-size: 8.5pt; color: #111;">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
+                            <div class="muol-font" style="font-size: 8.5pt; margin-top: 2px; color: #111;">
+                                ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក
+                            </div>
+                            <div class="sig-space" style="height: 25px;"></div>
+                        </div>
+
+                        <!-- Col 3 (Right): Empty Spacer -->
+                        <div></div>
                     </div>
+
                 </div>
                 {% endif %}
 

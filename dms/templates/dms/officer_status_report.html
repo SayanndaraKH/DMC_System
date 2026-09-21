@@ -119,14 +119,6 @@
             </a>
             {% endif %}
 
-            {% if can_export_officer_excel %}
-            <!-- Direct Excel Export for Officer Status Report -->
-            <a href="{% url 'officer_status_export_excel' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}" class="btn btn-success d-flex align-items-center gap-2 shadow-sm px-3" title="ទាញយករបាយការណ៍ស្ថានភាពមន្ត្រីជាឯកសារ Excel">
-                <i class="fa-solid fa-file-excel"></i>
-                <span>ទាញយក Excel</span>
-            </a>
-            {% endif %}
-
             <!-- Back to Officer List -->
             <a href="{% url 'officer_list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
                 <i class="fa-solid fa-list-ul"></i>

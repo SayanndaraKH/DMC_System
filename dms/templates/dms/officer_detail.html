@@ -127,7 +127,7 @@
                             <i class="fa-solid fa-venus-mars text-primary me-1"></i> ភេទ៖ <strong>{{ officer.get_gender_display }}</strong>
                         </div>
                         <div class="col-6 col-md-3">
-                            <i class="fa-solid fa-calendar text-danger me-1"></i> កំណើត៖ <strong>{{ officer.dob|default:"-" }}</strong>
+                            <i class="fa-solid fa-calendar text-danger me-1"></i> កំណើត៖ <strong>{{ officer.dob_standard|default:officer.dob|default:"-" }}</strong>
                         </div>
                         <div class="col-6 col-md-3">
                             <i class="fa-solid fa-phone text-success me-1"></i> ទូរស័ព្ទ៖ <strong>{{ officer.phone|default:"-" }}</strong>
@@ -484,6 +484,7 @@
                                                 <th>ថ្នាក់ចាស់</th>
                                                 <th>ថ្នាក់ថ្មី</th>
                                                 <th>ប្រភេទ</th>
+                                                <th>លេខប្រកាស/អនុក្រឹត្យ</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -496,6 +497,73 @@
                                                 <td class="text-center">{{ p.old_rank_step }}</td>
                                                 <td class="text-center font-monospace fw-bold text-success">{{ p.new_rank_step }}</td>
                                                 <td>{{ p.promo_type }}</td>
+                                                <td class="text-center font-monospace">{{ p.doc_number|default:"-" }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- ឆ.៣ Promotion by Degree -->
+                            {% if promo_degree_list %}
+                            <div class="mb-3">
+                                <div class="fw-bold text-info fs-8 mb-2">ឆ.៣- ការដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់តាមសញ្ញាបត្រ</div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm align-middle fs-8 mb-0">
+                                        <thead class="bg-light text-center">
+                                            <tr>
+                                                <th>ថ្ងៃសុពលភាព</th>
+                                                <th>គ្រឹះស្ថានបណ្តុះបណ្តាល</th>
+                                                <th>ទីកន្លែងសិក្សា</th>
+                                                <th>សញ្ញាបត្រទទួលបាន</th>
+                                                <th>ថ្នាក់ចាស់</th>
+                                                <th>ថ្នាក់ថ្មី</th>
+                                                <th>លេខប្រកាស/អនុក្រឹត្យ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for p in promo_degree_list %}
+                                            <tr>
+                                                <td class="text-center">{{ p.effective_date }}</td>
+                                                <td>{{ p.school }}</td>
+                                                <td>{{ p.location }}</td>
+                                                <td>{{ p.degree }}</td>
+                                                <td class="text-center">{{ p.old_rank_step }}</td>
+                                                <td class="text-center font-monospace fw-bold text-info">{{ p.new_rank_step }}</td>
+                                                <td class="text-center font-monospace">{{ p.doc_number|default:"-" }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- ឆ.៤ Outside Framework -->
+                            {% if outside_fw_list %}
+                            <div class="mb-3">
+                                <div class="fw-bold text-dark fs-8 mb-2">ឆ.៤- ស្ថានភាពស្ថិតនៅក្រៅក្របខ័ណ្ឌដើម</div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm align-middle fs-8 mb-0">
+                                        <thead class="bg-light text-center">
+                                            <tr>
+                                                <th>ថ្ងៃចាប់ផ្តើម</th>
+                                                <th>ថ្ងៃបញ្ចប់</th>
+                                                <th>ក្រសួង/ស្ថាប័ន</th>
+                                                <th>មុខតំណែង</th>
+                                                <th>លេខប្រកាស/អនុក្រឹត្យ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for o in outside_fw_list %}
+                                            <tr>
+                                                <td class="text-center">{{ o.start_date }}</td>
+                                                <td class="text-center">{{ o.end_date }}</td>
+                                                <td>{{ o.ministry }}</td>
+                                                <td>{{ o.position }}</td>
+                                                <td class="text-center font-monospace">{{ o.doc_number|default:"-" }}</td>
                                             </tr>
                                             {% endfor %}
                                         </tbody>

@@ -25,12 +25,8 @@
             <h3 class="fw-bold text-dark m-0">
                 <i class="fa-solid fa-chart-pie text-success me-2"></i>របាយការណ៍ស្ថិតិលិខិតចូល-ចេញ
             </h3>
-            <div class="text-muted small mt-0.5">ស្រង់របាយការណ៍ និងស្ថិតិលិខិតតាមកាលកំណត់ជាក់លាក់ និងទាញយកជា File Excel</div>
+            <div class="text-muted small mt-0.5">ស្រង់របាយការណ៍ និងស្ថិតិលិខិតតាមកាលកំណត់ជាក់លាក់</div>
         </div>
-
-        <a href="{% url 'export_excel_report' %}?period={{ period_type }}&year={{ current_year }}&month={{ current_month }}&quarter={{ current_quarter }}&semester={{ current_semester }}&custom_day={{ custom_day }}&department_id={{ selected_dept.id|default:'all' }}&start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-success rounded-pill px-4 shadow-sm fw-semibold">
-            <i class="fa-solid fa-file-excel me-1.5"></i> ទាញយកជា Excel (.xlsx)
-        </a>
     </div>
 
     <!-- Period Selection & Filter Card -->

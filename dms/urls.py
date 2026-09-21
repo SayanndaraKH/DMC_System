@@ -72,6 +72,7 @@ urlpatterns = [
     # 👥 HR Tracking Individual Modules (៣ មុខងារតាមដានដាច់ដោយឡែក)
     path('officers/retirement/', views.officer_retirement_view, name='officer_retirement'),
     path('officers/retirement/export/excel/', views.officer_retirement_export_excel, name='officer_retirement_export_excel'),
+    path('officers/retirement/preview/pdf/', views.officer_retirement_preview_pdf, name='officer_retirement_preview_pdf'),
     
     path('officers/promotion/', views.officer_promotion_view, name='officer_promotion'),
     path('officers/promotion/export/excel/', views.officer_promotion_export_excel, name='officer_promotion_export_excel'),
@@ -216,6 +217,9 @@ urlpatterns = [
     path('settings/backup/delete/file/<str:filename>/', backup_views.delete_local_backup_file, name='delete_local_backup_file'),
     path('settings/backup/create-snapshot/', backup_views.create_local_snapshot_action, name='create_local_snapshot_action'),
     path('settings/backup/restore/', backup_views.restore_backup_action, name='restore_backup_action'),
+    path('settings/system/clean/', backup_views.clean_system_data_action, name='clean_system_data_action'),
+    path('settings/system/clean/preview/', backup_views.api_clean_preview, name='api_clean_preview'),
+    path('api/backup/generate/', backup_views.api_generate_backup, name='api_generate_backup'),
 
     # 🌐 Central Server & LAN Synchronization APIs
     path('api/sync/ping/', backup_views.api_sync_ping, name='api_sync_ping'),

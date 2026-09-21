@@ -1569,8 +1569,8 @@
                                         <tr>
                                             <td><input type="text" name="pub_start_date" value="{{ h.start_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃចូល"></td>
                                             <td><input type="text" name="pub_end_date" value="{{ h.end_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃបញ្ចប់/បច្ចុប្បន្ន"></td>
-                                            <td><input type="text" name="pub_ministry" value="{{ h.ministry }}" class="form-control form-control-sm" placeholder="ក្រសួង"></td>
-                                            <td><input type="text" name="pub_department" value="{{ h.department }}" class="form-control form-control-sm" placeholder="មន្ទីរ/នាយកដ្ឋាន"></td>
+                                            <td><input type="text" name="pub_ministry" list="ministrySuggestionsList" value="{{ h.ministry }}" class="form-control form-control-sm" placeholder="ឧ. ក្រសួងកសិកម្ម..."></td>
+                                            <td><input type="text" name="pub_department" list="departmentSuggestionsList" value="{{ h.department }}" class="form-control form-control-sm" placeholder="ឧ. មន្ទីរកសិកម្ម ខេត្តប៉ៃលិន"></td>
                                             <td><input type="text" name="pub_position" value="{{ h.position }}" class="form-control form-control-sm" placeholder="មុខតំណែង"></td>
                                             <td><input type="text" name="pub_skill" value="{{ h.skill }}" class="form-control form-control-sm" placeholder="ជំនាញ/បច្ចេកទេស"></td>
                                             <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger p-1 border-0" onclick="removeTableRow(this)"><i class="fa-solid fa-trash"></i></button></td>
@@ -1627,17 +1627,48 @@
                                     <i class="fa-solid fa-plus me-1"></i> បន្ថែមជួរ
                                 </button>
                             </div>
+                            <!-- Datalists for Ministry, Department, and Office Suggestions -->
+                            <datalist id="ministrySuggestionsList">
+                                <option value="ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ">
+                                <option value="ក្រសួងមុខងារសាធារណៈ">
+                                <option value="ក្រសួងសេដ្ឋកិច្ច និងហិរញ្ញវត្ថុ">
+                                <option value="ទីស្ដីការគណៈរដ្ឋមន្ត្រី">
+                                <option value="ក្រសួងផែនការ">
+                                <option value="ក្រសួងមហាផ្ទៃ">
+                                <option value="រាជរដ្ឋាភិបាលកម្ពុជា">
+                            </datalist>
+                            <datalist id="departmentSuggestionsList">
+                                <option value="មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ ខេត្តប៉ៃលិន">
+                                <option value="រដ្ឋបាលខេត្តប៉ៃលិន">
+                                <option value="អគ្គនាយកដ្ឋានកសិកម្ម">
+                                <option value="រដ្ឋបាលព្រៃឈើ">
+                                <option value="រដ្ឋបាលជលផល">
+                                <option value="អគ្គនាយកដ្ឋានសុខភាពសត្វ និងផលិតកម្មសត្វ">
+                                <option value="អគ្គនាយកដ្ឋានអភិវឌ្ឍន៍សហគមន៍កសិកម្ម">
+                            </datalist>
+                            <datalist id="officeSuggestionsList">
+                                <option value="ការិយាល័យរដ្ឋបាល និងបុគ្គលិក">
+                                <option value="ការិយាល័យផែនការ គណនេយ្យ">
+                                <option value="ការិយាល័យក្សេត្រសាស្ត្រ និងផលិតភាពកសិកម្ម">
+                                <option value="ការិយាល័យផលិតកម្ម និងបសុព្យាបាល">
+                                <option value="ការិយាល័យអភិវឌ្ឍន៍សហគមន៍កសិកម្ម">
+                                <option value="ខណ្ឌរដ្ឋបាលព្រៃឈើប៉ៃលិន">
+                                <option value="ខណ្ឌរដ្ឋបាលជលផលប៉ៃលិន">
+                                <option value="ផ្នែករដ្ឋបាលព្រៃឈើប៉ៃលិន">
+                            </datalist>
+
                             <div class="table-responsive">
                                 <table class="table table-bordered table-hover align-middle mb-0" id="promoSenTable">
                                     <thead class="bg-light text-muted fs-8 text-center">
                                         <tr>
-                                            <th style="width: 155px; min-width: 155px;">ថ្ងៃសុពលភាព</th>
+                                            <th style="width: 140px; min-width: 140px;">ថ្ងៃសុពលភាព</th>
                                             <th>ក្រសួង-ស្ថាប័ន</th>
                                             <th>នាយកដ្ឋាន-អង្គភាព</th>
                                             <th>ការិយាល័យ</th>
                                             <th>ក្របខ័ណ្ឌ/ថ្នាក់ចាស់</th>
                                             <th>ក្របខ័ណ្ឌ/ថ្នាក់ថ្មី</th>
                                             <th>ប្រភេទ ដំឡើង/ប្តូរ</th>
+                                            <th style="width: 150px; min-width: 150px;">លេខប្រកាស/អនុក្រឹត្យ</th>
                                             <th style="width: 45px;">លុប</th>
                                         </tr>
                                     </thead>
@@ -1645,9 +1676,9 @@
                                         {% for p in officer.promotions_by_seniority %}
                                         <tr>
                                             <td><input type="text" name="promo_sen_effective_date" value="{{ p.effective_date }}" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃសុពលភាព"></td>
-                                            <td><input type="text" name="promo_sen_ministry" value="{{ p.ministry }}" class="form-control form-control-sm" placeholder="ក្រសួង"></td>
-                                            <td><input type="text" name="promo_sen_department" value="{{ p.department }}" class="form-control form-control-sm" placeholder="មន្ទីរ/នាយកដ្ឋាន"></td>
-                                            <td><input type="text" name="promo_sen_office" value="{{ p.office }}" class="form-control form-control-sm" placeholder="ការិយាល័យ"></td>
+                                            <td><input type="text" name="promo_sen_ministry" list="ministrySuggestionsList" value="{% if p.ministry != 'គ្រឹះស្ថានបណ្តុះបណ្តាល' %}{{ p.ministry }}{% endif %}" class="form-control form-control-sm" placeholder="ឧ. ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"></td>
+                                            <td><input type="text" name="promo_sen_department" list="departmentSuggestionsList" value="{% if p.department != 'ទីកន្លែងសិក្សា' %}{{ p.department }}{% endif %}" class="form-control form-control-sm" placeholder="ឧ. មន្ទីរកសិកម្ម ខេត្តប៉ៃលិន"></td>
+                                            <td><input type="text" name="promo_sen_office" list="officeSuggestionsList" value="{% if p.office != 'សញ្ញាបត្រទទួលបាន' and p.office != 'សញ្ញាបត្របានទទួល' %}{{ p.office }}{% endif %}" class="form-control form-control-sm" placeholder="ឧ. ការិយាល័យរដ្ឋបាល និងបុគ្គលិក"></td>
                                             <td>
 <select name="promo_sen_old_rank_step" class="form-select form-select-sm" onchange="validatePromotionRanks(this)">
 <option value="">-- ជ្រើសរើសក្របខណ្ឌ/ថ្នាក់ --</option>
@@ -1752,8 +1783,11 @@
                                                     <option value="វេនជ្រើសរើស" {% if p.promo_type == 'វេនជ្រើសរើស' %}selected{% endif %}>វេនជ្រើសរើស</option>
                                                     <option value="អតីតភាព" {% if p.promo_type == 'អតីតភាព' %}selected{% endif %}>អតីតភាព</option>
                                                     <option value="ប្រឡងប្រជែង" {% if p.promo_type == 'ប្រឡងប្រជែង' %}selected{% endif %}>ប្រឡងប្រជែង</option>
+                                                    <option value="តាំងស៊ុបក្នុងក្របខ័ណ្ឌ" {% if p.promo_type == 'តាំងស៊ុបក្នុងក្របខ័ណ្ឌ' %}selected{% endif %}>តាំងស៊ុបក្នុងក្របខ័ណ្ឌ</option>
+                                                    <option value="ផ្ទេរ/ប្តូរអង្គភាព" {% if p.promo_type == 'ផ្ទេរ/ប្តូរអង្គភាព' %}selected{% endif %}>ផ្ទេរ/ប្តូរអង្គភាព</option>
                                                 </select>
                                             </td>
+                                            <td><input type="text" name="promo_sen_doc_number" value="{{ p.doc_number }}" class="form-control form-control-sm text-center" placeholder="លេខប្រកាស/អនុក្រឹត្យ"></td>
                                             <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger p-1 border-0" onclick="removeTableRow(this)"><i class="fa-solid fa-trash"></i></button></td>
                                         </tr>
                                         {% empty %}
@@ -1775,12 +1809,13 @@
                                 <table class="table table-bordered table-hover align-middle mb-0" id="promoDegTable">
                                     <thead class="bg-light text-muted fs-8 text-center">
                                         <tr>
-                                            <th style="width: 155px; min-width: 155px;">ថ្ងៃសុពលភាព</th>
+                                            <th style="width: 140px; min-width: 140px;">ថ្ងៃសុពលភាព</th>
                                             <th>គ្រឹះស្ថានបណ្តុះបណ្តាល</th>
                                             <th>ទីកន្លែងសិក្សា</th>
                                             <th>សញ្ញាបត្រទទួលបាន</th>
                                             <th>ក្របខ័ណ្ឌ/ថ្នាក់ចាស់</th>
                                             <th>ក្របខ័ណ្ឌ/ថ្នាក់ថ្មី</th>
+                                            <th style="width: 150px; min-width: 150px;">លេខប្រកាស/អនុក្រឹត្យ</th>
                                             <th style="width: 45px;">លុប</th>
                                         </tr>
                                     </thead>
@@ -1889,6 +1924,7 @@
 </optgroup>
 </select>
 </td>
+                                            <td><input type="text" name="promo_deg_doc_number" value="{{ p.doc_number }}" class="form-control form-control-sm text-center" placeholder="លេខប្រកាស/អនុក្រឹត្យ"></td>
                                             <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger p-1 border-0" onclick="removeTableRow(this)"><i class="fa-solid fa-trash"></i></button></td>
                                         </tr>
                                         {% empty %}
@@ -1907,7 +1943,7 @@
                                         <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill" onclick="addOutsideFwRow()">+ បន្ថែម</button>
                                     </div>
                                     <table class="table table-bordered table-sm mb-0" id="outFwTable">
-                                        <thead class="bg-white fs-9 text-center"><tr><th style="width: 135px; min-width: 135px;">ថ្ងៃចាប់ផ្តើម</th><th style="width: 135px; min-width: 135px;">ថ្ងៃបញ្ចប់</th><th>ក្រសួង</th><th>មុខតំណែង</th><th></th></tr></thead>
+                                        <thead class="bg-white fs-9 text-center"><tr><th style="width: 110px; min-width: 110px;">ថ្ងៃចាប់ផ្តើម</th><th style="width: 110px; min-width: 110px;">ថ្ងៃបញ្ចប់</th><th>ក្រសួង</th><th>មុខតំណែង</th><th style="width: 135px; min-width: 135px;">លេខប្រកាស/អនុក្រឹត្យ</th><th style="width: 35px;"></th></tr></thead>
                                         <tbody class="fs-9">
                                             {% for o in officer.outside_framework_status %}
                                             <tr>
@@ -1915,6 +1951,7 @@
                                                 <td><input type="text" name="out_fw_end_date" value="{{ o.end_date }}" class="form-control form-control-xs text-center" style="min-width: 125px;"></td>
                                                 <td><input type="text" name="out_fw_ministry" value="{{ o.ministry }}" class="form-control form-control-xs"></td>
                                                 <td><input type="text" name="out_fw_position" value="{{ o.position }}" class="form-control form-control-xs"></td>
+                                                <td><input type="text" name="out_fw_doc_number" value="{{ o.doc_number }}" class="form-control form-control-xs text-center" placeholder="លេខប្រកាស/អនុក្រឹត្យ"></td>
                                                 <td class="text-center"><button type="button" class="btn btn-xs text-danger p-0" onclick="removeTableRow(this)"><i class="fa-solid fa-xmark"></i></button></td>
                                             </tr>
                                             {% empty %}
@@ -2542,7 +2579,7 @@ function addPrivateHistoryRow() {
     tbody.appendChild(tr);
 }
 
-// Rank Hierarchy & Validation (ថ្នាក់ចាស់ ត្រូវតែតូចជាង ថ្នាក់ថ្មី និងមិនដូចគ្នាដាច់ខាត)
+// Rank Hierarchy & Validation (មន្ត្រីទើបតាំងស៊ុប ឬប្តូរអង្គភាព ត្រូវបានលើកលែង អនុញ្ញាតឱ្យថ្នាក់ចាស់ និងថ្មីដូចគ្នាបាន)
 const RANK_ORDER_MAP = {
     'គ.១០': 1, 'គ.៩': 2, 'គ.៨': 3, 'គ.៧': 4, 'គ.៦': 5,
     'គ.៥': 6, 'គ.៤': 7, 'គ.៣': 8, 'គ.២': 9, 'គ.១': 10,
@@ -2572,28 +2609,23 @@ function validatePromotionRanks(el) {
     }
 
     if (oldVal && newVal) {
+        // ករណីមន្ត្រីទើបតាំងស៊ុប (គ្មានប្រវត្តិឡើងឋានន្តរស័ក្តិ) ឬប្តូរអង្គភាព ដែលថ្នាក់ចាស់ និងថ្នាក់ថ្មីដូចគ្នា ត្រូវបានលើកលែង (អនុញ្ញាតដោយគ្មាន Error)
         if (oldVal === newVal) {
-            oldSelect.classList.add('is-invalid');
-            newSelect.classList.add('is-invalid');
-            oldSelect.classList.remove('is-valid');
-            newSelect.classList.remove('is-valid');
-            msgDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i> ថ្នាក់ចាស់ និងថ្នាក់ថ្មី មិនអាចដូចគ្នាឡើយ!';
-            return false;
+            oldSelect.classList.remove('is-invalid', 'is-valid');
+            newSelect.classList.remove('is-invalid', 'is-valid');
+            msgDiv.innerHTML = '';
+            return true;
         }
         const oldRank = RANK_ORDER_MAP[oldVal] || 0;
         const newRank = RANK_ORDER_MAP[newVal] || 0;
-        if (oldRank > 0 && newRank > 0 && newRank <= oldRank) {
-            oldSelect.classList.add('is-invalid');
-            newSelect.classList.add('is-invalid');
-            oldSelect.classList.remove('is-valid');
-            newSelect.classList.remove('is-valid');
-            msgDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i> ថ្នាក់ថ្មីត្រូវតែធំជាងថ្នាក់ចាស់ (ថ្នាក់ចាស់តូចជាងថ្នាក់ថ្មី)!';
-            return false;
+        if (oldRank > 0 && newRank > 0 && newRank < oldRank) {
+            oldSelect.classList.remove('is-invalid');
+            newSelect.classList.remove('is-invalid');
+            msgDiv.innerHTML = '<span class="text-warning fw-normal"><i class="fa-solid fa-circle-info me-1"></i> សម្គាល់៖ ថ្នាក់ថ្មីទាបជាងថ្នាក់ចាស់</span>';
+            return true;
         }
         oldSelect.classList.remove('is-invalid');
         newSelect.classList.remove('is-invalid');
-        oldSelect.classList.add('is-valid');
-        newSelect.classList.add('is-valid');
         msgDiv.innerHTML = '';
         return true;
     } else {
@@ -2609,9 +2641,9 @@ function addPromoSeniorityRow() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
         <td><input type="text" name="promo_sen_effective_date" class="form-control form-control-sm text-center" style="min-width: 140px;" placeholder="ថ្ងៃសុពលភាព"></td>
-        <td><input type="text" name="promo_sen_ministry" class="form-control form-control-sm" placeholder="ក្រសួង"></td>
-        <td><input type="text" name="promo_sen_department" class="form-control form-control-sm" placeholder="មន្ទីរ/នាយកដ្ឋាន"></td>
-        <td><input type="text" name="promo_sen_office" class="form-control form-control-sm" placeholder="ការិយាល័យ"></td>
+        <td><input type="text" name="promo_sen_ministry" list="ministrySuggestionsList" class="form-control form-control-sm" placeholder="ឧ. ក្រសួងកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទ"></td>
+        <td><input type="text" name="promo_sen_department" list="departmentSuggestionsList" class="form-control form-control-sm" placeholder="ឧ. មន្ទីរកសិកម្ម ខេត្តប៉ៃលិន"></td>
+        <td><input type="text" name="promo_sen_office" list="officeSuggestionsList" class="form-control form-control-sm" placeholder="ឧ. ការិយាល័យរដ្ឋបាល និងបុគ្គលិក"></td>
         <td>
             <select name="promo_sen_old_rank_step" class="form-select form-select-sm" onchange="validatePromotionRanks(this)">
 <option value="">-- ជ្រើសរើសក្របខណ្ឌ/ថ្នាក់ --</option>
@@ -2716,8 +2748,11 @@ function addPromoSeniorityRow() {
                 <option value="វេនជ្រើសរើស">វេនជ្រើសរើស</option>
                 <option value="អតីតភាព">អតីតភាព</option>
                 <option value="ប្រឡងប្រជែង">ប្រឡងប្រជែង</option>
+                <option value="តាំងស៊ុបក្នុងក្របខ័ណ្ឌ">តាំងស៊ុបក្នុងក្របខ័ណ្ឌ</option>
+                <option value="ផ្ទេរ/ប្តូរអង្គភាព">ផ្ទេរ/ប្តូរអង្គភាព</option>
             </select>
         </td>
+        <td><input type="text" name="promo_sen_doc_number" class="form-control form-control-sm text-center" placeholder="លេខប្រកាស/អនុក្រឹត្យ"></td>
         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger p-1 border-0" onclick="removeTableRow(this)"><i class="fa-solid fa-trash"></i></button></td>
     `;
     tbody.appendChild(tr);
@@ -2829,6 +2864,7 @@ function addPromoDegreeRow() {
 </optgroup>
 </select>
         </td>
+        <td><input type="text" name="promo_deg_doc_number" class="form-control form-control-sm text-center" placeholder="លេខប្រកាស/អនុក្រឹត្យ"></td>
         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger p-1 border-0" onclick="removeTableRow(this)"><i class="fa-solid fa-trash"></i></button></td>
     `;
     tbody.appendChild(tr);
@@ -2842,6 +2878,7 @@ function addOutsideFwRow() {
         <td><input type="text" name="out_fw_end_date" class="form-control form-control-xs text-center" style="min-width: 125px;"></td>
         <td><input type="text" name="out_fw_ministry" class="form-control form-control-xs"></td>
         <td><input type="text" name="out_fw_position" class="form-control form-control-xs"></td>
+        <td><input type="text" name="out_fw_doc_number" class="form-control form-control-xs text-center" placeholder="លេខប្រកាស/អនុក្រឹត្យ"></td>
         <td class="text-center"><button type="button" class="btn btn-xs text-danger p-0" onclick="removeTableRow(this)"><i class="fa-solid fa-xmark"></i></button></td>
     `;
     tbody.appendChild(tr);
@@ -3247,6 +3284,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('#promoSenTable tbody tr') === null) addPromoSeniorityRow();
     if (document.querySelector('#awardsTable tbody tr') === null) addAwardRow();
     {% endif %}
+
+    // 4. Clean up any corrupted degree headers that leaked into seniority promotion table
+    document.querySelectorAll('#promoSenTable tbody tr').forEach(row => {
+        const minInput = row.querySelector('input[name="promo_sen_ministry"]');
+        const deptInput = row.querySelector('input[name="promo_sen_department"]');
+        const offInput = row.querySelector('input[name="promo_sen_office"]');
+        if (minInput && minInput.value.includes('គ្រឹះស្ថាន')) minInput.value = '';
+        if (deptInput && deptInput.value.includes('ទីកន្លែង')) deptInput.value = '';
+        if (offInput && (offInput.value.includes('សញ្ញាបត្រ') || offInput.value.includes('ទទួល'))) offInput.value = '';
+    });
 });
 </script>
 

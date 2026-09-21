@@ -822,7 +822,8 @@
                         <th>ការិយាល័យ-<br>ផ្នែក</th>
                         <th>ក្របខ័ណ្ឌ ឋានន្តរស័ក្តិ<br>និងថ្នាក់ចាស់</th>
                         <th>ក្របខ័ណ្ឌ ឋានន្តរស័ក្តិ<br>និងថ្នាក់ថ្មី</th>
-                        <th style="width: 80px;">ប្រភេទ<br>ដំឡើង/ប្តូរ</th>
+                        <th style="width: 75px;">ប្រភេទ<br>ដំឡើង/ប្តូរ</th>
+                        <th style="width: 90px;">លេខប្រកាស/<br>អនុក្រឹត្យ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -835,9 +836,10 @@
                         <td style="text-align: center;">{{ p.old_rank_step }}</td>
                         <td style="text-align: center;"><strong>{{ p.new_rank_step }}</strong></td>
                         <td style="text-align: center;">{{ p.promo_type }}</td>
+                        <td style="text-align: center;">{{ p.doc_number|default:"-" }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    <tr><td colspan="8" style="text-align: center; color: #777;">គ្មាន</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -853,6 +855,7 @@
                         <th>សញ្ញាបត្រទទួលបាន</th>
                         <th>ក្របខ័ណ្ឌ ឋានន្តរស័ក្តិ<br>និងថ្នាក់ចាស់</th>
                         <th>ក្របខ័ណ្ឌ ឋានន្តរស័ក្តិ<br>និងថ្នាក់ថ្មី</th>
+                        <th style="width: 90px;">លេខប្រកាស/<br>អនុក្រឹត្យ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -864,9 +867,10 @@
                         <td>{{ p.degree }}</td>
                         <td style="text-align: center;">{{ p.old_rank_step }}</td>
                         <td style="text-align: center;"><strong>{{ p.new_rank_step }}</strong></td>
+                        <td style="text-align: center;">{{ p.doc_number|default:"-" }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    <tr><td colspan="7" style="text-align: center; color: #777;">គ្មាន</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -880,6 +884,7 @@
                         <th style="width: 90px;">ថ្ងៃខែឆ្នាំ<br>បញ្ចប់</th>
                         <th>ក្រសួង/ស្ថាប័ន</th>
                         <th>មុខតំណែង</th>
+                        <th style="width: 90px;">លេខប្រកាស/<br>អនុក្រឹត្យ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -889,9 +894,10 @@
                         <td style="text-align: center;">{{ o.end_date }}</td>
                         <td>{{ o.ministry }}</td>
                         <td>{{ o.position }}</td>
+                        <td style="text-align: center;">{{ o.doc_number|default:"-" }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="4" style="text-align: center; color: #777;">គ្មាន</td></tr>
+                    <tr><td colspan="5" style="text-align: center; color: #777;">គ្មាន</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

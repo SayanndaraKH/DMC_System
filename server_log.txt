@@ -153,3 +153,294 @@ For more information on production servers see: https://docs.djangoproject.com/e
 [2026-09-16 10:32:25] [INFO] Migrations check completed successfully.
 [2026-09-16 10:32:25] [INFO] DMS Server is now running on 0.0.0.0:8000
 [2026-09-16 10:32:28] [INFO] Browser opened to http://127.0.0.1:8000
+[2026-09-17 08:26:24] [INFO] ==================================================
+[2026-09-17 08:26:24] [INFO] Starting DMS Server (Autostart=False, OpenBrowser=True)
+[2026-09-17 08:26:24] [INFO] ==================================================
+[2026-09-17 08:26:25] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-09-17 08:26:25] [INFO] Active LAN / Wi-Fi IP: 192.168.1.155 (http://192.168.1.155:8000/)
+[2026-09-17 08:26:25] [INFO] Checking database migrations...
+[2026-09-17 08:26:26] [INFO] Migrations check completed successfully.
+[2026-09-17 08:26:26] [INFO] DMS Server is now running on 0.0.0.0:8000
+[2026-09-17 08:26:30] [INFO] Browser opened to http://127.0.0.1:8000
+[2026-09-18 08:44:04] [INFO] ==================================================
+[2026-09-18 08:44:04] [INFO] Starting DMS Server (Autostart=False, OpenBrowser=True)
+[2026-09-18 08:44:04] [INFO] ==================================================
+[2026-09-18 08:44:05] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-09-18 08:44:05] [INFO] Active LAN / Wi-Fi IP: 192.168.1.14 (http://192.168.1.14:8000/)
+[2026-09-18 08:44:05] [INFO] Checking database migrations...
+[2026-09-18 08:44:06] [INFO] Migrations check completed successfully.
+[2026-09-18 08:44:06] [INFO] DMS Server is now running on 0.0.0.0:8000
+[2026-09-18 08:44:10] [INFO] Browser opened to http://127.0.0.1:8000
+[2026-09-21 07:51:41] [INFO] Stopping DMS Server...
+[2026-09-21 07:51:41] [INFO] Terminated process with PID 9252
+[2026-09-21 07:52:48] [INFO] ==================================================
+[2026-09-21 07:52:48] [INFO] Starting DMS Server (Autostart=False, OpenBrowser=True)
+[2026-09-21 07:52:48] [INFO] ==================================================
+[2026-09-21 07:52:49] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-09-21 07:52:49] [INFO] Active LAN / Wi-Fi IP: 192.168.1.139 (http://192.168.1.139:8000/)
+[2026-09-21 07:52:49] [INFO] Checking database migrations...
+[2026-09-21 07:52:49] [INFO] Migrations check completed successfully.
+[2026-09-21 07:52:49] [INFO] DMS Server is now running on 0.0.0.0:8000
+[2026-09-21 07:52:52] [INFO] Browser opened to http://127.0.0.1:8000
+Watching for file changes with StatReloader
+==================================
+[2026-09-21 07:55:32] [INFO] Starting DMS Server (Autostart=False, OpenBrowser=True)
+[2026-09-21 07:55:32] [INFO] ==================================================
+[2026-09-21 07:55:33] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-09-21 07:55:33] [INFO] Active LAN / Wi-Fi IP: 192.168.1.139 (http://192.168.1.139:8000/)
+[2026-09-21 07:55:33] [INFO] Checking database migrations...
+[2026-09-21 07:55:33] [INFO] Migrations check completed successfully.
+[2026-09-21 07:55:33] [INFO] DMS Server is now running on 0.0.0.0:8000
+[2026-09-21 07:55:36] [INFO] Browser opened to http://127.0.0.1:8000
+[2026-09-21 07:56:45] [INFO] ==================================================
+[2026-09-21 07:56:45] [INFO] Starting DMS Server (Autostart=False, OpenBrowser=True)
+[2026-09-21 07:56:45] [INFO] ==================================================
+[2026-09-21 07:56:46] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-09-21 07:56:46] [INFO] Active LAN / Wi-Fi IP: 192.168.1.139 (http://192.168.1.139:8000/)
+[2026-09-21 07:56:46] [INFO] Checking database migrations...
+[2026-09-21 07:56:46] [INFO] Migrations check completed successfully.
+[2026-09-21 07:56:46] [INFO] DMS Server is now running on 0.0.0.0:8000
+[2026-09-21 07:56:49] [INFO] Browser opened to http://127.0.0.1:8000
+[2026-09-21 07:57:07] [INFO] ==================================================
+[2026-09-21 07:57:07] [INFO] Starting DMS Server (Autostart=False, OpenBrowser=True)
+[2026-09-21 07:57:07] [INFO] ==================================================
+[2026-09-21 07:57:08] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-09-21 07:57:08] [INFO] Active LAN / Wi-Fi IP: 192.168.1.139 (http://192.168.1.139:8000/)
+[2026-09-21 07:57:08] [INFO] Checking database migrations...
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, dms, sessions
+Running migrations:
+  No migrations to apply.
+Watching for file changes with StatReloader
+"HEAD /officers/preview/e1/ HTTP/1.1" 302 0
+C:\Users\dara1\OneDrive\Desktop\DCM_System\dms\views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 21, 2026 - 07:57:10
+Django version 5.2.17, using settings 'dms_project.settings'
+Starting development server at http://0.0.0.0:8000/
+Quit the server with CTRL-BREAK.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+"HEAD /officers/preview/e2/ HTTP/1.1" 302 0
+"GET /officers/ HTTP/1.1" 200 497992
+"GET /static/dms/css/styles.css HTTP/1.1" 200 17486
+"GET /media/officers/photos/2026/%E1%9E%86%E1%9E%84_%E1%9E%91%E1%9E%8F%E1%9E%99_MhfP2El.jpg HTTP/1.1" 200 79085
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%98_%E1%9E%9F%E1%9E%97%E1%9E%93_A5hmRza.jpg HTTP/1.1" 200 80160
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%80_%E1%9E%9B%E1%9E%84%E1%9E%80.jpg HTTP/1.1" 200 60243
+"GET /media/officers/photos/2026/%E1%9E%96%E1%9E%9A%E1%9E%93_%E1%9E%94%E1%9E%93_zeaYund.jpg HTTP/1.1" 200 240548
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%99_%E1%9E%9F%E1%9E%95%E1%9E%8F_QHCd9Kk.jpg HTTP/1.1" 200 347997
+"GET /media/officers/photos/2026/%E1%9E%80_%E1%9E%9F%E1%9E%97%E1%9E%9F.JPG HTTP/1.1" 200 241989
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%93_%E1%9E%9F%E1%9E%98%E1%9E%93_zrFU8Iv.jpg HTTP/1.1" 200 36284
+"GET /media/officers/photos/2026/%E1%9E%92%E1%9E%93_%E1%9E%94%E1%9E%93%E1%9E%92%E1%9E%93.jpg HTTP/1.1" 200 37485
+"GET /media/officers/photos/2026/%E1%9E%96%E1%9E%80_%E1%9E%81%E1%9E%98_pggdJoi.jpg HTTP/1.1" 200 97293
+"GET /media/officers/photos/2026/%E1%9E%99%E1%9E%93_%E1%9E%9F%E1%9E%99%E1%9E%93%E1%9E%8A%E1%9E%9A.jpg HTTP/1.1" 200 182811
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%80_%E1%9E%85%E1%9E%93%E1%9E%94_swg0rTa.jpg HTTP/1.1" 200 247797
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%84_%E1%9E%9C%E1%9E%9F%E1%9E%91%E1%9E%92_0j9x9Zm.jpg HTTP/1.1" 200 43161
+"GET /media/officers/photos/2026/%E1%9E%9C%E1%9E%84_%E1%9E%9C%E1%9E%93_Zo1XcD6.jpg HTTP/1.1" 200 80899
+"GET /media/officers/photos/2026/%E1%9E%82%E1%9E%8F%E1%9E%9A_BNQLawF.jpg HTTP/1.1" 200 83025
+"GET /media/officers/photos/2026/%E1%9E%98_%E1%9E%86%E1%9E%98_GMNgVkj.jpg HTTP/1.1" 200 69069
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%84_%E1%9E%9F%E1%9E%92_3.JPG HTTP/1.1" 200 1297423
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%99_%E1%9E%9F%E1%9E%93%E1%9E%97%E1%9E%98%E1%9E%9A.JPG HTTP/1.1" 200 497150
+"GET /media/officers/photos/2026/%E1%9E%81%E1%9E%9C_%E1%9E%9F%E1%9E%90%E1%9E%93_moIWZHl.jpg HTTP/1.1" 200 57710
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%99_%E1%9E%98%E1%9E%93_rIdGsx7.jpg HTTP/1.1" 200 59824
+"GET /media/officers/photos/2026/%E1%9E%91%E1%9E%9A__%E1%9E%82%E1%9E%98%E1%9E%9F%E1%9E%93_fLispeO.jpg HTTP/1.1" 200 67786
+"GET /media/officers/photos/2026/%E1%9E%82%E1%9E%84_%E1%9E%9A%E1%9E%94_9yFVLGu.jpg HTTP/1.1" 200 48265
+"GET /media/officers/photos/2026/%E1%9E%99%E1%9E%93%E1%9E%8F_%E1%9E%85%E1%9E%93%E1%9E%8A.jpg HTTP/1.1" 200 93659
+"GET /media/officers/photos/2026/%E1%9E%86%E1%9E%98_%E1%9E%8A_z5YhZUz.jpg HTTP/1.1" 200 81767
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%91%E1%9E%92_%E1%9E%9C%E1%9E%9F%E1%9E%9B_WyUV9Km.jpg HTTP/1.1" 200 63549
+"GET /media/officers/photos/2026/%E1%9E%95%E1%9E%93_%E1%9E%9F%E1%9E%95%E1%9E%93%E1%9E%8E%E1%9E%9A_rffZGH0.jpg HTTP/1.1" 200 82865
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%9A_%E1%9E%9C%E1%9E%84.jpg HTTP/1.1" 200 50672
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%93_%E1%9E%A0%E1%9E%80%E1%9E%9B%E1%9E%98_Vu692GJ.jpg HTTP/1.1" 200 57931
+"GET /media/officers/photos/2026/%E1%9E%98_%E1%9E%9A%E1%9E%8E.jpg HTTP/1.1" 200 75010
+"GET /media/officers/photos/2026/%E1%9E%A0%E1%9E%84_%E1%9E%94%E1%9E%93%E1%9E%A1%E1%9E%84_2.JPG HTTP/1.1" 200 1186381
+"GET /media/officers/photos/2026/%E1%9E%80%E1%9E%9C_%E1%9E%85%E1%9E%93%E1%9E%8A%E1%9E%9A_5gBDx0c.jpg HTTP/1.1" 200 74541
+"GET /media/officers/photos/2026/%E1%9E%A1%E1%9E%99_%E1%9E%96%E1%9E%9F%E1%9E%8A%E1%9E%8B_oTExJGp.jpg HTTP/1.1" 200 61648
+"GET /media/officers/photos/2026/%E1%9E%95_%E1%9E%9F%E1%9E%95%E1%9E%9B_sKHk0yz.jpg HTTP/1.1" 200 63076
+"GET /media/officers/photos/2026/%E1%9E%94%E1%9E%9B_%E1%9E%94%E1%9E%93_sX1Acwt.jpg HTTP/1.1" 200 79963
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%84_%E1%9E%97%E1%9E%9A%E1%9E%8E_VUN2Hzj.jpg HTTP/1.1" 200 64140
+"GET /media/officers/photos/2026/%E1%9E%86%E1%9E%84_%E1%9E%9C_Ws7SWbE.jpg HTTP/1.1" 200 50397
+"GET /media/officers/photos/2026/%E1%9E%81%E1%9E%93_%E1%9E%9C%E1%9E%91%E1%9E%92_s37UrIN.jpg HTTP/1.1" 200 221011
+"GET /media/officers/photos/2026/%E1%9E%94%E1%9E%85_%E1%9E%80%E1%9E%93%E1%9E%92%E1%9E%8A%E1%9E%8B_Nm9Ckob.jpg HTTP/1.1" 200 74092
+"GET /media/officers/photos/2026/%E1%9E%A0%E1%9E%93_%E1%9E%96_KuUhnm1.jpg HTTP/1.1" 200 77740
+"GET /media/officers/photos/2026/%E1%9E%A0%E1%9E%84_%E1%9E%94%E1%9E%93%E1%9E%88%E1%9E%93_HSsULhx.jpg HTTP/1.1" 200 71859
+"GET /media/officers/photos/2026/photo_2026-08-31_10-11-57.jpg HTTP/1.1" 200 59685
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%84_%E1%9E%81%E1%9E%98%E1%9E%99_tgjK4i0.jpg HTTP/1.1" 200 91933
+"GET /media/officers/photos/2026/%E1%9E%95_%E1%9E%A2%E1%9E%9F_5nzEuTF.jpg HTTP/1.1" 200 75032
+"GET /media/officers/photos/2026/%E1%9E%80%E1%9E%9C_%E1%9E%9F%E1%9E%9A_sMidzgS.jpg HTTP/1.1" 200 44646
+"GET /media/officers/photos/2026/%E1%9E%94%E1%9E%84_%E1%9E%86_rB4qiVT.jpg HTTP/1.1" 200 55951
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%9B_%E1%9E%8E_cMrTKGs.jpg HTTP/1.1" 200 56788
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%84_%E1%9E%9C%E1%9E%85%E1%9E%86%E1%9E%80_ehLAczO.jpg HTTP/1.1" 200 281544
+"GET /officers/preview/e1/ HTTP/1.1" 200 87123
+"GET /officers/preview/e2/ HTTP/1.1" 200 88585
+"GET /contract-officers/ HTTP/1.1" 200 299086
+"GET /media/contract_officers/photos/2026/photo_2026-09-10_10-07-43.jpg HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/IMG_9677.JPG HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/photo_2026-09-02_15-23-06.jpg HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/IMG_9676.JPG HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/16.JPG HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/IMG_9670.JPG HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/photo_2026-09-11_11-00-55.jpg HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/photo_2026-09-02_16-14-31.jpg HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/photo_2026-09-02_15-28-33.jpg HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/photo_2026-09-10_10-07-44.jpg HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/%E1%9E%9A%E1%9E%94_%E1%9E%93%E1%9E%8F_%E1%9E%9F%E1%9E%9A%E1%9E%93%E1%9E%8F.jpg HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/IMG_9673.JPG HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/IMG_9669.PNG HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/IMG_9672.JPG HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/photo_2025-03-29_09-05-08.jpg HTTP/1.1" 304 0
+"GET /media/contract_officers/photos/2026/%E1%9E%85_%E1%9E%A2%E1%9E%93.JPG HTTP/1.1" 304 0
+"GET /contract-officers/preview/d1/ HTTP/1.1" 200 43106
+C:\Users\dara1\OneDrive\Desktop\DCM_System\dms\views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 21, 2026 - 08:01:43
+Django version 5.2.17, using settings 'dms_project.settings'
+Starting development server at http://0.0.0.0:8000/
+Quit the server with CTRL-BREAK.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+"GET /officers/ HTTP/1.1" 200 497992
+"GET /officers/53/edit/ HTTP/1.1" 200 423919
+"GET /api/geo/districts/?province_code=24&province_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93 HTTP/1.1" 200 273
+"GET /api/geo/districts/?province_code=21&province_name=%E1%9E%8F%E1%9E%B6%E1%9E%80%E1%9F%82%E1%9E%9C HTTP/1.1" 200 1272
+"GET /api/geo/districts/?province_code=21&province_name=%E1%9E%8F%E1%9E%B6%E1%9E%80%E1%9F%82%E1%9E%9C HTTP/1.1" 200 1272
+"GET /api/geo/communes/?district_code=2401&district_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93&province_code=24 HTTP/1.1" 200 623
+"GET /api/geo/communes/?district_code=2109&district_name=%E1%9E%8F%E1%9F%92%E1%9E%9A%E1%9E%B6%E1%9F%86%E1%9E%80%E1%9E%80%E1%9F%8B&province_code=21 HTTP/1.1" 200 2420
+"GET /api/geo/communes/?district_code=2109&district_name=%E1%9E%8F%E1%9F%92%E1%9E%9A%E1%9E%B6%E1%9F%86%E1%9E%80%E1%9E%80%E1%9F%8B&province_code=21 HTTP/1.1" 200 2420
+"GET /api/geo/villages/?commune_code=240102&commune_name=%E1%9E%A2%E1%9E%BC%E1%9E%9A%E1%9E%8F%E1%9E%B6%E1%9E%9C%E1%9F%89%E1%9F%85&district_code=2401 HTTP/1.1" 200 1853
+"GET /api/geo/villages/?commune_code=210901&commune_name=%E1%9E%A2%E1%9E%84%E1%9F%92%E1%9E%82%E1%9E%8F%E1%9E%B6%E1%9E%9F%E1%9F%84%E1%9E%98&district_code=2109 HTTP/1.1" 200 4385
+"GET /api/geo/villages/?commune_code=210901&commune_name=%E1%9E%A2%E1%9E%84%E1%9F%92%E1%9E%82%E1%9E%8F%E1%9E%B6%E1%9E%9F%E1%9F%84%E1%9E%98&district_code=2109 HTTP/1.1" 200 4385
+"GET /officers/ HTTP/1.1" 200 497992
+"GET /officers/69/edit/ HTTP/1.1" 200 436017
+"GET /api/geo/districts/?province_code=24&province_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93 HTTP/1.1" 200 273
+"GET /api/geo/districts/?province_code=24&province_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93 HTTP/1.1" 200 273
+"GET /api/geo/communes/?district_code=2401&district_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93&province_code=24 HTTP/1.1" 200 623
+"GET /api/geo/communes/?district_code=2401&district_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93&province_code=24 HTTP/1.1" 200 623
+"GET /api/geo/villages/?commune_code=240103&commune_name=%E1%9E%91%E1%9E%BD%E1%9E%9B%E1%9E%9B%E1%9F%92%E1%9E%9C%E1%9E%B6&district_code=2401 HTTP/1.1" 200 2116
+"GET /api/geo/villages/?commune_code=240103&commune_name=%E1%9E%91%E1%9E%BD%E1%9E%9B%E1%9E%9B%E1%9F%92%E1%9E%9C%E1%9E%B6&district_code=2401 HTTP/1.1" 200 2116
+"GET /officers/ HTTP/1.1" 200 497992
+"GET /officers/53/edit/ HTTP/1.1" 200 423919
+"GET /api/geo/districts/?province_code=21&province_name=%E1%9E%8F%E1%9E%B6%E1%9E%80%E1%9F%82%E1%9E%9C HTTP/1.1" 200 1272
+"GET /api/geo/districts/?province_code=24&province_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93 HTTP/1.1" 200 273
+"GET /api/geo/districts/?province_code=21&province_name=%E1%9E%8F%E1%9E%B6%E1%9E%80%E1%9F%82%E1%9E%9C HTTP/1.1" 200 1272
+"GET /api/geo/communes/?district_code=2109&district_name=%E1%9E%8F%E1%9F%92%E1%9E%9A%E1%9E%B6%E1%9F%86%E1%9E%80%E1%9E%80%E1%9F%8B&province_code=21 HTTP/1.1" 200 2420
+"GET /api/geo/communes/?district_code=2401&district_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93&province_code=24 HTTP/1.1" 200 623
+"GET /api/geo/communes/?district_code=2109&district_name=%E1%9E%8F%E1%9F%92%E1%9E%9A%E1%9E%B6%E1%9F%86%E1%9E%80%E1%9E%80%E1%9F%8B&province_code=21 HTTP/1.1" 200 2420
+"GET /api/geo/villages/?commune_code=210901&commune_name=%E1%9E%A2%E1%9E%84%E1%9F%92%E1%9E%82%E1%9E%8F%E1%9E%B6%E1%9E%9F%E1%9F%84%E1%9E%98&district_code=2109 HTTP/1.1" 200 4385
+"GET /api/geo/villages/?commune_code=240102&commune_name=%E1%9E%A2%E1%9E%BC%E1%9E%9A%E1%9E%8F%E1%9E%B6%E1%9E%9C%E1%9F%89%E1%9F%85&district_code=2401 HTTP/1.1" 200 1853
+"GET /api/geo/villages/?commune_code=210901&commune_name=%E1%9E%A2%E1%9E%84%E1%9F%92%E1%9E%82%E1%9E%8F%E1%9E%B6%E1%9E%9F%E1%9F%84%E1%9E%98&district_code=2109 HTTP/1.1" 200 4385
+"GET /officers/ HTTP/1.1" 200 497992
+"GET /officers/69/edit/ HTTP/1.1" 200 436017
+"GET /api/geo/districts/?province_code=24&province_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93 HTTP/1.1" 200 273
+"GET /api/geo/districts/?province_code=24&province_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93 HTTP/1.1" 200 273
+"GET /api/geo/communes/?district_code=2401&district_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93&province_code=24 HTTP/1.1" 200 623
+"GET /api/geo/communes/?district_code=2401&district_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93&province_code=24 HTTP/1.1" 200 623
+"GET /api/geo/villages/?commune_code=240103&commune_name=%E1%9E%91%E1%9E%BD%E1%9E%9B%E1%9E%9B%E1%9F%92%E1%9E%9C%E1%9E%B6&district_code=2401 HTTP/1.1" 200 2116
+"GET /api/geo/villages/?commune_code=240103&commune_name=%E1%9E%91%E1%9E%BD%E1%9E%9B%E1%9E%9B%E1%9F%92%E1%9E%9C%E1%9E%B6&district_code=2401 HTTP/1.1" 200 2116
+"GET /officers/status-report/ HTTP/1.1" 200 235660
+"GET /officers/ HTTP/1.1" 200 497992
+"GET /officers/53/edit/ HTTP/1.1" 200 423919
+"GET /api/geo/districts/?province_code=21&province_name=%E1%9E%8F%E1%9E%B6%E1%9E%80%E1%9F%82%E1%9E%9C HTTP/1.1" 200 1272
+"GET /api/geo/districts/?province_code=24&province_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93 HTTP/1.1" 200 273
+"GET /api/geo/districts/?province_code=21&province_name=%E1%9E%8F%E1%9E%B6%E1%9E%80%E1%9F%82%E1%9E%9C HTTP/1.1" 200 1272
+"GET /api/geo/communes/?district_code=2109&district_name=%E1%9E%8F%E1%9F%92%E1%9E%9A%E1%9E%B6%E1%9F%86%E1%9E%80%E1%9E%80%E1%9F%8B&province_code=21 HTTP/1.1" 200 2420
+"GET /api/geo/communes/?district_code=2401&district_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93&province_code=24 HTTP/1.1" 200 623
+"GET /api/geo/communes/?district_code=2109&district_name=%E1%9E%8F%E1%9F%92%E1%9E%9A%E1%9E%B6%E1%9F%86%E1%9E%80%E1%9E%80%E1%9F%8B&province_code=21 HTTP/1.1" 200 2420
+"GET /api/geo/villages/?commune_code=210901&commune_name=%E1%9E%A2%E1%9E%84%E1%9F%92%E1%9E%82%E1%9E%8F%E1%9E%B6%E1%9E%9F%E1%9F%84%E1%9E%98&district_code=2109 HTTP/1.1" 200 4385
+"GET /api/geo/villages/?commune_code=240102&commune_name=%E1%9E%A2%E1%9E%BC%E1%9E%9A%E1%9E%8F%E1%9E%B6%E1%9E%9C%E1%9F%89%E1%9F%85&district_code=2401 HTTP/1.1" 200 1853
+"GET /api/geo/villages/?commune_code=210901&commune_name=%E1%9E%A2%E1%9E%84%E1%9F%92%E1%9E%82%E1%9E%8F%E1%9E%B6%E1%9E%9F%E1%9F%84%E1%9E%98&district_code=2109 HTTP/1.1" 200 4385
+"POST /officers/53/edit/ HTTP/1.1" 302 0
+"GET /officers/53/ HTTP/1.1" 200 146254
+"GET /officers/ HTTP/1.1" 200 497992
+"GET /officers/preview/e2/ HTTP/1.1" 200 92974
+C:\Users\dara1\OneDrive\Desktop\DCM_System\dms\views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 21, 2026 - 08:10:20
+Django version 5.2.17, using settings 'dms_project.settings'
+Starting development server at http://0.0.0.0:8000/
+Quit the server with CTRL-BREAK.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+C:\Users\dara1\OneDrive\Desktop\DCM_System\dms\views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 21, 2026 - 08:26:05
+Django version 5.2.17, using settings 'dms_project.settings'
+Starting development server at http://0.0.0.0:8000/
+Quit the server with CTRL-BREAK.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+"GET /officers/ HTTP/1.1" 200 497992
+"GET /static/dms/css/styles.css HTTP/1.1" 200 17486
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%98_%E1%9E%9F%E1%9E%97%E1%9E%93_A5hmRza.jpg HTTP/1.1" 200 80160
+"GET /media/officers/photos/2026/%E1%9E%86%E1%9E%84_%E1%9E%91%E1%9E%8F%E1%9E%99_MhfP2El.jpg HTTP/1.1" 200 79085
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%99_%E1%9E%9F%E1%9E%95%E1%9E%8F_QHCd9Kk.jpg HTTP/1.1" 200 347997
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%80_%E1%9E%9B%E1%9E%84%E1%9E%80.jpg HTTP/1.1" 200 60243
+"GET /media/officers/photos/2026/%E1%9E%92%E1%9E%93_%E1%9E%94%E1%9E%93%E1%9E%92%E1%9E%93.jpg HTTP/1.1" 200 37485
+"GET /media/officers/photos/2026/%E1%9E%96%E1%9E%9A%E1%9E%93_%E1%9E%94%E1%9E%93_zeaYund.jpg HTTP/1.1" 200 240548
+"GET /media/officers/photos/2026/%E1%9E%80_%E1%9E%9F%E1%9E%97%E1%9E%9F.JPG HTTP/1.1" 200 241989
+"GET /media/officers/photos/2026/%E1%9E%99%E1%9E%93_%E1%9E%9F%E1%9E%99%E1%9E%93%E1%9E%8A%E1%9E%9A.jpg HTTP/1.1" 200 182811
+"GET /media/officers/photos/2026/%E1%9E%96%E1%9E%80_%E1%9E%81%E1%9E%98_pggdJoi.jpg HTTP/1.1" 200 97293
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%80_%E1%9E%85%E1%9E%93%E1%9E%94_swg0rTa.jpg HTTP/1.1" 200 247797
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%93_%E1%9E%9F%E1%9E%98%E1%9E%93_zrFU8Iv.jpg HTTP/1.1" 200 36284
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%84_%E1%9E%9C%E1%9E%9F%E1%9E%91%E1%9E%92_0j9x9Zm.jpg HTTP/1.1" 200 43161
+"GET /media/officers/photos/2026/%E1%9E%9C%E1%9E%84_%E1%9E%9C%E1%9E%93_Zo1XcD6.jpg HTTP/1.1" 200 80899
+"GET /media/officers/photos/2026/%E1%9E%82%E1%9E%8F%E1%9E%9A_BNQLawF.jpg HTTP/1.1" 200 83025
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%99_%E1%9E%9F%E1%9E%93%E1%9E%97%E1%9E%98%E1%9E%9A.JPG HTTP/1.1" 200 497150
+"GET /media/officers/photos/2026/%E1%9E%98_%E1%9E%86%E1%9E%98_GMNgVkj.jpg HTTP/1.1" 200 69069
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%84_%E1%9E%9F%E1%9E%92_3.JPG HTTP/1.1" 200 1297423
+"GET /media/officers/photos/2026/%E1%9E%82%E1%9E%84_%E1%9E%9A%E1%9E%94_9yFVLGu.jpg HTTP/1.1" 200 48265
+"GET /media/officers/photos/2026/%E1%9E%91%E1%9E%9A__%E1%9E%82%E1%9E%98%E1%9E%9F%E1%9E%93_fLispeO.jpg HTTP/1.1" 200 67786
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%99_%E1%9E%98%E1%9E%93_rIdGsx7.jpg HTTP/1.1" 200 59824
+"GET /media/officers/photos/2026/%E1%9E%99%E1%9E%93%E1%9E%8F_%E1%9E%85%E1%9E%93%E1%9E%8A.jpg HTTP/1.1" 200 93659
+"GET /media/officers/photos/2026/%E1%9E%86%E1%9E%98_%E1%9E%8A_z5YhZUz.jpg HTTP/1.1" 200 81767
+"GET /media/officers/photos/2026/%E1%9E%81%E1%9E%9C_%E1%9E%9F%E1%9E%90%E1%9E%93_moIWZHl.jpg HTTP/1.1" 200 57710
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%93_%E1%9E%A0%E1%9E%80%E1%9E%9B%E1%9E%98_Vu692GJ.jpg HTTP/1.1" 200 57931
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%91%E1%9E%92_%E1%9E%9C%E1%9E%9F%E1%9E%9B_WyUV9Km.jpg HTTP/1.1" 200 63549
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%9A_%E1%9E%9C%E1%9E%84.jpg HTTP/1.1" 200 50672
+"GET /media/officers/photos/2026/%E1%9E%95%E1%9E%93_%E1%9E%9F%E1%9E%95%E1%9E%93%E1%9E%8E%E1%9E%9A_rffZGH0.jpg HTTP/1.1" 200 82865
+"GET /media/officers/photos/2026/%E1%9E%98_%E1%9E%9A%E1%9E%8E.jpg HTTP/1.1" 200 75010
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%84_%E1%9E%97%E1%9E%9A%E1%9E%8E_VUN2Hzj.jpg HTTP/1.1" 200 64140
+"GET /media/officers/photos/2026/%E1%9E%80%E1%9E%9C_%E1%9E%85%E1%9E%93%E1%9E%8A%E1%9E%9A_5gBDx0c.jpg HTTP/1.1" 200 74541
+"GET /media/officers/photos/2026/%E1%9E%94%E1%9E%9B_%E1%9E%94%E1%9E%93_sX1Acwt.jpg HTTP/1.1" 200 79963
+"GET /media/officers/photos/2026/%E1%9E%86%E1%9E%84_%E1%9E%9C_Ws7SWbE.jpg HTTP/1.1" 200 50397
+"GET /media/officers/photos/2026/%E1%9E%A0%E1%9E%84_%E1%9E%94%E1%9E%93%E1%9E%A1%E1%9E%84_2.JPG HTTP/1.1" 200 1186381
+"GET /media/officers/photos/2026/%E1%9E%A1%E1%9E%99_%E1%9E%96%E1%9E%9F%E1%9E%8A%E1%9E%8B_oTExJGp.jpg HTTP/1.1" 200 61648
+"GET /media/officers/photos/2026/%E1%9E%81%E1%9E%93_%E1%9E%9C%E1%9E%91%E1%9E%92_s37UrIN.jpg HTTP/1.1" 200 221011
+"GET /media/officers/photos/2026/%E1%9E%95_%E1%9E%9F%E1%9E%95%E1%9E%9B_sKHk0yz.jpg HTTP/1.1" 200 63076
+"GET /media/officers/photos/2026/photo_2026-08-31_10-11-57.jpg HTTP/1.1" 200 59685
+"GET /media/officers/photos/2026/%E1%9E%95_%E1%9E%A2%E1%9E%9F_5nzEuTF.jpg HTTP/1.1" 200 75032
+"GET /media/officers/photos/2026/%E1%9E%94%E1%9E%85_%E1%9E%80%E1%9E%93%E1%9E%92%E1%9E%8A%E1%9E%8B_Nm9Ckob.jpg HTTP/1.1" 200 74092
+"GET /media/officers/photos/2026/%E1%9E%94%E1%9E%84_%E1%9E%86_rB4qiVT.jpg HTTP/1.1" 200 55951
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%9B_%E1%9E%8E_cMrTKGs.jpg HTTP/1.1" 200 56788
+"GET /media/officers/photos/2026/%E1%9E%A0%E1%9E%84_%E1%9E%94%E1%9E%93%E1%9E%88%E1%9E%93_HSsULhx.jpg HTTP/1.1" 200 71859
+"GET /media/officers/photos/2026/%E1%9E%A0%E1%9E%93_%E1%9E%96_KuUhnm1.jpg HTTP/1.1" 200 77740
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%84_%E1%9E%81%E1%9E%98%E1%9E%99_tgjK4i0.jpg HTTP/1.1" 200 91933
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%84_%E1%9E%9C%E1%9E%85%E1%9E%86%E1%9E%80_ehLAczO.jpg HTTP/1.1" 200 281544
+"GET /media/officers/photos/2026/%E1%9E%80%E1%9E%9C_%E1%9E%9F%E1%9E%9A_sMidzgS.jpg HTTP/1.1" 200 44646
+"GET /officers/preview/e2/ HTTP/1.1" 200 92737
+"GET /login/ HTTP/1.1" 200 12518
+"GET /officers/47/edit/ HTTP/1.1" 200 484211
+"GET /api/geo/districts/?province_code=6&province_name=%E1%9E%80%E1%9F%86%E1%9E%96%E1%9E%84%E1%9F%8B%E1%9E%92%E1%9F%86 HTTP/1.1" 200 1198
+"GET /api/geo/districts/?province_code=24&province_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93 HTTP/1.1" 200 273
+"GET /api/geo/districts/?province_code=24&province_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93 HTTP/1.1" 200 273
+"GET /api/geo/communes/?district_code=2401&district_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93&province_code=24 HTTP/1.1" 200 623
+"GET /api/geo/communes/?district_code=601&district_name=%E1%9E%94%E1%9E%B6%E1%9E%9A%E1%9E%B6%E1%9E%99%E1%9E%8E%E1%9F%8D&province_code=6 HTTP/1.1" 200 1463
+"GET /api/geo/communes/?district_code=2401&district_name=%E1%9E%94%E1%9F%89%E1%9F%83%E1%9E%9B%E1%9E%B7%E1%9E%93&province_code=24 HTTP/1.1" 200 623
+"GET /api/geo/villages/?commune_code=240103&commune_name=%E1%9E%91%E1%9E%BD%E1%9E%9B%E1%9E%9B%E1%9F%92%E1%9E%9C%E1%9E%B6&district_code=2401 HTTP/1.1" 200 2116
+"GET /api/geo/villages/?commune_code=%E1%9E%9F%E1%9E%BC%E1%9E%99%E1%9F%84%E1%9E%84&commune_name=%E1%9E%9F%E1%9E%BC%E1%9E%99%E1%9F%84%E1%9E%84&district_code=601 HTTP/1.1" 200 33
+"GET /api/geo/villages/?commune_code=240103&commune_name=%E1%9E%91%E1%9E%BD%E1%9E%9B%E1%9E%9B%E1%9F%92%E1%9E%9C%E1%9E%B6&district_code=2401 HTTP/1.1" 200 2116

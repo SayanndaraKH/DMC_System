@@ -22,10 +22,15 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-                    <a href="{% url 'download_full_backup' %}" class="btn btn-warning btn-lg fw-bold shadow-sm px-4">
-                        <i class="fa-solid fa-cloud-arrow-down me-2"></i>ទាញយក Full Backup (.zip)
-                    </a>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0 d-flex flex-wrap gap-2 justify-content-lg-end">
+                    <button type="button" class="btn btn-warning fw-bold shadow-sm px-3 py-2" onclick="openBackupModal('FULL')">
+                        <i class="fa-solid fa-cloud-arrow-down me-1.5"></i>Full Backup (.zip)
+                    </button>
+                    {% if is_admin_user %}
+                    <button type="button" class="btn btn-danger fw-bold shadow-sm px-3 py-2" onclick="switchToCleanTab()">
+                        <i class="fa-solid fa-broom me-1.5"></i>សម្អាតទិន្នន័យប្រព័ន្ធ
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -127,6 +132,13 @@
                 <i class="fa-solid fa-clock-rotate-left me-1.5 text-secondary"></i> ៥. ប្រវត្តិ Snapshots ({{ local_backups|length }})
             </button>
         </li>
+        {% if is_admin_user %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2.5 text-danger" id="clean-tab" data-bs-toggle="tab" data-bs-target="#tab-clean" type="button" role="tab">
+                <i class="fa-solid fa-broom me-1.5 text-danger"></i> ៦. សម្អាតទិន្នន័យដាក់ដំណើរការ
+            </button>
+        </li>
+        {% endif %}
     </ul>
 
     <div class="tab-content" id="backupSyncTabContent">
@@ -155,9 +167,9 @@
                                 <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> រួមបញ្ចូលរូបថត និងឯកសារ PDF ភ្ជាប់ទាំងអស់ក្នុង `media/`</div>
                                 <div class="d-flex align-items-center"><i class="fa-solid fa-check text-success me-2"></i> អាចយកទៅ Restore លើ PC ផ្សេងទៀត ឬលើ Cloud បានភ្លាមៗ</div>
                             </div>
-                            <a href="{% url 'download_full_backup' %}" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
+                            <button type="button" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" onclick="openBackupModal('FULL')">
                                 <i class="fa-solid fa-file-zipper me-2"></i>ទាញយក Full Backup ZIP ឥឡូវនេះ
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -181,9 +193,9 @@
                                 <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> គាំទ្រអក្សរខ្មែរពេញលេញ (UTF-8 Encoded)</div>
                                 <div class="d-flex align-items-center text-warning"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> មិនរួមបញ្ចូលរូបថត និងឯកសារ PDF ឡើយ</div>
                             </div>
-                            <a href="{% url 'download_db_backup' %}" class="btn btn-outline-success btn-lg w-100 fw-bold shadow-sm">
+                            <button type="button" class="btn btn-outline-success btn-lg w-100 fw-bold shadow-sm" onclick="openBackupModal('DATABASE_ONLY')">
                                 <i class="fa-solid fa-download me-2"></i>ទាញយក Database Only (.zip)
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -202,9 +214,9 @@
                             <p class="text-secondary fs-7 mb-3">
                                 ទាញយកឯកសារមេឌាទាំងអស់ (រូបថតមន្ត្រីរាជការ, ឯកសារស្កេនលិខិតចូល-ចេញ, ឯកសារកិច្ចសន្យា, រូបថតយានយន្ត) ដែលមានក្នុងថត `media/`។
                             </p>
-                            <a href="{% url 'download_media_backup' %}" class="btn btn-outline-warning text-dark btn-lg w-100 fw-bold shadow-sm">
+                            <button type="button" class="btn btn-outline-warning text-dark btn-lg w-100 fw-bold shadow-sm" onclick="openBackupModal('MEDIA_ONLY')">
                                 <i class="fa-solid fa-file-image me-2"></i>ទាញយក Media ZIP Only
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -223,12 +235,9 @@
                             <p class="text-secondary fs-7 mb-3">
                                 បង្កើតកញ្ចប់ Backup ពេញលេញមួយភ្លាមៗ ហើយរក្សាទុកដោយស្វ័យប្រវត្តិក្នងថត <code>backups/</code> លើ Hard Drive នៃកុំព្យូទ័រនេះដោយមិនចាំបាច់ទាញយកតាម Browser ឡើយ។
                             </p>
-                            <form method="POST" action="{% url 'create_local_snapshot_action' %}">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-info text-white btn-lg w-100 fw-bold shadow-sm">
-                                    <i class="fa-solid fa-floppy-disk me-2"></i>បង្កើត Local Snapshot ឥឡូវនេះ
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-info text-white btn-lg w-100 fw-bold shadow-sm" onclick="openBackupModal('SNAPSHOT')">
+                                <i class="fa-solid fa-floppy-disk me-2"></i>បង្កើត Local Snapshot ឥឡូវនេះ
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -539,12 +548,9 @@
                     <h5 class="fw-bold text-dark mb-0">
                         <i class="fa-solid fa-clock-rotate-left me-2 text-secondary"></i>បញ្ជីកញ្ចប់ Backup ដែលមានលើ Hard Drive ម៉ាស៊ីន
                     </h5>
-                    <form method="POST" action="{% url 'create_local_snapshot_action' %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-primary fw-bold">
-                            <i class="fa-solid fa-plus me-1"></i>បង្កើត Snapshot ថ្មី
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-sm btn-primary fw-bold" onclick="openBackupModal('SNAPSHOT')">
+                        <i class="fa-solid fa-plus me-1"></i>បង្កើត Snapshot ថ្មី
+                    </button>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -611,6 +617,618 @@
             </div>
         </div>
 
+        <!-- =================================================================== -->
+        <!-- TAB 6: SYSTEM GO-LIVE DATA CLEANUP & RESET -->
+        <!-- =================================================================== -->
+        {% if is_admin_user %}
+        <div class="tab-pane fade" id="tab-clean" role="tabpanel">
+            <!-- Warning & Safety Guarantee Banner -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-4 border-danger bg-white">
+                <div class="card-body p-4">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3 d-flex align-items-center justify-content-center" style="width: 55px; height: 55px;">
+                                <i class="fa-solid fa-broom fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="fw-bold text-danger mb-1">សម្អាត និងរៀបចំប្រព័ន្ធសម្រាប់ដាក់ដំណើរការផ្លូវការ (Go-Live Data Clean)</h4>
+                                <p class="text-secondary fs-7 mb-0">
+                                    សម្អាតទិន្នន័យប្រតិបត្តិការសាកល្បងទាំងអស់ ដើម្បីឱ្យប្រព័ន្ធស្អាត ស្រាល និងត្រៀមទទួលទិន្នន័យជាក់ស្តែងពីគ្រប់ការិយាល័យ។
+                                </p>
+                            </div>
+                        </div>
+                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill fs-7">
+                            <i class="fa-solid fa-shield-halved me-1.5"></i>សុវត្ថិភាពខ្ពស់ Auto-Snapshot
+                        </span>
+                    </div>
+
+                    <div class="alert alert-success d-flex align-items-start gap-2.5 mt-3 mb-0 py-2.5 rounded-3 border-success border-opacity-25">
+                        <i class="fa-solid fa-circle-check text-success fs-5 mt-0.5"></i>
+                        <div class="fs-8">
+                            <strong>ការធានាសុវត្ថិភាពទិន្នន័យ ១០០% (Zero Data Loss Guarantee)៖</strong> ប្រព័ន្ធនឹងបង្កើត <strong>Full Backup Snapshot</strong> មួយដោយស្វ័យប្រវត្តិ មុនពេលប្រតិបត្តិការលុបចាប់ផ្តើម។ ប្រសិនបើលោកអ្នកផ្លាស់ប្តូរចិត្ត អាចចុចស្តារទិន្នន័យ (Restore) ត្រឡប់មកវិញភ្លាមៗក្នុងផ្ទាំង <em>ប្រវត្តិ Snapshots</em>។
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Data Counts Summary Badges -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-chart-pie text-primary me-2"></i>ស្ថិតិទិន្នន័យបច្ចុប្បន្នដែលត្រូវសម្អាត (Current System Data)
+                    </h6>
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 fs-8" onclick="refreshCleanCounts()">
+                        <i class="fa-solid fa-arrows-rotate me-1" id="refreshIcon"></i>ផ្ទុកឡើងវិញ
+                    </button>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2 text-center" id="cleanStatsGrid">
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="p-2.5 rounded-3 bg-light border">
+                                <div class="fs-8 text-muted mb-1">📁 ឯកសារ & Version</div>
+                                <div class="fs-5 fw-bold text-dark">{{ clean_preview_counts.documents }} <span class="fs-8 text-muted fw-normal">({{ clean_preview_counts.document_versions }})</span></div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="p-2.5 rounded-3 bg-light border">
+                                <div class="fs-8 text-muted mb-1">📋 កំណត់ត្រាវត្តមាន</div>
+                                <div class="fs-5 fw-bold text-dark">{{ clean_preview_counts.attendance }} <span class="fs-8 text-muted fw-normal">records</span></div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="p-2.5 rounded-3 bg-light border">
+                                <div class="fs-8 text-muted mb-1">🚗 សំណើយានយន្ត</div>
+                                <div class="fs-5 fw-bold text-dark">{{ clean_preview_counts.vehicle_requests }} <span class="fs-8 text-muted fw-normal">requests</span></div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="p-2.5 rounded-3 bg-light border">
+                                <div class="fs-8 text-muted mb-1">🎖️ សំណើឡើងថ្នាក់/មេដាយ</div>
+                                <div class="fs-5 fw-bold text-dark">{{ clean_preview_counts.promotion_requests|add:clean_preview_counts.medal_requests }} <span class="fs-8 text-muted fw-normal">requests</span></div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="p-2.5 rounded-3 bg-light border">
+                                <div class="fs-8 text-muted mb-1">📜 Audit Logs</div>
+                                <div class="fs-5 fw-bold text-dark">{{ clean_preview_counts.audit_logs }} <span class="fs-8 text-muted fw-normal">logs</span></div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="p-2.5 rounded-3 bg-light border">
+                                <div class="fs-8 text-muted mb-1">💬 សារ & Notifs</div>
+                                <div class="fs-5 fw-bold text-dark">{{ clean_preview_counts.notifications|add:clean_preview_counts.chat_messages }} <span class="fs-8 text-muted fw-normal">items</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Options Cards -->
+            <div class="row g-4">
+                <!-- PRESET 0: Purge System-Generated Test Data -->
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm rounded-3 border-top border-4 border-warning bg-white">
+                        <div class="card-body p-4">
+                            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                        <span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill fs-8 fw-bold">
+                                            <i class="fa-solid fa-flask me-1"></i>មុខងារពិសេស៖ សម្អាតទិន្នន័យ Test ប្រព័ន្ធ (System Test Data Purge)
+                                        </span>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fs-8">
+                                            រក្សាទុកមន្ត្រី និងគណនីពិត ១០០%
+                                        </span>
+                                        <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 fs-8">
+                                            ⚡ គាំទ្រ Auto-Submit
+                                        </span>
+                                    </div>
+                                    <h4 class="fw-bold text-dark mb-1">
+                                        <i class="fa-solid fa-vial-circle-check text-warning me-2"></i>លុបទិន្នន័យ Test ដែលបង្កើតដោយប្រព័ន្ធ (Purge System Test Data)
+                                    </h4>
+                                    <p class="text-secondary fs-7 mb-0">
+                                        លុបតែគណនីតេស្ត (ឧ. <code>admin_test_veh</code>, <code>leader_user</code>...), ការិយាល័យតេស្ត (ឧ. <code>AGRI_DEV_TEST</code>...), យានយន្តតេស្ត (<code>រដ្ឋ 11 2-9999</code>) និងឯកសារគំរូតេស្ត ដែលបង្កើតសម្រាប់សាកល្បង ដោយរក្សាទុកមន្ត្រីពិតប្រាកដ និងគណនីផ្លូវការដដែល ១០០%។
+                                    </p>
+                                </div>
+                                <div class="text-md-end text-nowrap">
+                                    <div class="badge bg-light text-dark border p-2 mb-2 d-block">
+                                        ទិន្នន័យតេស្តរកឃើញ៖ <strong class="text-danger fs-6">{{ clean_preview_counts.system_test_total }}</strong> មុខ
+                                    </div>
+                                    <div class="d-flex gap-2 justify-content-md-end">
+                                        <button type="button" class="btn btn-warning fw-bold px-3 shadow-sm text-dark" onclick="openCleanModal('test_data')">
+                                            <i class="fa-solid fa-broom me-1.5"></i>ពិនិត្យ & សម្អាត
+                                        </button>
+                                        <button type="button" class="btn btn-danger fw-bold px-3 shadow-sm" onclick="openCleanModal('test_data', true)">
+                                            <i class="fa-solid fa-bolt me-1.5"></i>⚡ Auto-Submit
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 pt-2 border-top">
+                                <div class="col-6 col-md-3">
+                                    <div class="p-2 rounded bg-light border text-center fs-8">
+                                        <span class="text-muted d-block">👤 Test Users:</span>
+                                        <strong class="text-danger">{{ clean_preview_counts.system_test_users }} គណនី</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="p-2 rounded bg-light border text-center fs-8">
+                                        <span class="text-muted d-block">🏢 Test Depts:</span>
+                                        <strong class="text-danger">{{ clean_preview_counts.system_test_depts }} ការិយាល័យ</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="p-2 rounded bg-light border text-center fs-8">
+                                        <span class="text-muted d-block">🚗 Test Vehicles:</span>
+                                        <strong class="text-danger">{{ clean_preview_counts.system_test_vehicles }} គ្រឿង</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="p-2 rounded bg-light border text-center fs-8">
+                                        <span class="text-muted d-block">📁 Test Docs:</span>
+                                        <strong class="text-danger">{{ clean_preview_counts.system_test_docs }} ឯកសារ</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PRESET 1: Recommended Go-Live Clean -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 border-top border-4 border-primary position-relative">
+                        <div class="card-body p-4 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <span class="badge bg-primary px-3 py-1.5 rounded-pill fs-8">🌟 ជម្រើសណែនាំខ្លាំងបំផុត (Recommended for Go-Live)</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fs-8">រក្សាទុកមន្ត្រី & គណនី</span>
+                                </div>
+                                <h4 class="fw-bold text-primary mb-2">
+                                    <i class="fa-solid fa-flag-checkered me-2"></i>១. សម្អាតទិន្នន័យប្រតិបត្តិការសាកល្បង
+                                </h4>
+                                <p class="text-secondary fs-7 mb-3">
+                                    សម្អាតឯកសាររដ្ឋបាល, កំណត់ត្រាវត្តមាន, សំណើយានយន្ត, សំណើ HR, Audit Logs, និងសារសាកល្បងទាំងអស់ <strong>ដោយរក្សាទុកបញ្ជីមន្ត្រីរាជការ, គណនីប្រើប្រាស់, រចនាសម្ព័ន្ធការិយាល័យ និងភូមិសាស្ត្រដដែល</strong>។
+                                </p>
+                                
+                                <div class="row g-2 mb-4">
+                                    <div class="col-sm-6">
+                                        <div class="p-2.5 rounded-3 bg-danger bg-opacity-10 border border-danger border-opacity-25 fs-8">
+                                            <strong class="text-danger d-block mb-1"><i class="fa-solid fa-trash-can me-1"></i>ទិន្នន័យដែលត្រូវលុប៖</strong>
+                                            <ul class="list-unstyled mb-0 text-muted ps-1">
+                                                <li>• ឯកសារ & Version ទាំងអស់</li>
+                                                <li>• ចំណារ & Routing ទាំងអស់</li>
+                                                <li>• កំណត់ត្រាវត្តមានទាំងអស់</li>
+                                                <li>• សំណើយានយន្តទាំងអស់</li>
+                                                <li>• សំណើឡើងថ្នាក់ & មេដាយ</li>
+                                                <li>• Audit Logs & ប្រវត្តិផ្ទេរ</li>
+                                                <li>• សារ, ការជូនដំណឹង & OTP</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="p-2.5 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-25 fs-8">
+                                            <strong class="text-success d-block mb-1"><i class="fa-solid fa-shield-halved me-1"></i>ទិន្នន័យដែលរក្សាទុក៖</strong>
+                                            <ul class="list-unstyled mb-0 text-muted ps-1">
+                                                <li>✓ បញ្ជីមន្ត្រីរាជការ ({{ clean_preview_counts.civil_servants }} នាក់)</li>
+                                                <li>✓ មន្ត្រីកិច្ចសន្យា ({{ clean_preview_counts.contract_officers }} នាក់)</li>
+                                                <li>✓ បញ្ជីយានយន្តមន្ទីរ</li>
+                                                <li>✓ គណនីអ្នកប្រើប្រាស់ & Admin</li>
+                                                <li>✓ ការិយាល័យ ({{ clean_preview_counts.departments }})</li>
+                                                <li>✓ ភូមិសាស្ត្រខេត្ត-ស្រុក-ឃុំ-ភូមិ</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm py-2.5" onclick="openCleanModal('operational')">
+                                <i class="fa-solid fa-broom me-2"></i>សម្អាតទិន្នន័យប្រតិបត្តិការ (Go-Live Clean)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PRESET 2: Factory Reset -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 border-top border-4 border-danger position-relative">
+                        <div class="card-body p-4 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <span class="badge bg-danger px-3 py-1.5 rounded-pill fs-8">⚠️ កម្រិតសម្អាតកម្រិតអតិបរមា (Total Wipeout)</span>
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 fs-8">Factory Reset</span>
+                                </div>
+                                <h4 class="fw-bold text-danger mb-2">
+                                    <i class="fa-solid fa-triangle-exclamation me-2"></i>២. កំណត់ឡើងវិញទាំងអស់ (Full Factory Reset)
+                                </h4>
+                                <p class="text-secondary fs-7 mb-3">
+                                    លុបទិន្នន័យទាំងអស់ត្រឡប់ទៅសភាពដំបូងបំផុត <strong>រួមទាំងមន្ត្រីសាកល្បង, យានយន្ត, គណនីអ្នកប្រើប្រាស់សាកល្បង, និងឯកសារ Upload ទាំងអស់</strong> ដោយរក្សាទុកតែគណនី Admin កំពូល, ការិយាល័យ និងភូមិសាស្ត្រប៉ុណ្ណោះ។
+                                </p>
+
+                                <div class="alert alert-danger bg-danger bg-opacity-10 border border-danger border-opacity-25 fs-8 mb-4">
+                                    <strong><i class="fa-solid fa-radiation text-danger me-1"></i>ចំណាំសំខាន់៖</strong> ជម្រើសនេះសមស្របសម្រាប់ការចាប់ផ្តើមតាំងពីដំបូងជាថ្មីទាំងស្រុង (Clean Slate)។ ប្រព័ន្ធនៅតែបង្កើត Safety Snapshot ជាមុនសិន ដើម្បីសុវត្ថិភាព។
+                                </div>
+
+                                <div class="bg-light p-3 rounded-3 mb-4 fs-8 text-muted">
+                                    <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-xmark text-danger me-2"></i> លុបឯកសារ និងទិន្នន័យប្រតិបត្តិការទាំងអស់</div>
+                                    <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-xmark text-danger me-2"></i> លុបមន្ត្រីរាជការ និងមន្ត្រីកិច្ចសន្យាសាកល្បង</div>
+                                    <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-xmark text-danger me-2"></i> លុបគណនី User សាកល្បង (រក្សាទុកតែ Admin Superuser)</div>
+                                    <div class="d-flex align-items-center"><i class="fa-solid fa-check text-success me-2"></i> រក្សាទុក៖ គណនី Admin, រចនាសម្ព័ន្ធមន្ទីរ, ភូមិសាស្ត្រកម្ពុជា</div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-danger btn-lg w-100 fw-bold shadow-sm py-2.5" onclick="openCleanModal('factory')">
+                                <i class="fa-solid fa-trash-can me-2"></i>កំណត់ឡើងវិញទាំងអស់ (Full Factory Reset)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PRESET 3: Custom Granular Selection -->
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm rounded-3 border-top border-4 border-secondary">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h5 class="fw-bold text-dark mb-0">
+                                    <i class="fa-solid fa-sliders text-secondary me-2"></i>៣. ជម្រើសសម្អាតតាមការកំណត់ផ្ទាល់ខ្លួន (Custom Granular Selection)
+                                </h5>
+                                <span class="badge bg-light text-dark border fs-8">បត់បែនតាមតម្រូវការ</span>
+                            </div>
+                            <p class="text-secondary fs-7 mb-4">
+                                ជ្រើសរើសធីក (Check) លើផ្នែកជាក់លាក់ណាមួយដែលលោកអ្នកចង់សម្អាត ឬដោះធីកលើផ្នែកដែលចង់រក្សាទុក៖
+                            </p>
+
+                            <form id="customCleanForm">
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-3 border rounded-3 bg-light bg-opacity-50">
+                                            <input class="form-check-input ms-0 me-2" type="checkbox" id="chk_docs" name="opt_clean_documents" checked>
+                                            <label class="form-check-label fw-bold text-dark fs-7" for="chk_docs">
+                                                📁 ឯកសារ & Version ({{ clean_preview_counts.documents }})
+                                            </label>
+                                            <div class="text-muted fs-8 mt-1">លុបឯកសារ, version, ចំណារ, និង routing</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-3 border rounded-3 bg-light bg-opacity-50">
+                                            <input class="form-check-input ms-0 me-2" type="checkbox" id="chk_att" name="opt_clean_attendance" checked>
+                                            <label class="form-check-label fw-bold text-dark fs-7" for="chk_att">
+                                                📋 កំណត់ត្រាវត្តមាន ({{ clean_preview_counts.attendance }})
+                                            </label>
+                                            <div class="text-muted fs-8 mt-1">លុបកំណត់ត្រាស្រង់វត្តមានប្រចាំថ្ងៃទាំងអស់</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-3 border rounded-3 bg-light bg-opacity-50">
+                                            <input class="form-check-input ms-0 me-2" type="checkbox" id="chk_veh_req" name="opt_clean_vehicle_requests" checked>
+                                            <label class="form-check-label fw-bold text-dark fs-7" for="chk_veh_req">
+                                                🚗 សំណើសុំយានយន្ត ({{ clean_preview_counts.vehicle_requests }})
+                                            </label>
+                                            <div class="text-muted fs-8 mt-1">លុបសំណើសុំប្រើប្រាស់យានយន្ត និងឯកសារភ្ជាប់</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-3 border rounded-3 bg-light bg-opacity-50">
+                                            <input class="form-check-input ms-0 me-2" type="checkbox" id="chk_hr" name="opt_clean_hr_requests" checked>
+                                            <label class="form-check-label fw-bold text-dark fs-7" for="chk_hr">
+                                                🎖️ សំណើ HR & Audit Logs
+                                            </label>
+                                            <div class="text-muted fs-8 mt-1">លុបសំណើឡើងថ្នាក់, មេដាយ, និងប្រវត្តិកែប្រែ</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-3 border rounded-3 bg-light bg-opacity-50">
+                                            <input class="form-check-input ms-0 me-2" type="checkbox" id="chk_comms" name="opt_clean_comms_logs" checked>
+                                            <label class="form-check-label fw-bold text-dark fs-7" for="chk_comms">
+                                                💬 សារ, Notif & OTP
+                                            </label>
+                                            <div class="text-muted fs-8 mt-1">លុបសារ Chat, ការជូនដំណឹង, និងលេខកូដ OTP</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-3 border rounded-3 bg-light bg-opacity-50">
+                                            <input class="form-check-input ms-0 me-2" type="checkbox" id="chk_media" name="opt_clean_media_files" checked>
+                                            <label class="form-check-label fw-bold text-dark fs-7" for="chk_media">
+                                                🖼️ ឯកសារ Media Uploads
+                                            </label>
+                                            <div class="text-muted fs-8 mt-1">លុបឯកសារដែលពាក់ព័ន្ធនឹងទិន្នន័យដែលបានលុបក្នុង media/</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-3 border rounded-3 bg-light bg-opacity-50">
+                                            <input class="form-check-input ms-0 me-2" type="checkbox" id="chk_officers" name="opt_clean_officers">
+                                            <label class="form-check-label fw-bold text-danger fs-7" for="chk_officers">
+                                                👥 មន្ត្រីរាជការ & កិច្ចសន្យា
+                                            </label>
+                                            <div class="text-muted fs-8 mt-1">លុបព័ត៌មានមន្ត្រីទាំងអស់ (មិនណែនាំទេ ប្រសិនបើមានទិន្នន័យពិត)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-3 border rounded-3 bg-light bg-opacity-50">
+                                            <input class="form-check-input ms-0 me-2" type="checkbox" id="chk_users" name="opt_clean_test_users">
+                                            <label class="form-check-label fw-bold text-danger fs-7" for="chk_users">
+                                                👤 គណនីអ្នកប្រើប្រាស់សាកល្បង
+                                            </label>
+                                            <div class="text-muted fs-8 mt-1">លុបគណនី User មិនមែន Admin (រក្សាទុក Admin/Superuser ដដែល)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-3 border rounded-3 bg-light bg-opacity-50">
+                                            <input class="form-check-input ms-0 me-2" type="checkbox" id="chk_vehs" name="opt_clean_vehicles">
+                                            <label class="form-check-label fw-bold text-danger fs-7" for="chk_vehs">
+                                                🚙 បញ្ជីយានយន្តមន្ទីរ ({{ clean_preview_counts.vehicles }})
+                                            </label>
+                                            <div class="text-muted fs-8 mt-1">លុបបញ្ជីយានយន្តទាំងអស់ចេញពីប្រព័ន្ធ</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-dark fw-bold px-4 py-2" onclick="openCleanModal('custom')">
+                                        <i class="fa-solid fa-check-double me-2"></i>សម្អាតតាមជម្រើសដែលបានកំណត់ (Execute Custom Clean)
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- =================================================================== -->
+<!-- MODAL: BACKUP ACTION & PROGRESS MODAL (FORM + PROGRESS BAR + LOCATION) -->
+<!-- =================================================================== -->
+<div class="modal fade" id="backupActionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+            
+            <!-- Dynamic Header -->
+            <div class="modal-header border-0 py-3 px-4 text-white" id="backupModalHeader" style="background: linear-gradient(135deg, #0d6efd 0%, #0a4294 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-white bg-opacity-20 p-2.5 d-flex align-items-center justify-content-center shadow-sm" style="width: 46px; height: 46px;">
+                        <i id="backupModalIcon" class="fa-solid fa-file-zipper fa-lg text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="backupModalTitle">ទាញយក Full Backup ZIP</h5>
+                        <div class="fs-8 text-white-50" id="backupModalSubtitle">កញ្ចប់បម្រុងទុកទិន្នន័យប្រព័ន្ធ</div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="backupModalSizeBadge" class="badge bg-white text-dark shadow-sm px-2.5 py-1.5 rounded-pill fs-8">~35 MB</span>
+                    <button type="button" class="btn-close btn-close-white shadow-none" id="btnBackupModalClose" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+
+                <!-- Error Alert Box -->
+                <div id="backupErrorBox" class="alert alert-danger alert-dismissible fade show d-none mb-3 border-0 shadow-sm" role="alert">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation fs-5 text-danger"></i>
+                        <div id="backupErrorMsg" class="fs-7 fw-semibold">មានកំហុសបច្ចេកទេសកើតឡើង</div>
+                    </div>
+                    <button type="button" class="btn-close" onclick="document.getElementById('backupErrorBox').classList.add('d-none')"></button>
+                </div>
+                
+                <!-- ============================================== -->
+                <!-- PHASE 1: CONFIGURATION FORM                    -->
+                <!-- ============================================== -->
+                <div id="backupPhaseForm">
+                    <div class="alert alert-light border border-info border-opacity-25 rounded-3 p-3 mb-3 d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-info bg-opacity-10 p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
+                            <i class="fa-solid fa-circle-info text-info fa-lg"></i>
+                        </div>
+                        <div class="fs-7 text-secondary" id="backupModalDescription">
+                            ប្រព័ន្ធនឹងដំណើរការបង្កើតកញ្ចប់ Backup និងអនុញ្ញាតឱ្យលោកអ្នកជ្រើសរើសទីតាំងរក្សាទុកក្នុងកុំព្យូទ័របានដោយសេរី។
+                        </div>
+                    </div>
+
+                    <form id="backupExecutionForm" onsubmit="event.preventDefault(); startBackupExecution();">
+                        <input type="hidden" id="modalBackupType" value="FULL">
+
+                        <!-- Filename Input -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark fs-7 d-flex justify-content-between align-items-center mb-1.5">
+                                <span><i class="fa-solid fa-file-pen text-primary me-1.5"></i>ឈ្មោះឯកសាររក្សាទុក (Backup Filename):</span>
+                                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fs-8 text-primary fw-semibold" onclick="generateSuggestedFilename()">
+                                    <i class="fa-solid fa-rotate me-1"></i>បង្កើតឈ្មោះថ្មីស្វ័យប្រវត្តិ
+                                </button>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted border-end-0"><i class="fa-solid fa-file-zipper text-secondary"></i></span>
+                                <input type="text" class="form-control font-monospace fs-7 fw-semibold border-start-0" id="modalCustomFilename" placeholder="dms_backup.zip" required>
+                                <span class="input-group-text bg-light text-muted fs-7">.zip</span>
+                            </div>
+                            <div class="form-text fs-8 text-muted mt-1">លោកអ្នកអាចប្តូរឈ្មោះឯកសារតាមការចង់បាន ឬប្រើឈ្មោះស្វ័យប្រវត្តិនេះ។</div>
+                        </div>
+
+                        <!-- Save Location Selection -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark fs-7 mb-2">
+                                <i class="fa-solid fa-folder-tree text-primary me-1.5"></i>ជ្រើសរើសទីតាំងរក្សាទុកឯកសារ (Save Location):
+                            </label>
+                            
+                            <!-- Location Option 1: File Picker (Save As Dialog) -->
+                            <div class="form-check border rounded-3 p-3 mb-2 bg-white hover-shadow transition" id="boxLocationPicker" style="cursor: pointer;">
+                                <div class="d-flex align-items-start gap-2">
+                                    <input class="form-check-input mt-1" type="radio" name="saveLocationOption" id="locOptionPicker" value="picker" checked>
+                                    <label class="form-check-label w-100 cursor-pointer" for="locOptionPicker">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <strong class="text-primary fs-7">
+                                                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> ជ្រើសរើស Folder រក្សាទុកដោយសេរី (Save As Dialog)
+                                            </strong>
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fs-8" id="pickerBadge">ផ្ដល់អនុសាសន៍</span>
+                                        </div>
+                                        <div class="fs-8 text-muted">
+                                            ប្រព័ន្ធនឹងបើកផ្ទាំង Windows File Dialog ឱ្យលោកអ្នករើសទីតាំង (Drive C:, Drive D:, Documents, Desktop, ឬ USB Flash Drive) បានតាមចិត្ត។
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Location Option 2: Default Browser Downloads -->
+                            <div class="form-check border rounded-3 p-3 mb-2 bg-white hover-shadow transition" id="boxLocationDownload" style="cursor: pointer;">
+                                <div class="d-flex align-items-start gap-2">
+                                    <input class="form-check-input mt-1" type="radio" name="saveLocationOption" id="locOptionDownload" value="download">
+                                    <label class="form-check-label w-100 cursor-pointer" for="locOptionDownload">
+                                        <strong class="text-dark fs-7 d-block mb-1">
+                                            <i class="fa-solid fa-download me-1 text-secondary"></i> ទាញយកចូលថត Downloads ស្វ័យប្រវត្តិ (Default Browser Downloads)
+                                        </strong>
+                                        <div class="fs-8 text-muted">
+                                            ទាញយកឯកសារចូលទៅក្នុងថត `Downloads` នៃកុំព្យូទ័ររបស់អ្នកដោយផ្ទាល់ដូចការ Download ឯកសារទូទៅ។
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Location Option 3: Local Server Hard Drive (For Snapshots) -->
+                            <div class="form-check border rounded-3 p-3 mb-2 bg-info bg-opacity-10 border-info border-opacity-25 d-none" id="boxLocationServerDisk" style="cursor: pointer;">
+                                <div class="d-flex align-items-start gap-2">
+                                    <input class="form-check-input mt-1" type="radio" name="saveLocationOption" id="locOptionServerDisk" value="server">
+                                    <label class="form-check-label w-100 cursor-pointer" for="locOptionServerDisk">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <strong class="text-info-emphasis fs-7">
+                                                <i class="fa-solid fa-hard-drive me-1 text-info"></i> រក្សាទុកក្នុង Hard Drive ម៉ាស៊ីនផ្ទាល់ (Server Directory: <code>backups/</code>)
+                                            </strong>
+                                            <span class="badge bg-info text-white fs-8">Snapshot Storage</span>
+                                        </div>
+                                        <div class="fs-8 text-muted">
+                                            ឯកសារនឹងត្រូវរក្សាទុកក្នុងថត <code>backups/</code> នៃម៉ាស៊ីនមេនេះផ្ទាល់ សម្រាប់ងាយស្រួល Restore ពេលក្រោយ។
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Optional Note -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-secondary fs-8 mb-1">
+                                <i class="fa-solid fa-tag me-1 text-muted"></i>កំណត់ចំណាំបន្ថែម (Optional Note):
+                            </label>
+                            <input type="text" class="form-control fs-7" id="modalBackupNote" placeholder="ឧ. កញ្ចប់ Backup ប្រចាំថ្ងៃ ឬមុនពេលកែសម្រួលទិន្នន័យ...">
+                        </div>
+
+                        <!-- Form Footer Actions -->
+                        <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                            <button type="button" class="btn btn-light border px-4 py-2" data-bs-dismiss="modal">
+                                បោះបង់ (Cancel)
+                            </button>
+                            <button type="submit" class="btn btn-primary fw-bold px-4 py-2 shadow-sm d-flex align-items-center gap-2" id="btnStartBackup">
+                                <i class="fa-solid fa-play"></i>
+                                <span>ចាប់ផ្តើមដំណើរការ</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ============================================== -->
+                <!-- PHASE 2: LIVE PROGRESS BAR (0% to 100%)       -->
+                <!-- ============================================== -->
+                <div id="backupPhaseProgress" class="d-none py-3">
+                    <div class="text-center mb-4">
+                        <div class="position-relative d-inline-block mb-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 80px; height: 80px;">
+                                <i class="fa-solid fa-cog fa-spin fa-2x text-primary" id="progressSpinIcon"></i>
+                            </div>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-1" id="progressTitleText">កំពុងដំណើរការបង្កើតកញ្ចប់ Backup...</h5>
+                        <p class="text-muted fs-7 mb-0" id="progressSubText">សូមមេត្តារង់ចាំបន្តិច ប្រព័ន្ធកំពុងប្រមូលទិន្នន័យ និងបង្ហាប់ឯកសារ</p>
+                    </div>
+
+                    <!-- Progress Percentage & Bar -->
+                    <div class="card bg-light border-0 rounded-4 p-3 mb-4 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fs-7 fw-bold text-secondary" id="progressStepLabel">
+                                <i class="fa-solid fa-arrows-rotate fa-spin text-primary me-1.5"></i> ដំណើរការទិន្នន័យ (Processing)...
+                            </span>
+                            <span class="badge bg-primary fs-6 px-3 py-1.5 rounded-pill shadow-sm" id="progressPercentageBadge">0%</span>
+                        </div>
+                        <div class="progress" style="height: 22px; border-radius: 12px; background-color: #dee2e6; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+                            <div id="backupProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary fw-bold text-center" role="progressbar" style="width: 0%; font-size: 11px; transition: width 0.35s ease; line-height: 22px;">
+                                0%
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 fs-8 text-muted">
+                            <span id="progressDetailText"><i class="fa-solid fa-circle-notch fa-spin me-1"></i>កំពុងផ្ទៀងផ្ទាត់ទិន្នន័យប្រព័ន្ធ...</span>
+                            <span id="progressTimeEstimate">ប្រហែល ~2-5 វិនាទី</span>
+                        </div>
+                    </div>
+
+                    <!-- Step Checklist -->
+                    <div class="p-3 bg-white border rounded-3 shadow-sm">
+                        <div class="fs-8 fw-bold text-uppercase text-secondary mb-2.5">
+                            <i class="fa-solid fa-list-check me-1.5 text-primary"></i> ដំណាក់កាលអនុវត្ត (Execution Steps):
+                        </div>
+                        <div class="d-flex flex-column gap-2 fs-7">
+                            <div class="d-flex align-items-center gap-2 text-muted" id="stepItem1">
+                                <i class="fa-regular fa-circle text-muted fs-8" id="stepIcon1"></i>
+                                <span id="stepText1">១. ត្រួតពិនិត្យមូលដ្ឋានទិន្នន័យ និងចំនួនកំណត់ត្រា (Validate Records)</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 text-muted" id="stepItem2">
+                                <i class="fa-regular fa-circle text-muted fs-8" id="stepIcon2"></i>
+                                <span id="stepText2">២. បង្ហាប់ទិន្នន័យ JSON & ឯកសារ Media ទៅជា ZIP (Compress Archive)</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 text-muted" id="stepItem3">
+                                <i class="fa-regular fa-circle text-muted fs-8" id="stepIcon3"></i>
+                                <span id="stepText3">៣. បង្កើត Metadata Manifest និងផ្ទៀងផ្ទាត់ Checksum SHA256</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 text-muted" id="stepItem4">
+                                <i class="fa-regular fa-circle text-muted fs-8" id="stepIcon4"></i>
+                                <span id="stepText4">៤. រៀបចំចម្លងឯកសារទៅកាន់ទីតាំងដែលបានជ្រើសរើស (Write to Target Storage)</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 text-muted" id="stepItem5">
+                                <i class="fa-regular fa-circle text-muted fs-8" id="stepIcon5"></i>
+                                <span id="stepText5">៥. បញ្ចប់ប្រតិបត្តិការដោយជោគជ័យ ១០០% (Completed)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================== -->
+                <!-- PHASE 3: COMPLETED SUCCESS VIEW                -->
+                <!-- ============================================== -->
+                <div id="backupPhaseSuccess" class="d-none text-center py-3">
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 mx-auto mb-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 84px; height: 84px;">
+                        <i class="fa-solid fa-circle-check text-success fa-3x"></i>
+                    </div>
+                    <h4 class="fw-bold text-success mb-1">ប្រតិបត្តិការជោគជ័យ ១០០%!</h4>
+                    <p class="text-secondary fs-7 mb-4">កញ្ចប់ Backup ត្រូវបានបង្កើត និងរក្សាទុកដោយសុវត្ថិភាពពេញលេញ។</p>
+
+                    <div class="card bg-light border-0 rounded-3 p-3 text-start mb-4 fs-7 shadow-sm">
+                        <div class="row g-2">
+                            <div class="col-sm-4 text-muted">ឈ្មោះឯកសារ:</div>
+                            <div class="col-sm-8 fw-bold text-dark font-monospace text-break" id="successFilename">-</div>
+
+                            <div class="col-sm-4 text-muted">ប្រភេទ Backup:</div>
+                            <div class="col-sm-8 fw-semibold text-primary" id="successTypeLabel">-</div>
+
+                            <div class="col-sm-4 text-muted">ទំហំសរុប:</div>
+                            <div class="col-sm-8 fw-semibold text-success" id="successFileSize">-</div>
+
+                            <div class="col-sm-4 text-muted">ទីតាំងរក្សាទុក:</div>
+                            <div class="col-sm-8 text-secondary text-break" id="successLocationText">-</div>
+
+                            <div class="col-sm-4 text-muted">កាលបរិច្ឆេទ:</div>
+                            <div class="col-sm-8 text-muted" id="successTimestamp">-</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="#" id="btnSuccessDownloadAgain" class="btn btn-outline-primary fw-bold px-4 py-2">
+                            <i class="fa-solid fa-cloud-arrow-down me-1.5"></i>ទាញយកម្តងទៀត (Download Again)
+                        </a>
+                        <button type="button" class="btn btn-success fw-bold px-4 py-2 shadow-sm" onclick="finishBackupModal()">
+                            <i class="fa-solid fa-check me-1.5"></i>រួចរាល់ (Done)
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
 </div>
 
@@ -642,6 +1260,75 @@
                     <i class="fa-solid fa-check me-1"></i>យល់ព្រមស្តារទិន្នន័យ
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmation for System Clean (Go-Live Reset) -->
+<div class="modal fade" id="confirmCleanModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white border-0 py-3">
+                <h5 class="modal-title fw-bold">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>ផ្ទៀងផ្ទាត់ការសម្អាតប្រព័ន្ធ (Confirm System Clean)
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'clean_system_data_action' %}" id="cleanSystemForm">
+                {% csrf_token %}
+                <input type="hidden" name="clean_mode" id="cleanModeInput" value="operational">
+                <input type="hidden" name="auto_submit" id="cleanAutoSubmitInput" value="0">
+                <!-- Hidden inputs for custom options copied via JS -->
+                <div id="customHiddenInputs"></div>
+
+                <div class="modal-body p-4">
+                    <div class="text-center mb-3">
+                        <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3 d-inline-flex align-items-center justify-content-center mb-2" style="width: 65px; height: 65px;">
+                            <i class="fa-solid fa-broom fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold text-danger mb-1" id="cleanModalModeTitle">សម្អាតទិន្នន័យប្រតិបត្តិការសាកល្បង</h5>
+                        <p class="fs-7 text-muted mb-0" id="cleanModalModeDesc">
+                            ប្រព័ន្ធនឹងលុបទិន្នន័យឯកសារ, វត្តមាន, សំណើយានយន្ត, សំណើ HR, Logs និងសារសាកល្បងទាំងអស់។
+                        </p>
+                    </div>
+
+                    <div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 fs-8 mb-3 rounded-3">
+                        <i class="fa-solid fa-shield-halved text-success fs-5"></i>
+                        <div><strong>Safety Snapshot:</strong> ប្រព័ន្ធនឹងបង្កើត Backup បម្រុងទុក ១ កញ្ចប់ជាមុនសិនដោយស្វ័យប្រវត្តិ។</div>
+                    </div>
+
+                    <div class="bg-light p-3 rounded-3 border mb-3">
+                        <label class="form-label fw-bold text-dark fs-8 mb-1">
+                            សូមវាយពាក្យ <span class="badge bg-danger text-white px-2 py-1">CONFIRM</span> ដើម្បីបញ្ជាក់ការសម្អាត៖
+                        </label>
+                        <input type="text" class="form-control form-control-lg text-center fw-bold font-monospace border-danger" 
+                               id="cleanConfirmTextInput" name="confirm_text" placeholder="វាយពាក្យ CONFIRM ទីនេះ" 
+                               autocomplete="off" oninput="checkCleanConfirmText(this.value)">
+                        <div class="form-text fs-8 text-center text-muted mt-1">
+                            វាយអក្សរធំ <code class="text-danger fw-bold">CONFIRM</code> ឬ <code class="text-danger fw-bold">RESET</code> ឬចុចប៊ូតុង <strong>Auto-Submit</strong>
+                        </div>
+                    </div>
+
+                    <div id="cleanLoadingSpinner" class="d-none text-center p-3">
+                        <div class="spinner-border text-danger mb-2" role="status"></div>
+                        <div class="fw-bold text-danger fs-7">កំពុងបង្កើត Safety Snapshot & សម្អាតទិន្នន័យ...</div>
+                        <div class="text-muted fs-8">សូមកុំបិទផ្ទាំង Browser ដំណើរការអាចចំណាយពេលពីរបីវិនាទី</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3 bg-light d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark me-1"></i>បោះបង់ (Cancel)
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-warning fw-bold px-3 shadow-sm text-dark" id="btnAutoSubmitClean" onclick="autoSubmitClean()">
+                            <i class="fa-solid fa-bolt me-1 text-danger"></i>⚡ Auto-Submit
+                        </button>
+                        <button type="submit" class="btn btn-danger fw-bold px-4 shadow-sm" id="btnSubmitClean" disabled>
+                            <i class="fa-solid fa-trash-can me-1.5"></i>យល់ព្រមសម្អាត
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -830,6 +1517,500 @@ function triggerSyncAction(action) {
         progressModal.hide();
         alert("❌ កំហុសបណ្តាញ៖ " + err.message);
     });
+}
+
+function switchToCleanTab() {
+    const tabEl = document.getElementById('clean-tab');
+    if (tabEl) {
+        const tab = new bootstrap.Tab(tabEl);
+        tab.show();
+        tabEl.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+function openCleanModal(mode, autoSubmit = false) {
+    const modeInput = document.getElementById('cleanModeInput');
+    const autoInput = document.getElementById('cleanAutoSubmitInput');
+    const confirmInput = document.getElementById('cleanConfirmTextInput');
+    const submitBtn = document.getElementById('btnSubmitClean');
+    const autoBtn = document.getElementById('btnAutoSubmitClean');
+    const spinner = document.getElementById('cleanLoadingSpinner');
+
+    if (modeInput) modeInput.value = mode;
+    if (autoInput) autoInput.value = '0';
+    if (confirmInput) confirmInput.value = '';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.remove('d-none');
+    }
+    if (autoBtn) autoBtn.classList.remove('d-none');
+    if (spinner) spinner.classList.add('d-none');
+
+    const titleEl = document.getElementById('cleanModalModeTitle');
+    const descEl = document.getElementById('cleanModalModeDesc');
+    const customHidden = document.getElementById('customHiddenInputs');
+    if (customHidden) customHidden.innerHTML = '';
+
+    if (mode === 'test_data') {
+        if (titleEl) titleEl.innerText = "លុបទិន្នន័យ Test ដែលបង្កើតដោយប្រព័ន្ធ (Purge System Test Data)";
+        if (descEl) descEl.innerText = "ប្រព័ន្ធនឹងស្វែងរក និងលុបគណនីសាកល្បង (ឧ. admin_test_veh), ការិយាល័យតេស្ត (ឧ. AGRI_DEV_TEST), យានយន្តតេស្ត (រដ្ឋ 11 2-9999), និងឯកសារគំរូសាកល្បងទាំងអស់ ដោយរក្សាទុកបញ្ជីមន្ត្រីរាជការ និងគណនីពិតប្រាកដដដែល ១០០%។";
+    } else if (mode === 'operational') {
+        if (titleEl) titleEl.innerText = "សម្អាតទិន្នន័យប្រតិបត្តិការសាកល្បង (Go-Live Clean)";
+        if (descEl) descEl.innerText = "ប្រព័ន្ធនឹងលុបឯកសារ, វត្តមាន, សំណើយានយន្ត, សំណើ HR, Logs និងសារសាកល្បងទាំងអស់ ដោយរក្សាទុកបញ្ជីមន្ត្រីរាជការ និងគណនីដដែល។";
+    } else if (mode === 'factory') {
+        if (titleEl) titleEl.innerText = "កំណត់ឡើងវិញទាំងអស់ (Full Factory Reset)";
+        if (descEl) descEl.innerText = "ប្រព័ន្ធនឹងលុបទិន្នន័យទាំងអស់ត្រឡប់ទៅសភាពដើម រួមទាំងមន្ត្រីសាកល្បង, យានយន្ត, និងគណនីសាកល្បង (រក្សាទុកតែ Admin Superuser និងការិយាល័យ)។";
+    } else if (mode === 'custom') {
+        if (titleEl) titleEl.innerText = "សម្អាតទិន្នន័យតាមជម្រើសផ្ទាល់ខ្លួន (Custom Clean)";
+        if (descEl) descEl.innerText = "ប្រព័ន្ធនឹងលុបតែផ្នែកណាដែលលោកអ្នកបានជ្រើសរើស (Checked) ប៉ុណ្ណោះ។";
+
+        const customForm = document.getElementById('customCleanForm');
+        if (customForm && customHidden) {
+            const checkboxes = customForm.querySelectorAll('input[type=checkbox]');
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = cb.name;
+                    hidden.value = 'on';
+                    customHidden.appendChild(hidden);
+                }
+            });
+        }
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('confirmCleanModal'));
+    modal.show();
+
+    if (autoSubmit) {
+        setTimeout(() => {
+            autoSubmitClean();
+        }, 400);
+    }
+}
+
+function autoSubmitClean() {
+    const autoInput = document.getElementById('cleanAutoSubmitInput');
+    const confirmInput = document.getElementById('cleanConfirmTextInput');
+    const submitBtn = document.getElementById('btnSubmitClean');
+    const autoBtn = document.getElementById('btnAutoSubmitClean');
+    const spinner = document.getElementById('cleanLoadingSpinner');
+
+    if (autoInput) autoInput.value = '1';
+    if (confirmInput) confirmInput.value = 'CONFIRM';
+    if (submitBtn) submitBtn.classList.add('d-none');
+    if (autoBtn) autoBtn.classList.add('d-none');
+    if (spinner) spinner.classList.remove('d-none');
+
+    document.getElementById('cleanSystemForm')?.submit();
+}
+
+function checkCleanConfirmText(val) {
+    const trimmed = (val || '').trim().toUpperCase();
+    const btn = document.getElementById('btnSubmitClean');
+    if (btn) {
+        if (trimmed === 'CONFIRM' || trimmed === 'RESET' || trimmed === 'លុបទិន្នន័យ' || trimmed === 'AUTO') {
+            btn.disabled = false;
+        } else {
+            btn.disabled = true;
+        }
+    }
+}
+
+document.getElementById('cleanSystemForm')?.addEventListener('submit', function() {
+    const btn = document.getElementById('btnSubmitClean');
+    const autoBtn = document.getElementById('btnAutoSubmitClean');
+    const spinner = document.getElementById('cleanLoadingSpinner');
+    if (btn) btn.classList.add('d-none');
+    if (autoBtn) autoBtn.classList.add('d-none');
+    if (spinner) spinner.classList.remove('d-none');
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash === '#tab-clean') {
+        switchToCleanTab();
+    }
+});
+
+function refreshCleanCounts() {
+    const icon = document.getElementById('refreshIcon');
+    if (icon) icon.classList.add('fa-spin');
+    fetch('/settings/system/clean/preview/')
+        .then(res => res.json())
+        .then(data => {
+            if (icon) icon.classList.remove('fa-spin');
+            location.reload();
+        })
+        .catch(() => {
+            if (icon) icon.classList.remove('fa-spin');
+            location.reload();
+        });
+}
+
+// ==============================================================================
+// 📦 BACKUP ACTION MODAL & % PROGRESS BAR CONTROLLER
+// ==============================================================================
+
+const BACKUP_TYPE_CONFIGS = {
+    'FULL': {
+        title: 'ទាញយក Full System Backup (.zip)',
+        subtitle: 'ទិន្នន័យទាំងអស់ (Database JSON) + រូបថត & ឯកសារ Media + Metadata',
+        icon: 'fa-solid fa-box-archive',
+        size: '~{{ stats.media_total_size_mb|add:3 }} MB',
+        prefix: 'dms_full_backup',
+        desc: 'ប្រព័ន្ធនឹងដំណើរការបង្កើតកញ្ចប់ Full Backup ពេញលេញ និងអនុញ្ញាតឱ្យលោកអ្នកជ្រើសរើសទីតាំងរក្សាទុកក្នុងកុំព្យូទ័របានដោយសេរី។',
+        gradient: 'linear-gradient(135deg, #0d6efd 0%, #0a4294 100%)',
+        btnText: 'ចាប់ផ្តើមទាញយក Full Backup'
+    },
+    'DATABASE_ONLY': {
+        title: 'ទាញយក Database Only Backup (.zip)',
+        subtitle: 'ទិន្នន័យអត្ថបទ និងតារាងទាំងអស់ក្នុងប្រព័ន្ធ (UTF-8 Encoded JSON)',
+        icon: 'fa-solid fa-database',
+        size: '~3 MB',
+        prefix: 'dms_db_backup',
+        desc: 'ប្រព័ន្ធនឹងដំណើរការទាញយកតែមូលដ្ឋានទិន្នន័យ (Database Records) ជាទម្រង់ UTF-8 JSON ដែលបានបង្ហាប់ជា ZIP ស្រាល និងរហ័សទាន់ចិត្ត។',
+        gradient: 'linear-gradient(135deg, #198754 0%, #0f5132 100%)',
+        btnText: 'ចាប់ផ្តើមទាញយក Database'
+    },
+    'MEDIA_ONLY': {
+        title: 'ទាញយក Media Attachments Only (.zip)',
+        subtitle: 'រូបថតមន្ត្រីរាជការ, ឯកសារស្កេនលិខិតចូល-ចេញ, រូបថតយានយន្តក្នុងថត media/',
+        icon: 'fa-solid fa-images',
+        size: '~{{ stats.media_total_size_mb }} MB',
+        prefix: 'dms_media_backup',
+        desc: 'ប្រព័ន្ធនឹងដំណើរការប្រមូល និងបង្ហាប់រាល់ឯកសារ Media ទាំងអស់ដែលមានក្នុងថត media/ ទៅជា ZIP Archive។',
+        gradient: 'linear-gradient(135deg, #fd7e14 0%, #d63384 100%)',
+        btnText: 'ចាប់ផ្តើមទាញយក Media ZIP'
+    },
+    'SNAPSHOT': {
+        title: 'បង្កើត Snapshot លើ Hard Drive ម៉ាស៊ីនផ្ទាល់',
+        subtitle: 'កញ្ចប់បម្រុងទុកពេញលេញរក្សាទុកក្នុងថត backups/ នៃកុំព្យូទ័រនេះ',
+        icon: 'fa-solid fa-hard-drive',
+        size: '~{{ stats.media_total_size_mb|add:3 }} MB',
+        prefix: 'dms_snapshot',
+        desc: 'បង្កើតកញ្ចប់ Backup ពេញលេញមួយភ្លាមៗ ហើយរក្សាទុកដោយស្វ័យប្រវត្តិក្នងថត backups/ លើ Hard Drive នៃកុំព្យូទ័រនេះដោយមិនបាត់បង់។',
+        gradient: 'linear-gradient(135deg, #0dcaf0 0%, #087990 100%)',
+        btnText: 'ចាប់ផ្តើមបង្កើត Snapshot'
+    }
+};
+
+let currentBackupType = 'FULL';
+let currentProgressInterval = null;
+
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+           document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+
+function generateSuggestedFilename() {
+    const config = BACKUP_TYPE_CONFIGS[currentBackupType] || BACKUP_TYPE_CONFIGS['FULL'];
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const filenameInput = document.getElementById('modalCustomFilename');
+    if (filenameInput) {
+        filenameInput.value = `${config.prefix}_${timestamp}`;
+    }
+}
+
+function openBackupModal(type) {
+    currentBackupType = type || 'FULL';
+    const config = BACKUP_TYPE_CONFIGS[currentBackupType] || BACKUP_TYPE_CONFIGS['FULL'];
+
+    // Update Header
+    document.getElementById('backupModalTitle').textContent = config.title;
+    document.getElementById('backupModalSubtitle').textContent = config.subtitle;
+    document.getElementById('backupModalIcon').className = `${config.icon} fa-lg text-white`;
+    document.getElementById('backupModalSizeBadge').textContent = config.size;
+    document.getElementById('backupModalHeader').style.background = config.gradient;
+    document.getElementById('backupModalDescription').textContent = config.desc;
+    document.getElementById('btnStartBackup').innerHTML = `<i class="fa-solid fa-play"></i> <span>${config.btnText}</span>`;
+
+    // Hidden input
+    document.getElementById('modalBackupType').value = currentBackupType;
+
+    // Generate filename
+    generateSuggestedFilename();
+
+    // Reset notes
+    const noteInput = document.getElementById('modalBackupNote');
+    if (noteInput) noteInput.value = '';
+
+    // Handle Save Location Choices
+    const boxServer = document.getElementById('boxLocationServerDisk');
+    const boxPicker = document.getElementById('boxLocationPicker');
+    const radioPicker = document.getElementById('locOptionPicker');
+    const radioDownload = document.getElementById('locOptionDownload');
+    const radioServer = document.getElementById('locOptionServerDisk');
+    const pickerBadge = document.getElementById('pickerBadge');
+
+    const supportsFilePicker = 'showSaveFilePicker' in window;
+
+    if (currentBackupType === 'SNAPSHOT') {
+        boxServer.classList.remove('d-none');
+        radioServer.checked = true;
+        if (!supportsFilePicker) {
+            radioPicker.disabled = true;
+            boxPicker.classList.add('opacity-50');
+            pickerBadge.textContent = 'មិនគាំទ្រ';
+            pickerBadge.className = 'badge bg-secondary fs-8';
+        } else {
+            radioPicker.disabled = false;
+            boxPicker.classList.remove('opacity-50');
+            pickerBadge.textContent = 'ផ្ដល់អនុសាសន៍';
+            pickerBadge.className = 'badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fs-8';
+        }
+    } else {
+        boxServer.classList.add('d-none');
+        if (supportsFilePicker) {
+            radioPicker.disabled = false;
+            radioPicker.checked = true;
+            boxPicker.classList.remove('opacity-50');
+            pickerBadge.textContent = 'ផ្ដល់អនុសាសន៍';
+            pickerBadge.className = 'badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fs-8';
+        } else {
+            radioPicker.disabled = true;
+            radioDownload.checked = true;
+            boxPicker.classList.add('opacity-50');
+            pickerBadge.textContent = 'មិនគាំទ្រលើ Browser នេះ';
+            pickerBadge.className = 'badge bg-secondary fs-8';
+        }
+    }
+
+    // Reset State Visibility
+    document.getElementById('backupErrorBox').classList.add('d-none');
+    document.getElementById('backupPhaseForm').classList.remove('d-none');
+    document.getElementById('backupPhaseProgress').classList.add('d-none');
+    document.getElementById('backupPhaseSuccess').classList.add('d-none');
+
+    const closeBtn = document.getElementById('btnBackupModalClose');
+    if (closeBtn) closeBtn.classList.remove('d-none');
+
+    // Show modal
+    const modalEl = document.getElementById('backupActionModal');
+    let modalInstance = bootstrap.Modal.getInstance(modalEl);
+    if (!modalInstance) {
+        modalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+    }
+    modalInstance.show();
+}
+
+function setStepStatus(stepNum, status) {
+    const item = document.getElementById(`stepItem${stepNum}`);
+    const icon = document.getElementById(`stepIcon${stepNum}`);
+    if (!item || !icon) return;
+
+    if (status === 'active') {
+        item.className = 'd-flex align-items-center gap-2 text-primary fw-bold';
+        icon.className = 'fa-solid fa-circle-notch fa-spin text-primary fs-7';
+    } else if (status === 'done') {
+        item.className = 'd-flex align-items-center gap-2 text-success fw-semibold';
+        icon.className = 'fa-solid fa-circle-check text-success fs-7';
+    } else {
+        item.className = 'd-flex align-items-center gap-2 text-muted';
+        icon.className = 'fa-regular fa-circle text-muted fs-8';
+    }
+}
+
+function updateProgressBar(percent, statusText, subText) {
+    const p = Math.min(100, Math.max(0, percent));
+    const bar = document.getElementById('backupProgressBar');
+    const badge = document.getElementById('progressPercentageBadge');
+    const detail = document.getElementById('progressDetailText');
+    const stepLabel = document.getElementById('progressStepLabel');
+
+    if (bar) {
+        bar.style.width = `${p}%`;
+        bar.textContent = `${p}%`;
+    }
+    if (badge) {
+        badge.textContent = `${p}%`;
+        if (p === 100) {
+            badge.className = 'badge bg-success fs-6 px-3 py-1.5 rounded-pill shadow-sm';
+        } else {
+            badge.className = 'badge bg-primary fs-6 px-3 py-1.5 rounded-pill shadow-sm';
+        }
+    }
+    if (detail && statusText) {
+        detail.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin me-1"></i>${statusText}`;
+    }
+    if (stepLabel && subText) {
+        stepLabel.innerHTML = subText;
+    }
+}
+
+async function startBackupExecution() {
+    const backupType = document.getElementById('modalBackupType').value;
+    let customFilename = (document.getElementById('modalCustomFilename').value || '').trim();
+    const note = (document.getElementById('modalBackupNote').value || '').trim();
+    const saveLocationOption = document.querySelector('input[name="saveLocationOption"]:checked')?.value || 'download';
+
+    if (!customFilename) {
+        customFilename = `dms_backup_${Date.now()}`;
+    }
+    if (!customFilename.toLowerCase().endsWith('.zip')) {
+        customFilename += '.zip';
+    }
+
+    let fileHandle = null;
+
+    // If user chose File Picker (Save As Dialog) and browser supports it:
+    // IMPORTANT: Must open showSaveFilePicker directly within this click gesture!
+    if (saveLocationOption === 'picker' && 'showSaveFilePicker' in window) {
+        try {
+            fileHandle = await window.showSaveFilePicker({
+                suggestedName: customFilename,
+                types: [{
+                    description: 'ZIP Archive (*.zip)',
+                    accept: { 'application/zip': ['.zip'] }
+                }]
+            });
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                // User cancelled the file picker dialog; return cleanly without error
+                return;
+            }
+            console.warn('showSaveFilePicker was cancelled or unsupported:', err);
+        }
+    }
+
+    // Switch to Phase 2: Live Progress
+    document.getElementById('backupErrorBox').classList.add('d-none');
+    document.getElementById('backupPhaseForm').classList.add('d-none');
+    document.getElementById('backupPhaseProgress').classList.remove('d-none');
+    document.getElementById('backupPhaseSuccess').classList.add('d-none');
+    document.getElementById('btnBackupModalClose').classList.add('d-none');
+
+    // Reset Steps & Progress Bar
+    for (let i = 1; i <= 5; i++) setStepStatus(i, 'pending');
+    updateProgressBar(5, 'កំពុងត្រួតពិនិត្យទិន្នន័យប្រព័ន្ធ...', '<i class="fa-solid fa-arrows-rotate fa-spin text-primary me-1.5"></i> ដំណើរការទិន្នន័យ (Processing)...');
+    setStepStatus(1, 'active');
+
+    // Setup progressive animation timer
+    let progressVal = 5;
+    if (currentProgressInterval) clearInterval(currentProgressInterval);
+
+    currentProgressInterval = setInterval(() => {
+        if (progressVal < 30) {
+            progressVal += 5;
+            updateProgressBar(progressVal, 'កំពុងត្រួតពិនិត្យមូលដ្ឋានទិន្នន័យ...');
+        } else if (progressVal < 70) {
+            setStepStatus(1, 'done');
+            setStepStatus(2, 'active');
+            progressVal += 8;
+            updateProgressBar(progressVal, 'កំពុងប្រមូលទិន្នន័យ JSON និងបង្ហាប់ឯកសារ Media...');
+        } else if (progressVal < 85) {
+            setStepStatus(2, 'done');
+            setStepStatus(3, 'active');
+            progressVal += 4;
+            updateProgressBar(progressVal, 'កំពុងបង្កើត Metadata Manifest និង Checksum SHA256...');
+        }
+    }, 250);
+
+    // Prepare Form Data for Backend
+    const formData = new FormData();
+    formData.append('backup_type', backupType);
+    formData.append('custom_filename', customFilename);
+    formData.append('note', note);
+
+    try {
+        const response = await fetch('/api/backup/generate/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        });
+
+        const data = await response.json();
+
+        if (currentProgressInterval) clearInterval(currentProgressInterval);
+
+        if (!data.success) {
+            throw new Error(data.error || 'បរាជ័យក្នុងការបង្កើត Backup');
+        }
+
+        // Backend creation complete: Step 3 Done, Step 4 Active
+        setStepStatus(1, 'done');
+        setStepStatus(2, 'done');
+        setStepStatus(3, 'done');
+        setStepStatus(4, 'active');
+        updateProgressBar(88, 'កំពុងរៀបចំរក្សាទុកឯកសារ...');
+
+        let savedLocationNote = '';
+
+        // Write or download the file based on selected location
+        if (fileHandle) {
+            updateProgressBar(92, 'កំពុងចម្លងទិន្នន័យទៅកាន់ Folder ដែលបានជ្រើសរើស...');
+            const fileRes = await fetch(data.download_url);
+            const fileBlob = await fileRes.blob();
+            const writable = await fileHandle.createWritable();
+            await writable.write(fileBlob);
+            await writable.close();
+            savedLocationNote = `📁 ទីតាំងដែលបានជ្រើសរើស (Custom Folder): ${fileHandle.name}`;
+        } else if (saveLocationOption === 'server') {
+            savedLocationNote = `💾 Hard Drive ម៉ាស៊ីនផ្ទាល់: ${data.local_path}`;
+        } else {
+            // Default download
+            updateProgressBar(95, 'កំពុងបញ្ជូនឯកសារចូល Downloads នៃ Browser...');
+            const a = document.createElement('a');
+            a.href = data.download_url;
+            a.download = data.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            savedLocationNote = `⬇️ ថត Downloads នៃ Browser របស់អ្នក (Default Downloads)`;
+        }
+
+        // Step 4 Done, Step 5 Complete (100%)
+        setStepStatus(4, 'done');
+        setStepStatus(5, 'done');
+        updateProgressBar(100, '<i class="fa-solid fa-circle-check text-success me-1"></i>រួចរាល់ដោយជោគជ័យ!', '<i class="fa-solid fa-check text-success me-1.5"></i> សម្រេចបាន ១០០% (Completed!)');
+
+        // Short pause for user to enjoy 100% completion
+        await new Promise(r => setTimeout(r, 600));
+
+        // Switch to Phase 3: Success View
+        document.getElementById('successFilename').textContent = data.filename;
+        document.getElementById('successTypeLabel').textContent = data.type_label;
+        document.getElementById('successFileSize').textContent = `${data.file_size_mb} MB`;
+        document.getElementById('successLocationText').textContent = savedLocationNote;
+        document.getElementById('successTimestamp').textContent = data.created_at;
+
+        const dlAgainBtn = document.getElementById('btnSuccessDownloadAgain');
+        if (dlAgainBtn) {
+            dlAgainBtn.href = data.download_url;
+            dlAgainBtn.setAttribute('download', data.filename);
+        }
+
+        document.getElementById('backupPhaseProgress').classList.add('d-none');
+        document.getElementById('backupPhaseSuccess').classList.remove('d-none');
+        document.getElementById('btnBackupModalClose').classList.remove('d-none');
+
+    } catch (error) {
+        if (currentProgressInterval) clearInterval(currentProgressInterval);
+        console.error('Backup generation error:', error);
+        document.getElementById('backupErrorMsg').textContent = error.message || 'មានបញ្ហាបច្ចេកទេសកើតឡើងក្នុងការបង្កើត Backup';
+        document.getElementById('backupErrorBox').classList.remove('d-none');
+
+        // Revert to form phase
+        document.getElementById('backupPhaseProgress').classList.add('d-none');
+        document.getElementById('backupPhaseForm').classList.remove('d-none');
+        document.getElementById('btnBackupModalClose').classList.remove('d-none');
+    }
+}
+
+function finishBackupModal() {
+    const modalEl = document.getElementById('backupActionModal');
+    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+    if (modalInstance) {
+        modalInstance.hide();
+    }
+    // If snapshot was created, refresh to update the snapshot list table
+    if (currentBackupType === 'SNAPSHOT') {
+        window.location.hash = '#tab-snapshots';
+        location.reload();
+    }
 }
 </script>
 {% endblock %}

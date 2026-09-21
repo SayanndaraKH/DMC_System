@@ -877,14 +877,6 @@
                 <span>បោះពុម្ពទាំងអស់</span>
             </button>
 
-            <!-- Excel Export Button -->
-            {% if can_export_officer_excel %}
-            <a href="{% url 'officer_status_export_excel' %}{% if query_params %}?{{ query_params }}{% endif %}" class="btn-action btn-excel" title="ទាញយកជាឯកសារ Excel">
-                <i class="fa-solid fa-file-excel"></i>
-                <span>Excel</span>
-            </a>
-            {% endif %}
-
             <!-- Close / Back Button -->
             <button type="button" onclick="goBack()" class="btn-action btn-close-tab" title="ត្រឡប់ទៅផ្ទាំងស្ថានភាពមន្ត្រី">
                 <i class="fa-solid fa-arrow-left"></i>
