@@ -22,6 +22,7 @@
     }
 
     // Candidate selectors for signature and official letterhead blocks across templates
+    // CRITICAL: NEVER include parent containers/grids here! Every signature must be 100% individual ("អត់ Group គ្នាដាច់ខាត គ្រប់ PDF").
     const DEFAULT_DRAGGABLE_SELECTORS = [
         '.sig-draggable',
         '.header-draggable',
@@ -33,15 +34,12 @@
         '.header-section > .header-left',
         '.header-section > .header-right',
         '.header-layout .header-center',
-        // Official Signatures
+        // Official Individual Signatures (Strictly leaf columns/boxes only - NO parent containers!)
         '.roster-sig-col',
         '.sig-box',
         '.sig-block',
         '.signature-box',
-        '.d1-bottom-section > div',
-        '.e1-bottom-section > div:nth-child(2)',
-        '.bottom-section .bottom-right',
-        '.vehicle-signatures-box',
+        '.sig-col',
         'table.sign-table td'
     ];
 
@@ -103,8 +101,130 @@
     /* 1. SIGNATURE & HEADER DRAG ENGINE                                         */
     /* ========================================================================= */
 
+    /**
+     * STRICT ANTI-GROUPING PURGE ENGINE ("អត់ Group គ្នាដាច់ខាត គ្រប់ PDF"):
+     * Strips draggable classes and listeners from any container, grid, or wrapper
+     * that encloses multiple signature blocks. Only LEAF signature boxes can ever be dragged!
+     */
+    function purgeContainerGroupings() {
+        // Sweep 1: Any element with class .sig-draggable that contains another signature element
+        const allDraggables = document.querySelectorAll('.sig-draggable, .header-draggable');
+        allDraggables.forEach(parent => {
+            const innerChild = parent.querySelector('.sig-draggable, .roster-sig-col, .sig-box, .sig-block, .signature-box, .sig-col');
+            if (innerChild) {
+                parent.classList.remove('sig-draggable', 'header-draggable', 'sig-dragging');
+                parent.classList.add('sig-draggable-container');
+                parent.removeAttribute('title');
+                parent.style.outline = 'none';
+                parent.style.cursor = 'default';
+                parent.dataset.sigDraggableInitialized = 'container';
+            }
+        });
+
+        // Sweep 2: Known bottom container grids/flexboxes/sections across all templates
+        const containerClasses = [
+            '.e1-bottom-section',
+            '.e2-bottom-section',
+            '.m0-bottom-section',
+            '.m1-bottom-section',
+            '.d1-bottom-section',
+            '.roster-signatures-grid',
+            '.roster-signatures-grid-office',
+            '.signatures-section',
+            '.signatures-grid',
+            '.vehicle-signatures-box',
+            '.sig-section',
+            '.sig-table',
+            '.sign-table'
+        ];
+        containerClasses.forEach(sel => {
+            try {
+                document.querySelectorAll(sel).forEach(c => {
+                    c.classList.remove('sig-draggable', 'header-draggable', 'sig-dragging');
+                    c.classList.add('sig-draggable-container');
+                    c.removeAttribute('title');
+                    c.style.outline = 'none';
+                    c.style.cursor = 'default';
+                    c.dataset.sigDraggableInitialized = 'container';
+                });
+            } catch (e) {}
+        });
+
+        // Sweep 3: Any grid or flex container whose children contain signatures
+        document.querySelectorAll('div').forEach(div => {
+            const s = div.getAttribute('style') || '';
+            if (s.includes('grid-template-columns') || s.includes('display: grid') || s.includes('display: flex')) {
+                if (div.querySelector('.sig-draggable, .roster-sig-col, .sig-box, .sig-block, .signature-box, .sig-col')) {
+                    div.classList.remove('sig-draggable', 'header-draggable', 'sig-dragging');
+                    div.classList.add('sig-draggable-container');
+                    div.removeAttribute('title');
+                    div.style.outline = 'none';
+                    div.style.cursor = 'default';
+                    div.dataset.sigDraggableInitialized = 'container';
+                }
+            }
+        });
+    }
+
     function initDraggableElement(el) {
-        if (!el || el.dataset.sigDraggableInitialized === 'true') return;
+        if (!el) return;
+        if (el.dataset.sigDraggableInitialized === 'container' || el.classList.contains('sig-draggable-container')) {
+            el.classList.remove('sig-draggable', 'header-draggable');
+            el.style.outline = 'none';
+            el.style.cursor = 'default';
+            return;
+        }
+        if (el.dataset.sigDraggableInitialized === 'true') return;
+
+        // STRICT ANTI-GROUPING GUARD ("អត់ Group គ្នាដាច់ខាត គ្រប់ PDF"):
+        // Never allow container elements that wrap multiple signatures to be draggable!
+        // If el contains any child signatures, el is a CONTAINER and must NEVER be draggable.
+        const childSigs = el.querySelectorAll('.sig-draggable, .roster-sig-col, .sig-box, .sig-block, .signature-box, .sig-col');
+        if (childSigs.length > 0) {
+            el.dataset.sigDraggableInitialized = 'container';
+            el.classList.remove('sig-draggable', 'header-draggable');
+            el.classList.add('sig-draggable-container');
+            el.removeAttribute('title');
+            el.style.outline = 'none';
+            el.style.cursor = 'default';
+            // Ensure the child signatures themselves are initialized individually
+            childSigs.forEach(child => initDraggableElement(child));
+            return;
+        }
+
+        // Also check if el is a grid/flex container with multiple children
+        const s = el.getAttribute('style') || '';
+        if (s.includes('grid-template-columns') || (s.includes('display: flex') && el.children.length > 1)) {
+            el.dataset.sigDraggableInitialized = 'container';
+            el.classList.remove('sig-draggable', 'header-draggable');
+            el.classList.add('sig-draggable-container');
+            el.removeAttribute('title');
+            el.style.outline = 'none';
+            el.style.cursor = 'default';
+            return;
+        }
+
+        // Also never allow known bottom container grids/flexboxes/sections to be draggable
+        const isContainer = el.classList.contains('e1-bottom-section') ||
+                            el.classList.contains('e2-bottom-section') ||
+                            el.classList.contains('m0-bottom-section') ||
+                            el.classList.contains('m1-bottom-section') ||
+                            el.classList.contains('d1-bottom-section') ||
+                            el.classList.contains('roster-signatures-grid') ||
+                            el.classList.contains('roster-signatures-grid-office') ||
+                            el.classList.contains('signatures-section') ||
+                            el.classList.contains('signatures-grid') ||
+                            el.classList.contains('vehicle-signatures-box') ||
+                            el.classList.contains('sig-section');
+        if (isContainer) {
+            el.dataset.sigDraggableInitialized = 'container';
+            el.classList.remove('sig-draggable', 'header-draggable');
+            el.classList.add('sig-draggable-container');
+            el.removeAttribute('title');
+            el.style.outline = 'none';
+            el.style.cursor = 'default';
+            return;
+        }
 
         if (el.tagName === 'TD') {
             if (el.children.length === 1 && el.children[0].tagName === 'DIV') {
@@ -146,6 +266,8 @@
             if (e.target.closest('.margin-handle') || e.target.closest('.margin-edge') || e.target.closest('.page-print-indicator')) return;
             if (e.button !== 0) return;
 
+            e.stopPropagation();
+            e.stopImmediatePropagation();
             startSigDrag(el, e.clientX, e.clientY);
             e.preventDefault();
         });
@@ -154,6 +276,8 @@
             if (['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
             if (e.target.closest('.margin-handle') || e.target.closest('.margin-edge') || e.target.closest('.page-print-indicator')) return;
             if (e.touches.length === 1) {
+                e.stopPropagation();
+                e.stopImmediatePropagation();
                 const t = e.touches[0];
                 startSigDrag(el, t.clientX, t.clientY);
             }
@@ -162,6 +286,7 @@
         el.addEventListener('dblclick', function (e) {
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
             resetSingleDraggable(el);
         });
     }
@@ -603,7 +728,14 @@
         elements.forEach(el => resetSingleDraggable(el));
     };
 
+    let lastMarginToggleTime = 0;
     window.toggleMargins = function (forceState) {
+        const now = Date.now();
+        if (typeof forceState !== 'boolean' && now - lastMarginToggleTime < 250) {
+            return; // Debounce rapid keydown or double-clicks
+        }
+        lastMarginToggleTime = now;
+
         if (typeof forceState === 'boolean') {
             isMarginsVisible = forceState;
         } else {
@@ -614,24 +746,26 @@
 
         if (isMarginsVisible) {
             document.body.classList.add('show-margins');
+            document.querySelectorAll('.a4-page, .page, .page-sheet').forEach(p => p.classList.add('show-margins'));
             try { localStorage.setItem('dms_show_margins', 'true'); } catch (e) {}
         } else {
             document.body.classList.remove('show-margins');
+            document.querySelectorAll('.a4-page, .page, .page-sheet').forEach(p => p.classList.remove('show-margins'));
             try { localStorage.setItem('dms_show_margins', 'false'); } catch (e) {}
         }
 
         const btns = document.querySelectorAll('.btn-toggle-margins, [data-action="toggle-margins"]');
         btns.forEach(btn => {
-            if (isMarginsVisible) {
-                btn.classList.add('active');
-                const textSpan = btn.querySelector('span, .margin-btn-text');
-                if (textSpan) textSpan.textContent = 'បន្ទាត់គម្លាត៖ បង្ហាញ';
-            } else {
-                btn.classList.remove('active');
-                const textSpan = btn.querySelector('span, .margin-btn-text');
-                if (textSpan) textSpan.textContent = 'បន្ទាត់គម្លាត៖ លាក់';
+            btn.classList.toggle('active', isMarginsVisible);
+            const textSpan = btn.querySelector('.margin-btn-text');
+            if (textSpan) {
+                textSpan.textContent = 'បន្ទាត់គម្លាត';
             }
         });
+
+        if (typeof showToast === 'function') {
+            showToast(isMarginsVisible ? 'បានបង្ហាញបន្ទាត់គម្លាតស្តង់ដា (M)' : 'បានលាក់បន្ទាត់គម្លាតស្តង់ដា (M)');
+        }
     };
 
     window.showMargins = function () { window.toggleMargins(true); };
@@ -875,6 +1009,9 @@
     /* ========================================================================= */
 
     function scanAndBindDraggables() {
+        // Run anti-grouping purge before binding to clean existing DOM
+        purgeContainerGroupings();
+
         DEFAULT_DRAGGABLE_SELECTORS.forEach(selector => {
             try {
                 const found = document.querySelectorAll(selector);
@@ -886,6 +1023,9 @@
                 console.warn('[sig_draggable] Selector error for:', selector, err);
             }
         });
+
+        // Run anti-grouping purge again after binding to ensure NO container inherited draggability
+        purgeContainerGroupings();
 
         // Bind reset buttons
         const resetBtns = document.querySelectorAll('.btn-reset-sig, [data-action="reset-signatures"], [data-action="reset-draggables"]');
@@ -904,10 +1044,12 @@
         marginBtns.forEach(btn => {
             if (!btn.dataset.sigMarginBound) {
                 btn.dataset.sigMarginBound = 'true';
-                btn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    window.toggleMargins();
-                });
+                if (!btn.getAttribute('onclick')) {
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        window.toggleMargins();
+                    });
+                }
             }
         });
 

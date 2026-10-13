@@ -4,23 +4,25 @@
 
 ---
 
-## 🚀 ការដាក់ឱ្យដំណើរការនៅលើ Railway.com (Deploy to Railway)
+## 🚀 ការដាក់ឱ្យដំណើរការលើ Netlify + Neon PostgreSQL (Deploy to Netlify)
 
-### ជំហានទី ១៖ បង្កើតគម្រោងលើ Railway
-1. ចូលទៅកាន់ [Railway.com](https://railway.com/) ហើយចុះឈ្មោះ/ចូលដោយប្រើគណនី GitHub
-2. ចុច **New Project** -> ជ្រើសរើស **Deploy from GitHub repo**
-3. ជ្រើសរើស Repository: `DMC_System`
+### ជំហានទី ១៖ រៀបចំ Database លើ Neon.tech
+1. ចូលទៅកាន់ [Neon Console](https://console.neon.tech/) ហើយ Copy យក **Connection String** (`DATABASE_URL`)
+   - ទម្រង់: `postgresql://neondb_owner:***@ep-xyz-pooler.region.aws.neon.tech/neondb?sslmode=require`
+2. ដំណើរការឯកសារ `INIT_NEON_DATABASE.bat` ក្នុងកុំព្យូទ័ររបស់អ្នក ហើយ Paste `DATABASE_URL` ចូល ដើម្បីបង្កើត Tables និងទិន្នន័យភូមិសាស្រ្តកម្ពុជាដោយស្វ័យប្រវត្តិ។
 
-### ជំហានទី ២៖ បន្ថែម Database (PostgreSQL)
-1. ក្នុង Project Dashboard ចុច **Create** -> ជ្រើសរើស **Database** -> **Add PostgreSQL**
-2. Railway នឹងភ្ជាប់ `DATABASE_URL` ដោយស្វ័យប្រវត្តិទៅកាន់ Django Web Service
+### ជំហានទី ២៖ ភ្ជាប់គម្រោងលើ Netlify
+1. ចូលទៅកាន់ [Netlify Dashboard](https://app.netlify.com/)
+2. ចុច **Add new site** -> ជ្រើសរើស **Import an existing project**
+3. ជ្រើសរើស GitHub និងជ្រើសរើស Repository: `DMC_System`
 
-### ជំហានទី ៣៖ កំណត់ Environment Variables (លើ Railway Web Service)
-ចូលទៅកាន់ Service របស់ Django -> ផ្ទាំង **Variables** ហើយបន្ថែម៖
+### ជំហានទី ៣៖ កំណត់ Environment Variables (លើ Netlify)
+ចូលទៅកាន់ **Site configuration** -> **Environment variables** ហើយបន្ថែម៖
+- `DATABASE_URL` = `(Connection String ពី Neon Console របស់អ្នក)`
 - `DEBUG` = `False`
 - `SECRET_KEY` = `(បង្កើត Secret Key វែងមួយ ឬប្រើអក្សរចម្រុះ)`
 - `ALLOWED_HOSTS` = `*`
-- `CSRF_TRUSTED_ORIGINS` = `https://*.railway.app,https://*.up.railway.app`
+- `CSRF_TRUSTED_ORIGINS` = `https://*.netlify.app`
 - `EMAIL_HOST_USER` = `(Gmail របស់អ្នកសម្រាប់ផ្ញើ OTP)`
 - `EMAIL_HOST_PASSWORD` = `(Google App Password ១៦ ខ្ទង់)`
 
@@ -50,4 +52,4 @@ python manage.py runserver
 
 ## 🔒 សុវត្ថិភាព និងឯកសារដែលត្រូវរក្សាការសម្ងាត់
 - ឯកសារ `.env` និង `db.sqlite3` ត្រូវបានកំណត់ក្នុង `.gitignore` មិនអនុញ្ញាតឱ្យ upload ឡើង GitHub ជាសាធារណៈឡើយ។
-- រាល់ការកំណត់ Password ឬ Secret ត្រូវបញ្ចូលក្នុង Railway Environment Variables ផ្ទាល់។
+- រាល់ការកំណត់ Password ឬ Secret ត្រូវបញ្ចូលក្នុង Environment Variables ផ្ទាល់។

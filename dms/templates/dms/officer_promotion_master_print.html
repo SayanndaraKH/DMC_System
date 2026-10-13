@@ -6,7 +6,8 @@
     <title>តារាងបូកសរុបសំណើសុំដំឡើងឋានន្តរស័ក្តិ និងថ្នាក់មន្ត្រីរាជការ ឆ្នាំ {{ req_year }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260923_0935_antigroup">
+    <link rel="stylesheet" href="/static/dms/css/table_customizer.css?v=20260923_0935_antigroup">
     <style>
         * {
             box-sizing: border-box;
@@ -94,10 +95,10 @@
         .btn-print {
             background: #d97706;
             color: #fff;
-            padding: 10px 24px;
+            padding: 4px 10px; height: 30px;
             border: none;
-            border-radius: 50px;
-            font-size: 12pt;
+            border-radius: 6px;
+            font-size: 11.5px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 3px 8px rgba(0,0,0,0.15);
@@ -135,11 +136,62 @@
 
 <div class="page">
 
-    <div class="no-print">
-        <button type="button" class="btn-print btn-toggle-margins" style="background:#475569; margin-right: 10px;" onclick="window.toggleMargins()" title="ចុចដើម្បីបង្ហាញ/លាក់ បន្ទាត់គម្លាតស្តង់ដា (Show Margins) (Shortkey: M)">📐 បន្ទាត់គម្លាត</button>
-        <button type="button" class="btn-print" style="background:#0284c7; margin-right: 10px;" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">🔄 កំណត់ទីតាំងដើម</button>
-        <button class="btn-print" onclick="window.print()">🖨️ បោះពុម្ពឯកសារនេះ (Print Document)</button>
-        <button class="btn-print" style="background:#64748b; margin-left: 10px;" onclick="window.close()">✖️ បិទ</button>
+    <div class="no-print" style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+        <!-- Row Height Customizer -->
+        <div class="toolbar-dropdown-container">
+            <button type="button" class="btn-print btn-row-height" style="background:#4f46e5; margin: 0;" id="btnRowHeightMenu" onclick="window.toggleRowHeightMenu(event)" title="កែសម្រួលកម្ពស់ជួរដេក">
+                <i class="fa-solid fa-arrows-up-down"></i> <span>កម្ពស់ជួរ (Row)</span>
+            </button>
+            <div class="toolbar-dropdown-menu" id="rowHeightDropdown">
+                <div class="dropdown-header">
+                    <i class="fa-solid fa-arrows-up-down"></i> កែសម្រួលកម្ពស់ជួរ (Row Height)
+                </div>
+                <div class="dropdown-section">
+                    <div class="slider-label-row">
+                        <span>កម្ពស់៖</span>
+                        <span id="rowHeightValBadge" class="val-badge">ស្តង់ដា (24px)</span>
+                    </div>
+                    <div class="slider-control-row">
+                        <button type="button" class="btn-mini" onclick="window.adjustRowHeightStep(-1)">-</button>
+                        <input type="range" id="rowHeightSlider" min="16" max="45" step="0.5" value="24" oninput="window.setCustomRowHeight(this.value)">
+                        <button type="button" class="btn-mini" onclick="window.adjustRowHeightStep(1)">+</button>
+                    </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-section presets-grid">
+                    <button type="button" class="btn-preset" onclick="window.setCustomRowHeight(20)">តូច (20px)</button>
+                    <button type="button" class="btn-preset active" onclick="window.setCustomRowHeight(24)">ស្តង់ដា (24px)</button>
+                    <button type="button" class="btn-preset" onclick="window.setCustomRowHeight(32)">ទូលាយ (32px)</button>
+                    <button type="button" class="btn-preset" onclick="window.resetRowHeight()">កម្ពស់ដើម</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column Width (w) Customizer -->
+        <div class="toolbar-dropdown-container">
+            <button type="button" class="btn-print btn-col-width" style="background:#0891b2; margin: 0;" id="btnColWidthMenu" onclick="window.toggleColWidthMenu(event)" title="ទាញគែមក្រឡាខាងស្តាំលើក្បាលតារាង">
+                <i class="fa-solid fa-table-columns"></i> <span>ទទឹងក្រឡា (w)</span>
+            </button>
+            <div class="toolbar-dropdown-menu" id="colWidthDropdown">
+                <div class="dropdown-header">
+                    <i class="fa-solid fa-table-columns"></i> កែសម្រួលទទឹងក្រឡា (Column Width)
+                </div>
+                <div class="dropdown-section" style="font-size: 11.5px; color: #cbd5e1; line-height: 1.4;">
+                    <p style="margin: 0 0 6px 0;">💡 ទាញបន្ទាត់គែមខាងស្តាំនៃក្បាលតារាងដើម្បីកែសម្រួលទទឹង។</p>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-section">
+                    <button type="button" class="dropdown-btn-item btn-reset-cols" onclick="window.resetAllColumnWidths()">
+                        <i class="fa-solid fa-arrows-rotate"></i> <span>កំណត់ទទឹងដើមវិញ</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="btn-print btn-toggle-margins" style="background:#475569; margin: 0;" onclick="window.toggleMargins()" title="ចុចដើម្បីបង្ហាញ/លាក់ បន្ទាត់គម្លាតស្តង់ដា (Show Margins)">📐 បន្ទាត់គម្លាត</button>
+        <button type="button" class="btn-print" style="background:#0284c7; margin: 0;" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងដើម">🔄 កំណត់ទីតាំងដើម</button>
+        <button class="btn-print" style="margin: 0;" onclick="window.print()">🖨️ បោះពុម្ពឯកសារនេះ</button>
+        <button class="btn-print" style="background:#64748b; margin: 0;" onclick="window.close()">✖️ បិទ</button>
     </div>
 
     <!-- Official Khmer Header -->
@@ -246,6 +298,8 @@
 
 </div>
 
-<script src="/static/dms/js/sig_draggable.js"></script>
+<script>window.DMS_CUSTOMIZER_KEY = 'prom_master';</script>
+<script src="/static/dms/js/sig_draggable.js?v=20260923_0935_antigroup"></script>
+<script src="/static/dms/js/table_customizer.js?v=20260923_0935_antigroup"></script>
 </body>
 </html>

@@ -1,0 +1,762 @@
+/**
+ * DCM System - Shared Table Customizer & A4 Print Parity Stylesheet
+ * Standardizes Row Height controls, Column Width (w) dragging, Continuation Header toggling,
+ * Margin guidelines, and Per-Page Quick Bars across all PDF / Print templates.
+ */
+
+/* ==========================================================================
+   UNIVERSAL COMPACT TOOLBAR BUTTONS (ទំហំតូចល្មម ដូចប៊ូតុងបន្ទាត់គម្លាត)
+   ========================================================================== */
+.preview-toolbar {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px 16px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+.preview-toolbar-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    flex-shrink: 1 !important;
+    min-width: 0 !important;
+}
+
+.preview-toolbar-actions,
+.preview-actions,
+.no-print > div,
+.no-print-bar {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+}
+
+.preview-toolbar-actions .btn-action,
+.preview-toolbar-actions button,
+.preview-toolbar-actions a.btn-action,
+.preview-toolbar-actions a,
+.preview-actions .btn-action,
+.preview-actions button,
+.preview-actions a.btn-action,
+.preview-actions a,
+.no-print .btn,
+.no-print .btn-print,
+.no-print button,
+.no-print a,
+.no-print-bar .toolbar-btn,
+.no-print-bar .btn-print,
+.no-print-bar button,
+.no-print-bar a,
+.print-actions-bar .btn-print,
+.print-actions-bar button,
+.print-actions-bar a,
+.btn-row-height,
+.btn-col-width,
+.btn-toggle-cont-header,
+.btn-toggle-margins,
+.btn-reset-sig,
+.btn-reset-margins,
+.btn-print,
+.btn-print-landscape,
+.btn-back,
+.btn-excel,
+.btn-docx,
+.btn-close-win {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    padding: 4px 10px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    line-height: 1 !important;
+    font-family: 'Khmer OS Battambang', 'Battambang', sans-serif !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
+    transition: all 0.15s ease !important;
+    user-select: none !important;
+    flex-shrink: 0 !important;
+    border: 1px solid transparent !important;
+}
+
+/* Prevent any span inside buttons from wrapping */
+.preview-toolbar-actions button span,
+.preview-toolbar-actions .btn-action span,
+.preview-actions button span,
+.btn-row-height span,
+.btn-col-width span,
+.btn-toggle-cont-header span,
+.btn-toggle-margins span,
+.btn-reset-sig span,
+.btn-print span,
+.btn-back span,
+.btn-excel span {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+}
+
+/* Compact button icons */
+.preview-toolbar-actions .btn-action i,
+.preview-toolbar-actions button i,
+.no-print .btn i,
+.no-print-bar .toolbar-btn i,
+.btn-row-height i,
+.btn-col-width i,
+.btn-toggle-cont-header i,
+.btn-toggle-margins i,
+.btn-reset-sig i,
+.btn-print i,
+.btn-back i,
+.btn-excel i {
+    font-size: 11.5px !important;
+    line-height: 1 !important;
+}
+
+/* Button Colors */
+.btn-row-height {
+    background: #4f46e5 !important;
+    border-color: #6366f1 !important;
+    color: #ffffff !important;
+}
+.btn-row-height:hover {
+    background: #4338ca !important;
+}
+
+.btn-col-width {
+    background: #0891b2 !important;
+    border-color: #06b6d4 !important;
+    color: #ffffff !important;
+}
+.btn-col-width:hover {
+    background: #0e7490 !important;
+}
+
+.btn-toggle-cont-header {
+    background: #0d9488 !important;
+    border-color: #14b8a6 !important;
+    color: #ffffff !important;
+}
+.btn-toggle-cont-header:hover {
+    background: #0f766e !important;
+}
+.btn-toggle-cont-header.is-hidden {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px dashed #64748b !important;
+    color: #94a3b8 !important;
+}
+
+.btn-toggle-margins {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    color: #f8fafc !important;
+}
+.btn-toggle-margins:hover {
+    background: rgba(56, 189, 248, 0.2) !important;
+    border-color: rgba(56, 189, 248, 0.5) !important;
+    color: #e0f2fe !important;
+}
+.btn-toggle-margins.active {
+    background: #0284c7 !important;
+    border-color: #38bdf8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.4) !important;
+}
+
+.btn-reset-sig {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    color: #f8fafc !important;
+}
+.btn-reset-sig:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: rgba(239, 68, 68, 0.5) !important;
+    color: #fca5a5 !important;
+}
+
+.btn-back {
+    background: #475569 !important;
+    border-color: #64748b !important;
+    color: #ffffff !important;
+}
+.btn-back:hover {
+    background: #334155 !important;
+}
+
+.btn-print {
+    background: #2563eb !important;
+    border-color: #3b82f6 !important;
+    color: #ffffff !important;
+}
+.btn-print:hover {
+    background: #1d4ed8 !important;
+}
+
+.btn-excel {
+    background: #16a34a !important;
+    border-color: #22c55e !important;
+    color: #ffffff !important;
+}
+.btn-excel:hover {
+    background: #15803d !important;
+}
+
+/* Screen Document Centering Guarantee across all views */
+@media screen {
+    .pages-container {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+    }
+    .a4-page {
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
+
+/* Transparent Dismiss Backdrop - NO BLUR, NO DARKENING (ធានាថា Form នៅតែច្បាស់ត្រដែត ១០០% មិនព្រិលឡើយ) */
+.toolbar-modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    z-index: 99990 !important;
+}
+.toolbar-modal-backdrop.show {
+    display: block;
+}
+
+.preview-toolbar {
+    z-index: 100000 !important;
+}
+
+/* Centered Popup Form / Modal - Crisp, Zero-Blur, Centered (លោតចំកណ្តាល ច្បាស់ត្រដែត) */
+.toolbar-dropdown-container {
+    position: static;
+    display: inline-block;
+}
+
+.toolbar-dropdown-menu {
+    display: none;
+    position: fixed !important;
+    top: 72px !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    bottom: auto !important;
+    transform: none !important; /* Disables subpixel translation to eliminate text blur in Chromium */
+    background: #0f172a !important;
+    border: 1.5px solid #38bdf8 !important;
+    border-radius: 14px !important;
+    padding: 18px 22px !important;
+    width: 440px !important;
+    max-width: 92vw !important;
+    max-height: 82vh !important;
+    overflow-y: auto !important;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.2) !important;
+    z-index: 100001 !important;
+    box-sizing: border-box !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+    animation: fadeInDropdownCrisp 0.15s ease-out !important;
+}
+
+.toolbar-dropdown-menu.show {
+    display: block !important;
+}
+
+@keyframes fadeInDropdownCrisp {
+    from {
+        opacity: 0;
+        top: 64px !important;
+    }
+    to {
+        opacity: 1;
+        top: 72px !important;
+    }
+}
+
+.dropdown-header {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Khmer OS Battambang', sans-serif;
+}
+
+.dropdown-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-close-modal {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #94a3b8;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    line-height: 1;
+    padding: 0;
+}
+.btn-close-modal:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+    transform: scale(1.08);
+}
+
+.dropdown-footer-actions {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid #334155;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+.btn-done-modal {
+    background: #0284c7;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 18px;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: 'Khmer OS Battambang', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-done-modal:hover {
+    background: #0369a1;
+}
+.dropdown-section {
+    margin-bottom: 10px;
+}
+.dropdown-section:last-child {
+    margin-bottom: 0;
+}
+.dropdown-divider {
+    height: 1px;
+    background: #334155;
+    margin: 10px 0;
+}
+.dropdown-btn-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-family: 'Khmer OS Battambang', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.dropdown-btn-item:hover {
+    background: #1d4ed8;
+}
+
+.btn-auto-row {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+.btn-auto-row:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+}
+
+.btn-reset-cols {
+    background: #334155;
+    color: #e2e8f0;
+}
+.btn-reset-cols:hover {
+    background: #475569;
+    color: #fff;
+}
+
+.slider-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 6px;
+    font-family: 'Khmer OS Battambang', sans-serif;
+}
+.val-badge {
+    background: #1e293b;
+    color: #38bdf8;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.slider-control-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.slider-control-row input[type="range"] {
+    flex-grow: 1;
+    accent-color: #38bdf8;
+    cursor: pointer;
+}
+.btn-mini {
+    background: #1e293b;
+    color: #fff;
+    border: 1px solid #334155;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+.btn-mini:hover {
+    background: #334155;
+}
+
+.presets-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+}
+.btn-preset {
+    background: #1e293b;
+    color: #cbd5e1;
+    border: 1px solid #334155;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: 'Khmer OS Battambang', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-preset:hover, .btn-preset.active {
+    background: #2563eb;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+/* Target Scope Selector in Toolbar */
+.page-target-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 6px;
+}
+.btn-target-opt {
+    background: #1e293b;
+    color: #94a3b8;
+    border: 1px solid #334155;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-family: 'Khmer OS Battambang', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.btn-target-opt:hover {
+    background: #334155;
+    color: #fff;
+}
+.btn-target-opt.active {
+    background: #0284c7;
+    color: #fff;
+    border-color: #38bdf8;
+    font-weight: 600;
+}
+
+/* Per-Page Quick Bar on Screen Preview */
+.page-quick-bar {
+    width: 297mm;
+    max-width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0f172a;
+    color: #f1f5f9;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    margin-bottom: 6px;
+    box-sizing: border-box;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    font-family: 'Khmer OS Battambang', sans-serif;
+}
+.page-quick-title {
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #38bdf8;
+}
+.page-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.btn-quick-autofit {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #fff;
+    border: none;
+    padding: 4px 11px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-family: 'Khmer OS Battambang', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.15s ease;
+}
+.btn-quick-autofit:hover {
+    opacity: 0.9;
+}
+.btn-quick-cont-header {
+    background: #0f766e;
+    color: #ccfbf1;
+    border: 1px solid #14b8a6;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: 'Khmer OS Battambang', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+}
+.btn-quick-cont-header:hover {
+    background: #115e59;
+    color: #fff;
+}
+.btn-quick-cont-header.is-hidden {
+    background: #1e293b;
+    color: #94a3b8;
+    border-color: #475569;
+}
+.quick-step-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.btn-quick-step {
+    background: #1e293b;
+    color: #fff;
+    border: 1px solid #475569;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+}
+.btn-quick-step:hover {
+    background: #334155;
+}
+.quick-val-badge {
+    background: #1e293b;
+    color: #34d399;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    min-width: 50px;
+    text-align: center;
+}
+.btn-quick-reset {
+    background: transparent;
+    color: #94a3b8;
+    border: 1px solid #475569;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 11px;
+}
+.btn-quick-reset:hover {
+    color: #fff;
+    background: #334155;
+}
+
+/* Column Drag Resizer */
+table.customizable-table thead th,
+table.e2-table thead th,
+table.e1-table thead th,
+table.m0-table thead th,
+table.m1-table thead th,
+table.retirement-table thead th,
+table.d1-table thead th,
+table.formal-table thead th,
+table.table-print thead th,
+table.roster-table thead th,
+table.seniority-tbl thead th,
+.a4-page table thead th {
+    position: relative;
+}
+
+.col-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 7px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+    z-index: 10;
+    touch-action: none;
+}
+.col-resizer:hover,
+.col-resizer.is-resizing {
+    background-color: #0284c7;
+    width: 4px;
+}
+.col-resize-guideline {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #0284c7;
+    box-shadow: 0 0 6px rgba(2, 132, 199, 0.6);
+    z-index: 99999;
+    pointer-events: none;
+    display: none;
+}
+.col-resize-tooltip {
+    position: fixed;
+    z-index: 100000;
+    background: #0f172a;
+    color: #38bdf8;
+    border: 1px solid #38bdf8;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: 'Khmer OS Battambang', sans-serif;
+    pointer-events: none;
+    display: none;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+
+/* Action Toast Notice */
+.dms-toast-notice {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(50px);
+    background: #0f172a;
+    color: #34d399;
+    border: 1px solid #059669;
+    padding: 10px 22px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-family: 'Khmer OS Battambang', sans-serif;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    z-index: 100001;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dms-toast-notice.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Continuation Header Show/Hide Rule */
+.page-continuation-header.dms-hidden,
+.a4-page.hide-cont-header .page-continuation-header,
+body.hide-all-cont-headers .page-continuation-header {
+    display: none !important;
+}
+
+/* Margin Guide Lines */
+.a4-page.show-margins {
+    outline: 1.5px dashed #0284c7 !important;
+    outline-offset: -4mm;
+}
+
+/* Media Print Rules - Guarantee 100% Parity */
+@media print {
+    .preview-toolbar,
+    .page-quick-bar,
+    .col-resizer,
+    .col-resize-guideline,
+    .col-resize-tooltip,
+    .dms-toast-notice,
+    .btn-quick-cont-header,
+    .no-print {
+        display: none !important;
+    }
+
+    .page-continuation-header.dms-hidden,
+    .a4-page.hide-cont-header .page-continuation-header,
+    body.hide-all-cont-headers .page-continuation-header {
+        display: none !important;
+    }
+
+    .a4-page.show-margins {
+        outline: none !important;
+    }
+}

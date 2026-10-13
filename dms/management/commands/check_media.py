@@ -8,16 +8,16 @@ from django.core.management.base import BaseCommand
 class Command(BaseCommand):
     help = (
         'Reports where MEDIA_ROOT points and whether it looks like a persistent '
-        'Railway volume. Run at boot so uploaded photos vanishing after a deploy '
+        'storage volume. Run at boot so uploaded photos vanishing after a deploy '
         'is visible in the logs instead of being a mystery.'
     )
 
     def handle(self, *args, **options):
         media_root = os.path.abspath(str(settings.MEDIA_ROOT))
-        volume_mount = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+        volume_mount = os.environ.get('VOLUME_MOUNT_PATH') or os.environ.get('DATA_DIR')
         self.stdout.write(f'[check_media] MEDIA_ROOT = {media_root}')
         self.stdout.write(f'[check_media] MEDIA_ROOT env override = {os.environ.get("MEDIA_ROOT") or "(not set)"}')
-        self.stdout.write(f'[check_media] RAILWAY_VOLUME_MOUNT_PATH = {volume_mount or "(not set - no volume attached)"}')
+        self.stdout.write(f'[check_media] VOLUME_MOUNT_PATH = {volume_mount or "(not set - no volume attached)"}')
 
         file_count = 0
         total_bytes = 0
@@ -33,7 +33,7 @@ class Command(BaseCommand):
         )
 
         # MEDIA_ROOT is safe if it sits on a volume: either it is itself a mount
-        # point, or it lives underneath the path Railway mounted the volume at.
+        # point, or it lives underneath the path the volume was mounted at.
         on_volume = os.path.ismount(media_root)
         if not on_volume and volume_mount:
             mount_abs = os.path.abspath(volume_mount)
@@ -48,7 +48,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.WARNING(
                 f'[check_media] WARNING - {media_root} is NOT a mounted volume. '
-                'It lives on the container filesystem and every uploaded file will be '
-                'DELETED on the next deploy. Attach a Railway Volume to this service '
+                'It lives on the ephemeral filesystem and uploaded files may be '
+                'lost on the next deploy. Attach a persistent volume to this service '
                 f'with mount path {media_root}'
             ))

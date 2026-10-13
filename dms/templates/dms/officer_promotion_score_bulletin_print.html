@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/dms/css/table_customizer.css?v=20260921_08">
     
     <style>
         /* ==========================================================================
@@ -59,11 +60,11 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 18px;
-            font-size: 13px;
+            padding: 4px 10px; height: 30px;
+            font-size: 11.5px;
             font-weight: 700;
             font-family: 'Battambang', 'Khmer OS Battambang', sans-serif;
-            border-radius: 50px;
+            border-radius: 6px;
             border: none;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -501,6 +502,61 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 8px;">
+            <!-- Row Height Customizer -->
+            <div class="toolbar-dropdown-container">
+                <button type="button" class="toolbar-btn btn-row-height" id="btnRowHeightMenu" onclick="window.toggleRowHeightMenu(event)" title="កែសម្រួលកម្ពស់ជួរដេក">
+                    <i class="fa-solid fa-arrows-up-down"></i> <span>កម្ពស់ជួរ</span>
+                </button>
+                <div class="toolbar-dropdown-menu" id="rowHeightDropdown">
+                    <div class="dropdown-header">
+                        <i class="fa-solid fa-arrows-up-down"></i> កែសម្រួលកម្ពស់ជួរ (Row Height)
+                    </div>
+                    <div class="dropdown-section">
+                        <div class="slider-label-row">
+                            <span>កម្ពស់៖</span>
+                            <span id="rowHeightValBadge" class="val-badge">ស្តង់ដា (24px)</span>
+                        </div>
+                        <div class="slider-control-row">
+                            <button type="button" class="btn-mini" onclick="window.adjustRowHeightStep(-1)">-</button>
+                            <input type="range" id="rowHeightSlider" min="16" max="44" step="0.5" value="24" oninput="window.setCustomRowHeight(this.value)">
+                            <button type="button" class="btn-mini" onclick="window.adjustRowHeightStep(1)">+</button>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-section presets-grid">
+                        <button type="button" class="btn-preset" onclick="window.setCustomRowHeight(20)">តូច (20px)</button>
+                        <button type="button" class="btn-preset active" onclick="window.setCustomRowHeight(24)">ស្តង់ដា (24px)</button>
+                        <button type="button" class="btn-preset" onclick="window.setCustomRowHeight(30)">ទូលាយ (30px)</button>
+                        <button type="button" class="btn-preset" onclick="window.resetRowHeight()">កម្ពស់ដើម</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Col Width Customizer -->
+            <div class="toolbar-dropdown-container">
+                <button type="button" class="toolbar-btn btn-col-width" id="btnColWidthMenu" onclick="window.toggleColWidthMenu(event)" title="កំណត់ប្រវែងទទឹងជួរឈរ">
+                    <i class="fa-solid fa-arrows-left-right"></i> <span>ទទឹងជួរឈរ</span>
+                </button>
+                <div class="toolbar-dropdown-menu" id="colWidthDropdown">
+                    <div class="dropdown-header">
+                        <i class="fa-solid fa-arrows-left-right"></i> កំណត់ទទឹងជួរឈរ (Column Width)
+                    </div>
+                    <div class="dropdown-section">
+                        <p class="dropdown-help-text">
+                            លោកអ្នកអាចអូសបន្ទាត់គែមជួរឈរលើតារាងដោយផ្ទាល់ ឬជ្រើសរើសជម្រើសខាងក្រោម៖
+                        </p>
+                        <div class="col-actions-stack">
+                            <button type="button" class="btn-preset" onclick="window.autoFitColumns()">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> តម្រឹមស្វ័យប្រវត្តិ (Auto-Fit)
+                            </button>
+                            <button type="button" class="btn-preset" onclick="window.resetColumnWidths()">
+                                <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទទឹងដើម
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <form method="POST" action="/officers/promotion/score-bulletin/download/?format=docx" style="display: inline;" target="_blank">
                 {% csrf_token %}
                 <input type="hidden" name="officer_id" value="{{ officer_id }}">
@@ -831,5 +887,7 @@
 
     </div>
 
+    <script>window.DMS_CUSTOMIZER_KEY = 'score_bulletin';</script>
+    <script src="/static/dms/js/table_customizer.js?v=20260921_08"></script>
 </body>
 </html>

@@ -32,6 +32,25 @@
     z-index: 10 !important;
     box-shadow: inset 0 -2px 0 #e2e8f0, 0 2px 4px rgba(0,0,0,0.03);
 }
+.dept-group-header-row td {
+    background: linear-gradient(90deg, #eef2ff 0%, #f8fafc 100%) !important;
+    border-top: 1.5px solid #cbd5e1 !important;
+    border-bottom: 1.5px solid #cbd5e1 !important;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease-in-out;
+}
+.dept-group-header-row:hover td {
+    background: linear-gradient(90deg, #e0e7ff 0%, #f1f5f9 100%) !important;
+}
+.btn-dept-chevron {
+    width: 28px;
+    height: 28px;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.officer-row {
+    transition: background-color 0.15s ease-in-out;
+}
 </style>
 <div class="container-fluid px-3 px-md-4 py-3">
     <!-- Header Banner -->
@@ -48,6 +67,9 @@
             </div>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{% url 'pdf_page_viewer' %}" class="btn btn-outline-danger rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold">
+                <i class="fa-solid fa-file-pdf me-1.5 text-danger"></i> បំបែកទំព័រ PDF
+            </a>
             <div class="dropdown">
                 <button class="btn btn-outline-warning text-dark rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fa-solid fa-chart-line text-warning me-1.5"></i> តាមដានការងារ (HR Tracking)
@@ -272,7 +294,7 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <div class="text-muted fs-8 fw-semibold text-uppercase">ការិយាល័យ/អង្គភាព</div>
-                        <h3 class="fw-bold text-success m-0 mt-1">{{ departments.count }} <span class="fs-7 fw-normal text-muted">កន្លែង</span></h3>
+                        <h3 class="fw-bold text-success m-0 mt-1">{{ departments|length }} <span class="fs-7 fw-normal text-muted">កន្លែង</span></h3>
                     </div>
                     <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle">
                         <i class="fa-solid fa-building fs-4"></i>
@@ -338,10 +360,34 @@
 
     <!-- Officers Table Card -->
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-header bg-white border-0 py-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div class="d-flex align-items-center gap-2">
-                <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-list-check text-primary me-2"></i> បញ្ជីមន្ត្រីរាជការទាំងអស់ ({{ officers|length }})</h6>
-                <span id="selectedBadge" class="badge bg-primary rounded-pill d-none px-2.5 py-1">បានជ្រើសរើស <span id="selectedCount">0</span> នាក់</span>
+        <div class="card-header bg-white border-0 py-3 px-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-list-check text-primary me-2"></i> បញ្ជីមន្ត្រីរាជការទាំងអស់ ({{ officers|length }})</h6>
+                    <span id="selectedBadge" class="badge bg-primary rounded-pill d-none px-2.5 py-1">បានជ្រើសរើស <span id="selectedCount">0</span> នាក់</span>
+                </div>
+
+                <!-- 🏢 View Mode Switcher: Grouped by Office vs Flat All -->
+                <div class="d-inline-flex align-items-center gap-2">
+                    <div class="btn-group btn-group-sm p-0.5 bg-light rounded-pill border" role="group" style="font-size: 0.82rem;">
+                        <button type="button" class="btn btn-sm rounded-pill fw-bold active px-3 py-1 text-primary shadow-xs" id="btnViewGrouped" onclick="setOfficerViewMode('grouped')" title="ចាប់ក្រុមបង្ហាញតាមការិយាល័យនីមួយៗ">
+                            <i class="fa-solid fa-layer-group me-1.5"></i> តាមការិយាល័យ
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill fw-semibold text-secondary px-3 py-1" id="btnViewFlat" onclick="setOfficerViewMode('flat')" title="បង្ហាញរាយទាំងអស់ដោយសេរី">
+                            <i class="fa-solid fa-list-ul me-1.5"></i> បង្ហាញទាំងអស់
+                        </button>
+                    </div>
+
+                    <!-- 🔽 Expand / Collapse Controls (Active in Grouped Mode) -->
+                    <div class="d-inline-flex align-items-center gap-1.5" id="groupExpandControls">
+                        <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="expandAllDeptGroups()" title="ពង្រីកមើលមន្ត្រីគ្រប់ការិយាល័យទាំងអស់">
+                            <i class="fa-solid fa-angles-down"></i> ពង្រីកទាំងអស់
+                        </button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="collapseAllDeptGroups()" title="បង្រួមគ្រប់ការិយាល័យទាំងអស់">
+                            <i class="fa-solid fa-angles-up"></i> បង្រួមទាំងអស់
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {% if is_system_admin %}
@@ -377,14 +423,55 @@
                     </tr>
                 </thead>
                 <tbody class="fs-7">
-                    {% for o in officers %}
-                    <tr>
+                    {% for group in department_groups %}
+                    <!-- 🏢 Department Group Header Row -->
+                    <tr class="dept-group-header-row" data-dept-id="{{ group.id }}" onclick="toggleDeptGroup('{{ group.id }}')">
+                        <td colspan="{% if is_system_admin %}10{% else %}9{% endif %}" class="py-2.5 px-3">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <!-- Group Info & Expand Trigger -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="btn-dept-chevron d-inline-flex align-items-center justify-content-center rounded-circle bg-white shadow-2xs border text-primary" id="chevron_wrap_{{ group.id }}">
+                                        <i class="fa-solid fa-chevron-down fs-8 dept-chevron-icon" id="chevron_{{ group.id }}"></i>
+                                    </span>
+
+                                    {% if is_system_admin %}
+                                    <input type="checkbox" class="form-check-input dept-group-master-check me-1" data-dept-id="{{ group.id }}" title="ជ្រើសរើសទាំងអស់ក្នុង{{ group.name }}" onclick="event.stopPropagation(); toggleSelectDeptOfficers(this, '{{ group.id }}')">
+                                    {% endif %}
+
+                                    <span class="fw-bold text-dark fs-7 d-flex align-items-center gap-1.5">
+                                        <i class="fa-solid fa-building-columns text-primary opacity-75"></i>
+                                        <span class="text-primary">{{ group.name }}</span>
+                                    </span>
+                                    {% if group.code and group.code != 'NONE' %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border font-monospace fs-9 py-0.5">{{ group.code }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Group Summary Statistics (Total, Male, Female) -->
+                                <div class="d-flex align-items-center gap-1.5 flex-wrap" onclick="event.stopPropagation()">
+                                    <span class="badge bg-dark text-white rounded-pill px-2.5 py-1 fs-8 fw-bold shadow-xs">
+                                        <i class="fa-solid fa-users me-1"></i> សរុប៖ {{ group.total_count }} នាក់
+                                    </span>
+                                    <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-30 rounded-pill px-2.5 py-1 fs-8 fw-semibold">
+                                        <i class="fa-solid fa-mars me-1"></i> ប្រុស៖ {{ group.male_count }}
+                                    </span>
+                                    <span class="badge bg-danger bg-opacity-15 text-danger border border-danger border-opacity-30 rounded-pill px-2.5 py-1 fs-8 fw-semibold">
+                                        <i class="fa-solid fa-venus me-1"></i> ស្រី៖ {{ group.female_count }}
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Officer Rows under this Department -->
+                    {% for o in group.officers %}
+                    <tr class="officer-row dept-row dept-row-{{ group.id }}" data-dept-id="{{ group.id }}">
                         {% if is_system_admin %}
                         <td class="ps-3">
-                            <input type="checkbox" name="officer_id" value="{{ o.pk }}" class="form-check-input officer-select-checkbox" onchange="handleRowCheckboxChange()">
+                            <input type="checkbox" name="officer_id" value="{{ o.pk }}" class="form-check-input officer-select-checkbox dept-member-check-{{ group.id }}" onchange="handleRowCheckboxChange()">
                         </td>
                         {% endif %}
-                        <td class="{% if not is_system_admin %}ps-4{% endif %} fw-bold text-muted">{{ forloop.counter }}</td>
+                        <td class="{% if not is_system_admin %}ps-4{% endif %} fw-bold text-muted" title="លេខរៀងរួម៖ {{ o.global_index }} | ក្នុងអង្គភាព៖ {{ forloop.counter }}">{{ o.global_index }}</td>
                         <td>
                             <div class="d-flex align-items-center gap-3">
                                 {% if o.photo %}
@@ -469,6 +556,7 @@
                             </div>
                         </td>
                     </tr>
+                    {% endfor %}
                     {% empty %}
                     <tr>
                         <td colspan="{% if is_system_admin %}10{% else %}9{% endif %}" class="text-center py-5 text-muted">
@@ -1352,6 +1440,100 @@ function resetBatchUpload() {
         document.getElementById('batchDeptSelectGroup').classList.remove('d-none');
     }
 }
+
+// ==========================================
+// 🏢 Department Grouping & Expand/Collapse Management
+// ==========================================
+
+function setOfficerViewMode(mode) {
+    const btnGrouped = document.getElementById('btnViewGrouped');
+    const btnFlat = document.getElementById('btnViewFlat');
+    const expandControls = document.getElementById('groupExpandControls');
+    const groupHeaders = document.querySelectorAll('.dept-group-header-row');
+    const officerRows = document.querySelectorAll('.officer-row');
+
+    if (mode === 'flat') {
+        // Flat List Mode: hide headers, show all rows freely
+        groupHeaders.forEach(el => el.classList.add('d-none'));
+        officerRows.forEach(r => r.style.display = '');
+        
+        if (btnFlat) {
+            btnFlat.classList.add('active', 'bg-white', 'text-primary', 'shadow-xs');
+            btnFlat.classList.remove('text-secondary');
+        }
+        if (btnGrouped) {
+            btnGrouped.classList.remove('active', 'bg-white', 'text-primary', 'shadow-xs');
+            btnGrouped.classList.add('text-secondary');
+        }
+        if (expandControls) expandControls.classList.add('d-none');
+        try { localStorage.setItem('officer_list_view_mode', 'flat'); } catch(e) {}
+    } else {
+        // Grouped Mode: show headers and respect expand/collapse
+        groupHeaders.forEach(el => el.classList.remove('d-none'));
+        
+        if (btnGrouped) {
+            btnGrouped.classList.add('active', 'bg-white', 'text-primary', 'shadow-xs');
+            btnGrouped.classList.remove('text-secondary');
+        }
+        if (btnFlat) {
+            btnFlat.classList.remove('active', 'bg-white', 'text-primary', 'shadow-xs');
+            btnFlat.classList.add('text-secondary');
+        }
+        if (expandControls) expandControls.classList.remove('d-none');
+        try { localStorage.setItem('officer_list_view_mode', 'grouped'); } catch(e) {}
+    }
+}
+
+function toggleDeptGroup(deptId) {
+    const rows = document.querySelectorAll(`.dept-row-${deptId}`);
+    const chevronWrap = document.getElementById(`chevron_wrap_${deptId}`);
+    if (!rows.length) return;
+
+    let isHidden = false;
+    rows.forEach(r => {
+        if (r.style.display === 'none') isHidden = true;
+    });
+
+    if (isHidden) {
+        // Expand
+        rows.forEach(r => r.style.display = '');
+        if (chevronWrap) chevronWrap.style.transform = 'rotate(0deg)';
+    } else {
+        // Collapse
+        rows.forEach(r => r.style.display = 'none');
+        if (chevronWrap) chevronWrap.style.transform = 'rotate(-90deg)';
+    }
+}
+
+function expandAllDeptGroups() {
+    const officerRows = document.querySelectorAll('.officer-row');
+    officerRows.forEach(r => r.style.display = '');
+    const chevronWraps = document.querySelectorAll('.btn-dept-chevron');
+    chevronWraps.forEach(w => w.style.transform = 'rotate(0deg)');
+}
+
+function collapseAllDeptGroups() {
+    const officerRows = document.querySelectorAll('.officer-row');
+    officerRows.forEach(r => r.style.display = 'none');
+    const chevronWraps = document.querySelectorAll('.btn-dept-chevron');
+    chevronWraps.forEach(w => w.style.transform = 'rotate(-90deg)');
+}
+
+function toggleSelectDeptOfficers(masterCheckbox, deptId) {
+    const checkboxes = document.querySelectorAll(`.dept-member-check-${deptId}`);
+    checkboxes.forEach(cb => {
+        cb.checked = masterCheckbox.checked;
+    });
+    handleRowCheckboxChange();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    let savedMode = 'grouped';
+    try {
+        savedMode = localStorage.getItem('officer_list_view_mode') || 'grouped';
+    } catch(e) {}
+    setOfficerViewMode(savedMode);
+});
 
 // Checkbox and Bulk Delete Management (Admin Only)
 function toggleSelectAll(master) {

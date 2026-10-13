@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.5, user-scalable=yes">
     <title>លិខិតសុំប្រើប្រាស់មធ្យោបាយ {{ req.applicant_name }} - {{ req.request_number }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Moul+Light&family=Siemreap&family=Kantumruy+Pro:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260923_0935_antigroup">
+    <link rel="stylesheet" href="/static/dms/css/table_customizer.css?v=20260923_0935_antigroup">
     <style>
         @page {
             size: A4 portrait;
@@ -48,14 +48,16 @@
             background: #2563eb;
             color: white;
             border: none;
-            padding: 8px 20px;
+            padding: 4px 10px;
+            height: 30px;
             border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            font-size: 14px;
+            gap: 5px;
+            font-size: 11.5px;
+            white-space: nowrap;
         }
         .btn-print:hover { background: #1d4ed8; }
 
@@ -63,12 +65,16 @@
             background: #475569;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 4px 10px;
+            height: 30px;
             border-radius: 6px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            font-size: 14px;
+            font-size: 11.5px;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
         }
         .btn-close-win:hover { background: #334155; }
 
@@ -323,8 +329,6 @@
             <tr>
                 <td>
                     <div class="sig-draggable">
-                        <div style="font-size: 11.5pt;">ថ្ងៃ..................ខែ.........ឆ្នាំ...........ព.ស ២៥......</div>
-                        <div style="font-size: 11.5pt; margin-top: 2px;">ប៉ៃលិន, ថ្ងៃទី.......ខែ.........ឆ្នាំ២០២...</div>
                         <div class="muol-text" style="font-size: 12pt; margin-top: 4px;">បានឃើញ និងឯកភាព</div>
                         <div class="muol-text" style="font-size: 12pt; margin-top: 2px;">ប្រធានមន្ទីរ</div>
                         <div class="sig-space"></div>
@@ -481,6 +485,6 @@
     </div>
     {% endif %}
 
-    <script src="/static/dms/js/sig_draggable.js"></script>
+    <script src="/static/dms/js/sig_draggable.js?v=20260923_0935_antigroup"></script>
 </body>
 </html>

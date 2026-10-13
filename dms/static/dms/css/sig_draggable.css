@@ -110,6 +110,54 @@ table.roster-table tbody td {
         transition: left 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
     }
 
+    /* STRICT ANTI-GROUPING CSS RULES ("អត់ Group គ្នាដាច់ខាត គ្រប់ PDF"):
+       Never allow container grids, wrappers, and multi-signature sections to show outline or hover background! */
+    .e1-bottom-section,
+    .e2-bottom-section,
+    .m0-bottom-section,
+    .m1-bottom-section,
+    .d1-bottom-section,
+    .roster-signatures-grid,
+    .roster-signatures-grid-office,
+    .signatures-section,
+    .signatures-grid,
+    .vehicle-signatures-box,
+    .sig-section,
+    .sig-table,
+    .sign-table,
+    div[style*="grid-template-columns"],
+    [data-sig-draggable-initialized="container"],
+    .sig-draggable-container {
+        outline: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        background-color: transparent !important;
+        cursor: default !important;
+    }
+
+    .e1-bottom-section:hover,
+    .e2-bottom-section:hover,
+    .m0-bottom-section:hover,
+    .m1-bottom-section:hover,
+    .d1-bottom-section:hover,
+    .roster-signatures-grid:hover,
+    .roster-signatures-grid-office:hover,
+    .signatures-section:hover,
+    .signatures-grid:hover,
+    .vehicle-signatures-box:hover,
+    .sig-section:hover,
+    .sig-table:hover,
+    .sign-table:hover,
+    div[style*="grid-template-columns"]:hover,
+    [data-sig-draggable-initialized="container"]:hover,
+    .sig-draggable-container:hover {
+        outline: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        background-color: transparent !important;
+        cursor: default !important;
+    }
+
     /* Live Coordinates Tooltip while Dragging Signatures / Headers */
     .sig-coord-tooltip {
         position: absolute;

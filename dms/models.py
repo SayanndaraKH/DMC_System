@@ -41,8 +41,8 @@ class UserProfile(models.Model):
         ('នាយខណ្ឌ', 'នាយខណ្ឌ'),
         ('នាយរងខណ្ឌ', 'នាយរងខណ្ឌ'),
         ('ប្រធានការិយាល័យ', 'ប្រធានការិយាល័យ'),
-        ('អនុប្រធានការិយាល័យ', 'អនុប្រធានការិយាល័យ'),
         ('នាយផ្នែក', 'នាយផ្នែក'),
+        ('អនុប្រធានការិយាល័យ', 'អនុប្រធានការិយាល័យ'),
         ('នាយរងផ្នែក', 'នាយរងផ្នែក'),
         ('មន្ត្រី', 'មន្ត្រី'),
     ]
@@ -346,9 +346,11 @@ def get_position_sort_weight(title):
     - 30: នាយខណ្ឌ / ប្រធានស្ថាប័នប្រតិបត្តិ
     - 35: នាយរងខណ្ឌ / អនុប្រធានប្រតិបត្តិ
     - 40: ប្រធានការិយាល័យ (Head of Office)
+    - 42: នាយផ្នែក / ប្រធានផ្នែក (Section Chief - ប្រហាក់ប្រហែលប្រធានការិយាល័យ ធំជាងអនុប្រធានការិយាល័យ)
     - 50: អនុប្រធានការិយាល័យ (Deputy Head of Office)
-    - 60: នាយផ្នែក / ប្រធានផ្នែក / ប្រធានក្រុម (Section/Team Chief)
-    - 70: នាយរងផ្នែក / អនុប្រធានផ្នែក / អនុប្រធានក្រុម
+    - 52: នាយរងផ្នែក / អនុប្រធានផ្នែក (Deputy Section Chief - ប្រហាក់ប្រហែលអនុប្រធានការិយាល័យ)
+    - 60: ប្រធានក្រុម (Team Chief)
+    - 70: អនុប្រធានក្រុម (Deputy Team Chief)
     - 80: មន្ត្រី / មន្ត្រីជំនាញ / មន្ត្រីបច្ចេកទេស (Officer)
     - 90: មន្ត្រីជាប់កិច្ចសន្យា / ភ្នាក់ងារ
     - 95: ផ្សេងៗ
@@ -370,11 +372,15 @@ def get_position_sort_weight(title):
         return 35
     elif 'ប្រធានការិយាល័យ' in t and 'អនុ' not in t:
         return 40
+    elif ('នាយផ្នែក' in t or 'ប្រធានផ្នែក' in t) and 'នាយរង' not in t and 'អនុ' not in t:
+        return 42
     elif 'អនុប្រធានការិយាល័យ' in t:
         return 50
-    elif 'នាយផ្នែក' in t or 'ប្រធានផ្នែក' in t or 'ប្រធានក្រុម' in t:
+    elif 'នាយរងផ្នែក' in t or 'អនុប្រធានផ្នែក' in t or 'នាយផ្នែករង' in t:
+        return 52
+    elif 'ប្រធានក្រុម' in t:
         return 60
-    elif 'នាយរងផ្នែក' in t or 'អនុប្រធានផ្នែក' in t or 'អនុប្រធានក្រុម' in t:
+    elif 'អនុប្រធានក្រុម' in t:
         return 70
     elif 'មន្ត្រី' in t:
         return 80
@@ -639,8 +645,8 @@ class CivilServantProfile(models.Model):
         'នាយខណ្ឌ': 'CANTON-03',
         'នាយរងខណ្ឌ': 'DCANTON-04',
         'ប្រធានការិយាល័យ': 'CHIEF-05',
-        'អនុប្រធានការិយាល័យ': 'DCHIEF-06',
-        'នាយផ្នែក': 'SEC-07',
+        'នាយផ្នែក': 'SEC-06',
+        'អនុប្រធានការិយាល័យ': 'DCHIEF-07',
         'នាយរងផ្នែក': 'DSEC-08',
         'មន្ត្រី': 'OFF-09',
     }
@@ -749,42 +755,65 @@ class CivilServantProfile(models.Model):
 
     @property
     def computed_highest_degree(self):
-        if self.highest_degree:
-            return self.highest_degree
         edus = self.education_data or []
-        found_types = set()
+        found_tiers = []
         for e in edus:
-            deg = (str(e.get('degree') or '') + ' ' + str(e.get('level_label') or '') + ' ' + str(e.get('skill') or '')).strip()
-            deg_lower = deg.lower()
-            if 'បណ្ឌិត' in deg or 'phd' in deg_lower or 'doctor' in deg_lower:
-                found_types.add('DOCTORATE')
-            elif 'ជាន់ខ្ពស់' in deg or 'អនុបណ្ឌិត' in deg or 'master' in deg_lower:
-                found_types.add('MASTER')
-            elif 'បរិញ្ញាបត្រ' in deg or 'បរិញ្ញាប័ត្រ' in deg or 'បរិញ្ញបត្រ' in deg or 'bachelor' in deg_lower:
-                if 'រង' in deg or 'associate' in deg_lower:
-                    found_types.add('ASSOCIATE')
-                else:
-                    found_types.add('BACHELOR')
-            elif 'បរិញ្ញាបត្ររង' in deg or 'បរិញ្ញាប័ត្ររង' in deg or 'associate' in deg_lower:
-                found_types.add('ASSOCIATE')
-            elif 'ទុតិយភូមិ' in deg or 'បាក់ឌុប' in deg or 'bac' in deg_lower:
-                found_types.add('HIGHSCHOOL')
-            elif deg:
-                found_types.add('OTHER')
+            if isinstance(e, dict):
+                d = (str(e.get('degree') or '') + ' ' + str(e.get('level_label') or '') + ' ' + str(e.get('skill') or '')).lower().strip()
+                if any(k in d for k in ['បណ្ឌិត', 'doctor', 'phd']):
+                    found_tiers.append((60, 'DOCTORATE'))
+                elif any(k in d for k in ['បរិញ្ញាបត្រជាន់ខ្ពស់', 'បរិញ្ញា.ជាន់ខ្ពស់', 'បរិញ្ញាជាន់ខ្ពស់', 'បរិ.ជាន់ខ្ពស់', 'អនុបណ្ឌិត', 'master', 'ក្រោយឧត្តម', 'ក្រោយឧត្ដម']):
+                    found_tiers.append((50, 'MASTER'))
+                elif any(k in d for k in ['បរិញ្ញាបត្ររង', 'បរិញ្ញាប័ត្ររង', 'បរិញ្ញបត្ររង', 'associate']):
+                    found_tiers.append((30, 'ASSOCIATE'))
+                elif any(k in d for k in ['បរិញ្ញាបត្រ', 'បរិញ្ញាប័ត្រ', 'បរិញ្ញបត្រ', 'bachelor', 'វិស្វករ', 'វេជ្ជបណ្ឌិត', 'ថ្នាក់ឧត្តម']):
+                    found_tiers.append((40, 'BACHELOR'))
+                elif any(k in d for k in ['ទុតិយភូមិ', 'បាក់ឌុប', 'បាកឌុប', 'មធ្យម.កំរិត២', 'មធ្យមសិក្សាទុតិយភូមិ', 'ធម្យមសិក្សាទុតិយភូមិ']):
+                    found_tiers.append((20, 'HIGHSCHOOL'))
+                elif any(k in d for k in ['បឋមភូមិ', 'មធ្យមសិក្សាបឋមភូមិ', 'មធ្យម.កំរិត១', 'មធ្យមកំរិត១', 'ឌីប្លូម', 'មធ្យមសិក្សា', 'ថ្នាក់ទី៨', 'ថ្នាក់ទី ៧', 'ថ្នាក់ទី៧']):
+                    found_tiers.append((10, 'SECONDARY'))
+                elif any(k in d for k in ['វិញ្ញាបនបត្រ', 'វិញ្ញាបនប័ត្រ', 'វិញ្ញបនបត្រ', 'វិញ្ញាប័នបត្រ', 'លិខិតបញ្ជាក់', 'វគ្គខ្លី', 'វិក្រឹតការ']):
+                    found_tiers.append((5, 'OTHER'))
+                elif d:
+                    found_tiers.append((5, 'OTHER'))
 
-        if 'DOCTORATE' in found_types:
-            return 'DOCTORATE'
-        elif 'MASTER' in found_types:
-            return 'MASTER'
-        elif 'BACHELOR' in found_types:
-            return 'BACHELOR'
-        elif 'ASSOCIATE' in found_types:
-            return 'ASSOCIATE'
-        elif 'HIGHSCHOOL' in found_types:
-            return 'HIGHSCHOOL'
-        elif 'OTHER' in found_types:
-            return 'OTHER'
+        if found_tiers:
+            found_tiers.sort(key=lambda x: x[0], reverse=True)
+            return found_tiers[0][1]
+        elif self.highest_degree:
+            return self.highest_degree
         return 'OTHER'
+
+    @property
+    def computed_current_rank_and_step(self):
+        import re
+        sen = self.promotions_by_seniority or []
+        deg = self.promotions_by_degree or []
+        promos = []
+
+        def _parse_p_date(d_str):
+            if not d_str: return (0, 0, 0)
+            s = to_arabic_digits(str(d_str).strip())
+            m = re.search(r'(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})', s)
+            if m:
+                d, mth, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+                if y < 100: y = 2000 + y if y < 50 else 1900 + y
+                return (y, mth, d)
+            my = re.findall(r'(?:19|20)\d{2}', s)
+            if my: return (int(my[-1]), 1, 1)
+            return (0, 0, 0)
+
+        for idx, p in enumerate(sen):
+            if isinstance(p, dict) and p.get('new_rank_step'):
+                promos.append((_parse_p_date(p.get('effective_date')), -idx, p.get('new_rank_step').strip()))
+        for idx, p in enumerate(deg):
+            if isinstance(p, dict) and p.get('new_rank_step'):
+                promos.append((_parse_p_date(p.get('effective_date')), -idx, p.get('new_rank_step').strip()))
+
+        if promos:
+            promos.sort(key=lambda x: (x[0], x[1]), reverse=True)
+            return promos[0][2]
+        return self.current_rank_and_step or ''
 
     @property
     def highest_degree_label(self):
@@ -792,12 +821,125 @@ class CivilServantProfile(models.Model):
         labels = {
             'DOCTORATE': 'បណ្ឌិត',
             'MASTER': 'បរិញ្ញាបត្រជាន់ខ្ពស់',
-            'BACHELOR': 'បរិញ្ញាប័ត្រ',
-            'ASSOCIATE': 'បរិញ្ញាប័ត្ររង',
-            'HIGHSCHOOL': 'មធ្យមសិក្សាទុតិយភូមិ',
+            'BACHELOR': 'បរិញ្ញាបត្រ',
+            'ASSOCIATE': 'បរិញ្ញាបត្ររង',
+            'HIGHSCHOOL': 'ទុតិយភូមិ',
+            'SECONDARY': 'បឋមភូមិ',
+            'PRIMARY': 'បឋមសិក្សា',
             'OTHER': 'ផ្សេងៗ',
         }
         return labels.get(deg, 'ផ្សេងៗ')
+
+    @property
+    def work_seniority_info(self):
+        """
+        អតីតភាពការងាររបស់មន្ត្រី រាប់គិតចាប់ពីថ្ងៃតាំងស៊ប់ក្របខណ្ឌ
+        (បើគ្មានថ្ងៃតាំងស៊ប់ យកថ្ងៃចូលបម្រើការងារ)
+        """
+        import datetime
+        from .views import parse_date_flexible, _to_khmer_digits
+        today = datetime.date.today()
+        base_date = parse_date_flexible(self.civil_service_permanent_date) or parse_date_flexible(self.civil_service_start_date)
+        if not base_date:
+            return {'years': 0, 'months': 0, 'total_years': 0.0, 'display': '-', 'base_date': None, 'base_date_str': '-'}
+
+        days_total = (today - base_date).days
+        if days_total < 0:
+            return {'years': 0, 'months': 0, 'total_years': 0.0, 'display': '០ ឆ្នាំ', 'base_date': base_date, 'base_date_str': base_date.strftime('%d/%m/%Y')}
+
+        years = today.year - base_date.year
+        months = today.month - base_date.month
+        if today.day < base_date.day:
+            months -= 1
+        if months < 0:
+            years -= 1
+            months += 12
+        if years < 0:
+            years = 0
+            months = 0
+
+        total_years = round(days_total / 365.25, 1)
+
+        y_kh = _to_khmer_digits(str(years))
+        m_kh = _to_khmer_digits(str(months))
+        if years > 0 and months > 0:
+            disp = f"{y_kh} ឆ្នាំ {m_kh} ខែ"
+        elif years > 0:
+            disp = f"{y_kh} ឆ្នាំ"
+        elif months > 0:
+            disp = f"{m_kh} ខែ"
+        else:
+            disp = "ក្រោម ១ ខែ"
+
+        return {
+            'years': years,
+            'months': months,
+            'total_years': total_years,
+            'display': disp,
+            'base_date': base_date,
+            'base_date_str': base_date.strftime('%d/%m/%Y'),
+        }
+
+    @property
+    def rank_seniority_info(self):
+        """
+        អតីតភាព ឋានន្តរស័ក្តិ គិតចាប់ពីថ្ងៃឡើងថ្នាក់ចុងក្រោយ មិនរាប់បញ្ចប់ឡើងតាមសញ្ញាបត្រឡើយ
+        (បើមិនធ្លាប់ឡើងថ្នាក់ គិតចាប់ពីថ្ងៃតាំងស៊ប់ក្របខណ្ឌ)
+        """
+        import datetime
+        from .views import parse_date_flexible, _to_khmer_digits
+        today = datetime.date.today()
+
+        last_promo_date = None
+        sen = self.promotions_by_seniority or []
+        for p in sen:
+            if isinstance(p, dict):
+                d = parse_date_flexible(p.get('effective_date') or p.get('promo_date'))
+                if d and (last_promo_date is None or d > last_promo_date):
+                    last_promo_date = d
+
+        if not last_promo_date:
+            last_promo_date = parse_date_flexible(self.civil_service_permanent_date) or parse_date_flexible(self.civil_service_start_date)
+
+        if not last_promo_date:
+            return {'years': 0, 'months': 0, 'total_years': 0.0, 'display': '-', 'promo_date': None, 'promo_date_str': '-'}
+
+        days_total = (today - last_promo_date).days
+        if days_total < 0:
+            return {'years': 0, 'months': 0, 'total_years': 0.0, 'display': '០ ឆ្នាំ', 'promo_date': last_promo_date, 'promo_date_str': last_promo_date.strftime('%d/%m/%Y')}
+
+        years = today.year - last_promo_date.year
+        months = today.month - last_promo_date.month
+        if today.day < last_promo_date.day:
+            months -= 1
+        if months < 0:
+            years -= 1
+            months += 12
+        if years < 0:
+            years = 0
+            months = 0
+
+        total_years = round(days_total / 365.25, 1)
+
+        y_kh = _to_khmer_digits(str(years))
+        m_kh = _to_khmer_digits(str(months))
+        if years > 0 and months > 0:
+            disp = f"{y_kh} ឆ្នាំ {m_kh} ខែ"
+        elif years > 0:
+            disp = f"{y_kh} ឆ្នាំ"
+        elif months > 0:
+            disp = f"{m_kh} ខែ"
+        else:
+            disp = "ក្រោម ១ ខែ"
+
+        return {
+            'years': years,
+            'months': months,
+            'total_years': total_years,
+            'display': disp,
+            'promo_date': last_promo_date,
+            'promo_date_str': last_promo_date.strftime('%d/%m/%Y'),
+        }
 
     @property
     def computed_officer_status(self):
@@ -2044,17 +2186,17 @@ def get_attendance_position_sort_weight(title, is_contract=False):
     Computes priority weight for attendance rosters:
     For Cantons (ខណ្ឌ):
     1. នាយខណ្ឌ (Canton Chief) -> 10
-    2. នាយរងខណ្ឌ (Deputy Canton Chief) -> 20
-    3. នាយផ្នែក / ប្រធានផ្នែក (Division Chief) -> 30
-    4. នាយរងផ្នែក / អនុប្រធានផ្នែក (Deputy Division Chief) -> 40
+    2. នាយរងខណ្ឌ (Deputy Canton Chief) -> 12
+    3. នាយផ្នែក / ប្រធានផ្នែក (Division Chief) -> 16 (ប្រហាក់ប្រហែលប្រធានការិយាល័យ ធំជាងអនុប្រធានការិយាល័យ)
+    4. នាយរងផ្នែក / អនុប្រធានផ្នែក (Deputy Division Chief) -> 26 (ប្រហាក់ប្រហែលអនុប្រធានការិយាល័យ)
     5. មន្ត្រី / មន្ត្រីជំនាញ (Officer) -> 50
     6. មន្ត្រីជាប់កិច្ចសន្យា (Contract Staff: ជំនួយការ, អ្នកបើកបរ, អ្នកអនាម័យ) -> 80+
 
     For Offices (ការិយាល័យ):
     1. ប្រធានការិយាល័យ (Office Chief) -> 15
-    2. អនុប្រធានការិយាល័យ (Deputy Office Chief) -> 25
-    3. នាយផ្នែក / ប្រធានផ្នែក (បើមាន) -> 30
-    4. នាយរងផ្នែក / អនុប្រធានផ្នែក (បើមាន) -> 40
+    2. នាយផ្នែក / ប្រធានផ្នែក (បើមាន) -> 16
+    3. អនុប្រធានការិយាល័យ (Deputy Office Chief) -> 25
+    4. នាយរងផ្នែក / អនុប្រធានផ្នែក (បើមាន) -> 26
     5. មន្ត្រី / មន្ត្រីការិយាល័យ (Officer) -> 50
     6. មន្ត្រីជាប់កិច្ចសន្យា (Contract Staff) -> 80+
     """
@@ -2076,16 +2218,16 @@ def get_attendance_position_sort_weight(title, is_contract=False):
         return 8
     elif 'នាយខណ្ឌ' in t and 'នាយរង' not in t and 'អនុ' not in t:
         return 10
+    elif 'នាយរងខណ្ឌ' in t:
+        return 12
     elif 'ប្រធានការិយាល័យ' in t and 'អនុ' not in t:
         return 15
-    elif 'នាយរងខណ្ឌ' in t:
-        return 20
+    elif ('នាយផ្នែក' in t or 'ប្រធានផ្នែក' in t) and 'នាយរង' not in t and 'អនុ' not in t:
+        return 16
     elif 'អនុប្រធានការិយាល័យ' in t:
         return 25
-    elif ('នាយផ្នែក' in t or 'ប្រធានផ្នែក' in t) and 'នាយរង' not in t and 'អនុ' not in t:
-        return 30
     elif 'នាយរងផ្នែក' in t or 'អនុប្រធានផ្នែក' in t or 'នាយផ្នែករង' in t:
-        return 40
+        return 26
     elif 'មន្ត្រី' in t:
         return 50
     return 70

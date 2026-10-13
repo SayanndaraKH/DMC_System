@@ -1,0 +1,19 @@
+[build]
+  command = "bash build_netlify.sh"
+  publish = "staticfiles"
+  functions = "netlify/functions"
+
+[build.environment]
+  PYTHON_VERSION = "3.11"
+
+# Route /static/* requests directly to published staticfiles
+[[redirects]]
+  from = "/static/*"
+  to = "/:splat"
+  status = 200
+
+# Route all application requests to the Netlify Serverless Function
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/app"
+  status = 200

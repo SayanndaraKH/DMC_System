@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Siemreap&family=Moul&family=Battambang:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
+    <link rel="stylesheet" href="/static/dms/css/table_customizer.css?v=20260921_08">
 
     <style>
         @page {
@@ -129,7 +130,58 @@
         <div>
             <strong>ទម្រង់បោះពុម្ពវត្តមានប្រចាំខែ</strong> ({{ dept.name_kh|default:'' }} - ខែ {{ month_name_kh }} ឆ្នាំ {{ year }})
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <!-- Row Height Customizer -->
+            <div class="toolbar-dropdown-container">
+                <button type="button" class="btn btn-primary btn-row-height" id="btnRowHeightMenu" onclick="window.toggleRowHeightMenu(event)" title="កែសម្រួលកម្ពស់ជួរដេក">
+                    <i class="fa-solid fa-arrows-up-down"></i> <span>កម្ពស់ជួរ</span>
+                </button>
+                <div class="toolbar-dropdown-menu" id="rowHeightDropdown">
+                    <div class="dropdown-header">
+                        <i class="fa-solid fa-arrows-up-down"></i> កែសម្រួលកម្ពស់ជួរ (Row Height)
+                    </div>
+                    <div class="dropdown-section">
+                        <div class="slider-label-row">
+                            <span>កម្ពស់៖</span>
+                            <span id="rowHeightValBadge" class="val-badge">ស្តង់ដា (22px)</span>
+                        </div>
+                        <div class="slider-control-row">
+                            <button type="button" class="btn-mini" onclick="window.adjustRowHeightStep(-1)">-</button>
+                            <input type="range" id="rowHeightSlider" min="16" max="40" step="0.5" value="22" oninput="window.setCustomRowHeight(this.value)">
+                            <button type="button" class="btn-mini" onclick="window.adjustRowHeightStep(1)">+</button>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-section presets-grid">
+                        <button type="button" class="btn-preset" onclick="window.setCustomRowHeight(19)">តូច (19px)</button>
+                        <button type="button" class="btn-preset active" onclick="window.setCustomRowHeight(22)">ស្តង់ដា (22px)</button>
+                        <button type="button" class="btn-preset" onclick="window.setCustomRowHeight(28)">ទូលាយ (28px)</button>
+                        <button type="button" class="btn-preset" onclick="window.resetRowHeight()">កម្ពស់ដើម</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column Width (w) Customizer -->
+            <div class="toolbar-dropdown-container">
+                <button type="button" class="btn btn-primary btn-col-width" id="btnColWidthMenu" onclick="window.toggleColWidthMenu(event)" title="ទាញគែមក្រឡាខាងស្តាំលើក្បាលតារាង">
+                    <i class="fa-solid fa-table-columns"></i> <span>ទទឹងក្រឡា</span>
+                </button>
+                <div class="toolbar-dropdown-menu" id="colWidthDropdown">
+                    <div class="dropdown-header">
+                        <i class="fa-solid fa-table-columns"></i> កែសម្រួលទទឹងក្រឡា (Column Width)
+                    </div>
+                    <div class="dropdown-section" style="font-size: 11.5px; color: #cbd5e1; line-height: 1.4;">
+                        <p style="margin: 0 0 6px 0;">💡 ទាញបន្ទាត់គែមខាងស្តាំនៃក្បាលតារាងដើម្បីកែសម្រួលទទឹង។</p>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-section">
+                        <button type="button" class="dropdown-btn-item btn-reset-cols" onclick="window.resetAllColumnWidths()">
+                            <i class="fa-solid fa-arrows-rotate"></i> <span>កំណត់ទទឹងដើមវិញ</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <button type="button" class="btn btn-outline btn-toggle-margins" onclick="window.toggleMargins()" title="ចុចដើម្បីបង្ហាញ/លាក់ បន្ទាត់គម្លាតស្តង់ដា (Show Margins) (Shortkey: M)">
                 <i class="fa-solid fa-ruler-combined"></i> <span class="margin-btn-text">បន្ទាត់គម្លាត</span>
             </button>
@@ -250,6 +302,8 @@
             </div>
         </div>
     </div>
+    <script>window.DMS_CUSTOMIZER_KEY = 'attendance_monthly';</script>
     <script src="/static/dms/js/sig_draggable.js"></script>
+    <script src="/static/dms/js/table_customizer.js?v=20260921_08"></script>
 </body>
 </html>

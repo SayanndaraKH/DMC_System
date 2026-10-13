@@ -220,11 +220,23 @@ def get_officer_score_bulletin_context(officer, target_year=None, target_date_st
     general_education = ''
     skill_major = ''
     
-    if officer.highest_degree:
-        general_education = officer.get_highest_degree_display()
-        # Clean label e.g. '(៣). បរិញ្ញាប័ត្រ (Bachelor)' -> 'បរិញ្ញាប័ត្រ'
-        general_education = re.sub(r'^\([០-៩\d]+\)\.\s*', '', general_education)
-        general_education = re.sub(r'\s*\([A-Za-z\s/]+\)$', '', general_education).strip()
+    deg_code = getattr(officer, 'computed_highest_degree', None) or officer.highest_degree
+    if deg_code:
+        deg_map = {
+            'DOCTORATE': 'បណ្ឌិត',
+            'MASTER': 'បរិញ្ញាបត្រជាន់ខ្ពស់',
+            'BACHELOR': 'បរិញ្ញាបត្រ',
+            'ASSOCIATE': 'បរិញ្ញាបត្ររង',
+            'HIGHSCHOOL': 'ទុតិយភូមិ',
+            'SECONDARY': 'បឋមភូមិ',
+            'PRIMARY': 'បឋមសិក្សា',
+            'OTHER': 'ផ្សេងៗ',
+        }
+        general_education = deg_map.get(deg_code, '')
+        if not general_education:
+            general_education = officer.get_highest_degree_display()
+            general_education = re.sub(r'^\([០-៩\d]+\)\.\s*', '', general_education)
+            general_education = re.sub(r'\s*\([A-Za-z\s/]+\)$', '', general_education).strip()
 
     if officer.education_data and isinstance(officer.education_data, list):
         for edu in officer.education_data:
@@ -242,25 +254,26 @@ def get_officer_score_bulletin_context(officer, target_year=None, target_date_st
         skill_major = 'រដ្ឋបាលសាធារណៈ'
 
     # Last promotion date & seniority in current rank
+    # 🎯 គិតតែលើកាលបរិច្ឆេទដំឡើងតាមអតីតភាព/វេនជ្រើសរើសប៉ុណ្ណោះ (ការឡើងតាមសញ្ញាបត្រ មិនរាប់បញ្ចប់ឡើងតាមសញ្ញាបត្រឡើយ)
     last_promo_date = None
     last_promo_date_raw = None
     
-    # 1. Try from promotions_by_seniority
+    # 1. Try from promotions_by_seniority (ស្វែងរកកាលបរិច្ឆេទដំឡើងតាមអតីតភាពចុងក្រោយបំផុត)
     if officer.promotions_by_seniority and isinstance(officer.promotions_by_seniority, list):
-        for p in reversed(officer.promotions_by_seniority):
-            eff = p.get('effective_date')
-            parsed = parse_date_safely(eff)
-            if parsed:
-                last_promo_date = parsed
-                last_promo_date_raw = eff
-                break
+        for p in officer.promotions_by_seniority:
+            if isinstance(p, dict):
+                eff = p.get('effective_date') or p.get('promo_date') or ''
+                parsed = parse_date_safely(eff)
+                if parsed and (last_promo_date is None or parsed > last_promo_date):
+                    last_promo_date = parsed
+                    last_promo_date_raw = eff
                 
     # 2. Fallback to officer.last_promotion_date (from model)
     if not last_promo_date and getattr(officer, 'last_promotion_date', None):
         last_promo_date = officer.last_promotion_date
         last_promo_date_raw = last_promo_date.strftime('%d/%m/%Y')
         
-    # 3. Fallback to permanent date
+    # 3. Fallback to permanent date (កាលបរិច្ឆេទតាំងស៊ប់ក្នុងក្របខ័ណ្ឌ)
     if not last_promo_date and officer.civil_service_permanent_date:
         last_promo_date = parse_date_safely(officer.civil_service_permanent_date)
         last_promo_date_raw = officer.civil_service_permanent_date
@@ -290,9 +303,10 @@ def get_officer_score_bulletin_context(officer, target_year=None, target_date_st
         seniority_in_rank_str += f" {to_khmer_digits(months_in_rank)} ខែ"
 
     # Total civil service work duration
+    # 🎯 អតីតភាពការងាររបស់មន្ត្រី រាប់គិតចាប់ពីថ្ងៃតាំងស៊ប់ក្របខណ្ឌ (បើគ្មាន យកថ្ងៃចូលបម្រើការងារ)
     total_service_years = 0
     total_service_months = 0
-    start_service_date = parse_date_safely(officer.civil_service_start_date)
+    start_service_date = parse_date_safely(officer.civil_service_permanent_date) or parse_date_safely(officer.civil_service_start_date)
     if start_service_date:
         total_m = (effective_target_date.year - start_service_date.year) * 12 + (effective_target_date.month - start_service_date.month)
         if effective_target_date.day < start_service_date.day:

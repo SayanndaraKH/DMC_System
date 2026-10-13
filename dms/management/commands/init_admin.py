@@ -10,7 +10,7 @@ class Command(BaseCommand):
         admin_username = os.environ.get('ADMIN_USERNAME', 'ADMIN').strip()
         admin_password = os.environ.get('ADMIN_PASSWORD', 'syd@168').strip()
         admin_email = os.environ.get('ADMIN_EMAIL', 'sayanndara2022@gmail.com').strip()
-        # Escape hatch: set ADMIN_PASSWORD_RESET=1 in Railway to force the password
+        # Escape hatch: set ADMIN_PASSWORD_RESET=1 in environment variables to force the password
         # back to ADMIN_PASSWORD on the next deploy (then remove the variable).
         force_reset = os.environ.get('ADMIN_PASSWORD_RESET', '').strip().lower() in ('1', 'true', 'yes')
 

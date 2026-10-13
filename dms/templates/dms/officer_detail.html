@@ -1,6 +1,11 @@
 {% extends 'dms/base.html' %}
+{% load static %}
 
 {% block title %}ជីវប្រវត្តិ៖ {{ officer.full_name_kh }} - ប្រព័ន្ធគ្រប់គ្រងឯកសារ{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'dms/css/pdf_page_viewer.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-3 px-md-4 py-3">
@@ -425,6 +430,26 @@
                                     <span class="text-muted d-block fs-8">ក្របខណ្ឌ ឋានន្តរស័ក្តិ និងថ្នាក់៖</span>
                                     <strong class="text-primary font-monospace fs-6">{{ officer.current_rank_and_step|default:"-" }}</strong>
                                 </div>
+
+                                <!-- 🎯 ការបញ្ជាក់អតីតភាពការងារ និងអតីតភាពឋានន្តរស័ក្តិ -->
+                                <div class="col-12 col-md-6 mt-2">
+                                    <div class="p-2.5 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-25 d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <span class="text-success fw-bold d-block fs-8"><i class="fa-solid fa-business-time me-1"></i> អតីតភាពការងារសរុប (គិតពីថ្ងៃតាំងស៊ប់)៖</span>
+                                            <span class="text-muted fs-9">គិតចាប់ពីថ្ងៃទី {{ officer.work_seniority_info.base_date_str }}</span>
+                                        </div>
+                                        <span class="badge bg-success text-white px-2.5 py-1.5 fs-7 fw-bold shadow-xs">{{ officer.work_seniority_info.display }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 mt-2">
+                                    <div class="p-2.5 rounded-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <span class="text-primary fw-bold d-block fs-8"><i class="fa-solid fa-award me-1"></i> អតីតភាពឋានន្តរស័ក្តិ (គិតពីឡើងថ្នាក់ចុងក្រោយ)៖</span>
+                                            <span class="text-muted fs-9">គិតចាប់ពីថ្ងៃទី {{ officer.rank_seniority_info.promo_date_str }} (មិនគិតតាមសញ្ញាបត្រ)</span>
+                                        </div>
+                                        <span class="badge bg-primary text-white px-2.5 py-1.5 fs-7 fw-bold shadow-xs">{{ officer.rank_seniority_info.display }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -681,11 +706,16 @@
                                 </div>
 
                                 <div class="d-flex align-items-center justify-content-between gap-1 mt-3 pt-2 border-top">
-                                    <div class="d-flex gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fs-8" onclick="previewOfficerAttachment('{% url 'officer_attachment_view' officer.pk att.pk %}', '{{ att.title|escapejs }}', '{{ att.file_extension }}')">
+                                    <div class="d-flex gap-1 align-items-center flex-wrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-1 fs-8" onclick="previewOfficerAttachment('{% url 'officer_attachment_view' officer.pk att.pk %}', '{{ att.title|escapejs }}', '{{ att.file_extension }}', '{{ att.pk }}')">
                                             <i class="fa-solid fa-eye me-1"></i> មើល
                                         </button>
-                                        <a href="{% url 'officer_attachment_download' officer.pk att.pk %}" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 fs-8" title="ទាញយក">
+                                        {% if att.is_pdf %}
+                                        <a href="{% url 'pdf_page_viewer' %}?att_id={{ att.pk }}" target="_blank" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-2 py-1 fs-8" title="មើលឃើញ Page នីមួយៗ & ជ្រើសរើស Save ជា PDF ថ្មី">
+                                            <i class="fa-solid fa-table-cells-large text-warning me-1"></i> បំបែក Page
+                                        </a>
+                                        {% endif %}
+                                        <a href="{% url 'officer_attachment_download' officer.pk att.pk %}" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1 fs-8" title="ទាញយក">
                                             <i class="fa-solid fa-download"></i>
                                         </a>
                                     </div>
@@ -963,8 +993,8 @@
                             <input type="text" name="issued_date" class="form-control" placeholder="ឧ. ២៥/មេសា/២០២២">
                         </div>
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold">ជ្រើសរើស File ឯកសារ (PDF, រូបភាព...) <span class="text-danger">*</span> <span class="badge bg-danger bg-opacity-10 text-danger fs-9">អតិបរមា 2MB</span></label>
-                            <input type="file" name="file" class="form-control" required accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx" onchange="validateFileSize(this)">
+                            <label class="form-label fw-bold">ជ្រើសរើស File ឯកសារ (PDF, រូបភាព...) <span class="text-danger">*</span> <span class="badge bg-success bg-opacity-10 text-success fs-9"><i class="fa-solid fa-infinity me-1"></i>មិនកំណត់ទំហំ</span></label>
+                            <input type="file" name="file" class="form-control" required accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx">
                         </div>
 
                         <div class="col-12">
@@ -1020,8 +1050,8 @@
                             <input type="text" name="issued_date" id="edit_issued_date" class="form-control">
                         </div>
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold">ប្តូរ File ថ្មីជំនួស (ទុកទំនេរ បើមិនប្តូរ) <span class="badge bg-danger bg-opacity-10 text-danger fs-9">អតិបរមា 2MB</span></label>
-                            <input type="file" name="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx" onchange="validateFileSize(this)">
+                            <label class="form-label fw-bold">ប្តូរ File ថ្មីជំនួស (ទុកទំនេរ បើមិនប្តូរ) <span class="badge bg-success bg-opacity-10 text-success fs-9"><i class="fa-solid fa-infinity me-1"></i>មិនកំណត់ទំហំ</span></label>
+                            <input type="file" name="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx">
                         </div>
 
                         <div class="col-12">
@@ -1164,7 +1194,19 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-sm btn-warning text-dark rounded-pill px-2.5 fw-bold d-none" id="modalTogglePdfGridBtn" onclick="toggleModalPdfGrid()" title="មើល Page នីមួយៗ & ជ្រើសរើស Save As File ថ្មី">
+                        <i class="fa-solid fa-table-cells-large me-1"></i> មើលតាម Page & បំបែក File
+                    </button>
+                    <a id="modalOpenInToolBtn" href="#" target="_blank" class="btn btn-sm btn-outline-warning rounded-pill px-2.5 text-warning d-none" title="បើកក្នុងឧបករណ៍បំបែកទំព័រ PDF ពេញលេញ">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> ផ្ទាំងបំបែកពេញលេញ
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-2.5" id="switchIframeBtn" onclick="toggleIframeViewer()" title="ប្តូររបៀបមើល (Native Browser Viewer)">
+                        <i class="fa-solid fa-window-maximize me-1"></i> Browser View
+                    </button>
+                    <a id="previewNewTabBtn" href="#" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> បើកផ្ទាំងថ្មី
+                    </a>
                     <a id="previewDownloadBtn" href="#" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-xs">
                         <i class="fa-solid fa-download me-1"></i> ទាញយក (Download)
                     </a>
@@ -1182,8 +1224,47 @@
                     <div class="text-white-50 fs-8 mt-1">សូមរង់ចាំបន្តិច ឯកសារនឹងបង្ហាញក្នុងផ្ទាំងនេះ</div>
                 </div>
 
+                <!-- PDF Pages Grid Extractor Container (Page-by-page grid with selection & extract) -->
+                <div id="modalPdfGridContainer" class="d-none w-100 h-100 flex-column bg-light" style="overflow-y: auto;">
+                    <!-- Mini Sticky Toolbar inside Modal -->
+                    <div class="bg-white border-bottom px-3 py-2 d-flex flex-wrap align-items-center justify-content-between gap-2 shadow-xs sticky-top">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fs-8 fw-bold text-dark"><i class="fa-solid fa-check-double text-primary me-1"></i> បានជ្រើសរើស៖</span>
+                            <span id="modalPdfSelectedBadge" class="badge bg-secondary rounded-pill px-2.5 py-1 fs-8">0 / 0</span>
+                            <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2.5" onclick="modalPdfViewer && modalPdfViewer.selectAll()">
+                                ជ្រើសទាំងអស់
+                            </button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2.5" onclick="modalPdfViewer && modalPdfViewer.deselectAll()">
+                                សម្អាត
+                            </button>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="input-group input-group-sm" style="width: 170px;">
+                                <input type="text" id="modalPdfRangeInput" class="form-control form-control-sm font-monospace" placeholder="ឧ. 1-3, 5">
+                                <button class="btn btn-outline-secondary" type="button" onclick="if(modalPdfViewer) modalPdfViewer.selectRange(document.getElementById('modalPdfRangeInput').value)">ជ្រើស</button>
+                            </div>
+                            <button type="button" id="modalPdfSaveBtn" class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-xs" disabled onclick="modalPdfViewer && modalPdfViewer.saveSelectedPages()">
+                                <i class="fa-solid fa-file-export me-1"></i> រក្សាទុកជា PDF ថ្មី
+                            </button>
+                            <button type="button" id="modalPdfSaveEachBtn" class="btn btn-sm btn-outline-success rounded-pill px-2.5 fw-bold" disabled onclick="modalPdfViewer && modalPdfViewer.saveEachSelectedPageSeparately()" title="ទាញយកទំព័រនីមួយៗដាច់ដោយឡែក">
+                                <i class="fa-solid fa-boxes-stacked me-1"></i> រក្សាទុកទំព័រដាច់ៗ
+                            </button>
+                        </div>
+                    </div>
+                    <!-- The Grid Canvas Workspace -->
+                    <div id="modalPdfGridWorkspace" class="flex-grow-1 p-3"></div>
+                </div>
+
                 <!-- PDF Canvas Container -->
                 <div id="pdfCanvasContainer" class="d-none w-100 d-flex flex-column align-items-center py-3"></div>
+
+                <!-- Direct Browser Iframe PDF Viewer (Works on ALL PCs & Networks) -->
+                <div id="iframeViewerContainer" class="d-none w-100 h-100 flex-grow-1" style="min-height: 80vh;">
+                    <iframe id="docPreviewIframe" src="" class="w-100 h-100 border-0" style="min-height: 80vh; width: 100%;"></iframe>
+                </div>
+
+                <!-- DOCX Viewer Container -->
+                <div id="docxViewerContainer" class="d-none w-100 d-flex flex-column align-items-center py-4 px-3 overflow-auto"></div>
 
                 <!-- Image Viewer Container -->
                 <div id="imageViewerContainer" class="d-none w-100 h-100 d-flex align-items-center justify-content-center p-3">
@@ -1194,34 +1275,50 @@
                 <div id="unsupportedDocContainer" class="d-none text-center p-4 my-auto bg-white rounded-4 shadow-sm border" style="max-width: 450px;">
                     <i class="fa-solid fa-file-lines fa-3x text-primary mb-3 d-block"></i>
                     <h6 class="fw-bold text-dark mb-1" id="unsupportedDocTitle">ឯកសារភ្ជាប់</h6>
-                    <p class="text-muted small mb-3">ប្រភេទឯកសារនេះតម្រូវឱ្យទាញយកដើម្បីមើលលើកុំព្យូទ័រ</p>
-                    <a id="unsupportedDownloadBtn" href="#" class="btn btn-primary rounded-pill px-4 fw-bold">
-                        <i class="fa-solid fa-download me-1"></i> ទាញយកឯកសារនេះ
-                    </a>
+                    <p class="text-muted small mb-3">ប្រភេទឯកសារនេះតម្រូវឱ្យទាញយក ឬបើកក្នុងផ្ទាំងថ្មីដើម្បីមើល</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fw-bold" onclick="toggleIframeViewer()">
+                            <i class="fa-solid fa-window-maximize me-1"></i> បើកមើលតាម Browser
+                        </button>
+                        <a id="unsupportedNewTabBtn" href="#" target="_blank" class="btn btn-outline-primary rounded-pill px-3 fw-bold">
+                            <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> បើកផ្ទាំងថ្មី
+                        </a>
+                        <a id="unsupportedDownloadBtn" href="#" class="btn btn-primary rounded-pill px-4 fw-bold">
+                            <i class="fa-solid fa-download me-1"></i> ទាញយកឯកសារនេះ
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- PDF.js CDN for In-App Canvas PDF Viewer -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- PDF.js, PDF-Lib & Custom PDF Page Viewer for In-App Document Preview -->
+<script src="{% static 'dms/vendor/pdf.min.js' %}"></script>
+<script src="{% static 'dms/vendor/pdf-lib.min.js' %}"></script>
+<script src="{% static 'dms/js/pdf_page_viewer.js' %}"></script>
+<script src="{% static 'dms/vendor/mammoth.browser.min.js' %}"></script>
 <script>
 if (typeof pdfjsLib !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "{% static 'dms/vendor/pdf.worker.min.js' %}";
+} else {
+    const s1 = document.createElement('script');
+    s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s1.onload = () => {
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    };
+    document.head.appendChild(s1);
+}
+if (typeof mammoth === 'undefined') {
+    const s2 = document.createElement('script');
+    s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+    document.head.appendChild(s2);
 }
 
 function validateFileSize(input) {
-    if (input.files && input.files[0]) {
-        const file = input.files[0];
-        const maxSizeBytes = 2 * 1024 * 1024; // 2MB
-        if (file.size > maxSizeBytes) {
-            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            alert(`⚠️ ទំហំឯកសារ «${file.name}» គឺ ${fileSizeMB}MB ដែលលើសពីកម្រិតកំណត់ 2MB!\n\nសូមជ្រើសរើសឯកសារដែលមានទំហំត្រឹម 2MB ឬតូចជាងនេះ។`);
-            input.value = '';
-            return false;
-        }
-    }
+    // មិនកំណត់ទំហំ File ឯកសារយោង (Unlimited file size allowed)
     return true;
 }
 
@@ -1258,26 +1355,151 @@ let currentPdfDoc = null;
 let currentPdfPage = 1;
 let currentPdfScale = 1.25;
 
-async function previewOfficerAttachment(viewUrl, title, ext) {
+let currentActiveViewUrl = '';
+let currentPdfTitle = 'document.pdf';
+let currentAttachmentId = null;
+let modalPdfViewer = null;
+let modalGridMode = false;
+
+function toggleModalPdfGrid() {
+    const gridContainer = document.getElementById('modalPdfGridContainer');
+    const pdfCanvasContainer = document.getElementById('pdfCanvasContainer');
+    const iframeContainer = document.getElementById('iframeViewerContainer');
+    const pdfControls = document.getElementById('pdfControls');
+    const toggleBtn = document.getElementById('modalTogglePdfGridBtn');
+    const switchIframeBtn = document.getElementById('switchIframeBtn');
+
+    modalGridMode = !modalGridMode;
+
+    if (modalGridMode) {
+        if (pdfCanvasContainer) pdfCanvasContainer.classList.add('d-none');
+        if (iframeContainer) iframeContainer.classList.add('d-none');
+        if (pdfControls) pdfControls.classList.add('d-none');
+        if (switchIframeBtn) switchIframeBtn.classList.add('d-none');
+
+        gridContainer.classList.remove('d-none');
+        gridContainer.classList.add('d-flex');
+
+        toggleBtn.innerHTML = '<i class="fa-solid fa-file-pdf me-1"></i> មើលធម្មតា (Reader View)';
+        toggleBtn.className = 'btn btn-sm btn-outline-light rounded-pill px-2.5';
+
+        if (!modalPdfViewer) {
+            modalPdfViewer = new PdfPageViewer({
+                container: 'modalPdfGridWorkspace',
+                instanceName: 'modalPdfViewer',
+                badgeId: 'modalPdfSelectedBadge',
+                saveBtnId: 'modalPdfSaveBtn',
+                eachBtnId: 'modalPdfSaveEachBtn',
+                idPrefix: 'modalPdfPage',
+                officerId: '{{ officer.pk }}'
+            });
+        }
+        modalPdfViewer.load(currentActiveViewUrl, currentPdfTitle, '{{ officer.pk }}');
+    } else {
+        gridContainer.classList.add('d-none');
+        gridContainer.classList.remove('d-flex');
+        if (pdfCanvasContainer) pdfCanvasContainer.classList.remove('d-none');
+        if (pdfControls) pdfControls.classList.remove('d-none');
+        if (switchIframeBtn) switchIframeBtn.classList.remove('d-none');
+
+        toggleBtn.innerHTML = '<i class="fa-solid fa-table-cells-large me-1"></i> មើលតាម Page & បំបែក File';
+        toggleBtn.className = 'btn btn-sm btn-warning text-dark rounded-pill px-2.5 fw-bold';
+    }
+}
+
+function toggleIframeViewer() {
+    if (!currentActiveViewUrl) return;
+    const iframeContainer = document.getElementById('iframeViewerContainer');
+    const iframe = document.getElementById('docPreviewIframe');
+    const pdfContainer = document.getElementById('pdfCanvasContainer');
+    const pdfControls = document.getElementById('pdfControls');
+    const loader = document.getElementById('previewLoader');
+    const unsupported = document.getElementById('unsupportedDocContainer');
+    const btn = document.getElementById('switchIframeBtn');
+
+    if (loader) loader.classList.add('d-none');
+    if (unsupported) unsupported.classList.add('d-none');
+
+    if (iframeContainer && iframe) {
+        if (iframeContainer.classList.contains('d-none')) {
+            // Switch to Iframe
+            if (pdfContainer) pdfContainer.classList.add('d-none');
+            if (pdfControls) pdfControls.classList.add('d-none');
+            iframe.src = currentActiveViewUrl;
+            iframeContainer.classList.remove('d-none');
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-file-pdf me-1"></i> Canvas View';
+        } else {
+            // Switch back to Canvas if available
+            iframeContainer.classList.add('d-none');
+            if (pdfContainer) pdfContainer.classList.remove('d-none');
+            if (pdfControls) pdfControls.classList.remove('d-none');
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-window-maximize me-1"></i> Browser View';
+        }
+    }
+}
+
+async function previewOfficerAttachment(viewUrl, title, ext, attId = null) {
+    currentActiveViewUrl = viewUrl;
+    currentPdfTitle = title || 'document.pdf';
+    currentAttachmentId = attId;
+    modalGridMode = false;
+
     document.getElementById('previewModalTitle').innerText = title;
     const downloadUrl = viewUrl.replace('/view/', '/download/');
+    const newTabBtn = document.getElementById('previewNewTabBtn');
+    if (newTabBtn) newTabBtn.href = viewUrl;
     document.getElementById('previewDownloadBtn').href = downloadUrl;
-    document.getElementById('unsupportedDownloadBtn').href = downloadUrl;
-    document.getElementById('unsupportedDocTitle').innerText = title;
+    const unsuppDownload = document.getElementById('unsupportedDownloadBtn');
+    if (unsuppDownload) unsuppDownload.href = downloadUrl;
+    const unsuppNewTab = document.getElementById('unsupportedNewTabBtn');
+    if (unsuppNewTab) unsuppNewTab.href = viewUrl;
+    const unsuppTitle = document.getElementById('unsupportedDocTitle');
+    if (unsuppTitle) unsuppTitle.innerText = title;
 
     const loader = document.getElementById('previewLoader');
     const pdfControls = document.getElementById('pdfControls');
     const pdfContainer = document.getElementById('pdfCanvasContainer');
+    const iframeContainer = document.getElementById('iframeViewerContainer');
+    const iframe = document.getElementById('docPreviewIframe');
+    const docxContainer = document.getElementById('docxViewerContainer');
     const imgContainer = document.getElementById('imageViewerContainer');
     const img = document.getElementById('docPreviewImg');
     const unsupported = document.getElementById('unsupportedDocContainer');
+    const switchBtn = document.getElementById('switchIframeBtn');
+    const gridContainer = document.getElementById('modalPdfGridContainer');
+    const modalToggleBtn = document.getElementById('modalTogglePdfGridBtn');
+    const modalToolBtn = document.getElementById('modalOpenInToolBtn');
 
     loader.classList.remove('d-none');
-    pdfControls.classList.add('d-none');
-    pdfContainer.classList.add('d-none');
-    pdfContainer.innerHTML = '';
-    imgContainer.classList.add('d-none');
-    unsupported.classList.add('d-none');
+    if (pdfControls) pdfControls.classList.add('d-none');
+    if (pdfContainer) {
+        pdfContainer.classList.add('d-none');
+        pdfContainer.innerHTML = '';
+    }
+    if (gridContainer) {
+        gridContainer.classList.add('d-none');
+        gridContainer.classList.remove('d-flex');
+    }
+    if (modalToggleBtn) {
+        modalToggleBtn.classList.add('d-none');
+        modalToggleBtn.innerHTML = '<i class="fa-solid fa-table-cells-large me-1"></i> មើលតាម Page & បំបែក File';
+        modalToggleBtn.className = 'btn btn-sm btn-warning text-dark rounded-pill px-2.5 fw-bold';
+    }
+    if (modalToolBtn) modalToolBtn.classList.add('d-none');
+    if (iframeContainer) {
+        iframeContainer.classList.add('d-none');
+        if (iframe) iframe.src = 'about:blank';
+    }
+    if (docxContainer) {
+        docxContainer.classList.add('d-none');
+        docxContainer.innerHTML = '';
+    }
+    if (imgContainer) imgContainer.classList.add('d-none');
+    if (unsupported) unsupported.classList.add('d-none');
+    if (switchBtn) {
+        switchBtn.classList.add('d-none');
+        switchBtn.innerHTML = '<i class="fa-solid fa-window-maximize me-1"></i> Browser View';
+    }
 
     const modalEl = document.getElementById('officerDocPreviewModal');
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -1285,7 +1507,16 @@ async function previewOfficerAttachment(viewUrl, title, ext) {
 
     const fileExt = (ext || '').toLowerCase();
     const isImage = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].some(e => fileExt.endsWith(e) || viewUrl.toLowerCase().includes(e));
-    const isPdf = fileExt.endsWith('.pdf') || viewUrl.toLowerCase().includes('.pdf') || fileExt === 'pdf' || (!isImage && !fileExt.includes('.doc') && !fileExt.includes('.xls'));
+    const isDocx = fileExt.endsWith('.docx') || viewUrl.toLowerCase().includes('.docx');
+    const isPdf = fileExt.endsWith('.pdf') || viewUrl.toLowerCase().includes('.pdf') || fileExt === 'pdf' || (!isImage && !isDocx && !fileExt.includes('.doc') && !fileExt.includes('.xls'));
+
+    if (isPdf) {
+        if (modalToggleBtn) modalToggleBtn.classList.remove('d-none');
+        if (modalToolBtn) {
+            modalToolBtn.classList.remove('d-none');
+            modalToolBtn.href = attId ? `/tools/pdf-viewer/?att_id=${attId}` : '/tools/pdf-viewer/';
+        }
+    }
 
     if (isImage) {
         img.src = viewUrl;
@@ -1297,27 +1528,64 @@ async function previewOfficerAttachment(viewUrl, title, ext) {
             loader.classList.add('d-none');
             unsupported.classList.remove('d-none');
         };
-    } else if (isPdf) {
+    } else if (isDocx && docxContainer) {
         try {
-            // Fetch via JS fetch in memory -> completely bypasses IDM download popup!
             const res = await fetch(viewUrl, { credentials: 'same-origin' });
-            if (!res.ok) throw new Error("HTTP error " + res.status);
+            if (!res.ok) throw new Error("HTTP " + res.status);
             const arrayBuffer = await res.arrayBuffer();
-
-            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-            currentPdfDoc = await loadingTask.promise;
-            currentPdfPage = 1;
-            document.getElementById('pdfTotalPages').textContent = currentPdfDoc.numPages;
-
-            loader.classList.add('d-none');
-            pdfContainer.classList.remove('d-none');
-            pdfControls.classList.remove('d-none');
-
-            renderPdfPage(currentPdfPage);
+            if (typeof mammoth !== 'undefined') {
+                const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+                docxContainer.innerHTML = `<div class="bg-white p-4 p-md-5 rounded shadow-sm text-dark fs-7" style="max-width: 850px; min-height: 70vh; line-height: 1.7; word-break: break-word;">${result.value || '<p class="text-muted fst-italic">ឯកសារទទេ (Empty document)</p>'}</div>`;
+                loader.classList.add('d-none');
+                docxContainer.classList.remove('d-none');
+            } else {
+                throw new Error("Mammoth.js not loaded");
+            }
         } catch (err) {
-            console.error("PDF preview error:", err);
+            console.error("DOCX preview error:", err);
             loader.classList.add('d-none');
             unsupported.classList.remove('d-none');
+        }
+    } else if (isPdf) {
+        if (switchBtn) switchBtn.classList.remove('d-none');
+        let pdfRendered = false;
+
+        // Try Canvas rendering via PDF.js first
+        if (typeof pdfjsLib !== 'undefined') {
+            try {
+                const res = await fetch(viewUrl, { credentials: 'same-origin' });
+                if (!res.ok) throw new Error("HTTP error " + res.status);
+                const arrayBuffer = await res.arrayBuffer();
+
+                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                currentPdfDoc = await loadingTask.promise;
+                currentPdfPage = 1;
+                document.getElementById('pdfTotalPages').textContent = currentPdfDoc.numPages;
+
+                loader.classList.add('d-none');
+                pdfContainer.classList.remove('d-none');
+                if (pdfControls) pdfControls.classList.remove('d-none');
+
+                await renderPdfPage(currentPdfPage);
+                pdfRendered = true;
+            } catch (err) {
+                console.warn("PDF.js Canvas error (will fallback to browser iframe):", err);
+            }
+        }
+
+        // If PDF.js failed or unavailable, fallback seamlessly to Native Browser Iframe (Works 100% on every PC!)
+        if (!pdfRendered) {
+            if (iframe && iframeContainer) {
+                loader.classList.add('d-none');
+                if (pdfControls) pdfControls.classList.add('d-none');
+                if (pdfContainer) pdfContainer.classList.add('d-none');
+                iframe.src = viewUrl;
+                iframeContainer.classList.remove('d-none');
+                if (switchBtn) switchBtn.classList.add('d-none');
+            } else {
+                loader.classList.add('d-none');
+                unsupported.classList.remove('d-none');
+            }
         }
     } else {
         loader.classList.add('d-none');

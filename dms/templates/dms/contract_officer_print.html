@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Kantumruy+Pro:wght@400;600;700&family=Siemreap&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260923_0935_antigroup">
+    <link rel="stylesheet" href="/static/dms/css/table_customizer.css?v=20260923_0935_antigroup">
     <style>
         @font-face {
             font-family: 'Khmer OS Battambang';
@@ -220,35 +220,43 @@
             right: 20px;
             z-index: 9999;
             display: flex;
-            gap: 10px;
-            background: rgba(255,255,255,0.95);
-            padding: 10px 16px;
-            border-radius: 50px;
+            align-items: center;
+            gap: 6px;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 6px 10px;
+            border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.25);
             backdrop-filter: blur(5px);
         }
         .btn-print {
-            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            background: #16a34a;
             color: #fff;
             border: none;
-            padding: 8px 20px;
-            border-radius: 25px;
-            font-weight: bold;
-            font-size: 13px;
+            padding: 4px 10px;
+            height: 30px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 11.5px;
             cursor: pointer;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
+            white-space: nowrap;
             box-shadow: 0 2px 6px rgba(22,163,74,0.3);
         }
         .btn-close-win {
-            background: #fff;
-            color: #475569;
-            border: 1px solid #cbd5e1;
-            padding: 8px 16px;
-            border-radius: 25px;
-            font-size: 13px;
+            background: #475569;
+            color: #fff;
+            border: none;
+            padding: 4px 10px;
+            height: 30px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            font-weight: 600;
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
         }
 
         @media print {
@@ -421,6 +429,6 @@
         </div>
     </div>
 
-    <script src="/static/dms/js/sig_draggable.js"></script>
+    <script src="/static/dms/js/sig_draggable.js?v=20260923_0935_antigroup"></script>
 </body>
 </html>

@@ -14,6 +14,10 @@ powershell -NoProfile -Command ^
     "$startupFolder = [Environment]::GetFolderPath('Startup'); " ^
     "$shortcut1 = $startupFolder + '\DMS_AutoStart.lnk'; " ^
     "if (Test-Path $shortcut1) { Remove-Item $shortcut1 -Force; Write-Host '[OK] បានលុប Shortcut ពី Startup Folder រួចរាល់។' } else { Write-Host '[INFO] គ្មាន Shortcut ក្នុង Startup Folder ឡើយ។' }; " ^
+    "$allStartup = [Environment]::GetFolderPath('CommonStartup'); " ^
+    "Remove-Item -Path \"$allStartup\DMS_AutoStart.lnk\" -Force -ErrorAction SilentlyContinue; " ^
+    "Unregister-ScheduledTask -TaskName 'DMS_Boot_Server' -Confirm:$false -ErrorAction SilentlyContinue; " ^
+    "Write-Host '[OK] បានលុប Task Scheduler DMS_Boot_Server រួចរាល់។'; " ^
     "$desktopFolder = [Environment]::GetFolderPath('Desktop'); " ^
     "$shortcut2 = $desktopFolder + '\DMS System (Local Server).lnk'; " ^
     "if (Test-Path $shortcut2) { Remove-Item $shortcut2 -Force; Write-Host '[OK] បានលុប Shortcut ពី Desktop រួចរាល់។' }"

@@ -6,7 +6,8 @@
     <title>បញ្ជីរាយនាមមន្ត្រីរាជការត្រូវដល់អាយុចូលនិវត្តន៍{% if selected_year %} ឆ្នាំ {{ selected_year_kh }}{% endif %} - A4 Landscape Preview</title>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260908_1445">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260923_0935_antigroup">
+    <link rel="stylesheet" href="/static/dms/css/table_customizer.css?v=20260923_0935_antigroup">
     <style>
         * {
             box-sizing: border-box;
@@ -74,10 +75,10 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 14px;
-            font-size: 12.5px;
+            padding: 4px 10px; height: 30px;
+            font-size: 11.5px;
             font-weight: 600;
-            border-radius: 50px;
+            border-radius: 6px;
             border: none;
             cursor: pointer;
             text-decoration: none;
@@ -130,7 +131,7 @@
             width: 297mm;
             min-height: 210mm;
             background: #ffffff;
-            padding: 8mm 10mm 12mm 10mm;
+            padding: 6mm 10mm 14mm 10mm !important;
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
             border-radius: 4px;
             box-sizing: border-box;
@@ -142,6 +143,7 @@
 
         .page-content-wrapper {
             flex-grow: 1;
+            margin-bottom: 4mm;
         }
 
         @font-face {
@@ -342,7 +344,7 @@
         .page-footer-number {
             display: block;
             position: absolute;
-            bottom: 3mm;
+            bottom: 4mm !important;
             left: 0;
             right: 0;
             width: 100%;
@@ -478,6 +480,97 @@
             <a href="{% url 'officer_retirement' %}{% if selected_dept %}?department={{ selected_dept }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}" class="btn-action btn-back">
                 <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
             </a>
+
+            <!-- Row Height Customizer (Auto & Manual, Per-Page or Full) -->
+            <div class="toolbar-dropdown-container">
+                <button type="button" class="btn-action btn-row-height" id="btnRowHeightMenu" onclick="window.toggleRowHeightMenu(event)" title="កែសម្រួលកម្ពស់ជួរដេក (តាមទំព័រនីមួយៗ ឬគ្រប់ទំព័រ)">
+                    <i class="fa-solid fa-arrows-up-down"></i> <span>កម្ពស់ជួរ (Row)</span>
+                </button>
+                <div class="toolbar-dropdown-menu" id="rowHeightDropdown">
+                    <div class="dropdown-header">
+                        <i class="fa-solid fa-arrows-up-down"></i> កែសម្រួលកម្ពស់ជួរ (Row Height)
+                    </div>
+
+                    <!-- Target Scope Selector (Full or Per-Page) -->
+                    <div class="dropdown-section">
+                        <div style="font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 5px;">
+                            វិសាលភាពអនុវត្ត (Scope):
+                        </div>
+                        <div class="page-target-selector" id="pageTargetSelector">
+                            <button type="button" class="btn-target-opt active" id="btnScope_all" data-target="all" onclick="window.setRowHeightTarget('all')">
+                                <i class="fa-solid fa-globe"></i> គ្រប់ទំព័រ (Full)
+                            </button>
+                            {% for p in pages %}
+                            <button type="button" class="btn-target-opt" id="btnScope_{{ p.page_num }}" data-target="{{ p.page_num }}" onclick="window.setRowHeightTarget({{ p.page_num }})">
+                                <i class="fa-solid fa-file"></i> ទំព័រទី {{ p.page_num }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+
+                    <!-- Auto-Fit Button -->
+                    <div class="dropdown-section">
+                        <button type="button" class="dropdown-btn-item btn-auto-row" id="btnAutoFitDynamic" onclick="window.autoFitCurrentTarget()">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="autoFitBtnLabel">ស្វ័យប្រវត្តគ្រប់ទំព័រ (Auto-Fit Full)</span>
+                        </button>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+
+                    <!-- Slider & Controls -->
+                    <div class="dropdown-section">
+                        <div class="slider-label-row">
+                            <span id="sliderTargetLabel">កម្ពស់ (គ្រប់ទំព័រ):</span>
+                            <span id="rowHeightValBadge" class="val-badge">ស្តង់ដា (22.5px)</span>
+                        </div>
+                        <div class="slider-control-row">
+                            <button type="button" class="btn-mini" onclick="window.adjustRowHeightStep(-1)">-</button>
+                            <input type="range" id="rowHeightSlider" min="16" max="44" step="0.5" value="22.5" oninput="window.setCustomRowHeight(this.value)">
+                            <button type="button" class="btn-mini" onclick="window.adjustRowHeightStep(1)">+</button>
+                        </div>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+
+                    <!-- Presets -->
+                    <div class="dropdown-section presets-grid">
+                        <button type="button" class="btn-preset" onclick="window.setCustomRowHeight(22.5)">តូច (22.5px)</button>
+                        <button type="button" class="btn-preset active" onclick="window.setCustomRowHeight(32)">ស្តង់ដា (32px)</button>
+                        <button type="button" class="btn-preset" onclick="window.setCustomRowHeight(40)">ទូលាយ (40px)</button>
+                        <button type="button" class="btn-preset" onclick="window.resetRowHeight()">កម្ពស់ដើម</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column Width (w) Customizer -->
+            <div class="toolbar-dropdown-container">
+                <button type="button" class="btn-action btn-col-width" id="btnColWidthMenu" onclick="window.toggleColWidthMenu(event)" title="ទាញគែមក្រឡាខាងស្តាំលើក្បាលតារាងដើម្បីកែសម្រួលទទឹង (w)">
+                    <i class="fa-solid fa-table-columns"></i> <span>ទទឹងក្រឡា (w)</span>
+                </button>
+                <div class="toolbar-dropdown-menu" id="colWidthDropdown">
+                    <div class="dropdown-header">
+                        <i class="fa-solid fa-table-columns"></i> កែសម្រួលទទឹងក្រឡា (Column Width)
+                    </div>
+                    <div class="dropdown-section" style="font-size: 11.5px; color: #cbd5e1; line-height: 1.4;">
+                        <p style="margin: 0 0 6px 0;">💡 <strong>របៀបប្រើ</strong>៖ លោកអ្នកអាច<strong>ទាញបន្ទាត់គែមខាងស្តាំ</strong>នៃក្បាលតារាង (Header) នីមួយៗដើម្បីពង្រីក ឬបង្រួមទទឹងក្រឡា (w) តាមចិត្ត។</p>
+                        <p style="margin: 0 0 8px 0;">ចុច <strong>២ដង (Double-click)</strong> លើបន្ទាត់គែម ដើម្បីកំណត់ទទឹងក្រឡានោះទៅដើមវិញ។</p>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-section">
+                        <button type="button" class="dropdown-btn-item btn-reset-cols" onclick="window.resetAllColumnWidths()">
+                            <i class="fa-solid fa-arrows-rotate"></i> <span>កំណត់ទទឹងក្រឡាទាំងអស់ទៅដើមវិញ</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Continuation Header Toggle (Pages 2+) -->
+            <button type="button" class="btn-action btn-toggle-cont-header" id="btnToggleContHeader" onclick="window.toggleAllContinuationHeaders()" title="បង្ហាញ ឬលាក់ក្បាលទំព័របន្តសម្រាប់ទំព័រទី២ឡើងទៅ">
+                <i class="fa-solid fa-heading"></i> <span id="contHeaderBtnText">ក្បាលទំព័រ 2+: បង្ហាញ</span>
+            </button>
+
             <button type="button" class="btn-action btn-reset-sig" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម">
                 <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
             </button>
@@ -494,7 +587,33 @@
     <div class="pages-container">
         
         {% for page in pages %}
-        <div class="a4-page">
+        <!-- Per-Page Quick Action Bar (Screen Only) -->
+        <div class="page-quick-bar" data-page-num="{{ page.page_num }}">
+            <div class="page-quick-title">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>ទំព័រទី {{ page.page_num_kh }} (មាន {{ page.items|length }} ជួរ)</span>
+            </div>
+            <div class="page-quick-actions">
+                {% if not page.is_first %}
+                <button type="button" class="btn-quick-cont-header" id="btnPageContHeader_{{ page.page_num }}" onclick="window.toggleSinglePageContHeader({{ page.page_num }})" title="បង្ហាញ/លាក់ ក្បាលទំព័របន្តសម្រាប់ទំព័រទី {{ page.page_num }}">
+                    <i class="fa-solid fa-heading"></i> <span id="pageContHeaderLabel_{{ page.page_num }}">ក្បាលទំព័រ: បង្ហាញ</span>
+                </button>
+                {% endif %}
+                <button type="button" class="btn-quick-autofit" onclick="window.autoFitSinglePage({{ page.page_num }})" title="កែសម្រួលកម្ពស់ជួរស្វ័យប្រវត្តសម្រាប់តែទំព័រទី {{ page.page_num }}">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span>ស្វ័យប្រវត្តទំព័រនេះ</span>
+                </button>
+                <div class="quick-step-group">
+                    <span style="font-size: 11px; color: #94a3b8;">កម្ពស់:</span>
+                    <button type="button" class="btn-quick-step" onclick="window.adjustPageRowHeightStep({{ page.page_num }}, -1)">-</button>
+                    <span id="pageBadge_{{ page.page_num }}" class="quick-val-badge">28px</span>
+                    <button type="button" class="btn-quick-step" onclick="window.adjustPageRowHeightStep({{ page.page_num }}, 1)">+</button>
+                </div>
+                <button type="button" class="btn-quick-reset" onclick="window.resetSinglePageRowHeight({{ page.page_num }})" title="កំណត់ទំព័រទី {{ page.page_num }} ទៅស្តង់ដាដើមវិញ">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+            </div>
+        </div>
+        <div class="a4-page" id="a4_page_{{ page.page_num }}" data-page-num="{{ page.page_num }}">
             <div class="page-content-wrapper">
                 
                 {% if page.is_first %}
@@ -540,7 +659,7 @@
                 </div>
                 {% else %}
                 <!-- Continuation Header for subsequent pages -->
-                <div class="page-continuation-header">
+                <div class="page-continuation-header" id="contHeader_page_{{ page.page_num }}">
                     <span>បញ្ជីរាយនាមមន្ត្រីរាជការត្រូវដល់អាយុចូលនិវត្តន៍{% if selected_year %} ឆ្នាំ {{ selected_year_kh }}{% endif %} - មន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន (បន្ត)</span>
                     <span>ទំព័រទី {{ page.page_num_kh }}/{{ page.total_pages_kh }}</span>
                 </div>
@@ -682,7 +801,6 @@
 
     </div>
 
-    <script src="/static/dms/js/sig_draggable.js?v=20260908_1445"></script>
     <script>
     function applyToolbarFilter() {
         const yearVal = document.getElementById('toolbarYearSelect').value;
@@ -712,5 +830,8 @@
         window.location.search = params.toString();
     }
     </script>
+    <script>window.DMS_CUSTOMIZER_KEY = 'retirement';</script>
+    <script src="/static/dms/js/sig_draggable.js?v=20260923_0935_antigroup"></script>
+    <script src="/static/dms/js/table_customizer.js?v=20260923_0935_antigroup"></script>
 </body>
 </html>

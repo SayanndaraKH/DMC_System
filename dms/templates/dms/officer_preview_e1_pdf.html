@@ -6,8 +6,13 @@
     <title>ទម្រង់ E-1 (បញ្ជូនទៅក្រសួង) - បញ្ជីរាយនាមមន្ត្រីរាជការ</title>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Khmer+OS+Battambang:wght@400;700&family=Khmer+OS+Muol+Light&family=Moul&family=Siemreap&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260908_1445">
+    <link rel="stylesheet" href="/static/dms/css/sig_draggable.css?v=20260923_0935_antigroup">
+    <link rel="stylesheet" href="/static/dms/css/table_customizer.css?v=20260923_0935_antigroup">
     <style>
+        @page {
+            size: A4 landscape;
+            margin: 0 !important;
+        }
         * {
             box-sizing: border-box;
         }
@@ -51,10 +56,10 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 16px;
-            font-size: 13px;
+            padding: 4px 10px; height: 30px;
+            font-size: 11.5px;
             font-weight: 600;
-            border-radius: 50px;
+            border-radius: 6px;
             border: none;
             cursor: pointer;
             text-decoration: none;
@@ -99,7 +104,7 @@
             height: 210mm;
             max-height: 210mm;
             background: #ffffff;
-            padding: 4mm 5mm 4mm 5mm !important;
+            padding: 4mm 6mm 14mm 6mm !important;
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
             border-radius: 4px;
             box-sizing: border-box;
@@ -112,6 +117,7 @@
 
         .page-content-wrapper {
             flex-grow: 1;
+            margin-bottom: 4mm;
         }
 
         @font-face {
@@ -230,10 +236,11 @@
         .page-footer-number {
             display: block;
             position: absolute;
-            bottom: 3mm;
+            bottom: 4mm;
             left: 0;
             right: 0;
             width: 100%;
+            height: 18px;
             text-align: center;
             margin: 0;
             font-size: 8.5pt;
@@ -241,25 +248,25 @@
             font-family: 'Khmer OS Battambang', 'Battambang', Arial, sans-serif;
             font-weight: bold;
             pointer-events: none;
-            line-height: 1;
+            line-height: 18px;
             z-index: 99;
         }
 
         @media print {
             @page {
-                size: 297mm 210mm landscape;
-                margin: 4mm 5mm 4mm 5mm;
+                size: A4 landscape;
+                margin: 0 !important;
             }
             html, body {
-                background: #fff !important;
+                background: #ffffff !important;
                 padding: 0 !important;
                 margin: 0 !important;
-                width: 100% !important;
+                width: 297mm !important;
                 height: auto !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            .preview-toolbar {
+            .preview-toolbar, .page-quick-bar {
                 display: none !important;
             }
             .pages-container {
@@ -267,14 +274,15 @@
                 gap: 0 !important;
                 display: block !important;
                 margin: 0 !important;
+                width: 297mm !important;
             }
             .a4-page {
-                width: 100% !important;
-                height: 202mm !important;
-                max-height: 202mm !important;
-                min-height: 0 !important;
+                width: 297mm !important;
+                height: 210mm !important;
+                max-height: 210mm !important;
+                min-height: 210mm !important;
                 margin: 0 !important;
-                padding: 0 !important;
+                padding: 4mm 6mm 14mm 6mm !important;
                 box-shadow: none !important;
                 border: none !important;
                 border-radius: 0 !important;
@@ -288,15 +296,21 @@
                 flex-direction: column !important;
                 justify-content: flex-start !important;
                 position: relative !important;
+                box-sizing: border-box !important;
             }
             .a4-page:last-child {
                 page-break-after: auto !important;
                 break-after: auto !important;
             }
+            .page-content-wrapper {
+                flex-grow: 1 !important;
+                margin-bottom: 6mm !important;
+            }
             table.e1-table {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
                 margin-bottom: 0 !important;
+                width: 100% !important;
             }
             table.e1-table tr {
                 page-break-inside: avoid !important;
@@ -304,16 +318,26 @@
             }
             table.e1-table thead th {
                 background-color: #eee !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             table.e1-table tr.dept-header-row td {
                 background-color: #f2f2f2 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             .page-footer-number {
-                bottom: 1.5mm !important;
+                position: absolute !important;
+                bottom: 3.5mm !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                text-align: center !important;
+                font-size: 8.5pt !important;
+                line-height: 18px !important;
+                height: 18px !important;
+                color: #000000 !important;
+                z-index: 99 !important;
             }
         }
     </style>
@@ -331,6 +355,97 @@
             <a href="{% url 'officer_list' %}" class="btn-action btn-back">
                 <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
             </a>
+
+            <!-- Row Height Customizer (Auto & Manual, Per-Page or Full) -->
+            <div class="toolbar-dropdown-container">
+                <button type="button" class="btn-action btn-row-height" id="btnRowHeightMenu" onclick="window.toggleRowHeightMenu(event)" title="កែសម្រួលកម្ពស់ជួរដេក (តាមទំព័រនីមួយៗ ឬគ្រប់ទំព័រ)">
+                    <i class="fa-solid fa-arrows-up-down"></i> <span>កម្ពស់ជួរ (Row)</span>
+                </button>
+                <div class="toolbar-dropdown-menu" id="rowHeightDropdown">
+                    <div class="dropdown-header">
+                        <i class="fa-solid fa-arrows-up-down"></i> កែសម្រួលកម្ពស់ជួរ (Row Height)
+                    </div>
+
+                    <!-- Target Scope Selector (Full or Per-Page) -->
+                    <div class="dropdown-section">
+                        <div style="font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 5px;">
+                            វិសាលភាពអនុវត្ត (Scope):
+                        </div>
+                        <div class="page-target-selector" id="pageTargetSelector">
+                            <button type="button" class="btn-target-opt active" id="btnScope_all" data-target="all" onclick="window.setRowHeightTarget('all')">
+                                <i class="fa-solid fa-globe"></i> គ្រប់ទំព័រ (Full)
+                            </button>
+                            {% for p in pages %}
+                            <button type="button" class="btn-target-opt" id="btnScope_{{ p.page_num }}" data-target="{{ p.page_num }}" onclick="window.setRowHeightTarget({{ p.page_num }})">
+                                <i class="fa-solid fa-file"></i> ទំព័រទី {{ p.page_num }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+
+                    <!-- Auto-Fit Button -->
+                    <div class="dropdown-section">
+                        <button type="button" class="dropdown-btn-item btn-auto-row" id="btnAutoFitDynamic" onclick="window.autoFitCurrentTarget()">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="autoFitBtnLabel">ស្វ័យប្រវត្តគ្រប់ទំព័រ (Auto-Fit Full)</span>
+                        </button>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+
+                    <!-- Slider & Controls -->
+                    <div class="dropdown-section">
+                        <div class="slider-label-row">
+                            <span id="sliderTargetLabel">កម្ពស់ (គ្រប់ទំព័រ):</span>
+                            <span id="rowHeightValBadge" class="val-badge">ស្តង់ដា (22.5px)</span>
+                        </div>
+                        <div class="slider-control-row">
+                            <button type="button" class="btn-mini" onclick="window.adjustRowHeightStep(-1)">-</button>
+                            <input type="range" id="rowHeightSlider" min="16" max="38" step="0.5" value="22.5" oninput="window.setCustomRowHeight(this.value)">
+                            <button type="button" class="btn-mini" onclick="window.adjustRowHeightStep(1)">+</button>
+                        </div>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+
+                    <!-- Presets -->
+                    <div class="dropdown-section presets-grid">
+                        <button type="button" class="btn-preset" onclick="window.setCustomRowHeight(19)">តូច (19px)</button>
+                        <button type="button" class="btn-preset active" onclick="window.setCustomRowHeight(22.5)">ស្តង់ដា (22.5px)</button>
+                        <button type="button" class="btn-preset" onclick="window.setCustomRowHeight(26)">ទូលាយ (26px)</button>
+                        <button type="button" class="btn-preset" onclick="window.resetRowHeight()">កម្ពស់ដើម</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column Width (w) Customizer -->
+            <div class="toolbar-dropdown-container">
+                <button type="button" class="btn-action btn-col-width" id="btnColWidthMenu" onclick="window.toggleColWidthMenu(event)" title="ទាញគែមក្រឡាខាងស្តាំលើក្បាលតារាងដើម្បីកែសម្រួលទទឹង (w)">
+                    <i class="fa-solid fa-table-columns"></i> <span>ទទឹងក្រឡា (w)</span>
+                </button>
+                <div class="toolbar-dropdown-menu" id="colWidthDropdown">
+                    <div class="dropdown-header">
+                        <i class="fa-solid fa-table-columns"></i> កែសម្រួលទទឹងក្រឡា (Column Width)
+                    </div>
+                    <div class="dropdown-section" style="font-size: 11.5px; color: #cbd5e1; line-height: 1.4;">
+                        <p style="margin: 0 0 6px 0;">💡 <strong>របៀបប្រើ</strong>៖ លោកអ្នកអាច<strong>ទាញបន្ទាត់គែមខាងស្តាំ</strong>នៃក្បាលតារាង (Header) នីមួយៗដើម្បីពង្រីក ឬបង្រួមទទឹងក្រឡា (w) តាមចិត្ត។</p>
+                        <p style="margin: 0 0 8px 0;">ចុច <strong>២ដង (Double-click)</strong> លើបន្ទាត់គែម ដើម្បីកំណត់ទទឹងក្រឡានោះទៅដើមវិញ។</p>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-section">
+                        <button type="button" class="dropdown-btn-item btn-reset-cols" onclick="window.resetAllColumnWidths()">
+                            <i class="fa-solid fa-arrows-rotate"></i> <span>កំណត់ទទឹងក្រឡាទាំងអស់ទៅដើមវិញ</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Continuation Header Toggle (Pages 2+) -->
+            <button type="button" class="btn-action btn-toggle-cont-header" id="btnToggleContHeader" onclick="window.toggleAllContinuationHeaders()" title="បង្ហាញ ឬលាក់ក្បាលទំព័របន្តសម្រាប់ទំព័រទី២ឡើងទៅ">
+                <i class="fa-solid fa-heading"></i> <span id="contHeaderBtnText">ក្បាលទំព័រ 2+: បង្ហាញ</span>
+            </button>
+
             <button type="button" class="btn-action btn-reset-sig" onclick="window.resetAllDraggables()" title="កំណត់ទីតាំងក្បាលលិខិត និងហត្ថលេខាដើម (ឬចុច ២ដងលើប្លុកដែលបានរំកិល)">
                 <i class="fa-solid fa-arrows-rotate"></i> កំណត់ទីតាំងដើម
             </button>
@@ -347,7 +462,33 @@
     <div class="pages-container">
         
         {% for page in pages %}
-        <div class="a4-page">
+        <!-- Per-Page Quick Action Bar (Screen Only) -->
+        <div class="page-quick-bar" data-page-num="{{ page.page_num }}">
+            <div class="page-quick-title">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>ទំព័រទី {{ page.page_num }} (មាន {{ page.items|length }} ជួរ)</span>
+            </div>
+            <div class="page-quick-actions">
+                {% if not page.is_first %}
+                <button type="button" class="btn-quick-cont-header" id="btnPageContHeader_{{ page.page_num }}" onclick="window.toggleSinglePageContHeader({{ page.page_num }})" title="បង្ហាញ/លាក់ ក្បាលទំព័របន្តសម្រាប់ទំព័រទី {{ page.page_num }}">
+                    <i class="fa-solid fa-heading"></i> <span id="pageContHeaderLabel_{{ page.page_num }}">ក្បាលទំព័រ: បង្ហាញ</span>
+                </button>
+                {% endif %}
+                <button type="button" class="btn-quick-autofit" onclick="window.autoFitSinglePage({{ page.page_num }})" title="កែសម្រួលកម្ពស់ជួរស្វ័យប្រវត្តសម្រាប់តែទំព័រទី {{ page.page_num }}">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span>ស្វ័យប្រវត្តទំព័រនេះ</span>
+                </button>
+                <div class="quick-step-group">
+                    <span style="font-size: 11px; color: #94a3b8;">កម្ពស់:</span>
+                    <button type="button" class="btn-quick-step" onclick="window.adjustPageRowHeightStep({{ page.page_num }}, -1)">-</button>
+                    <span id="pageBadge_{{ page.page_num }}" class="quick-val-badge">22.5px</span>
+                    <button type="button" class="btn-quick-step" onclick="window.adjustPageRowHeightStep({{ page.page_num }}, 1)">+</button>
+                </div>
+                <button type="button" class="btn-quick-reset" onclick="window.resetSinglePageRowHeight({{ page.page_num }})" title="កំណត់ទំព័រទី {{ page.page_num }} ទៅស្តង់ដាដើមវិញ">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+            </div>
+        </div>
+        <div class="a4-page" id="a4_page_{{ page.page_num }}" data-page-num="{{ page.page_num }}">
             <div class="page-content-wrapper">
                 
                 {% if page.is_first %}
@@ -365,7 +506,7 @@
                     </div>
                     <div class="doc-header-right header-draggable sig-draggable" style="text-align: center;">
                         <div class="muol-font" style="font-size: 10.5pt; color: #1e3a8a;">ព្រះរាជាណាចក្រកម្ពុជា</div>
-                        <div class="muol-font" style="font-size: 10.5pt; color: #1e3a8a; margin-top: 3px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                        <div class="muol-font" style="font-size: 10.5pt; color: #1e3a8a; margin-top: 2px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
                         <div style="text-align: center; margin-top: 2px;">
                             <img src="/static/dms/img/khmer_divider.png" alt="divider" style="height: 22px; width: auto; display: inline-block;">
                         </div>
@@ -379,7 +520,7 @@
                 </div>
                 {% else %}
                 <!-- Continuation Header for subsequent pages -->
-                <div class="page-continuation-header">
+                <div class="page-continuation-header" id="contHeader_page_{{ page.page_num }}">
                     {% if is_specialized and selected_department %}
                     <span>បញ្ជីរាយនាមមន្ត្រីរាជការ - {{ selected_department.name_kh }} (តចប់/បន្ត)</span>
                     {% else %}
@@ -434,45 +575,58 @@
                 </table>
 
                 {% if page.is_last %}
-                <!-- Bottom Summary & Signatures Section (Matching Image 2 Layout) -->
-                <div class="e1-bottom-section" style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 16px; page-break-inside: avoid;">
+                <!-- Bottom Summary & 3 Signatures Section (ដូចទម្រង់ស្ថានភាពមន្ត្រី) -->
+                <div class="e1-bottom-section" style="margin-top: 6px; page-break-inside: avoid;">
                     
-                    <!-- Left & Approval Grouped Closely Together -->
-                    <div style="display: flex; gap: 35px; align-items: flex-start;">
-                        <!-- Left: Cadre & Staff Summary Stats -->
-                        <div style="line-height: 1.85; font-size: 9.5pt; white-space: nowrap;">
-                            <div>សរុបរួម៖ ...{{ cadre_stats.total }}..នាក់ , ស្រី...{{ cadre_stats.female_total }}..នាក់</div>
-                            <div style="padding-left: 20px;">ក្របខ័ណ្ឌ ក...{{ cadre_stats.cadre_a_total }}..នាក់ , ស្រី...{{ cadre_stats.cadre_a_female }}..នាក់</div>
-                            <div style="padding-left: 20px;">ក្របខ័ណ្ឌ ខ...{{ cadre_stats.cadre_b_total }}..នាក់ , ស្រី...{{ cadre_stats.cadre_b_female }}..នាក់</div>
-                            <div style="padding-left: 20px;">ក្របខ័ណ្ឌ គ...{{ cadre_stats.cadre_c_total }}..នាក់ , ស្រី...{{ cadre_stats.cadre_c_female }}..នាក់</div>
-                        </div>
+                    <!-- Top Part: Cadre & Staff Summary Stats (Left) -->
+                    <div style="line-height: 1.45; font-size: 8.5pt; margin-bottom: 4px; color: #111;">
+                        <div>សរុបរួម៖ ...{{ cadre_stats.total }}..នាក់ , ស្រី...{{ cadre_stats.female_total }}..នាក់</div>
+                        <div style="padding-left: 20px;">ក្របខ័ណ្ឌ ក...{{ cadre_stats.cadre_a_total }}..នាក់ , ស្រី...{{ cadre_stats.cadre_a_female }}..នាក់</div>
+                        <div style="padding-left: 20px;">ក្របខ័ណ្ឌ ខ...{{ cadre_stats.cadre_b_total }}..នាក់ , ស្រី...{{ cadre_stats.cadre_b_female }}..នាក់</div>
+                        <div style="padding-left: 20px;">ក្របខ័ណ្ឌ គ...{{ cadre_stats.cadre_c_total }}..នាក់ , ស្រី...{{ cadre_stats.cadre_c_female }}..នាក់</div>
+                    </div>
 
-                        <!-- Center: Approval (Dropped down slightly below Stats) -->
-                        <div class="sig-draggable" style="text-align: center; line-height: 1.8; padding-top: 65px; min-width: 180px;">
-                            <div class="muol-font" style="font-size: 10pt; color: #111;">បានឃើញ និងឯកភាព</div>
-                            <div class="muol-font" style="font-size: 10pt; margin-top: 4px; color: #111;">
+                    <!-- 3-Column Formal Signatures Grid (ឆ្វេង: ប្រធានមន្ទីរ, កណ្តាល: ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក, ស្តាំ: មន្ត្រីទទួលបន្ទុក) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: start; margin-top: 2px;">
+                        
+                        <!-- Column 1 (Left - ឆ្វេង): ប្រធានមន្ទីរ -->
+                        <div class="sig-draggable" style="text-align: center; line-height: 1.4; font-size: 8.5pt;">
+                            <div style="height: 38px;"></div>
+                            <div class="muol-font" style="font-size: 9pt; color: #111;">បានឃើញ និងឯកភាព</div>
+                            <div class="muol-font" style="font-size: 9pt; margin-top: 3px; color: #111;">
                                 {% if is_specialized and selected_department %}
                                 {{ office_head_title }}
                                 {% else %}
-                                ប្រធាន
+                                ប្រធានមន្ទីរ
                                 {% endif %}
                             </div>
-                            <div style="height: 50px;"></div>
+                            <div class="sig-space" style="height: 48px;"></div>
                         </div>
-                    </div>
 
-                    <!-- Right: Date & Signer Title -->
-                    <div class="sig-draggable" style="text-align: center; line-height: 1.85; font-size: 9.5pt; min-width: 280px;">
-                        <div>ថ្ងៃ..................... ខែ.................. {{ lunar_year_text }}</div>
-                        <div>ប៉ៃលិន, ថ្ងៃទី....... ខែ................ ឆ្នាំ{{ year_kh }}</div>
-                        <div class="muol-font" style="font-size: 10pt; margin-top: 4px; color: #111;">
-                            {% if is_specialized and selected_department %}
-                            {{ office_right_title|default:"អ្នកធ្វើតារាង" }}
-                            {% else %}
-                            ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក
-                            {% endif %}
+                        <!-- Column 2 (Center - កណ្តាល): ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក -->
+                        <div class="sig-draggable" style="text-align: center; line-height: 1.4; font-size: 8.5pt;">
+                            <div style="height: 20px;"></div>
+                            <div class="muol-font" style="font-size: 9pt; color: #111;">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
+                            <div class="muol-font" style="font-size: 9pt; margin-top: 3px; color: #111;">
+                                ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក
+                            </div>
+                            <div class="sig-space" style="height: 48px;"></div>
                         </div>
-                        <div style="height: 50px;"></div>
+
+                        <!-- Column 3 (Right - ស្តាំ): មន្ត្រីទទួលបន្ទុក (ចុះហត្ថលេខាមុនគេ ដូចទម្រង់ស្ថានភាពមន្ត្រី) -->
+                        <div class="sig-draggable" style="text-align: center; line-height: 1.4; font-size: 8.5pt;">
+                            <div>ថ្ងៃ..................... ខែ.................. {{ lunar_year_text }}</div>
+                            <div>ប៉ៃលិន, ថ្ងៃទី....... ខែ................ ឆ្នាំ{{ year_kh }}</div>
+                            <div class="muol-font" style="font-size: 9pt; margin-top: 3px; color: #111;">
+                                {% if is_specialized and selected_department %}
+                                {{ office_right_title|default:"អ្នកធ្វើតារាង" }}
+                                {% else %}
+                                មន្ត្រីទទួលបន្ទុក
+                                {% endif %}
+                            </div>
+                            <div class="sig-space" style="height: 48px;"></div>
+                        </div>
+
                     </div>
 
                 </div>
@@ -482,7 +636,7 @@
 
             <!-- Page Number on each distinct sheet (Only if more than 1 page) -->
             {% if pages|length > 1 %}
-            <div class="page-footer-number" style="position: absolute !important; bottom: 3mm !important; left: 0 !important; right: 0 !important; width: 100% !important; text-align: center !important; margin: 0 !important; padding: 0 !important; pointer-events: none !important; z-index: 99 !important;">
+            <div class="page-footer-number" style="position: absolute !important; bottom: 3.5mm !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 18px !important; line-height: 18px !important; text-align: center !important; margin: 0 !important; padding: 0 !important; pointer-events: none !important; z-index: 99 !important;">
                 - {{ page.page_num }} -
             </div>
             {% endif %}
@@ -491,6 +645,8 @@
 
     </div>
 
-    <script src="/static/dms/js/sig_draggable.js?v=20260908_1445"></script>
+    <script>window.DMS_CUSTOMIZER_KEY = 'e1';</script>
+    <script src="/static/dms/js/sig_draggable.js?v=20260930_parity_v5"></script>
+    <script src="/static/dms/js/table_customizer.js?v=20260930_parity_v5"></script>
 </body>
 </html>

@@ -61,6 +61,17 @@
                     </a>
                 </div>
 
+                <!-- 📄 ឧបករណ៍ PDF Studio (មើល & បំបែកទំព័រ) -->
+                <div class="nav-item my-1">
+                    <a href="{% url 'pdf_page_viewer' %}" class="nav-link {% if request.resolver_match.url_name == 'pdf_page_viewer' %}active{% endif %} d-flex align-items-center justify-content-between shadow-xs" style="{% if request.resolver_match.url_name != 'pdf_page_viewer' %}background: linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(185, 28, 28, 0.08) 100%); border: 1.5px solid rgba(239, 68, 68, 0.35); border-radius: 12px; margin: 4px 10px; padding: 9px 12px;{% endif %}">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-file-pdf text-danger fs-5"></i>
+                            <span class="fw-bold text-white">មើល & បំបែកទំព័រ PDF</span>
+                        </div>
+                        <span class="badge bg-danger text-white rounded-pill fs-9 px-2 py-0.5">ថ្មី</span>
+                    </a>
+                </div>
+
                 <!-- 📁 រដ្ឋបាល & លិខិតស្នាម -->
                 <div class="sidebar-section-header">
                     <i class="fa-solid fa-folder-tree me-1"></i> រដ្ឋបាល & លិខិតស្នាម
@@ -94,6 +105,10 @@
                             <a href="{% url 'document_list' %}" class="submenu-link {% if request.resolver_match.url_name in 'document_list,document_create,document_detail,document_edit' %}active{% endif %}">
                                 <i class="fa-solid fa-folder-open text-info"></i>
                                 <span>ឯកសារទាំងអស់ (All)</span>
+                            </a>
+                            <a href="{% url 'pdf_page_viewer' %}" class="submenu-link {% if request.resolver_match.url_name == 'pdf_page_viewer' %}active{% endif %}">
+                                <i class="fa-solid fa-file-pdf text-danger"></i>
+                                <span>មើល & បំបែកទំព័រ PDF</span>
                             </a>
                             {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_view_reports %}
                             <a href="{% url 'reports' %}" class="submenu-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
@@ -177,6 +192,10 @@
                             <a href="{% url 'officer_list' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_list,officer_detail,officer_edit,officer_print' %}active{% endif %}">
                                 <i class="fa-solid fa-id-card-clip text-info"></i>
                                 <span>បញ្ជីមន្ត្រី (Civil Servants)</span>
+                            </a>
+                            <a href="{% url 'pdf_page_viewer' %}" class="submenu-link {% if request.resolver_match.url_name == 'pdf_page_viewer' %}active{% endif %}">
+                                <i class="fa-solid fa-file-pdf text-danger"></i>
+                                <span>មើល & បំបែកទំព័រ PDF (ឯកសារយោង)</span>
                             </a>
                             <a href="{% url 'officer_status_report' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_status_report,officer_status_report_print' %}active{% endif %}">
                                 <i class="fa-solid fa-users-gear text-primary"></i>
@@ -504,6 +523,13 @@
                             {% endif %}
                         </div>
                     </div>
+
+                    <!-- 📄 ឧបករណ៍ PDF Studio Quick Access Button in Header -->
+                    <a href="{% url 'pdf_page_viewer' %}" class="btn btn-danger btn-sm rounded-pill px-3 py-1.5 shadow-sm d-flex align-items-center gap-1.5 text-white fw-bold" title="ឧបករណ៍មើលឃើញ Page នីមួយៗ & បំបែក File PDF ដោយសេរី">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span class="fs-8 d-none d-sm-inline">បំបែកទំព័រ PDF</span>
+                        <span class="badge bg-white text-danger rounded-pill fs-9 py-0 px-1.5 ms-0.5">ថ្មី</span>
+                    </a>
 
                     <!-- 💾 Backup & Sync Center Quick Access -->
                     <a href="{% url 'backup_sync_dashboard' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5 shadow-xs d-flex align-items-center gap-1.5" title="Backup & សមកាលកម្មទិន្នន័យ">

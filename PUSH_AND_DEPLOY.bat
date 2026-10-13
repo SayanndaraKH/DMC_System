@@ -1,9 +1,9 @@
 @echo off
-title DMC System - Push to GitHub & Deploy to Railway
+title DMC System - Push to GitHub & Deploy to Netlify
 color 0b
 
 echo =======================================================================
-echo          DMC SYSTEM - AUTO PUSH TO GITHUB & RAILWAY DEPLOY
+echo          DMC SYSTEM - AUTO PUSH TO GITHUB & NETLIFY DEPLOY
 echo =======================================================================
 echo.
 
@@ -65,8 +65,9 @@ if %ERRORLEVEL% EQU 0 (
     echo =======================================================================
     echo  [SUCCESS] Code pushed to GitHub successfully!
     echo.
-    echo  - GitHub Repo: https://github.com/SayanndaraKH/DMC_System
-    echo  - Railway Deploy: Railway is automatically deploying your latest update!
+    echo  - GitHub Repo:    https://github.com/SayanndaraKH/DMC_System
+    echo  - Netlify Deploy: https://app.netlify.com
+    echo  - Netlify is automatically deploying your latest update!
     echo.
     echo  [NOTE] Live database records entered via Web are 100%% SAFE and intact!
     echo =======================================================================

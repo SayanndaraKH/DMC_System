@@ -2412,14 +2412,46 @@ def officer_list(request):
     total_officers = queryset.count()
     male_count = queryset.filter(gender='MALE').count()
     female_count = queryset.filter(gender='FEMALE').count()
-    departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh') if is_admin_or_lead else (Department.objects.filter(id=dept.id) if dept else [])
+    departments = Department.objects.filter(is_active=True).filter(Q(officers__isnull=False) | Q(contract_officers__isnull=False)).distinct().order_by('order_index', 'name_kh') if is_admin_or_lead else (Department.objects.filter(id=dept.id) if dept else [])
 
     from .models import officer_sort_key
+    from collections import OrderedDict
     officers_list = list(queryset)
     officers_list.sort(key=officer_sort_key)
 
+    for idx, o in enumerate(officers_list, 1):
+        o.global_index = idx
+
+    # 🏢 Group officers by department with summary statistics (Total, Male, Female)
+    dept_groups_dict = OrderedDict()
+    for o in officers_list:
+        dept_obj = o.get_display_department or o.department
+        d_id = dept_obj.id if dept_obj else 0
+        if d_id not in dept_groups_dict:
+            d_name = dept_obj.name_kh if dept_obj else "មិនទាន់កំណត់ការិយាល័យ"
+            d_code = dept_obj.code if dept_obj else "NONE"
+            dept_groups_dict[d_id] = {
+                'id': d_id,
+                'name': d_name,
+                'code': d_code,
+                'department': dept_obj,
+                'officers': [],
+                'total_count': 0,
+                'male_count': 0,
+                'female_count': 0,
+            }
+        dept_groups_dict[d_id]['officers'].append(o)
+        dept_groups_dict[d_id]['total_count'] += 1
+        if o.gender == 'MALE':
+            dept_groups_dict[d_id]['male_count'] += 1
+        elif o.gender == 'FEMALE':
+            dept_groups_dict[d_id]['female_count'] += 1
+
+    department_groups = list(dept_groups_dict.values())
+
     context = {
         'officers': officers_list,
+        'department_groups': department_groups,
         'total_officers': total_officers,
         'male_count': male_count,
         'female_count': female_count,
@@ -2466,9 +2498,8 @@ def log_officer_action(request, officer, action_type, attachment_title="", categ
 def _handle_form_attachments(request, officer):
     """
     Saves uploaded reference documents submitted from each individual section (ក, ខ, ឃ, ច, ឆ, ជ, ផ្សេងៗ).
-    Enforces maximum file size of 2MB per attachment.
+    Allows uploading reference files without size restriction.
     """
-    MAX_OFFICER_ATTACHMENT_SIZE = 2 * 1024 * 1024  # 2MB
     categories = ['PERSONAL', 'FAMILY', 'EDUCATION', 'APPOINTMENT', 'PROMOTION', 'AWARD', 'OTHER']
     for cat in categories:
         files = request.FILES.getlist(f'ref_file_{cat}')
@@ -2478,11 +2509,6 @@ def _handle_form_attachments(request, officer):
         descs = request.POST.getlist(f'ref_desc_{cat}')
 
         for idx, f in enumerate(files):
-            if f.size > MAX_OFFICER_ATTACHMENT_SIZE:
-                file_size_mb = f.size / (1024 * 1024)
-                messages.warning(request, f"⚠️ File «{f.name}» មានទំហំ {file_size_mb:.2f}MB (លើសពី 2MB) មិនត្រូវបានរក្សាទុកឡើយ!")
-                continue
-
             title = titles[idx].strip() if idx < len(titles) and titles[idx].strip() else f.name
             doc_no = doc_nos[idx].strip() if idx < len(doc_nos) else ''
             issued_date = dates[idx].strip() if idx < len(dates) else ''
@@ -2780,6 +2806,16 @@ def officer_create(request):
             if 'photo' in request.FILES:
                 officer.photo = request.FILES['photo']
 
+            # Auto-detect highest degree from education_data
+            if officer.education_data:
+                officer.highest_degree = officer.computed_highest_degree
+            # Auto-detect current rank & step from promotion history
+            if officer.promotions_by_seniority or officer.promotions_by_degree:
+                latest_rk = officer.computed_current_rank_and_step
+                if latest_rk:
+                    officer.current_rank_and_step = latest_rk
+                    officer.framework_category = officer.computed_framework_category
+
             officer.save()
 
             # Process attached reference files from sections
@@ -2879,23 +2915,16 @@ def officer_import_docx(request):
 
             # Auto-detect highest degree
             edu_list = data.get('education_data', [])
+            classified_tiers = []
             for edu in edu_list:
-                deg = edu.get('degree', '') + ' ' + edu.get('level_label', '')
-                if any(kw in deg for kw in ['បណ្ឌិត', 'PhD', 'Doctor', 'បណ្ឌិតវិទ្យាសាស្ត្រ']):
-                    data['highest_degree'] = 'DOCTORATE'
-                    break
-                elif any(kw in deg for kw in ['អនុបណ្ឌិត', 'Master', 'MA', 'MS']):
-                    if data.get('highest_degree') != 'DOCTORATE':
-                        data['highest_degree'] = 'MASTER'
-                elif any(kw in deg for kw in ['បរិញ្ញាបត្រ', 'Bachelor', 'BA', 'BS', 'វិស្វករ', 'វេជ្ជបណ្ឌិត']):
-                    if data.get('highest_degree') not in ['DOCTORATE', 'MASTER']:
-                        data['highest_degree'] = 'BACHELOR'
-                elif any(kw in deg for kw in ['បរិញ្ញាបត្ររង', 'Associate', 'ជាន់ខ្ពស់']):
-                    if data.get('highest_degree') not in ['DOCTORATE', 'MASTER', 'BACHELOR']:
-                        data['highest_degree'] = 'ASSOCIATE'
-                elif any(kw in deg for kw in ['មធ្យមសិក្សាទុតិយភូមិ', 'បាក់ឌុប', 'ទុតិយភូមិ', 'High School']):
-                    if not data.get('highest_degree'):
-                        data['highest_degree'] = 'HIGHSCHOOL'
+                deg_raw = edu.get('degree', '')
+                lvl_raw = edu.get('level_label', '')
+                tier, label, code = _classify_edu_entry(deg_raw, lvl_raw)
+                if code:
+                    classified_tiers.append((tier, code))
+            if classified_tiers:
+                classified_tiers.sort(key=lambda x: x[0], reverse=True)
+                data['highest_degree'] = classified_tiers[0][1]
 
             target_dept_id = request.POST.get('department')
             target_dept = None
@@ -3476,6 +3505,19 @@ def officer_edit(request, pk):
             if 'photo' in request.FILES:
                 officer.photo = request.FILES['photo']
 
+            # Auto-detect highest degree from education_data
+            if officer.education_data:
+                officer.highest_degree = officer.computed_highest_degree
+            elif not officer.highest_degree:
+                officer.highest_degree = 'OTHER'
+
+            # Auto-detect current rank & step from promotion history
+            if officer.promotions_by_seniority or officer.promotions_by_degree:
+                latest_rk = officer.computed_current_rank_and_step
+                if latest_rk:
+                    officer.current_rank_and_step = latest_rk
+                    officer.framework_category = officer.computed_framework_category
+
             officer.save()
 
             # Automatic transfer history logging if department changed
@@ -3978,12 +4020,16 @@ def officer_attachment_add(request, pk):
     is_system_admin = check_is_system_admin(request.user, request)
 
     if not is_admin_or_lead and officer.department != dept and officer.user != request.user:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
+            return JsonResponse({'success': False, 'error': "⚠️ លោកអ្នកគ្មានសិទ្ធិបញ្ចូលឯកសារយោងសម្រាប់មន្ត្រីនេះឡើយ!"}, status=403)
         messages.error(request, "⚠️ លោកអ្នកគ្មានសិទ្ធិបញ្ចូលឯកសារយោងសម្រាប់មន្ត្រីនេះឡើយ!")
         return redirect('officer_detail', pk=pk)
 
     # Edit window check for non-admin users
     edit_window = OfficerEditWindowSetting.get_setting()
     if not is_system_admin and not edit_window.is_open_for_department(officer.department or dept):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
+            return JsonResponse({'success': False, 'error': f"🔒 ប្រព័ន្ធត្រូវបានបិទមិនឱ្យបញ្ចូលឯកសារយោងឡើយ! ({edit_window.status_label_kh})"}, status=403)
         messages.warning(request, f"🔒 ប្រព័ន្ធត្រូវបានបិទមិនឱ្យបញ្ចូលឯកសារយោងឡើយ! ({edit_window.status_label_kh})")
         return redirect('officer_detail', pk=pk)
 
@@ -3995,15 +4041,12 @@ def officer_attachment_add(request, pk):
         description = request.POST.get('description', '').strip()
         uploaded_file = request.FILES.get('file')
 
+        next_url = request.POST.get('next') or request.GET.get('next')
         if not uploaded_file:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
+                return JsonResponse({'success': False, 'error': "⚠️ សូមជ្រើសរើស File ឯកសារយោងដើម្បីបញ្ចូល!"}, status=400)
             messages.error(request, "⚠️ សូមជ្រើសរើស File ឯកសារយោងដើម្បីបញ្ចូល!")
-            return redirect('officer_detail', pk=pk)
-
-        # 2MB maximum limit check
-        if uploaded_file.size > 2 * 1024 * 1024:
-            file_size_mb = uploaded_file.size / (1024 * 1024)
-            messages.error(request, f"⚠️ ទំហំ File «{uploaded_file.name}» គឺ {file_size_mb:.2f}MB ដែលលើសពី 2MB! ប្រព័ន្ធអនុញ្ញាតទំហំអតិបរមាត្រឹម 2MB ប៉ុណ្ណោះ។")
-            return redirect('officer_detail', pk=pk)
+            return redirect(next_url) if next_url else redirect('officer_detail', pk=pk)
 
         if not title:
             title = uploaded_file.name
@@ -4030,8 +4073,15 @@ def officer_attachment_add(request, pk):
         )
 
         messages.success(request, f"✅ បានបញ្ចូលឯកសារយោង «{att.title}» ដោយជោគជ័យ!")
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
+            return JsonResponse({'success': True, 'id': att.pk, 'title': att.title, 'message': f"បានបញ្ចូលឯកសារយោង «{att.title}» ដោយជោគជ័យ!"})
+        if next_url:
+            return redirect(next_url)
         return redirect('officer_detail', pk=pk)
 
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect('officer_detail', pk=pk)
 
 
@@ -4045,15 +4095,17 @@ def officer_attachment_edit(request, pk, attachment_id):
     is_admin_or_lead = has_global_access
     is_system_admin = check_is_system_admin(request.user, request)
 
+    next_url = request.POST.get('next') or request.GET.get('next')
+
     if not is_admin_or_lead and officer.department != dept and officer.user != request.user:
         messages.error(request, "⚠️ លោកអ្នកគ្មានសិទ្ធិកែប្រែឯកសារយោងនេះឡើយ!")
-        return redirect('officer_detail', pk=pk)
+        return redirect(next_url) if next_url else redirect('officer_detail', pk=pk)
 
     # Edit window check for non-admin users
     edit_window = OfficerEditWindowSetting.get_setting()
     if not is_system_admin and not edit_window.is_open_for_department(officer.department or dept):
         messages.warning(request, f"🔒 ប្រព័ន្ធត្រូវបានបិទមិនឱ្យកែប្រែឯកសារយោងឡើយ! ({edit_window.status_label_kh})")
-        return redirect('officer_detail', pk=pk)
+        return redirect(next_url) if next_url else redirect('officer_detail', pk=pk)
 
     if request.method == 'POST':
         old_title = att.title
@@ -4067,12 +4119,6 @@ def officer_attachment_edit(request, pk, attachment_id):
         replaced_file = False
         if 'file' in request.FILES and request.FILES['file']:
             new_file = request.FILES['file']
-            # 2MB maximum limit check
-            if new_file.size > 2 * 1024 * 1024:
-                file_size_mb = new_file.size / (1024 * 1024)
-                messages.error(request, f"⚠️ ទំហំ File ថ្មី «{new_file.name}» គឺ {file_size_mb:.2f}MB ដែលលើសពី 2MB! ប្រព័ន្ធអនុញ្ញាតទំហំអតិបរមាត្រឹម 2MB ប៉ុណ្ណោះ។")
-                return redirect('officer_detail', pk=pk)
-
             att.file = new_file
             att.file_size = new_file.size
             replaced_file = True
@@ -4095,8 +4141,12 @@ def officer_attachment_edit(request, pk, attachment_id):
         )
 
         messages.success(request, f"✅ បានកែប្រែ និងរក្សាទុកឯកសារយោង «{att.title}» ដោយជោគជ័យ!")
+        if next_url:
+            return redirect(next_url)
         return redirect('officer_detail', pk=pk)
 
+    if next_url:
+        return redirect(next_url)
     return redirect('officer_detail', pk=pk)
 
 
@@ -4110,15 +4160,21 @@ def officer_attachment_delete(request, pk, attachment_id):
     is_admin_or_lead = has_global_access
     is_system_admin = check_is_system_admin(request.user, request)
 
+    next_url = request.POST.get('next') or request.GET.get('next')
+
     if not is_admin_or_lead and officer.department != dept and officer.user != request.user:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
+            return JsonResponse({'success': False, 'error': "⚠️ លោកអ្នកគ្មានសិទ្ធិលុបឯកសារយោងនេះឡើយ!"}, status=403)
         messages.error(request, "⚠️ លោកអ្នកគ្មានសិទ្ធិលុបឯកសារយោងនេះឡើយ!")
-        return redirect('officer_detail', pk=pk)
+        return redirect(next_url) if next_url else redirect('officer_detail', pk=pk)
 
     # Edit window check for non-admin users
     edit_window = OfficerEditWindowSetting.get_setting()
     if not is_system_admin and not edit_window.is_open_for_department(officer.department or dept):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
+            return JsonResponse({'success': False, 'error': f"🔒 ប្រព័ន្ធត្រូវបានបិទមិនឱ្យលុបឯកសារយោងឡើយ! ({edit_window.status_label_kh})"}, status=403)
         messages.warning(request, f"🔒 ប្រព័ន្ធត្រូវបានបិទមិនឱ្យលុបឯកសារយោងឡើយ! ({edit_window.status_label_kh})")
-        return redirect('officer_detail', pk=pk)
+        return redirect(next_url) if next_url else redirect('officer_detail', pk=pk)
 
     if request.method == 'POST':
         title = att.title
@@ -4126,6 +4182,14 @@ def officer_attachment_delete(request, pk, attachment_id):
         file_name = os.path.basename(att.file.name) if att.file else '-'
         doc_no = att.doc_number or '-'
         
+        # Safely remove physical file from disk
+        if att.file:
+            try:
+                if os.path.isfile(att.file.path):
+                    os.remove(att.file.path)
+            except Exception as e:
+                pass
+
         att.delete()
 
         log_officer_action(
@@ -4138,8 +4202,14 @@ def officer_attachment_delete(request, pk, attachment_id):
         )
 
         messages.success(request, f"🗑️ បានលុបឯកសារយោង «{title}» ដោយជោគជ័យ!")
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
+            return JsonResponse({'success': True, 'message': f"🗑️ បានលុបឯកសារយោង «{title}» ដោយជោគជ័យ!"})
+        if next_url:
+            return redirect(next_url)
         return redirect('officer_detail', pk=pk)
 
+    if next_url:
+        return redirect(next_url)
     return redirect('officer_detail', pk=pk)
 
 
@@ -4581,44 +4651,151 @@ def _format_khmer_date_standard(val):
 
     return val_str
 
+def _parse_edu_year(val):
+    if not val:
+        return 0
+    import re
+    s = to_arabic_digits(str(val).strip())
+    m4 = re.findall(r'(?:19|20)\d{2}', s)
+    if m4:
+        return int(m4[-1])
+    m2 = re.findall(r'[\/\.\-](\d{2})(?:\b|$)', s)
+    if m2:
+        y = int(m2[-1])
+        return 1900 + y if y >= 50 else 2000 + y
+    m_any_2 = re.findall(r'\b(\d{2})\b', s)
+    if m_any_2:
+        y = int(m_any_2[-1])
+        if 10 <= y <= 99:
+            return 1900 + y if y >= 50 else 2000 + y
+    return 0
+
+
+def _classify_edu_entry(deg_str, lvl_str):
+    d = (str(deg_str or '') + ' ' + str(lvl_str or '')).lower().strip()
+    
+    # 1. Doctorate (Tier 60)
+    if any(k in d for k in ['បណ្ឌិត', 'doctor', 'phd']):
+        return 60, 'បណ្ឌិត', 'DOCTORATE'
+    
+    # 2. Master (Tier 50)
+    if any(k in d for k in ['បរិញ្ញាបត្រជាន់ខ្ពស់', 'បរិញ្ញា.ជាន់ខ្ពស់', 'បរិញ្ញាជាន់ខ្ពស់', 'បរិ.ជាន់ខ្ពស់', 'អនុបណ្ឌិត', 'master', 'ក្រោយឧត្តម', 'ក្រោយឧត្ដម']):
+        return 50, 'បរិញ្ញាបត្រជាន់ខ្ពស់', 'MASTER'
+    
+    # 3. Associate (Tier 30) - check before Bachelor because 'បរិញ្ញាបត្ររង' contains 'បរិញ្ញាបត្រ'
+    if any(k in d for k in ['បរិញ្ញាបត្ររង', 'បរិញ្ញាប័ត្ររង', 'បរិញ្ញបត្ររង', 'associate']):
+        return 30, 'បរិញ្ញាបត្ររង', 'ASSOCIATE'
+    
+    # 4. Bachelor (Tier 40)
+    if any(k in d for k in ['បរិញ្ញាបត្រ', 'បរិញ្ញាប័ត្រ', 'បរិញ្ញបត្រ', 'bachelor', 'វិស្វករ', 'វេជ្ជបណ្ឌិត', 'ថ្នាក់ឧត្តម']):
+        return 40, 'បរិញ្ញាបត្រ', 'BACHELOR'
+    
+    # 5. High School (Tier 20)
+    if any(k in d for k in ['ទុតិយភូមិ', 'បាក់ឌុប', 'បាកឌុប', 'មធ្យម.កំរិត២', 'មធ្យមសិក្សាទុតិយភូមិ', 'ធម្យមសិក្សាទុតិយភូមិ']):
+        return 20, 'ទុតិយភូមិ', 'HIGHSCHOOL'
+    
+    # 6. Lower Secondary (Tier 10)
+    if any(k in d for k in ['បឋមភូមិ', 'មធ្យមសិក្សាបឋមភូមិ', 'មធ្យម.កំរិត១', 'មធ្យមកំរិត១', 'ឌីប្លូម', 'មធ្យមសិក្សា', 'ថ្នាក់ទី៨', 'ថ្នាក់ទី ៧', 'ថ្នាក់ទី៧']):
+        return 10, 'បឋមភូមិ', 'SECONDARY'
+    
+    # 7. Certificates / Training (Tier 5)
+    if any(k in d for k in ['វិញ្ញាបនបត្រ', 'វិញ្ញាបនប័ត្រ', 'វិញ្ញបនបត្រ', 'វិញ្ញាប័នបត្រ', 'លិខិតបញ្ជាក់', 'លិខិតបញ្ចាក់', 'វគ្គខ្លី', 'វិក្រឹតការ', 'ics']):
+        return 5, 'វិញ្ញាបនបត្រផ្សេងៗ', 'OTHER'
+    
+    # 8. Primary (Tier 1)
+    if any(k in d for k in ['បឋមសិក្សា', 'បឋមសក្សា', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី ៤']):
+        return 1, 'បឋមសិក្សា', 'PRIMARY'
+        
+    return 0, '', ''
+
+
 def _extract_officer_degree_and_skill(o):
-    DEGREE_MAP = {
-        'DOCTOR': 'បណ្ឌិត',
+    """
+    ទាញយកកម្រិតសញ្ញាបត្រខ្ពស់បំផុត និងជំនាញឯកទេសចុងក្រោយបំផុត (ឆ្នាំចុងក្រោយ) របស់មន្ត្រី
+    ធានាថាសញ្ញាបត្រដែលខ្ពស់បំផុត និងជំនាញដែលឆ្លើយតបត្រូវគ្នាយ៉ាងត្រឹមត្រូវ។
+    """
+    edus = o.education_data if isinstance(o.education_data, list) else []
+    classified = []
+    
+    for idx, e in enumerate(edus):
+        if not isinstance(e, dict):
+            continue
+        deg_raw = e.get('degree', '')
+        lvl_raw = e.get('level_label', '')
+        sk_raw = (e.get('skill', '') or '').strip()
+        end_raw = e.get('end_date', '')
+        start_raw = e.get('start_date', '')
+        tier, label, code = _classify_edu_entry(deg_raw, lvl_raw)
+        yr = _parse_edu_year(end_raw) or _parse_edu_year(start_raw)
+        classified.append({
+            'tier': tier,
+            'label': label,
+            'code': code,
+            'year': yr,
+            'idx': idx,
+            'skill': sk_raw,
+        })
+
+    DB_TIER_MAP = {
+        'DOCTORATE': 60, 'DOCTOR': 60,
+        'MASTER': 50,
+        'BACHELOR': 40,
+        'ASSOCIATE': 30,
+        'HIGHSCHOOL': 20, 'HIGH_SCHOOL': 20,
+        'SECONDARY': 10,
+        'OTHER': 5,
+        'PRIMARY': 1,
+    }
+
+    DB_LABEL_MAP = {
+        'DOCTORATE': 'បណ្ឌិត', 'DOCTOR': 'បណ្ឌិត',
         'MASTER': 'បរិញ្ញាបត្រជាន់ខ្ពស់',
         'BACHELOR': 'បរិញ្ញាបត្រ',
         'ASSOCIATE': 'បរិញ្ញាបត្ររង',
-        'HIGHSCHOOL': 'ទុតិយភូមិ',
-        'HIGH_SCHOOL': 'ទុតិយភូមិ',
+        'HIGHSCHOOL': 'ទុតិយភូមិ', 'HIGH_SCHOOL': 'ទុតិយភូមិ',
         'SECONDARY': 'បឋមភូមិ',
         'PRIMARY': 'បឋមសិក្សា',
-        'OTHER': 'វិញ្ញាបនបត្រ័ផ្សេងៗ',
-        'NONE': 'គ្មាន',
+        'OTHER': 'វិញ្ញាបនបត្រផ្សេងៗ',
     }
-    degree = DEGREE_MAP.get(o.highest_degree, o.highest_degree or '')
-    skill = ''
-    edu_list = o.education_data if isinstance(o.education_data, list) else []
+
+    db_tier = DB_TIER_MAP.get(o.highest_degree, 0)
+    db_label = DB_LABEL_MAP.get(o.highest_degree, '')
+    max_edu_tier = max((c['tier'] for c in classified), default=0)
+    target_tier = max_edu_tier if classified else db_tier
     
-    for edu in edu_list:
-        if isinstance(edu, dict):
-            lvl = str(edu.get('level_type', '')).upper()
-            edu_deg = edu.get('degree', '') or edu.get('level_label', '')
-            edu_sk = edu.get('skill', '')
-            if lvl in ['VOCATIONAL', 'HIGHER', 'UNIVERSITY'] or 'បរិញ្ញា' in str(edu_deg) or 'បណ្ឌិត' in str(edu_deg):
-                if edu_sk and not skill:
-                    skill = edu_sk
-                if edu_deg and (not degree or degree in ['វិញ្ញាបនបត្រ័ផ្សេងៗ', 'ផ្សេងៗ', 'HIGHSCHOOL']):
-                    degree = edu_deg
-                    
-    if not skill:
-        for edu in edu_list:
-            if isinstance(edu, dict) and edu.get('skill'):
-                skill = edu.get('skill')
+    best_deg = ''
+    best_sk = ''
+    matching = [c for c in classified if c['tier'] == target_tier]
+    
+    if matching:
+        # Sort by year descending (latest year first), then idx ascending (first listed if same year)
+        matching.sort(key=lambda x: (-x['year'], x['idx']))
+        best_deg = matching[0]['label']
+        best_sk = matching[0]['skill']
+    elif db_label:
+        best_deg = db_label
+        
+    # If skill is empty on winning entry, search other entries in the same tier
+    if not best_sk:
+        for c in matching:
+            if c['skill']:
+                best_sk = c['skill']
                 break
                 
-    if not degree and edu_list and isinstance(edu_list[0], dict):
-        degree = edu_list[0].get('degree') or edu_list[0].get('level_label') or ''
-        
-    return degree or 'គ្មាន', skill or ''
+    # If still empty, search across all entries for a relevant specialized skill
+    if not best_sk:
+        sorted_all = sorted(classified, key=lambda x: (-x['tier'], -x['year'], x['idx']))
+        for c in sorted_all:
+            if c['skill'] and c['skill'] != 'ចំណេះដឹងទូទៅ':
+                best_sk = c['skill']
+                break
+        if not best_sk and sorted_all:
+            for c in sorted_all:
+                if c['skill']:
+                    best_sk = c['skill']
+                    break
+                    
+    return best_deg or db_label or 'គ្មាន', best_sk or ''
 
 def _extract_officer_promotion_info(o):
     prom_date = ''
@@ -4626,25 +4803,53 @@ def _extract_officer_promotion_info(o):
     deg_prom_date = ''
     deg_doc_no = ''
     
+    # 🎯 ថ្ងៃឡើងថ្នាក់ចុងក្រោយ គិតតែលើការដំឡើងតាមអតីតភាព/វេនជ្រើសរើសប៉ុណ្ណោះ (មិនរាប់ឡើងតាមសញ្ញាបត្រឡើយ)
     proms = o.promotions_by_seniority if isinstance(o.promotions_by_seniority, list) else []
-    if proms and isinstance(proms[0], dict):
-        p = proms[0]
-        p_raw = p.get('effective_date') or p.get('promo_date') or ''
+    best_p = None
+    best_p_date = None
+    for p in proms:
+        if isinstance(p, dict):
+            p_raw = p.get('effective_date') or p.get('promo_date') or ''
+            d = parse_date_flexible(p_raw)
+            if d and (best_p_date is None or d > best_p_date):
+                best_p_date = d
+                best_p = p
+                
+    if not best_p and proms and isinstance(proms[0], dict):
+        best_p = proms[0]
+
+    if best_p:
+        p_raw = best_p.get('effective_date') or best_p.get('promo_date') or ''
         prom_date = _format_khmer_date_standard(p_raw)
-        doc_no = p.get('doc_number') or p.get('legal_doc_number') or p.get('number') or ''
-        doc_type = p.get('doc_type') or p.get('legal_doc_type') or ''
+        doc_no = best_p.get('doc_number') or best_p.get('legal_doc_number') or best_p.get('number') or ''
+        doc_type = best_p.get('doc_type') or best_p.get('legal_doc_type') or ''
         if doc_no and doc_type:
             legal_doc = f'{doc_no} {doc_type}'
         elif doc_no:
             legal_doc = doc_no
         elif doc_type:
             legal_doc = doc_type
+    elif o.civil_service_permanent_date or o.civil_service_start_date:
+        # បើគ្មានប្រវត្តិឡើងថ្នាក់តាមអតីតភាព យកថ្ងៃតាំងស៊ប់ក្របខណ្ឌ
+        prom_date = _format_khmer_date_standard(o.civil_service_permanent_date or o.civil_service_start_date)
 
+    # ការឡើងថ្នាក់តាមសញ្ញាបត្រ (ដាច់ដោយឡែក)
     deg_proms = o.promotions_by_degree if isinstance(o.promotions_by_degree, list) else []
-    if deg_proms and isinstance(deg_proms[0], dict):
-        dp = deg_proms[0]
-        deg_prom_date = _format_khmer_date_standard(dp.get('effective_date') or dp.get('promo_date') or '')
-        deg_doc_no = dp.get('degree_number') or dp.get('doc_number') or dp.get('number') or ''
+    best_dp = None
+    best_dp_date = None
+    for dp in deg_proms:
+        if isinstance(dp, dict):
+            dp_raw = dp.get('effective_date') or dp.get('promo_date') or ''
+            d = parse_date_flexible(dp_raw)
+            if d and (best_dp_date is None or d > best_dp_date):
+                best_dp_date = d
+                best_dp = dp
+    if not best_dp and deg_proms and isinstance(deg_proms[0], dict):
+        best_dp = deg_proms[0]
+
+    if best_dp:
+        deg_prom_date = _format_khmer_date_standard(best_dp.get('effective_date') or best_dp.get('promo_date') or '')
+        deg_doc_no = best_dp.get('degree_number') or best_dp.get('doc_number') or best_dp.get('number') or ''
         
     return prom_date, legal_doc, deg_prom_date, deg_doc_no
 
@@ -5527,10 +5732,10 @@ def officer_export_excel(request):
     return response
 
 
-def _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=12, single_page_cap=12, min_last_page=3):
+def _paginate_preview_items(all_items, first_page_cap=21, mid_page_cap=26, last_page_cap=15, single_page_cap=13, min_last_page=3, add_continuation_headers=False):
     """
     រៀបចំទំព័រ A4 Landscape ដាច់ៗពីគ្នាសម្រាប់ PDF Preview
-    ធានាថាទំព័របន្តនីមួយៗផ្ទុកទិន្នន័យបានពេញទំព័រគៀកនឹងលេខទំព័រ មិនដាច់ពាក់កណ្តាលទំព័រចោលចន្លោះទទេឡើយ។
+    ធានាថាទិន្នន័យបង្ហាញបានច្រើនពេញទំព័រជិតដល់លេខទំព័រ និងមានគម្លាតសុវត្ថិភាពច្បាស់លាស់ពីបាតទំព័រ មិនជាន់លើលេខទំព័រឡើយ។
     """
     if not all_items:
         return [{
@@ -5557,10 +5762,10 @@ def _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_
     pages = []
     remaining = list(all_items)
 
-    # Page 1 (has full Header and Table Header) - Fill as much as possible down to footer
+    # Page 1 (has full Header and Table Header) - Fill as much as possible down to footer safely
     rem_count = len(remaining)
     if rem_count <= (first_page_cap + last_page_cap):
-        p1_take = min(first_page_cap, rem_count - min_last_page)
+        p1_take = min(first_page_cap, max(rem_count - min_last_page, 1))
     else:
         p1_take = first_page_cap
 
@@ -5579,22 +5784,31 @@ def _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_
     page_num = 2
     while remaining:
         rem_count = len(remaining)
-        if rem_count <= last_page_cap:
+        needs_continuation = add_continuation_headers and (not remaining[0].get('is_header'))
+        eff_mid_cap = (mid_page_cap - 1) if needs_continuation else mid_page_cap
+        eff_last_cap = (last_page_cap - 1) if needs_continuation else last_page_cap
+
+        if rem_count <= eff_last_cap:
             take = rem_count
             is_last = True
         else:
             is_last = False
-            # Fill the continuation page fully up to mid_page_cap close to page footer
-            take = min(mid_page_cap, rem_count - min_last_page)
+            take = min(eff_mid_cap, max(rem_count - min_last_page, 1))
 
         if not is_last and take < rem_count and remaining[take - 1].get('is_header'):
             take -= 1
+
+        chunk = list(remaining[:take])
+        if needs_continuation:
+            d_name = chunk[0].get('dept_name')
+            if d_name:
+                chunk.insert(0, {'is_header': True, 'title': f"{d_name} (បន្ត)"})
 
         pages.append({
             'page_num': page_num,
             'is_first': False,
             'is_last': is_last,
-            'items': remaining[:take],
+            'items': chunk,
         })
         remaining = remaining[take:]
         page_num += 1
@@ -5639,7 +5853,7 @@ def officer_preview_pdf_e1(request):
         office_head_title = _get_department_head_title(selected_dept)
         office_right_title = "អ្នកធ្វើតារាង"
     else:
-        office_head_title = "ប្រធាន"
+        office_head_title = "ប្រធានមន្ទីរ"
         office_right_title = "ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក"
 
     if search_q:
@@ -5709,15 +5923,15 @@ def officer_preview_pdf_e1(request):
         for idx, o in enumerate(off_list, 1):
             table_items.append({'is_header': False, 'officer': o, 'num': idx, 'dept_name': dept_name})
 
-    pages = _paginate_preview_items(table_items, first_page_cap=23, mid_page_cap=26, last_page_cap=12, single_page_cap=12, min_last_page=3)
-
-    # If subsequent page starts with an ongoing department, insert continuation header
-    if include_dept_headers:
-        for p in pages:
-            if not p['is_first'] and p['items'] and not p['items'][0].get('is_header'):
-                d_name = p['items'][0].get('dept_name')
-                if d_name:
-                    p['items'].insert(0, {'is_header': True, 'title': f"{d_name} (បន្ត)"})
+    pages = _paginate_preview_items(
+        table_items,
+        first_page_cap=21,
+        mid_page_cap=26,
+        last_page_cap=15,
+        single_page_cap=13,
+        min_last_page=3,
+        add_continuation_headers=include_dept_headers
+    )
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
@@ -5820,15 +6034,16 @@ def officer_preview_pdf_e2(request):
         o.e2_phone = _extract_single_phone_number(o.phone)
         o.e2_prom_date = prom_date
         o.e2_legal_doc = legal_doc
+        # ទិន្នន័យឡើងថ្នាក់តាមសញ្ញាបត្រ ថ្ងៃខែឆ្នាំ មិនបាច់បង្ហាញទេ លើ PDF តាមការស្នើសុំរបស់អ្នកប្រើប្រាស់
         o.e2_deg_prom_date = ''
-        o.e2_deg_doc_no = ''
+        o.e2_deg_doc_no = deg_doc_no
 
     # Build sequential items for E-2
     e2_items = []
     for idx, o in enumerate(officers_list, 1):
         e2_items.append({'officer': o, 'num': idx})
 
-    pages = _paginate_preview_items(e2_items, first_page_cap=24, mid_page_cap=27, last_page_cap=22, single_page_cap=13, min_last_page=3)
+    pages = _paginate_preview_items(e2_items, first_page_cap=19, mid_page_cap=21, last_page_cap=15, single_page_cap=12, min_last_page=3)
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
@@ -6475,9 +6690,10 @@ def process_officer_medals(officer, today=None):
     if today is None:
         today = datetime.date.today()
         
-    start_date = parse_date_flexible(officer.civil_service_start_date)
+    # 🎯 អតីតភាពការងាររបស់មន្ត្រី រាប់គិតចាប់ពីថ្ងៃតាំងស៊ប់ក្របខណ្ឌ (បើគ្មាន យកថ្ងៃចូលបម្រើការងារ)
+    start_date = parse_date_flexible(officer.civil_service_permanent_date)
     if not start_date:
-        start_date = parse_date_flexible(officer.civil_service_permanent_date)
+        start_date = parse_date_flexible(officer.civil_service_start_date)
 
     if not start_date:
         years_served = 0.0
@@ -6895,11 +7111,7 @@ def officer_promotion_request_create(request):
     )
 
     if 'attachment' in request.FILES and request.FILES['attachment']:
-        att_file = request.FILES['attachment']
-        if att_file.size > 5 * 1024 * 1024:
-            messages.error(request, "⚠️ ទំហំ File ឯកសារយោងលើសពី 5MB!")
-            return redirect('officer_promotion')
-        req_obj.attachment = att_file
+        req_obj.attachment = request.FILES['attachment']
 
     req_obj.save()
 
@@ -7324,11 +7536,7 @@ def officer_medal_request_create(request):
     )
 
     if 'attachment' in request.FILES and request.FILES['attachment']:
-        att_file = request.FILES['attachment']
-        if att_file.size > 5 * 1024 * 1024:
-            messages.error(request, "⚠️ ទំហំ File ឯកសារយោងលើសពី 5MB!")
-            return redirect('officer_medals')
-        req_obj.attachment = att_file
+        req_obj.attachment = request.FILES['attachment']
 
     req_obj.save()
 
@@ -7701,10 +7909,11 @@ def officer_promotion_master_export_excel(request):
 
     # Signature rows
     current_row += 2
-    ws.cell(row=current_row, column=2, value="អ្នករៀបចំតារាង").font = font_royal_muol
+    ws.cell(row=current_row, column=2, value="បានឃើញ និងឯកភាព\nប្រធានមន្ទីរ").font = font_royal_muol
+    ws.cell(row=current_row, column=2).alignment = align_center
     ws.cell(row=current_row, column=6, value="បានឃើញ និងពិនិត្យត្រឹមត្រូវ\nប្រធានការិយាល័យរដ្ឋបាល និងបុគ្គលិក").font = font_royal_muol
     ws.cell(row=current_row, column=6).alignment = align_center
-    ws.cell(row=current_row, column=12, value=f"ថ្ងៃ................... ខែ............. ឆ្នាំ{date.today().year}\nបានឃើញ និងឯកភាព\nប្រធានមន្ទីរ").font = font_royal_muol
+    ws.cell(row=current_row, column=12, value=f"ថ្ងៃ................... ខែ............. ឆ្នាំ{date.today().year}\nអ្នករៀបចំតារាង").font = font_royal_muol
     ws.cell(row=current_row, column=12).alignment = align_center
 
     # Column widths
@@ -8292,7 +8501,7 @@ def officer_medals_m0_print_view(request):
     officers_list.sort(key=officer_sort_key)
     
     all_items = _prepare_officer_medals_m0_items(officers_list)
-    pages = _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=12, single_page_cap=12)
+    pages = _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=28, last_page_cap=17, single_page_cap=15)
     
     dates_info = get_khmer_lunar_and_solar_date()
     total_count = len(officers_list)
@@ -8461,14 +8670,14 @@ def officer_medals_m0_export_excel(request):
         
     # Signatures
     current_row += 2
-    ws.cell(row=current_row, column=2, value="មន្ត្រីទទួលបន្ទុក").font = font_muol
+    ws.cell(row=current_row, column=2, value="បានឃើញ និងឯកភាព\nប្រធានមន្ទីរ").font = font_muol
     ws.cell(row=current_row, column=2).alignment = align_center
     
     ws.cell(row=current_row, column=5, value="បានឃើញ និងពិនិត្យត្រឹមត្រូវ\nប្រធានការិយាល័យរដ្ឋបាល និងបុគ្គលិក").font = font_muol
     ws.cell(row=current_row, column=5).alignment = align_center
     
     ws.merge_cells(start_row=current_row, start_column=7, end_row=current_row, end_column=8)
-    ws.cell(row=current_row, column=7, value=f"{dates_info['solar_date_handwritten_str']}\nបានឃើញ និងឯកភាព\nប្រធានមន្ទីរ").font = font_muol
+    ws.cell(row=current_row, column=7, value=f"{dates_info['solar_date_handwritten_str']}\nមន្ត្រីទទួលបន្ទុក").font = font_muol
     ws.cell(row=current_row, column=7).alignment = align_center
     
     col_widths = {'A': 6.5, 'B': 20.0, 'C': 7.0, 'D': 28.0, 'E': 30.0, 'F': 32.0, 'G': 28.0, 'H': 16.0}
@@ -8513,7 +8722,7 @@ def officer_medals_m1_print_view(request):
     qs = qs.order_by('department__order_index', 'officer__khmer_last_name', 'officer__khmer_first_name')
     
     all_items = _prepare_officer_medals_m1_items(qs)
-    pages = _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=26, last_page_cap=12, single_page_cap=12)
+    pages = _paginate_preview_items(all_items, first_page_cap=23, mid_page_cap=28, last_page_cap=17, single_page_cap=15)
     
     is_specialized = _is_specialized_department(selected_dept)
     office_head_title = _get_department_head_title(selected_dept) if is_specialized and selected_dept else "ប្រធានមន្ទីរ"
@@ -8678,22 +8887,22 @@ def officer_medals_m1_export_excel(request):
     
     if is_specialized and selected_dept:
         # 2-Tier Signature for Office level
-        ws.cell(row=current_row, column=2, value="អ្នកធ្វើតារាង").font = font_muol
+        ws.cell(row=current_row, column=2, value=f"បានឃើញ និងឯកភាព\n{office_head_title}").font = font_muol
         ws.cell(row=current_row, column=2).alignment = align_center
         
         ws.merge_cells(start_row=current_row, start_column=7, end_row=current_row, end_column=8)
-        ws.cell(row=current_row, column=7, value=f"{dates_info['solar_date_handwritten_str']}\nបានឃើញ និងឯកភាព\n{office_head_title}").font = font_muol
+        ws.cell(row=current_row, column=7, value=f"{dates_info['solar_date_handwritten_str']}\nអ្នកធ្វើតារាង").font = font_muol
         ws.cell(row=current_row, column=7).alignment = align_center
     else:
         # 3-Tier Signature for Department / Ministry level
-        ws.cell(row=current_row, column=2, value="មន្ត្រីទទួលបន្ទុក").font = font_muol
+        ws.cell(row=current_row, column=2, value="បានឃើញ និងឯកភាព\nប្រធានមន្ទីរ").font = font_muol
         ws.cell(row=current_row, column=2).alignment = align_center
         
         ws.cell(row=current_row, column=5, value="បានឃើញ និងពិនិត្យត្រឹមត្រូវ\nប្រធានការិយាល័យរដ្ឋបាល និងបុគ្គលិក").font = font_muol
         ws.cell(row=current_row, column=5).alignment = align_center
         
         ws.merge_cells(start_row=current_row, start_column=7, end_row=current_row, end_column=8)
-        ws.cell(row=current_row, column=7, value=f"{dates_info['solar_date_handwritten_str']}\nបានឃើញ និងឯកភាព\nប្រធានមន្ទីរ").font = font_muol
+        ws.cell(row=current_row, column=7, value=f"{dates_info['solar_date_handwritten_str']}\nមន្ត្រីទទួលបន្ទុក").font = font_muol
         ws.cell(row=current_row, column=7).alignment = align_center
         
     col_widths = {'A': 6.5, 'B': 20.0, 'C': 7.0, 'D': 28.0, 'E': 30.0, 'F': 32.0, 'G': 28.0, 'H': 16.0}
@@ -8956,7 +9165,7 @@ def officer_retirement_export_excel(request):
     return response
 
 
-def _paginate_retirement_items(all_items, first_page_cap=8, mid_page_cap=10, last_page_cap=5, single_page_cap=6, min_last_page=2):
+def _paginate_retirement_items(all_items, first_page_cap=7, mid_page_cap=9, last_page_cap=4, single_page_cap=5, min_last_page=2):
     """
     រៀបចំទំព័រ A4 Landscape សម្រាប់ PDF Preview នៃតារាងមន្ត្រីចូលនិវត្តន៍ដែលមានរូបថត (4x6)
     ធានាថាកម្ពស់ជួរដេក និងប្លុកហត្ថលេខាមិនធ្លាក់ចោលទទេស្អាត។
@@ -9112,7 +9321,7 @@ def officer_retirement_preview_pdf(request):
     for idx, item in enumerate(displayed_list, 1):
         item['seq_num'] = idx
 
-    pages = _paginate_retirement_items(displayed_list, first_page_cap=8, mid_page_cap=10, last_page_cap=5, single_page_cap=6)
+    pages = _paginate_retirement_items(displayed_list, first_page_cap=7, mid_page_cap=9, last_page_cap=4, single_page_cap=5)
 
     dates_info = get_khmer_lunar_and_solar_date(today)
     total_count = len(displayed_list)
@@ -10037,8 +10246,8 @@ def officer_status_report_print_view(request):
 
     # Paginate Detailed Roster for A4 Landscape sheets (Pages 2..N)
     # The final roster page accommodates the formal 3-level signatures block
-    MAX_PER_PAGE = 26
-    MAX_LAST_PAGE = 18
+    MAX_PER_PAGE = 20
+    MAX_LAST_PAGE = 13
     MIN_LAST_PAGE = 3
     roster_pages = []
 
@@ -10056,24 +10265,27 @@ def officer_status_report_print_view(request):
             page_num = 2
             while remaining:
                 rem_count = len(remaining)
-                if rem_count <= MAX_LAST_PAGE:
+                needs_continuation = (page_num > 2 and include_dept_headers and remaining and not remaining[0].get('is_header'))
+                eff_max = (MAX_PER_PAGE - 1) if needs_continuation else MAX_PER_PAGE
+                eff_last = (MAX_LAST_PAGE - 1) if needs_continuation else MAX_LAST_PAGE
+
+                if rem_count <= eff_last:
                     take = rem_count
                     is_last = True
                 else:
                     is_last = False
-                    # Fill the continuation page fully up to MAX_PER_PAGE close to page footer
-                    take = min(MAX_PER_PAGE, rem_count - MIN_LAST_PAGE)
+                    take = min(eff_max, max(rem_count - MIN_LAST_PAGE, 1))
 
                 # Prevent leaving a department group header orphaned at the bottom of a page
                 if not is_last and take < rem_count and remaining[take - 1].get('is_header'):
                     take -= 1
 
-                chunk = remaining[:take]
+                chunk = list(remaining[:take])
                 remaining = remaining[take:]
 
                 # If this is not the first roster page, and chunk starts with an officer (not a header),
                 # and we are showing all departments, insert a continuation header row for seamless context
-                if page_num > 2 and include_dept_headers and chunk and not chunk[0].get('is_header'):
+                if needs_continuation and chunk:
                     first_item_dept = chunk[0].get('dept_display_title')
                     if first_item_dept:
                         chunk.insert(0, {
@@ -10350,14 +10562,9 @@ def officer_status_export_excel(request):
     ws1['C25'].alignment = align_center
 
     ws1.merge_cells('C26:D26')
-    ws1['C26'] = f"ធ្វើនៅប៉ៃលិន, {d_info['solar_date_str']}"
-    ws1['C26'].font = f_body
+    ws1['C26'] = "ប្រធានអង្គភាព"
+    ws1['C26'].font = f_royal_muol
     ws1['C26'].alignment = align_center
-
-    ws1.merge_cells('C27:D27')
-    ws1['C27'] = "ប្រធានអង្គភាព"
-    ws1['C27'].font = f_royal_muol
-    ws1['C27'].alignment = align_center
 
     ws1.column_dimensions['A'].width = 32
     ws1.column_dimensions['B'].width = 25
@@ -11069,7 +11276,7 @@ def contract_officer_list(request):
     expired_count = queryset.filter(contract_status='EXPIRED').count()
     current_year_count = base_queryset.filter(contract_year=current_year).count()
 
-    departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh') if is_admin_or_lead else (Department.objects.filter(id=dept.id) if dept else [])
+    departments = Department.objects.filter(is_active=True).filter(Q(officers__isnull=False) | Q(contract_officers__isnull=False)).distinct().order_by('order_index', 'name_kh') if is_admin_or_lead else (Department.objects.filter(id=dept.id) if dept else [])
 
     paginator = Paginator(queryset.order_by('-contract_year', '-id'), 25)
     page_number = request.GET.get('page')
@@ -12359,34 +12566,18 @@ def _build_d1_contract_workbook(officers_list, year=None, department=None, lead_
         ws[f'D{current_row}'].font = Font(name='Khmer OS Muol Light', size=10.5, bold=False)
         ws[f'D{current_row}'].alignment = align_center
 
-        # Line 2: Lunar Date on Left (A:C) & Head of Office Title on Center (D:F)
+        # Line 2: Provincial Department Director Title directly on Left (A:C) & Head of Office Title on Center (D:F)
         current_row += 1
-        ws.row_dimensions[current_row].height = 14.0
+        ws.row_dimensions[current_row].height = 18.0
         ws.merge_cells(f'A{current_row}:C{current_row}')
-        ws[f'A{current_row}'] = f"ថ្ងៃ.....................ខែ...............{lunar_info}"
-        ws[f'A{current_row}'].font = Font(name='Khmer OS Battambang', size=9.0, bold=False)
+        ws[f'A{current_row}'] = "ប្រធានមន្ទីរ"
+        ws[f'A{current_row}'].font = Font(name='Khmer OS Muol Light', size=10.0, bold=False)
         ws[f'A{current_row}'].alignment = align_center
 
         ws.merge_cells(f'D{current_row}:F{current_row}')
         ws[f'D{current_row}'] = "ប្រធានការិយាល័យរដ្ឋបាល-បុគ្គលិក"
         ws[f'D{current_row}'].font = Font(name='Khmer OS Muol Light', size=10.0, bold=False)
         ws[f'D{current_row}'].alignment = align_center
-
-        # Line 3: Solar Date on Left (A:C)
-        current_row += 1
-        ws.row_dimensions[current_row].height = 14.0
-        ws.merge_cells(f'A{current_row}:C{current_row}')
-        ws[f'A{current_row}'] = f"ប៉ៃលិនថ្ងៃទី................ខែ...............ឆ្នាំ{year_kh}"
-        ws[f'A{current_row}'].font = Font(name='Khmer OS Battambang', size=9.0, bold=False)
-        ws[f'A{current_row}'].alignment = align_center
-
-        # Line 4: Provincial Department Director Title directly on Left (A:C) - NO EMPTY ROW!
-        current_row += 1
-        ws.row_dimensions[current_row].height = 18.0
-        ws.merge_cells(f'A{current_row}:C{current_row}')
-        ws[f'A{current_row}'] = "ប្រធានមន្ទីរកសិកម្ម រុក្ខាប្រមាញ់ និងនេសាទខេត្តប៉ៃលិន"
-        ws[f'A{current_row}'].font = Font(name='Khmer OS Muol Light', size=9.5, bold=False)
-        ws[f'A{current_row}'].alignment = align_center
 
     return wb
 
@@ -12552,7 +12743,7 @@ def contract_officer_preview_pdf_d1(request):
             'phone': _format_d1_phone(o.phone),
         })
 
-    pages = _paginate_preview_items(table_items, first_page_cap=22, mid_page_cap=25, last_page_cap=12, single_page_cap=12, min_last_page=3)
+    pages = _paginate_preview_items(table_items, first_page_cap=23, mid_page_cap=28, last_page_cap=17, single_page_cap=15, min_last_page=3)
 
     now = datetime.now()
     month_kh = KHMER_MONTHS_NAMES[now.month] if 1 <= now.month <= 12 else str(now.month)
@@ -17299,6 +17490,179 @@ def attendance_leadership_monthly_export_excel(request):
     response['Content-Disposition'] = f'attachment; filename="attendance_leadership_monthly_{year}_{month:02d}.xlsx"'
     wb.save(response)
     return response
+
+
+# ==============================================================================
+# 📄 PDF PAGE VIEWER & EXTRACTOR (ឧបករណ៍មើលទំព័រ PDF & បំបែក/រក្សាទុកជា File ថ្មី)
+# ==============================================================================
+@login_required
+def pdf_page_viewer_view(request):
+    """
+    Standalone PDF Page Viewer & Extractor Tool.
+    Allows viewing all pages of a PDF, selecting pages, and saving as new PDF freely.
+    """
+    initial_attachment_id = request.GET.get('attachment_id')
+    initial_officer_id = request.GET.get('officer_id')
+    
+    selected_attachment = None
+    if initial_attachment_id and initial_attachment_id.isdigit():
+        selected_attachment = OfficerAttachment.objects.filter(pk=int(initial_attachment_id)).select_related('officer').first()
+        if selected_attachment and not initial_officer_id:
+            initial_officer_id = selected_attachment.officer_id
+
+    # Recent PDF reference attachments
+    recent_attachments = OfficerAttachment.objects.filter(file__iendswith='.pdf').select_related('officer').order_by('-created_at')[:30]
+
+    # Officers for quick selection
+    officers = CivilServantProfile.objects.all().order_by('khmer_last_name', 'khmer_first_name')[:150]
+
+    context = {
+        'page_title': 'ឧបករណ៍មើលទំព័រ PDF & បំបែកឯកសារ',
+        'initial_attachment': selected_attachment,
+        'initial_officer_id': initial_officer_id,
+        'recent_attachments': recent_attachments,
+        'officers': officers,
+        'categories': OfficerAttachment.CATEGORY_CHOICES,
+    }
+    return render(request, 'dms/pdf_page_viewer.html', context)
+
+
+@login_required
+def pdf_extract_pages_api(request):
+    """
+    API endpoint to extract selected pages from a PDF.
+    Supports downloading as new PDF, or saving directly into an Officer's profile.
+    """
+    import io
+    import re
+    from urllib.parse import quote
+    from django.core.files.base import ContentFile
+    from pypdf import PdfReader, PdfWriter
+
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+    pages_str = request.POST.get('pages', '').strip()
+    filename = request.POST.get('filename', 'extracted_document.pdf').strip()
+    action = request.POST.get('action', 'download')
+    officer_id = request.POST.get('officer_id')
+    category = request.POST.get('category', 'OTHER')
+    title = request.POST.get('title', '').strip()
+    doc_number = request.POST.get('doc_number', '').strip()
+    issued_date = request.POST.get('issued_date', '').strip()
+
+    # Determine input stream
+    input_stream = None
+    source_filename = 'document.pdf'
+
+    if 'pdf_file' in request.FILES:
+        uploaded_file = request.FILES['pdf_file']
+        source_filename = uploaded_file.name
+        input_stream = io.BytesIO(uploaded_file.read())
+    elif request.POST.get('attachment_id'):
+        att_id = request.POST.get('attachment_id')
+        att = OfficerAttachment.objects.filter(pk=att_id).first()
+        if att and att.file:
+            source_filename = att.file.name
+            input_stream = io.BytesIO(att.file.read())
+            if not officer_id:
+                officer_id = att.officer_id
+    elif request.POST.get('version_id'):
+        ver_id = request.POST.get('version_id')
+        ver = DocumentVersion.objects.filter(pk=ver_id).first()
+        if ver and ver.file:
+            source_filename = ver.file.name
+            input_stream = io.BytesIO(ver.file.read())
+
+    if not input_stream:
+        return JsonResponse({'status': 'error', 'message': 'ពុំមាន File PDF ត្រូវបានផ្តល់ជូនឡើយ!'}, status=400)
+
+    try:
+        reader = PdfReader(input_stream)
+        total_pages = len(reader.pages)
+        if total_pages == 0:
+            return JsonResponse({'status': 'error', 'message': 'File PDF នេះគ្មានទំព័រឡើយ!'}, status=400)
+
+        # Parse pages (1-indexed input from user/client)
+        selected_pages = []
+        if not pages_str or pages_str == 'all':
+            selected_pages = list(range(1, total_pages + 1))
+        else:
+            for part in re.split(r'[,;\s]+', pages_str):
+                if not part:
+                    continue
+                if '-' in part:
+                    s_e = part.split('-')
+                    if len(s_e) == 2 and s_e[0].isdigit() and s_e[1].isdigit():
+                        start, end = int(s_e[0]), int(s_e[1])
+                        for p in range(min(start, end), max(start, end) + 1):
+                            if 1 <= p <= total_pages and p not in selected_pages:
+                                selected_pages.append(p)
+                elif part.isdigit():
+                    p = int(part)
+                    if 1 <= p <= total_pages and p not in selected_pages:
+                        selected_pages.append(p)
+
+        if not selected_pages:
+            return JsonResponse({'status': 'error', 'message': 'សូមជ្រើសរើសទំព័រយ៉ាងហោចណាស់ ១!'}, status=400)
+
+        writer = PdfWriter()
+        for p in selected_pages:
+            writer.add_page(reader.pages[p - 1])
+
+        output_stream = io.BytesIO()
+        writer.write(output_stream)
+        output_data = output_stream.getvalue()
+
+        clean_out_name = filename if filename.lower().endswith('.pdf') else f"{filename}.pdf"
+
+        # Action 1: Save directly to an Officer's profile
+        if action == 'save_to_officer':
+            if not officer_id:
+                return JsonResponse({'status': 'error', 'message': 'សូមជ្រើសរើសមន្ត្រីដែលត្រូវរក្សាទុកឯកសារ!'}, status=400)
+
+            officer = get_object_or_404(CivilServantProfile, pk=officer_id)
+            doc_title = title or f"{clean_out_name} (ទំព័រ {','.join(map(str, selected_pages))})"
+
+            content_file = ContentFile(output_data, name=clean_out_name)
+            new_att = OfficerAttachment.objects.create(
+                officer=officer,
+                category=category,
+                title=doc_title,
+                doc_number=doc_number,
+                issued_date=issued_date,
+                description=f"បំបែកចេញពីឯកសារ៖ «{source_filename}» (ទំព័រ {', '.join(map(str, selected_pages))})",
+                file=content_file,
+                file_size=len(output_data),
+                uploaded_by=request.user
+            )
+
+            log_officer_action(
+                request,
+                officer=officer,
+                action_type='UPLOAD',
+                attachment_title=new_att.title,
+                category=new_att.get_category_display(),
+                details=f"បានបំបែក និងរក្សាទុកឯកសារយោងថ្មី «{new_att.title}» ({len(selected_pages)} ទំព័រ)"
+            )
+
+            return JsonResponse({
+                'status': 'success',
+                'message': f"✅ បានរក្សាទុកជាឯកសារយោងថ្មី «{new_att.title}» ជូនមន្ត្រី «{officer.full_name_kh}» ដោយជោគជ័យ!",
+                'attachment_id': new_att.pk,
+                'view_url': f"/officers/{officer.pk}/attachments/{new_att.pk}/view/"
+            })
+
+        # Action 2: Direct browser download
+        encoded_filename = quote(clean_out_name)
+        response = HttpResponse(output_data, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{clean_out_name}"; filename*=UTF-8\'\'{encoded_filename}'
+        response['Content-Length'] = len(output_data)
+        return response
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'ការបំបែកទំព័រ PDF បរាជ័យ៖ {str(e)}'}, status=500)
+
 
 
 

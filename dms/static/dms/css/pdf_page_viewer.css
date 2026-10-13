@@ -1,0 +1,178 @@
+/**
+ * ==============================================================================
+ * 📄 PDF Page Viewer & Extractor Styles
+ * ==============================================================================
+ */
+
+.pdf-pages-grid-wrapper {
+    max-height: 78vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.pdf-pages-grid-wrapper::-webkit-scrollbar {
+    width: 8px;
+}
+
+.pdf-pages-grid-wrapper::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+}
+
+.pdf-page-card {
+    transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+    cursor: pointer;
+    user-select: none;
+    background: #ffffff;
+    border: 2px solid transparent !important;
+}
+
+.pdf-page-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(13, 110, 253, 0.4) !important;
+}
+
+.pdf-page-card.selected {
+    border: 2.5px solid #0d6efd !important;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.2), 0 10px 20px -5px rgba(13, 110, 253, 0.3) !important;
+    background-color: #f8faff !important;
+}
+
+.pdf-page-card.selected .card-header {
+    background: linear-gradient(135deg, #e7f1ff 0%, #d0e4ff 100%) !important;
+    color: #084298 !important;
+    font-weight: 700;
+}
+
+.pdf-page-card .form-check-input {
+    width: 1.15em;
+    height: 1.15em;
+    cursor: pointer;
+}
+
+.pdf-page-card .pdf-thumb-canvas {
+    background-color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+    transition: filter 0.15s ease;
+}
+
+.pdf-page-card:hover .pdf-thumb-canvas {
+    filter: brightness(0.98);
+}
+
+.pdf-page-card .pdf-card-overlay {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 5;
+}
+
+.pdf-page-card:hover .pdf-card-overlay {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+}
+
+.pdf-thumb-loader {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* Custom 5 columns on extra large desktop */
+@media (min-width: 1200px) {
+    .col-xl-2\.4 {
+        flex: 0 0 auto;
+        width: 20%;
+    }
+}
+
+/* ==============================================================================
+   Preview Lightbox / Modal Styles
+   ============================================================================== */
+#pdfPreviewPageModal .modal-content {
+    background: #181b1f !important;
+}
+
+#previewModalViewport {
+    background: radial-gradient(circle at center, #252a30 0%, #15181c 100%);
+    user-select: none;
+}
+
+#previewModalCanvas {
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    transition: transform 0.12s ease-out;
+}
+
+/* Floating Toast Notification */
+.pdf-system-toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.pdf-system-toast {
+    pointer-events: auto;
+    background: #0f5132;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    padding: 10px 20px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: pdfToastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+@keyframes pdfToastIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Page Saved Badge Indicator */
+.page-saved-badge {
+    pointer-events: none;
+    background: #198754 !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    animation: pdfBadgePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes pdfBadgePop {
+    from {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+

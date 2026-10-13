@@ -131,11 +131,17 @@
             </div>
         </div>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
         <button type="button" class="btn btn-outline-success rounded-pill px-3.5 py-1.5 shadow-sm fw-semibold d-inline-flex align-items-center gap-1.5" onclick="previewDocFile('{% url 'document_version_view' document.pk versions.first.id %}', '{{ versions.first.file_name|default:'ឯកសារ'|escapejs }}', '{% url 'document_version_download' document.pk versions.first.id %}')">
             <i class="fa-solid fa-eye"></i>
             <span>មើលឯកសារ (View)</span>
         </button>
+        {% if '.pdf' in versions.first.file_name|lower or '.pdf' in versions.first.file.name|lower %}
+        <a href="{% url 'pdf_page_viewer' %}" target="_blank" class="btn btn-outline-warning text-dark rounded-pill px-3 py-1.5 shadow-sm fw-semibold d-inline-flex align-items-center gap-1.5" title="មើលឃើញ Page នីមួយៗ & ជ្រើសរើស Save ជា PDF ថ្មី">
+            <i class="fa-solid fa-table-cells-large text-warning"></i>
+            <span>បំបែកទំព័រ PDF</span>
+        </a>
+        {% endif %}
         <a href="{% url 'document_version_download' document.pk versions.first.id %}" class="btn btn-success rounded-pill px-3.5 py-1.5 shadow-sm fw-semibold d-inline-flex align-items-center gap-1.5" download="{{ versions.first.file_name|default:'document' }}">
             <i class="fa-solid fa-download"></i>
             <span>ទាញយក (Download)</span>
@@ -257,11 +263,17 @@
                             </div>
                         </div>
                         {% if v.file %}
-                        <div class="d-inline-flex align-items-center gap-2">
+                        <div class="d-inline-flex align-items-center gap-2 flex-wrap">
                             <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 shadow-sm fw-semibold d-inline-flex align-items-center gap-1.5" onclick="previewDocFile('{% url 'document_version_view' document.pk v.id %}', '{{ v.file_name|default:'ឯកសារ'|escapejs }}', '{% url 'document_version_download' document.pk v.id %}')">
                                 <i class="fa-solid fa-eye text-primary"></i>
                                 <span>មើលឯកសារ</span>
                             </button>
+                            {% if '.pdf' in v.file_name|lower or '.pdf' in v.file.name|lower %}
+                            <a href="{% url 'pdf_page_viewer' %}" target="_blank" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-2.5 py-1.5 shadow-sm fw-semibold d-inline-flex align-items-center gap-1.5" title="មើលឃើញ Page នីមួយៗ & ជ្រើសរើស Save ជា PDF ថ្មី">
+                                <i class="fa-solid fa-table-cells-large text-warning"></i>
+                                <span>បំបែក Page</span>
+                            </a>
+                            {% endif %}
                             <a href="{% url 'document_version_download' document.pk v.id %}" class="btn btn-sm btn-success rounded-pill px-3 py-1.5 shadow-sm fw-semibold d-inline-flex align-items-center gap-1.5" download="{{ v.file_name|default:'document' }}">
                                 <i class="fa-solid fa-download"></i>
                                 <span>ទាញយក</span>

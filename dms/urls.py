@@ -227,5 +227,9 @@ urlpatterns = [
     path('api/sync/receive/', backup_views.api_sync_receive, name='api_sync_receive'),
     path('api/sync/trigger/', backup_views.api_trigger_sync, name='api_trigger_sync'),
     path('api/sync/test-connection/', backup_views.api_test_server_connection, name='api_test_server_connection'),
+
+    # 📄 PDF Page Viewer & Extractor Module
+    path('tools/pdf-viewer/', views.pdf_page_viewer_view, name='pdf_page_viewer'),
+    path('api/pdf/extract-pages/', views.pdf_extract_pages_api, name='pdf_extract_pages_api'),
 ]
 

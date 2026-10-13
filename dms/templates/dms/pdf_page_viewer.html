@@ -1,0 +1,792 @@
+{% extends 'dms/base.html' %}
+{% load static %}
+
+{% block title %}ឧបករណ៍មើលទំព័រ PDF & បំបែកឯកសារ (PDF Page Viewer & Extractor) - ប្រព័ន្ធគ្រប់គ្រងឯកសារ{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'dms/css/pdf_page_viewer.css' %}">
+<style>
+    .pdf-dropzone {
+        border: 2px dashed #0d6efd;
+        background-color: #f8faff;
+        border-radius: 1rem;
+        transition: all 0.25s ease;
+        cursor: pointer;
+    }
+    .pdf-dropzone:hover, .pdf-dropzone.dragover {
+        background-color: #e7f1ff;
+        border-color: #0b5ed7;
+        transform: translateY(-2px);
+    }
+    .pdf-viewer-workspace {
+        background-color: #3e444a;
+        border-radius: 1rem;
+        min-height: 70vh;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1.5 fs-8 fw-bold">
+                    <i class="fa-solid fa-file-pdf me-1.5"></i> PDF Tool
+                </span>
+                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-1 fs-9 fw-semibold">
+                    <i class="fa-solid fa-infinity me-1"></i> មិនកំណត់ទំហំ (No Size Limit)
+                </span>
+            </div>
+            <h4 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
+                <span>ឧបករណ៍មើលទំព័រ PDF & បំបែកឯកសារ</span>
+                <span class="fs-7 text-muted fw-normal font-monospace">(PDF Page Viewer & Extractor)</span>
+            </h4>
+            <p class="text-muted small m-0 mt-1">
+                មើលឃើញ Page នីមួយៗបានច្បាស់ អាចចុចមើលទំព័រធំ (View Page) ជ្រើសរើសទំព័រជាក់លាក់ និងរក្សាទុកទៅកាន់ Drive C:, D:, Flash Drive ឬ Folder ណាមួយបានដោយសេរី
+            </p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fs-7" onclick="document.getElementById('pdfFileInput').click()">
+                <i class="fa-solid fa-folder-open me-1.5"></i> ជ្រើសរើស File ពីកុំព្យូទ័រ
+            </button>
+            <button type="button" class="btn btn-primary rounded-pill px-3.5 fs-7 fw-bold shadow-xs" data-bs-toggle="collapse" data-bs-target="#recentFilesCollapse">
+                <i class="fa-solid fa-paperclip me-1.5"></i> ឯកសារយោងក្នុងប្រព័ន្ធ ({{ recent_attachments|length }})
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="pdfFileInput" class="d-none" accept=".pdf,application/pdf" onchange="handleFileSelect(this)">
+
+    <!-- Dropdown / Collapse: Recent System Reference Documents -->
+    <div class="collapse mb-4" id="recentFilesCollapse">
+        <div class="card border-0 shadow-sm rounded-4 p-3.5 bg-white">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="fw-bold text-dark m-0"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> ជ្រើសរើសឯកសារយោងមន្ត្រីដែលមានស្រាប់ក្នុងប្រព័ន្ធ</h6>
+                <button type="button" class="btn-close fs-9" data-bs-toggle="collapse" data-bs-target="#recentFilesCollapse"></button>
+            </div>
+            <div class="row g-2" style="max-height: 250px; overflow-y: auto;">
+                {% for att in recent_attachments %}
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="p-2 border rounded-3 bg-light hover-shadow-xs d-flex align-items-center justify-content-between cursor-pointer"
+                         onclick="loadPdfFromUrl('{% url 'officer_attachment_view' att.officer.pk att.pk %}', '{{ att.title|escapejs }}.pdf', '{{ att.officer.pk }}')">
+                        <div class="d-flex align-items-center gap-2 overflow-hidden">
+                            <i class="fa-solid fa-file-pdf text-danger fs-4 flex-shrink-0"></i>
+                            <div class="overflow-hidden">
+                                <span class="fw-bold text-dark d-block text-truncate fs-8" title="{{ att.title }}">{{ att.title }}</span>
+                                <span class="text-muted fs-9 text-truncate d-block">{{ att.officer.full_name_kh }} &bull; {{ att.formatted_file_size }}</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-xs btn-primary rounded-pill px-2.5 flex-shrink-0">
+                            បើកមើល
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center text-muted py-3 small">មិនទាន់មានឯកសារយោងប្រភេទ PDF ឡើយ</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Dropzone (Visible when no PDF is loaded or to switch file) -->
+    <div id="pdfDropzoneContainer" class="mb-4">
+        <div class="pdf-dropzone p-4 p-md-5 text-center shadow-xs" id="pdfDropzone"
+             onclick="document.getElementById('pdfFileInput').click()"
+             ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+            <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex mb-3 shadow-xs">
+                <i class="fa-solid fa-cloud-arrow-up fa-3x"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">ទម្លាក់ File PDF ទីនេះ ឬចុចដើម្បីជ្រើសរើសពីកុំព្យូទ័រ</h5>
+            <p class="text-muted small mb-3">ប្រព័ន្ធអនុញ្ញាតឱ្យ Upload និងមើល File ឯកសារយោង <strong class="text-success">មិនកំណត់ទំហំ (Unlimited Size)</strong> ទាំងអស់</p>
+            <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fs-7 fw-bold shadow-xs">
+                <i class="fa-solid fa-folder-open me-1.5"></i> ជ្រើសរើស File PDF ឥឡូវនេះ
+            </button>
+        </div>
+    </div>
+
+    <!-- Active PDF Workspace Container -->
+    <div id="pdfWorkspace" class="d-none">
+        <!-- Floating / Sticky Control Bar -->
+        <div class="card border-0 shadow-sm rounded-4 mb-3 bg-white sticky-top" style="top: 70px; z-index: 1020;">
+            <div class="card-body p-3">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2.5">
+                    <!-- Left: Document Info -->
+                    <div class="d-flex align-items-center gap-2.5 overflow-hidden">
+                        <div class="p-2 bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                            <i class="fa-solid fa-file-pdf fs-5"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <h6 class="fw-bold text-dark m-0 text-truncate" id="activeDocTitle" style="max-width: 320px;">document.pdf</h6>
+                            <span class="text-muted fs-9" id="activeDocMeta">សរុប 0 ទំព័រ</span>
+                        </div>
+                    </div>
+
+                    <!-- Center: Selection Controls -->
+                    <div class="d-flex flex-wrap align-items-center gap-2 bg-light p-1.5 rounded-pill border">
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 fs-8" onclick="viewerInstance.selectAll()">
+                            <i class="fa-solid fa-check-double me-1"></i> ជ្រើសទាំងអស់
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 fs-8" onclick="viewerInstance.deselectAll()">
+                            <i class="fa-solid fa-xmark me-1"></i> ដោះជ្រើស
+                        </button>
+                        
+                        <div class="vr bg-secondary opacity-50 my-1"></div>
+                        
+                        <!-- Range input -->
+                        <div class="input-group input-group-sm" style="width: 175px;">
+                            <input type="text" id="pageRangeInput" class="form-control rounded-start-pill fs-8" placeholder="ចន្លោះ: 1-3, 5" onkeydown="if(event.key==='Enter') applyPageRange()">
+                            <button class="btn btn-outline-primary rounded-end-pill px-2.5" type="button" onclick="applyPageRange()" title="ជ្រើសតាមចន្លោះ">
+                                ជ្រើស
+                            </button>
+                        </div>
+
+                        <div class="d-flex align-items-center px-2">
+                            <span class="text-muted fs-9 me-1.5">បានជ្រើស៖</span>
+                            <span id="pdfSelectedCountBadge" class="badge bg-secondary rounded-pill px-2.5 py-1 fs-8">0 / 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Save Actions -->
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" id="pdfSaveSelectedBtn" class="btn btn-sm btn-success rounded-pill px-3.5 py-2 fw-bold shadow-xs d-flex align-items-center gap-1.5" disabled onclick="viewerInstance.saveSelectedPages()" title="រក្សាទុកទំព័រដែលបានជ្រើសជា File ថ្មី (ជ្រើស Drive C:, D:, E:... បានដោយសេរី)">
+                            <i class="fa-solid fa-hard-drive me-1"></i>
+                            <span>រក្សាទុកជា PDF ថ្មី</span>
+                        </button>
+
+                        <button type="button" id="pdfSaveEachBtn" class="btn btn-sm btn-outline-success rounded-pill px-3 py-2 fw-bold d-flex align-items-center gap-1.5" disabled onclick="viewerInstance.saveEachSelectedPageSeparately()" title="ទាញយកទំព័រនីមួយៗដាច់ដោយឡែកពីគ្នា (ជ្រើស Folder ក្នុង Drive បាន)">
+                            <i class="fa-solid fa-folder-tree me-1"></i>
+                            <span>ទាញយកទំព័ររៀងៗខ្លួន</span>
+                        </button>
+
+                        <button type="button" id="saveToOfficerModalBtn" class="btn btn-sm btn-primary rounded-pill px-3 py-2 fw-bold shadow-xs" data-bs-toggle="modal" data-bs-target="#saveToOfficerModal">
+                            <i class="fa-solid fa-user-plus me-1"></i> បញ្ចូលជូនមន្ត្រី
+                        </button>
+
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-2" title="បិទ និងជ្រើស File ផ្សេង" onclick="closeWorkspace()">
+                            <i class="fa-solid fa-arrow-rotate-left"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PDF Pages Grid Canvas Area -->
+        <div class="pdf-viewer-workspace p-3 shadow-sm" id="pdfCanvasContainer"></div>
+    </div>
+</div>
+
+<!-- ==============================================================================
+     MODAL: SAVE EXTRACTED PDF TO OFFICER PROFILE
+     ============================================================================== -->
+<!-- ==============================================================================
+     MODAL: SAVE EXTRACTED PDF TO OFFICER PROFILE
+     ============================================================================== -->
+<div class="modal fade" id="saveToOfficerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white py-3 px-4 border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 bg-white bg-opacity-20 rounded-circle text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="fa-solid fa-user-plus fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold m-0">បញ្ចូលទំព័រដែលបានជ្រើស ជូនមន្ត្រីរាជការ</h5>
+                        <span class="fs-9 opacity-75">ស្រង់ទំព័រដែលបានជ្រើសបញ្ចូលជាឯកសារយោង (PDF view នឹងនៅរក្សាដដែល មិនផ្លាស់ប្តូរ)</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="saveToOfficerForm" onsubmit="event.preventDefault(); saveDirectlyToOfficerAction();">
+                <div class="modal-body p-4 bg-white">
+                    <!-- Selected Pages Info Card -->
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-file-circle-check text-primary fs-5"></i>
+                                <div>
+                                    <div class="fs-9 text-muted fw-bold">ទំព័រដែលបានជ្រើសសម្រាប់ឯកសារនេះ៖</div>
+                                    <span class="badge bg-primary rounded-pill px-2.5 py-1 fs-8" id="modalOfficerPagesSummary">ទំព័រ ...</span>
+                                </div>
+                            </div>
+                            <div class="fs-9 text-muted text-end">
+                                ពីឯកសារ៖ <strong class="text-dark" id="modalOfficerDocSource">-</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning py-2 px-3 small d-none mb-3" id="modalOfficerNoPageWarn">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> សូមជ្រើសរើសទំព័រយ៉ាងហោចណាស់ ១ ក្នុង PDF ជាមុនសិន!
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ជ្រើសរើសមន្ត្រីរាជការ <span class="text-danger">*</span></label>
+                            <select id="modalOfficerSelect" class="form-select fs-7" required>
+                                <option value="">-- សូមជ្រើសរើសមន្ត្រី --</option>
+                                {% for off in officers %}
+                                <option value="{{ off.pk }}" {% if initial_officer_id == off.pk|stringformat:"s" %}selected{% endif %}>
+                                    {{ off.full_name_kh }} ({{ off.officer_id_number|default:'-' }}) - {{ off.display_department_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted fs-9 mt-1 d-block"><i class="fa-solid fa-circle-check text-success me-1"></i>ឈ្មោះមន្ត្រីនេះនឹងរក្សាដដែល សម្រាប់លោកអ្នកជ្រើសទំព័រផ្សេងទៀតបន្ត</small>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">ប្រភេទឯកសារយោង <span class="text-danger">*</span></label>
+                            <select id="modalCategorySelect" class="form-select fs-7">
+                                {% for code, label in categories %}
+                                <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-8">
+                            <label class="form-label fw-bold text-dark fs-8">ចំណងជើង / ឈ្មោះឯកសារ <span class="text-danger">*</span></label>
+                            <input type="text" id="modalDocTitle" class="form-control fs-7 fw-bold" placeholder="ឧ. សញ្ញាបត្របរិញ្ញាបត្រ, ប្រកាសតែងតាំង..." required>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold text-dark fs-8">លេខលិខិត / ឯកសារ</label>
+                            <input type="text" id="modalDocNumber" class="form-control fs-7" placeholder="លេខលិខិត (បើមាន)">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark fs-8">កាលបរិច្ឆេទចេញលិខិត</label>
+                            <input type="text" id="modalIssuedDate" class="form-control fs-7" placeholder="ឧ. ២០/មេសា/២០២២">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 fs-7" data-bs-dismiss="modal">
+                        បោះបង់
+                    </button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fs-7 fw-bold shadow-xs d-flex align-items-center gap-1.5" id="btnSubmitSaveToOfficer">
+                        <i class="fa-solid fa-cloud-arrow-up me-1.5"></i>
+                        <span>រក្សាទុកចូលប្រវត្តិរូបមន្ត្រី</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==============================================================================
+     MODAL: SAVE AS NEW PDF DIALOG (USER PC & DRIVE / FOLDER SELECTION)
+     ============================================================================== -->
+<div class="modal fade" id="saveAsPdfDialogModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-success text-white py-3 px-4 border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 bg-white bg-opacity-20 rounded-circle text-white d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="fa-solid fa-hard-drive fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold m-0">រក្សាទុកជា File PDF ថ្មី (Save As PDF)</h5>
+                        <span class="fs-9 opacity-75">ជ្រើសរើស Drive, Folder និងឈ្មោះ File សម្រាប់កុំព្យូទ័រ User PC</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4 bg-white">
+                <!-- Source Folder Auto-Detection Banner -->
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div class="d-flex align-items-center gap-2.5 overflow-hidden">
+                            <div class="p-2 bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px;">
+                                <i class="fa-solid fa-folder-tree fs-5"></i>
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="fs-9 text-muted fw-bold">ទីតាំង Folder ប្រភពដើម (Source Folder)</div>
+                                <div class="fw-bold text-dark fs-8 font-monospace text-truncate" id="modalSourceFolderDisplay">D:\Scan_PDF</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+                            <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1" onclick="applySourceFolderAsTarget()" title="កំណត់ Folder គោលដៅឱ្យដូច Folder ប្រភពដើម">
+                                <i class="fa-solid fa-wand-magic-sparkles me-1"></i> យកតាម Folder ប្រភពដើមនេះ
+                            </button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1" onclick="changeSourceFolderCustom()" title="ប្តូរទីតាំង Folder ប្រភពដើម">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <!-- Drive Selection -->
+                    <div class="col-12 col-md-5">
+                        <label class="form-label fw-bold text-dark fs-8 d-flex justify-content-between align-items-center">
+                            <span>ជ្រើសរើស Drive លើកុំព្យូទ័រ <span class="text-danger">*</span></span>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary fs-9">User PC Drive</span>
+                        </label>
+                        <select id="modalDriveSelect" class="form-select fs-7 fw-bold" onchange="onDriveSelectChange(this.value)">
+                            <option value="D:">💾 Local Disk (D:) - ថាសផ្ទុកឯកសារ</option>
+                            <option value="C:">💻 Local Disk (C:) - ថាសប្រព័ន្ធ / Desktop</option>
+                            <option value="E:">🔌 Removable Disk (E:) - Flash Drive / USB</option>
+                            <option value="F:">📁 External Drive (F:)</option>
+                            <option value="G:">📁 External Drive (G:)</option>
+                            <option value="CUSTOM">⚙️ Drive / ទីតាំងផ្សេងទៀត...</option>
+                        </select>
+                        <div class="d-flex gap-1.5 mt-1.5 flex-wrap">
+                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0.5 fs-9" onclick="quickSelectDrive('D:')">Drive D:</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0.5 fs-9" onclick="quickSelectDrive('C:')">Drive C:</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0.5 fs-9" onclick="quickSelectDrive('E:')">Drive E: (USB)</button>
+                        </div>
+                    </div>
+
+                    <!-- Target Folder Input -->
+                    <div class="col-12 col-md-7">
+                        <label class="form-label fw-bold text-dark fs-8 d-flex justify-content-between align-items-center">
+                            <span>Folder គោលដៅសម្រាប់រក្សាទុក <span class="text-danger">*</span></span>
+                            <span class="badge bg-primary bg-opacity-10 text-primary fs-9 cursor-pointer" onclick="applySourceFolderAsTarget()">
+                                <i class="fa-solid fa-rotate me-1"></i> Auto Source
+                            </span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light fs-8 text-muted"><i class="fa-regular fa-folder-open"></i></span>
+                            <input type="text" id="modalTargetFolderInput" class="form-control fs-7 font-monospace fw-bold" placeholder="D:\Scan_PDF" oninput="updateFullTargetPathPreview()">
+                        </div>
+                        <!-- Quick folder chips -->
+                        <div class="d-flex gap-1 mt-1.5 flex-wrap">
+                            <button type="button" class="btn btn-xs btn-light border rounded-pill px-2 py-0.5 fs-9 text-dark" onclick="setTargetFolderQuick('D:\\Scan_PDF')">📁 Scan_PDF</button>
+                            <button type="button" class="btn btn-xs btn-light border rounded-pill px-2 py-0.5 fs-9 text-dark" onclick="setTargetFolderQuick('D:\\DMS_PDF')">📁 DMS_PDF</button>
+                            <button type="button" class="btn btn-xs btn-light border rounded-pill px-2 py-0.5 fs-9 text-dark" onclick="setTargetFolderQuick('C:\\Users\\Desktop')">💻 Desktop</button>
+                            <button type="button" class="btn btn-xs btn-light border rounded-pill px-2 py-0.5 fs-9 text-dark" onclick="setTargetFolderQuick('C:\\Users\\Downloads')">📥 Downloads</button>
+                        </div>
+                    </div>
+
+                    <!-- New File Name -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold text-dark fs-8">
+                            ឈ្មោះ File PDF ថ្មី (File Name) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" id="saveAsPdfModalInput" class="form-control fs-7 fw-bold text-primary" placeholder="ឈ្មោះឯកសារថ្មី" oninput="updateFullTargetPathPreview()">
+                            <span class="input-group-text bg-light fs-8 text-muted fw-bold">.pdf</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small class="text-muted fs-9" id="saveAsPdfPagesSummary">ទំព័រដែលបានជ្រើស៖ ...</small>
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-xs btn-link text-decoration-none p-0 fs-9 text-secondary" onclick="appendTimestampToFileName()">+ កាលបរិច្ឆេទ</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Complete Save Target Preview -->
+                <div class="p-3 bg-success bg-opacity-10 border border-success border-opacity-25 rounded-3 mt-3">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="fs-9 fw-bold text-success d-flex align-items-center gap-1">
+                            <i class="fa-solid fa-location-dot"></i> ផ្លូវ និងទីតាំងរក្សាទុកពេញលេញ (Full Target Path)៖
+                        </span>
+                        <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-2 py-0.5 fs-9" onclick="copyFullTargetPath()">
+                            <i class="fa-solid fa-copy me-1"></i> Copy Path
+                        </button>
+                    </div>
+                    <div class="fs-8 fw-bold text-dark font-monospace text-break" id="modalFullTargetPathPreview">
+                        D:\Scan_PDF\document_page_1.pdf
+                    </div>
+                </div>
+
+                <!-- User PC Guide / Tip -->
+                <div class="alert alert-primary bg-primary bg-opacity-10 border-0 rounded-3 p-3 mt-3 mb-0">
+                    <div class="fw-bold text-primary mb-1 d-flex align-items-center justify-content-between fs-8">
+                        <span><i class="fa-solid fa-circle-question me-1"></i> គន្លឹះសម្រាប់ User PC (ដើម្បីជ្រើស Drive C:, D:, USB ក្នុង Windows Explorer)</span>
+                        <a href="javascript:void(0)" class="fs-9 text-decoration-none text-primary fw-normal" onclick="toggleChromeGuideDetails()">
+                            <i class="fa-solid fa-chevron-down" id="guideToggleIcon"></i> មើលការណែនាំ
+                        </a>
+                    </div>
+                    <div class="fs-9 text-dark lh-base d-none" id="chromeGuideDetails">
+                        ដើម្បីឱ្យកុំព្យូទ័រលោកអ្នក (User PC) បើកផ្ទាំង <strong>Windows Save As</strong> សួររកទីតាំង Drive C:, D:, ឬ Folder រាល់ពេលចុច Save៖<br>
+                        <strong>ជំហានងាយៗក្នុង Google Chrome ឬ Edge៖</strong><br>
+                        1. ចុចសញ្ញាចុចបី <code>⋮</code> នៅជ្រុងខាងស្តាំខាងលើ ➡️ ជ្រើសយក <strong>Settings (ការកំណត់)</strong><br>
+                        2. ជ្រើសយកម៉ឺនុយ <strong>Downloads (ការទាញយក)</strong><br>
+                        3. បើក switch <strong>«Ask where to save each file before downloading» (សួររកទីតាំងរក្សាទុកមុនពេលទាញយក)</strong><br>
+                        <span class="text-success fw-bold">👉 ធ្វើតែម្តងប៉ុណ្ណោះ! បន្ទាប់ពីបើកហើយ រាល់ពេល Save Windows នឹងលោតផ្ទាំងឱ្យជ្រើសរើស Drive និង Folder ភ្លាមៗ!</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 fs-7" data-bs-dismiss="modal">
+                    បោះបង់
+                </button>
+                <button type="button" class="btn btn-success rounded-pill px-4 fs-7 fw-bold shadow-xs d-flex align-items-center gap-1.5" id="btnConfirmSaveAsPdf">
+                    <i class="fa-solid fa-download me-1"></i>
+                    <span>រក្សាទុកជា PDF ថ្មី</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- PDF.js, PDF-lib, and our Custom Page Viewer Engine -->
+<script src="{% static 'dms/vendor/pdf.min.js' %}"></script>
+<script src="{% static 'dms/vendor/pdf-lib.min.js' %}"></script>
+<script src="{% static 'dms/js/pdf_page_viewer.js' %}"></script>
+
+<script>
+let viewerInstance = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+    viewerInstance = new PdfPageViewer({
+        container: 'pdfCanvasContainer',
+        onSelectionChange: function(selectedSet, total) {
+            const count = selectedSet.size;
+            const badge = document.getElementById('pdfSelectedCountBadge');
+            if (badge) {
+                badge.textContent = `${count} / ${total}`;
+                badge.className = count > 0 ? 'badge bg-success rounded-pill px-2.5 py-1 fs-8' : 'badge bg-secondary rounded-pill px-2.5 py-1 fs-8';
+            }
+            const saveBtn = document.getElementById('pdfSaveSelectedBtn');
+            const eachBtn = document.getElementById('pdfSaveEachBtn');
+            if (saveBtn) saveBtn.disabled = (count === 0);
+            if (eachBtn) eachBtn.disabled = (count === 0);
+        }
+    });
+
+    // Check if initial attachment passed
+    {% if initial_attachment %}
+    loadPdfFromUrl('{% url 'officer_attachment_view' initial_attachment.officer.pk initial_attachment.pk %}', '{{ initial_attachment.title|escapejs }}.pdf', '{{ initial_attachment.officer.pk }}');
+    {% endif %}
+});
+
+function handleFileSelect(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        document.getElementById('pdfDropzoneContainer').classList.add('d-none');
+        document.getElementById('pdfWorkspace').classList.remove('d-none');
+        document.getElementById('activeDocTitle').textContent = file.name;
+        document.getElementById('activeDocMeta').textContent = `ទំហំ៖ ${(file.size / (1024*1024)).toFixed(2)} MB`;
+
+        let sourceFolder = '';
+        if (file.webkitRelativePath) {
+            const parts = file.webkitRelativePath.split('/');
+            if (parts.length > 1) {
+                parts.pop();
+                sourceFolder = parts.join('\\');
+            }
+        }
+        if (!sourceFolder) {
+            sourceFolder = localStorage.getItem('dms_pdf_last_source_folder') || 'D:\\Scan_PDF';
+        }
+        window.currentPdfSourceFolder = sourceFolder;
+
+        viewerInstance.load(file, file.name);
+    }
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById('pdfDropzone').classList.add('dragover');
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    document.getElementById('pdfDropzone').classList.remove('dragover');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('pdfDropzone').classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const file = e.dataTransfer.files[0];
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            alert('⚠️ សូមទម្លាក់តែ File ប្រភេទ PDF ប៉ុណ្ណោះ!');
+            return;
+        }
+        document.getElementById('pdfDropzoneContainer').classList.add('d-none');
+        document.getElementById('pdfWorkspace').classList.remove('d-none');
+        document.getElementById('activeDocTitle').textContent = file.name;
+        document.getElementById('activeDocMeta').textContent = `ទំហំ៖ ${(file.size / (1024*1024)).toFixed(2)} MB`;
+
+        let sourceFolder = '';
+        if (file.webkitRelativePath) {
+            const parts = file.webkitRelativePath.split('/');
+            if (parts.length > 1) {
+                parts.pop();
+                sourceFolder = parts.join('\\');
+            }
+        }
+        if (!sourceFolder) {
+            sourceFolder = localStorage.getItem('dms_pdf_last_source_folder') || 'D:\\Scan_PDF';
+        }
+        window.currentPdfSourceFolder = sourceFolder;
+
+        viewerInstance.load(file, file.name);
+    }
+}
+
+function loadPdfFromUrl(url, title, officerId) {
+    document.getElementById('pdfDropzoneContainer').classList.add('d-none');
+    document.getElementById('pdfWorkspace').classList.remove('d-none');
+    document.getElementById('activeDocTitle').textContent = title;
+    document.getElementById('activeDocMeta').textContent = 'កំពុងផ្ទុក...';
+
+    window.currentPdfSourceFolder = 'ប្រព័ន្ធ DMS / ឯកសារយោងមន្ត្រី';
+
+    const recentCollapse = bootstrap.Collapse.getInstance(document.getElementById('recentFilesCollapse'));
+    if (recentCollapse) recentCollapse.hide();
+
+    if (officerId) {
+        document.getElementById('modalOfficerSelect').value = officerId;
+    }
+
+    viewerInstance.load(url, title, officerId);
+}
+
+function applyPageRange() {
+    const val = document.getElementById('pageRangeInput').value;
+    if (val && viewerInstance) {
+        viewerInstance.selectRange(val);
+    }
+}
+
+function closeWorkspace() {
+    document.getElementById('pdfWorkspace').classList.add('d-none');
+    document.getElementById('pdfDropzoneContainer').classList.remove('d-none');
+    document.getElementById('pdfFileInput').value = '';
+    if (viewerInstance) {
+        viewerInstance.deselectAll();
+    }
+}
+
+async function saveDirectlyToOfficerAction() {
+    if (!viewerInstance || viewerInstance.selectedPages.size === 0) {
+        alert("⚠️ សូមជ្រើសរើសទំព័រយ៉ាងហោចណាស់ ១ ក្នុង PDF ជាមុនសិន!");
+        return;
+    }
+
+    const officerId = document.getElementById('modalOfficerSelect').value;
+    const category = document.getElementById('modalCategorySelect').value;
+    const title = document.getElementById('modalDocTitle').value.trim();
+    const docNumber = document.getElementById('modalDocNumber')?.value.trim() || '';
+    const issuedDate = document.getElementById('modalIssuedDate')?.value.trim() || '';
+    const submitBtn = document.getElementById('btnSubmitSaveToOfficer');
+
+    if (!officerId) {
+        alert("⚠️ សូមជ្រើសរើសមន្ត្រីរាជការ!");
+        return;
+    }
+
+    if (!title) {
+        alert("⚠️ សូមបញ្ចូលចំណងជើង ឬឈ្មោះឯកសារយោង!");
+        document.getElementById('modalDocTitle')?.focus();
+        return;
+    }
+
+    const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i> កំពុងរក្សាទុក...';
+    }
+
+    try {
+        const ok = await viewerInstance.saveToOfficerProfile(officerId, category, title, docNumber, issuedDate);
+        if (ok) {
+            const modalEl = document.getElementById('saveToOfficerModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            // DO NOT change or reload the PDF view!
+            // KEEP the same officer selected in modalOfficerSelect for subsequent page additions!
+            // Clear document fields for the next document
+            document.getElementById('modalDocTitle').value = '';
+            if (document.getElementById('modalDocNumber')) document.getElementById('modalDocNumber').value = '';
+            if (document.getElementById('modalIssuedDate')) document.getElementById('modalIssuedDate').value = '';
+        }
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origBtnHtml;
+        }
+    }
+}
+
+// Modal event listener: populate page summary and defaults dynamically
+document.addEventListener('DOMContentLoaded', function () {
+    const saveToOfficerModalEl = document.getElementById('saveToOfficerModal');
+    if (saveToOfficerModalEl) {
+        saveToOfficerModalEl.addEventListener('show.bs.modal', function () {
+            const count = viewerInstance ? viewerInstance.selectedPages.size : 0;
+            const submitBtn = document.getElementById('btnSubmitSaveToOfficer');
+            const warnEl = document.getElementById('modalOfficerNoPageWarn');
+            const summaryEl = document.getElementById('modalOfficerPagesSummary');
+            const sourceDocEl = document.getElementById('modalOfficerDocSource');
+
+            if (sourceDocEl && viewerInstance) {
+                sourceDocEl.textContent = viewerInstance.currentTitle;
+            }
+
+            if (count === 0) {
+                if (warnEl) warnEl.classList.remove('d-none');
+                if (submitBtn) submitBtn.disabled = true;
+                if (summaryEl) {
+                    summaryEl.textContent = 'មិនទាន់ជ្រើសទំព័រនៅឡើយ';
+                    summaryEl.className = 'badge bg-danger rounded-pill px-2.5 py-1 fs-8';
+                }
+            } else {
+                if (warnEl) warnEl.classList.add('d-none');
+                if (submitBtn) submitBtn.disabled = false;
+                const sorted = Array.from(viewerInstance.selectedPages).sort((a,b) => a-b);
+                if (summaryEl) {
+                    summaryEl.textContent = `ទំព័រ៖ ${sorted.join(', ')} (សរុប ${sorted.length} ទំព័រ)`;
+                    summaryEl.className = 'badge bg-primary rounded-pill px-2.5 py-1 fs-8';
+                }
+                const titleInput = document.getElementById('modalDocTitle');
+                if (titleInput && !titleInput.value.trim() && viewerInstance) {
+                    const cleanBase = viewerInstance.currentTitle.replace(/\.[^/.]+$/, "");
+                    titleInput.placeholder = `ឧ. ${cleanBase} (ទំព័រ ${sorted.join(',')})`;
+                }
+            }
+        });
+    }
+});
+
+/* ==========================================================================
+   Drive & Folder Modal Interaction Helpers (User PC Support)
+   ========================================================================== */
+function applySourceFolderAsTarget() {
+    const sourceDisplay = document.getElementById('modalSourceFolderDisplay');
+    const folderInput = document.getElementById('modalTargetFolderInput');
+    const driveSelect = document.getElementById('modalDriveSelect');
+    if (sourceDisplay && folderInput) {
+        const src = sourceDisplay.textContent.trim();
+        folderInput.value = src;
+        // Auto detect drive letter if present e.g. "D:\"
+        if (src.length >= 2 && src[1] === ':') {
+            const drive = src.substring(0, 2).toUpperCase();
+            if (driveSelect) {
+                driveSelect.value = drive;
+            }
+        }
+        updateFullTargetPathPreview();
+        if (typeof showSystemToast === 'function') {
+            showSystemToast("⚡ បានកំណត់យក Folder ដូចប្រភពដើម!");
+        }
+    }
+}
+
+function changeSourceFolderCustom() {
+    const current = document.getElementById('modalSourceFolderDisplay')?.textContent || 'D:\\Scan_PDF';
+    const newFolder = prompt("សូមបញ្ចូលទីតាំង Folder ប្រភពដើម (Source Folder Path):", current);
+    if (newFolder && newFolder.trim()) {
+        const trimmed = newFolder.trim();
+        window.currentPdfSourceFolder = trimmed;
+        localStorage.setItem('dms_pdf_last_source_folder', trimmed);
+        const sourceDisplay = document.getElementById('modalSourceFolderDisplay');
+        if (sourceDisplay) sourceDisplay.textContent = trimmed;
+        if (confirm("តើលោកអ្នកចង់យក Folder នេះជា Folder គោលដៅរក្សាទុក (Target Folder) ឥឡូវនេះដែរឬទេ?")) {
+            applySourceFolderAsTarget();
+        }
+    }
+}
+
+function onDriveSelectChange(drive) {
+    if (!drive || drive === 'CUSTOM') return;
+    const folderInput = document.getElementById('modalTargetFolderInput');
+    if (folderInput) {
+        let curr = folderInput.value.trim();
+        if (curr.length >= 2 && curr[1] === ':') {
+            folderInput.value = drive + curr.substring(2);
+        } else {
+            folderInput.value = drive + '\\' + (curr.startsWith('\\') ? curr.substring(1) : curr);
+        }
+    }
+    localStorage.setItem('dms_pdf_last_drive', drive);
+    updateFullTargetPathPreview();
+}
+
+function quickSelectDrive(drive) {
+    const driveSelect = document.getElementById('modalDriveSelect');
+    if (driveSelect) {
+        driveSelect.value = drive;
+        onDriveSelectChange(drive);
+    }
+}
+
+function setTargetFolderQuick(path) {
+    const folderInput = document.getElementById('modalTargetFolderInput');
+    const driveSelect = document.getElementById('modalDriveSelect');
+    if (folderInput) {
+        folderInput.value = path;
+    }
+    if (path.length >= 2 && path[1] === ':' && driveSelect) {
+        driveSelect.value = path.substring(0, 2).toUpperCase();
+    }
+    updateFullTargetPathPreview();
+}
+
+function updateFullTargetPathPreview() {
+    const folderInput = document.getElementById('modalTargetFolderInput');
+    const nameInput = document.getElementById('saveAsPdfModalInput');
+    const previewEl = document.getElementById('modalFullTargetPathPreview');
+    if (!previewEl) return;
+
+    let folder = folderInput ? folderInput.value.trim() : 'D:\\Scan_PDF';
+    let name = nameInput ? nameInput.value.trim() : 'document';
+    if (!name) name = 'document';
+    if (!name.toLowerCase().endsWith('.pdf')) name += '.pdf';
+
+    if (folder.endsWith('\\') || folder.endsWith('/')) {
+        folder = folder.slice(0, -1);
+    }
+    previewEl.textContent = folder ? `${folder}\\${name}` : name;
+}
+
+function copyFullTargetPath() {
+    const previewEl = document.getElementById('modalFullTargetPathPreview');
+    if (previewEl && previewEl.textContent) {
+        const text = previewEl.textContent.trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                if (typeof showSystemToast === 'function') {
+                    showSystemToast("📋 បានចម្លងផ្លូវ File ទៅក្នុង Clipboard រួចរាល់!");
+                } else {
+                    alert("📋 បានចម្លងផ្លូវ File រួចរាល់!");
+                }
+            }).catch(() => {});
+        }
+    }
+}
+
+function toggleChromeGuideDetails() {
+    const details = document.getElementById('chromeGuideDetails');
+    const icon = document.getElementById('guideToggleIcon');
+    if (details) {
+        if (details.classList.contains('d-none')) {
+            details.classList.remove('d-none');
+            if (icon) icon.className = 'fa-solid fa-chevron-up';
+        } else {
+            details.classList.add('d-none');
+            if (icon) icon.className = 'fa-solid fa-chevron-down';
+        }
+    }
+}
+
+function appendTimestampToFileName() {
+    const nameInput = document.getElementById('saveAsPdfModalInput');
+    if (nameInput) {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const dStr = `_${y}${m}${d}`;
+        if (!nameInput.value.includes(dStr)) {
+            nameInput.value = `${nameInput.value}${dStr}`;
+            updateFullTargetPathPreview();
+        }
+    }
+}
+</script>
+{% endblock %}

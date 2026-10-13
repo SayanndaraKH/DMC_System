@@ -20,21 +20,20 @@ SECRET_KEY = os.environ.get(
     'django-insecure-dms-cambodia-gov-doc-management-system-secret-key-2026'
 )
 
-# DEBUG is True by default for local development unless DEBUG=False is explicitly set (e.g. on Railway)
+# DEBUG is True by default for local development unless DEBUG=False is explicitly set (e.g. in Production)
 DEBUG = os.environ.get('DEBUG', 'True').strip().lower() in ['true', '1', 'yes']
 
 # ALLOWED_HOSTS configuration
 allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', '*')
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
 
-# CSRF Trusted Origins for Local Network, Domains, and Railway
+# CSRF Trusted Origins for Local Network, Domains, and Cloud (Netlify, etc.)
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
     'http://127.0.0.1',
     'http://localhost',
-    'https://*.railway.app',
-    'https://*.up.railway.app',
+    'https://*.netlify.app',
 ]
 
 # Auto-detect all active LAN / Wi-Fi IP addresses on this host
@@ -86,7 +85,7 @@ CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
-# Railway / Reverse Proxy HTTPS Headers
+# Reverse Proxy HTTPS Headers
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
@@ -141,7 +140,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'dms_project.wsgi.application'
 
-# Database Configuration (Auto-detects Railway PostgreSQL or persistent storage / local SQLite)
+# Database Configuration (Auto-detects PostgreSQL DATABASE_URL or persistent storage / local SQLite)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
     try:
@@ -150,7 +149,8 @@ if DATABASE_URL:
             'default': dj_database_url.config(
                 default=DATABASE_URL,
                 conn_max_age=600,
-                conn_health_checks=True
+                conn_health_checks=True,
+                ssl_require=True
             )
         }
     except Exception:
@@ -161,18 +161,22 @@ if DATABASE_URL:
             }
         }
 else:
-    # If no PostgreSQL, check for persistent volume mount paths (/app/data, /data, /app/media, or DATA_DIR)
-    persistent_db_dir = os.environ.get('DATA_DIR')
-    if not persistent_db_dir:
-        for candidate in ['/app/data', '/data', '/app/media']:
-            if os.path.exists(candidate) and os.path.isdir(candidate):
-                persistent_db_dir = candidate
-                break
-
-    if persistent_db_dir and os.path.exists(persistent_db_dir):
-        db_file = os.path.join(persistent_db_dir, 'db.sqlite3')
+    # If in Serverless / Netlify environment without DATABASE_URL, fallback to /tmp
+    if os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or os.environ.get('NETLIFY'):
+        db_file = '/tmp/db.sqlite3'
     else:
-        db_file = BASE_DIR / 'db.sqlite3'
+        # If no PostgreSQL, check for persistent volume mount paths (/app/data, /data, /app/media, or DATA_DIR)
+        persistent_db_dir = os.environ.get('DATA_DIR')
+        if not persistent_db_dir:
+            for candidate in ['/app/data', '/data', '/app/media']:
+                if os.path.exists(candidate) and os.path.isdir(candidate):
+                    persistent_db_dir = candidate
+                    break
+
+        if persistent_db_dir and os.path.exists(persistent_db_dir):
+            db_file = os.path.join(persistent_db_dir, 'db.sqlite3')
+        else:
+            db_file = BASE_DIR / 'db.sqlite3'
 
     DATABASES = {
         'default': {
@@ -206,19 +210,27 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 media_candidate = os.environ.get('MEDIA_ROOT')
 if not media_candidate:
-    # Railway sets RAILWAY_VOLUME_MOUNT_PATH on any service with a volume attached.
-    # Using it means uploads land on the volume wherever it is mounted, so photos
-    # survive a redeploy without anyone having to set MEDIA_ROOT by hand.
-    volume_mount = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
-    if volume_mount and os.path.isdir(volume_mount):
-        media_candidate = os.path.join(volume_mount, 'media')
-    elif os.path.isdir('/app/media'):
-        media_candidate = '/app/media'
+    if os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or os.environ.get('NETLIFY'):
+        media_candidate = '/tmp/media'
     else:
-        media_candidate = os.path.join(BASE_DIR, 'media')
+        # Check for persistent volume mount path or standard cloud directories
+        volume_mount = os.environ.get('VOLUME_MOUNT_PATH') or os.environ.get('DATA_DIR')
+        if volume_mount and os.path.isdir(volume_mount):
+            media_candidate = os.path.join(volume_mount, 'media')
+        elif os.path.isdir('/app/media'):
+            media_candidate = '/app/media'
+        else:
+            media_candidate = os.path.join(BASE_DIR, 'media')
 MEDIA_ROOT = media_candidate
-# Uploads fail with a 500 if the directory is missing (e.g. a freshly mounted volume).
-os.makedirs(MEDIA_ROOT, exist_ok=True)
+# Uploads fail if the directory is missing; ignore read-only FS errors on Lambda boot
+try:
+    os.makedirs(MEDIA_ROOT, exist_ok=True)
+except OSError:
+    pass
+
+# Allow uploading files without size restriction
+DATA_UPLOAD_MAX_MEMORY_SIZE = None
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10240
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'

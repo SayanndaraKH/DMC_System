@@ -3,7 +3,7 @@ title DMC System - Push to GitHub
 color 0b
 
 echo ====================================================================
-echo        DMC SYSTEM - AUTO PUSH TO GITHUB (RAILWAY AUTO-DEPLOY)
+echo        DMC SYSTEM - AUTO PUSH TO GITHUB (NETLIFY AUTO-DEPLOY)
 echo ====================================================================
 echo.
 
@@ -45,7 +45,7 @@ if %ERRORLEVEL% EQU 0 (
     echo.
     echo ====================================================================
     echo  [SUCCESS] Code pushed to GitHub successfully!
-    echo  Railway.com will auto-deploy the full project now.
+    echo  Netlify (https://app.netlify.com) will auto-deploy the latest update.
     echo ====================================================================
 ) else (
     echo.

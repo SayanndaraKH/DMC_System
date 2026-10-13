@@ -9,11 +9,16 @@
         <h4 class="fw-bold m-0 text-dark">បញ្ជីលិខិត និងឯកសាររដ្ឋបាល</h4>
         <p class="text-muted fs-7 m-0">គ្រប់គ្រង ស្វែងរក និងតាមដានស្ថានភាពលិខិតទាំងអស់</p>
     </div>
-    {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_create_document %}
-    <a href="{% url 'document_create' %}?doc_type=OUTBOUND" class="btn btn-success rounded-pill px-3 shadow-sm">
-        <i class="fa-solid fa-plus me-1"></i> ចុះលេខលិខិតចេញ
-    </a>
-    {% endif %}
+    <div class="d-flex gap-2">
+        <a href="{% url 'pdf_page_viewer' %}" class="btn btn-outline-danger rounded-pill px-3 shadow-sm fw-bold">
+            <i class="fa-solid fa-file-pdf me-1 text-danger"></i> បំបែកទំព័រ PDF
+        </a>
+        {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_create_document %}
+        <a href="{% url 'document_create' %}?doc_type=OUTBOUND" class="btn btn-success rounded-pill px-3 shadow-sm">
+            <i class="fa-solid fa-plus me-1"></i> ចុះលេខលិខិតចេញ
+        </a>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Tabs Bar -->
