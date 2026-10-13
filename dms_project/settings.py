@@ -27,13 +27,16 @@ DEBUG = os.environ.get('DEBUG', 'True').strip().lower() in ['true', '1', 'yes']
 allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', '*')
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
 
-# CSRF Trusted Origins for Local Network, Domains, and Cloud (Netlify, etc.)
+# CSRF Trusted Origins for Local Network, Domains, Netlify, and Render
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
     'http://127.0.0.1',
     'http://localhost',
+    'https://hrmismaffpl.netlify.app',
     'https://*.netlify.app',
+    'https://hrmismaffpl.onrender.com',
+    'https://*.onrender.com',
 ]
 
 # Auto-detect all active LAN / Wi-Fi IP addresses on this host
