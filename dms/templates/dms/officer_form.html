@@ -1441,7 +1441,7 @@
                                 <label class="form-label fw-bold small text-dark">
                                     <i class="fa-solid fa-building text-primary me-1"></i> ការិយាល័យ/ខណ្ឌបច្ចុប្បន្ន
                                 </label>
-                                <select id="officerSecondaryDepartmentSelect" class="form-select border-primary fw-semibold" onchange="syncDepartmentToPrimary(this.value)">
+                                <select id="officerSecondaryDepartmentSelect" name="department_select_placement" class="form-select border-primary fw-semibold" onchange="syncDepartmentToPrimary(this.value)">
                                     <option value="">-- ជ្រើសរើសការិយាល័យ/ខណ្ឌ --</option>
                                     {% for d in departments %}
                                     <option value="{{ d.id }}" {% if is_edit and officer.department_id == d.id %}selected{% elif not is_edit and dept and dept.id == d.id %}selected{% endif %}>{{ d.name_kh }}</option>

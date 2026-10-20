@@ -3485,7 +3485,7 @@ def officer_edit(request, pk):
             old_dept = officer.department
             old_pos = officer.current_position_title
             pos_title = request.POST.get('current_position_title', '').strip()
-            target_dept_id = request.POST.get('department') or request.POST.get('department_select_placement')
+            target_dept_id = request.POST.get('department_select_placement') or request.POST.get('department')
 
             if pos_title in ['ប្រធានមន្ទីរ', 'អនុប្រធានមន្ទីរ']:
                 lead_dept = Department.objects.filter(Q(code='LEAD') | Q(name_kh='ថ្នាក់ដឹកនាំមន្ទីរ')).first()

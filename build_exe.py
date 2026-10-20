@@ -127,7 +127,8 @@ print(f"  📁 ទីតាំង File: {target_exe}")
 print("  🚀 ពេលចុចបើក DMC_System.exe វានឹងបង្ហាញទម្រង់ទី២ (Web App) ស្វ័យប្រវត្ត")
 print("  🔒 ទិន្នន័យ db.sqlite3 និង Neon Cloud Database ភ្ជាប់បានយ៉ាងត្រឹមត្រូវ")
 print("=" * 70)
-try:
-    input("\nចុច Enter ដើម្បីបិទផ្ទាំងនេះ (Press Enter to exit)... ")
-except Exception:
-    pass
+if "--no-pause" not in sys.argv and sys.stdin and sys.stdin.isatty():
+    try:
+        input("\nចុច Enter ដើម្បីបិទផ្ទាំងនេះ (Press Enter to exit)... ")
+    except Exception:
+        pass

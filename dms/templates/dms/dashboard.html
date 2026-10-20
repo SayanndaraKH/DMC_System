@@ -28,10 +28,6 @@
             <i class="fa-solid fa-users"></i>
             <span>បញ្ជីមន្ត្រី ({{ total_officers }})</span>
         </a>
-        <a href="{% url 'pdf_page_viewer' %}" class="btn btn-outline-light shadow-sm rounded-pill px-3 py-2 fw-bold d-flex align-items-center gap-1.5">
-            <i class="fa-solid fa-file-pdf text-danger"></i>
-            <span>បំបែកទំព័រ PDF</span>
-        </a>
         {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_create_document %}
         <a href="{% url 'document_create' %}?doc_type=OUTBOUND" class="btn btn-light shadow-sm rounded-pill px-3 py-2 fw-bold text-success d-flex align-items-center gap-1.5">
             <i class="fa-solid fa-plus text-success"></i>

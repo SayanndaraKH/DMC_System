@@ -140,10 +140,19 @@ except ImportError:
 
 ROOT_URLCONF = 'dms_project.urls'
 
+# Disk templates support: allows templates on disk to override frozen bundle in PyInstaller
+DISK_TEMPLATE_DIRS = []
+if getattr(sys, 'frozen', False):
+    exe_dir = Path(sys.executable).resolve().parent
+    if (exe_dir / 'dms' / 'templates').exists():
+        DISK_TEMPLATE_DIRS.append(str(exe_dir / 'dms' / 'templates'))
+    if (exe_dir.parent / 'dms' / 'templates').exists():
+        DISK_TEMPLATE_DIRS.append(str(exe_dir.parent / 'dms' / 'templates'))
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'dms', 'templates')],
+        'DIRS': DISK_TEMPLATE_DIRS + [os.path.join(BASE_DIR, 'dms', 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
