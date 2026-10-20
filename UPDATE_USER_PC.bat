@@ -11,7 +11,9 @@ echo.
 cd /d "%~dp0"
 
 echo [1/4] កំពុងបិទដំណើរការចាស់ៗ និងសម្អាត Port 8000...
-:: Kill any lingering DMC_System, python, or port 8000 process
+:: Terminate any running DMC_System or python processes holding files or port 8000
+taskkill /f /im DMC_System.exe >nul 2>&1
+taskkill /f /im DMC_System_Client.exe >nul 2>&1
 powershell -NoProfile -Command "Get-Process -Name 'DMC_System', 'DMC_System_Client' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }"
 timeout /t 2 /nobreak >nul
@@ -57,7 +59,12 @@ if %ERRORLEVEL% EQU 0 (
 echo.
 echo [3/4] កំពុងជំនួស File កម្មវិធី DMC_System.exe...
 if exist "dist\DMC_System.exe" (
-    copy /Y "dist\DMC_System.exe" "DMC_System.exe" >nul
+    for /l %%i in (1,1,5) do (
+        copy /Y "dist\DMC_System.exe" "DMC_System.exe" >nul 2>&1
+        if not errorlevel 1 goto copy_success
+        timeout /t 1 /nobreak >nul
+    )
+    :copy_success
     echo   + បានជំនួស DMC_System.exe ថ្មីជោគជ័យ!
 )
 
@@ -77,8 +84,12 @@ echo  🚀 កម្មវិធីកំពុងបើកដំណើរកា
 echo ========================================================================
 echo.
 
+timeout /t 2 /nobreak >nul
+
 if exist "DMC_System.exe" (
     start "" "DMC_System.exe"
+) else if exist "dist\DMC_System.exe" (
+    start "" "dist\DMC_System.exe"
 ) else if exist "RUN_DMS.bat" (
     start "" "RUN_DMS.bat"
 ) else (

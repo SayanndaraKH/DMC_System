@@ -430,7 +430,7 @@ class DMCMainApp(ctk.CTk):
         update_row = ctk.CTkFrame(mgmt_frame, fg_color="transparent")
         update_row.pack(fill="x", padx=16, pady=(0, 10))
 
-        btn_update = ctk.CTkButton(
+        self.btn_update = ctk.CTkButton(
             update_row,
             text="🔄 ទាញយក Update ពី GitHub (Auto-Update User PC)",
             font=ctk.CTkFont(family="Khmer OS Siemreap", size=13, weight="bold"),
@@ -439,7 +439,7 @@ class DMCMainApp(ctk.CTk):
             height=36,
             command=self.trigger_auto_update
         )
-        btn_update.pack(fill="x", expand=True)
+        self.btn_update.pack(fill="x", expand=True)
 
         # 5. Footer / Copyright & Telegram Link Frame
         footer_card = ctk.CTkFrame(self, corner_radius=12, fg_color="#0f172a", border_width=1, border_color="#1e293b")
@@ -747,16 +747,38 @@ class DMCMainApp(ctk.CTk):
         Triggers UPDATE_USER_PC.bat to pull latest form & code from GitHub,
         replaces all files, and restarts the application cleanly.
         """
+        try:
+            self.btn_update.configure(
+                text="⏳ កំពុងដំណើរការ Update ពី GitHub... សូមរង់ចាំ!",
+                fg_color="#4c1d95"
+            )
+            self.update()
+        except Exception:
+            pass
+
         update_bat = BASE_DIR / "UPDATE_USER_PC.bat"
         if not update_bat.exists():
             update_bat = Path(__file__).resolve().parent / "UPDATE_USER_PC.bat"
 
         self.stop_server()
-        if update_bat.exists():
-            subprocess.Popen(f'start "" cmd /c "{update_bat}"', shell=True)
-        else:
-            cmd = 'start "" cmd /c "git fetch origin main && git reset --hard origin/main && pause"'
-            subprocess.Popen(cmd, shell=True)
+        try:
+            if update_bat.exists():
+                subprocess.Popen(
+                    ["cmd.exe", "/c", str(update_bat)],
+                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                    cwd=str(BASE_DIR)
+                )
+            else:
+                cmd = 'git fetch origin main && git reset --hard origin/main && pause'
+                subprocess.Popen(
+                    ["cmd.exe", "/c", cmd],
+                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                    cwd=str(BASE_DIR)
+                )
+        except Exception as e:
+            print(f"Error launching update: {e}")
+
+        time.sleep(0.5)
         self.destroy()
         sys.exit(0)
 
