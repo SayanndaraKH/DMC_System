@@ -35,9 +35,17 @@ $RECYCLE.BIN/
 
 # Temporary scratch & data folders
 scratch/
-scratch_run.ps1
-scratch_doc_text.txt
+scratch_*
+*.txt.bak
+server_log.txt
+dms.pid
+db.sqlite3.backup_safe
+test_*.txt
 ប្រវត្តិរូប HRMIS MCS/
+
+# PyInstaller build cache (keep dist/)
+build/
+*.spec
 
 # Backup archives
 backups/

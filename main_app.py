@@ -56,17 +56,57 @@ ICON_FILE = get_resource_path("dms/static/dms/img/favicon.ico") or (BASE_DIR / "
 LOGO_FILE = get_resource_path("dms/static/dms/img/logo.png") or (BASE_DIR / "logo.png")
 
 
+def free_port_8000():
+    if sys.platform == "win32":
+        try:
+            cmd = f'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object {{ if ($_ -ne {os.getpid()}) {{ Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }} }}"'
+            subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+
+_waitress_started = False
+
+def start_embedded_server():
+    global _waitress_started
+    if _waitress_started:
+        return
+    _waitress_started = True
+
+    def _serve():
+        try:
+            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dms_project.settings')
+            os.environ['USE_LOCAL_SQLITE'] = 'False'
+            import django
+            django.setup()
+
+            # Auto-migrate database on start
+            try:
+                from django.core.management import call_command
+                call_command('migrate', interactive=False)
+            except Exception:
+                pass
+
+            from waitress import serve
+            from dms_project.wsgi import application
+            serve(application, host='0.0.0.0', port=8000, threads=8, _quiet=True)
+        except Exception as e:
+            print(f"Waitress server error: {e}")
+
+    t = threading.Thread(target=_serve, daemon=True)
+    t.start()
+
+
 class DMCMainApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         self.title("សូមស្វាគមន៍មកកាន់កម្មវិធីគ្រប់គ្រងធនធានមនុស្ស - DMC Desktop Control Center")
-        self.center_window(860, 600)
+        self.center_window(860, 630)
 
         # Strictly lock window dimensions to prevent any resizing or maximizing
         self.resizable(False, False)
-        self.maxsize(860, 600)
-        self.minsize(860, 600)
+        self.maxsize(860, 630)
+        self.minsize(860, 630)
 
         # Set Icon if available
         if ICON_FILE and ICON_FILE.exists():
@@ -168,11 +208,10 @@ class DMCMainApp(ctk.CTk):
     def auto_start_and_launch_form2(self):
         """
         Background health checker & server auto-starter.
-        Ensures the local server is running in the background,
+        Ensures the embedded Waitress server is running in the background,
         updates the status badge, but DOES NOT open the browser automatically.
         The web interface will ONLY open when the user clicks 'បើកដំណើរការប្រព័ន្ធ'.
         """
-        # Always check 127.0.0.1 first for ultra-fast local detection
         if not self.check_url_online("http://127.0.0.1:8000/", timeout=0.5):
             self.after(0, lambda: self.status_badge.configure(
                 text="⏳ កំពុងចាប់ផ្តើម Server...",
@@ -181,10 +220,10 @@ class DMCMainApp(ctk.CTk):
             ))
             self.start_server()
 
-        # Wait up to 45 seconds for server to be responsive (covers migrations & slow networks)
+        # Wait up to 30 seconds for server to be responsive
         start_wait = time.time()
         server_ready = False
-        while time.time() - start_wait < 45:
+        while time.time() - start_wait < 30:
             if self.check_url_online("http://127.0.0.1:8000/", timeout=0.5):
                 server_ready = True
                 break
@@ -198,7 +237,7 @@ class DMCMainApp(ctk.CTk):
             ))
         else:
             self.after(0, lambda: self.status_badge.configure(
-                text="⚠️ ចាប់ផ្តើម Server យឺត (សូមចុច Start Server)",
+                text="⚠️ ចាប់ផ្តើម Server យឺត (Connecting...)",
                 text_color="#f87171",
                 fg_color="#7f1d1d"
             ))
@@ -386,6 +425,21 @@ class DMCMainApp(ctk.CTk):
             command=self.stop_server
         )
         btn_stop.pack(side="right", fill="x", expand=True, padx=(4, 0))
+
+        # Auto-Update from GitHub Button (for User PC and Admin PC)
+        update_row = ctk.CTkFrame(mgmt_frame, fg_color="transparent")
+        update_row.pack(fill="x", padx=16, pady=(0, 10))
+
+        btn_update = ctk.CTkButton(
+            update_row,
+            text="🔄 ទាញយក Update ពី GitHub (Auto-Update User PC)",
+            font=ctk.CTkFont(family="Khmer OS Siemreap", size=13, weight="bold"),
+            fg_color="#7c3aed",
+            hover_color="#6d28d9",
+            height=36,
+            command=self.trigger_auto_update
+        )
+        btn_update.pack(fill="x", expand=True)
 
         # 5. Footer / Copyright & Telegram Link Frame
         footer_card = ctk.CTkFrame(self, corner_radius=12, fg_color="#0f172a", border_width=1, border_color="#1e293b")
@@ -675,39 +729,36 @@ class DMCMainApp(ctk.CTk):
         self.restart_server()
 
     def start_server(self):
-        def _run():
-            if (BASE_DIR / "start_background.vbs").exists():
-                subprocess.run("wscript.exe start_background.vbs", cwd=str(BASE_DIR), shell=True)
-            elif (BASE_DIR / "run.py").exists():
-                py_bin = sys.executable
-                if getattr(sys, 'frozen', False):
-                    local_app = os.environ.get("LOCALAPPDATA", "")
-                    candidates = [
-                        BASE_DIR / "venv" / "Scripts" / "python.exe",
-                        Path(local_app) / "Programs" / "Python" / "Python311" / "python.exe",
-                        Path(local_app) / "Programs" / "Python" / "Python312" / "python.exe",
-                        Path("C:/Program Files/Python311/python.exe"),
-                        Path("C:/Python311/python.exe"),
-                    ]
-                    for cand in candidates:
-                        if cand.exists():
-                            py_bin = str(cand)
-                            break
-                    else:
-                        py_bin = "python.exe"
-                subprocess.run([py_bin, str(BASE_DIR / "run.py")], cwd=str(BASE_DIR))
-        threading.Thread(target=_run, daemon=True).start()
+        free_port_8000()
+        time.sleep(0.5)
+        start_embedded_server()
 
     def restart_server(self):
-        def _run():
-            subprocess.run("call stop.bat", shell=True)
-            time.sleep(1)
-            self.start_server()
-        threading.Thread(target=_run, daemon=True).start()
+        self.stop_server()
+        time.sleep(1)
+        self.start_server()
 
     def stop_server(self):
-        subprocess.run("call stop.bat", shell=True)
+        free_port_8000()
         self.status_badge.configure(text="🔴 មិនទាន់ដំណើរការ (Offline)", text_color="#f87171", fg_color="#7f1d1d")
+
+    def trigger_auto_update(self):
+        """
+        Triggers UPDATE_USER_PC.bat to pull latest form & code from GitHub,
+        replaces all files, and restarts the application cleanly.
+        """
+        update_bat = BASE_DIR / "UPDATE_USER_PC.bat"
+        if not update_bat.exists():
+            update_bat = Path(__file__).resolve().parent / "UPDATE_USER_PC.bat"
+
+        self.stop_server()
+        if update_bat.exists():
+            subprocess.Popen(f'start "" cmd /c "{update_bat}"', shell=True)
+        else:
+            cmd = 'start "" cmd /c "git fetch origin main && git reset --hard origin/main && pause"'
+            subprocess.Popen(cmd, shell=True)
+        self.destroy()
+        sys.exit(0)
 
     def destroy(self):
         self.is_monitoring = False

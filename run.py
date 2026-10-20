@@ -14,6 +14,9 @@ BASE_DIR = Path(__file__).resolve().parent
 os.chdir(BASE_DIR)
 sys.path.insert(0, str(BASE_DIR))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dms_project.settings')
+NEON_CLOUD_DATABASE_URL = 'postgresql://neondb_owner:npg_bw8CSyjXtql6@ep-wandering-fire-awc8mlbh-pooler.c-12.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
+os.environ.setdefault('DATABASE_URL', NEON_CLOUD_DATABASE_URL)
+os.environ.setdefault('USE_LOCAL_SQLITE', 'False')
 
 LOG_FILE = BASE_DIR / 'server_log.txt'
 PID_FILE = BASE_DIR / 'dms.pid'
@@ -189,7 +192,64 @@ def detect_and_update_lan_ip():
     return primary_ip
 
 
-def wait_and_open_browser(url='http://127.0.0.1:8000', timeout_seconds=20):
+def start_port_80_redirector():
+    """
+    Starts a background listener on port 80 (if available / allowed) that
+    automatically redirects any browser typing '127.0.0.1' or 'localhost' or 'LAN IP'
+    (which defaults to port 80) to port 8000.
+    """
+    def _redirect_worker():
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(('0.0.0.0', 80))
+            sock.listen(10)
+            logging.info("Port 80 redirector active: requests to port 80 will redirect to port 8000.")
+            while True:
+                client, addr = sock.accept()
+                threading.Thread(target=_handle_client, args=(client,), daemon=True).start()
+        except Exception as e:
+            logging.info(f"Port 80 redirector inactive ({e}) - normal operation continues on port 8000.")
+
+    def _handle_client(client):
+        try:
+            client.settimeout(3.0)
+            data = client.recv(2048).decode('utf-8', errors='ignore')
+            path = "/"
+            host = "127.0.0.1"
+            if data:
+                lines = data.splitlines()
+                if lines:
+                    parts = lines[0].split()
+                    if len(parts) >= 2:
+                        path = parts[1]
+                for line in lines[1:]:
+                    if line.lower().startswith("host:"):
+                        host = line.split(":", 1)[1].strip()
+                        if ":" in host:
+                            host = host.split(":", 1)[0]
+                        break
+            target = f"http://{host}:8000{path}"
+            resp = (
+                "HTTP/1.1 302 Found\r\n"
+                f"Location: {target}\r\n"
+                "Content-Length: 0\r\n"
+                "Connection: close\r\n\r\n"
+            )
+            client.sendall(resp.encode('utf-8'))
+        except Exception:
+            pass
+        finally:
+            try:
+                client.close()
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_redirect_worker, daemon=True)
+    t.start()
+
+
+def wait_and_open_browser(url='http://127.0.0.1:8000', timeout_seconds=45):
     """
     Waits in background until server starts responding, then opens default browser.
     """
@@ -197,7 +257,7 @@ def wait_and_open_browser(url='http://127.0.0.1:8000', timeout_seconds=20):
         start_time = time.time()
         while time.time() - start_time < timeout_seconds:
             if is_port_in_use(8000):
-                time.sleep(1)
+                time.sleep(1.5)
                 try:
                     webbrowser.open(url)
                     logging.info(f"Browser opened to {url}")
@@ -257,7 +317,7 @@ def main():
 
     # Handle --autostart mode (Windows Startup)
     is_autostart = '--autostart' in args
-    should_open_browser = '--open-browser' in args or not is_autostart
+    should_open_browser = '--open-browser' in args
 
     setup_logging()
     logging.info("==================================================")
@@ -284,6 +344,9 @@ def main():
     # 3. Detect and update LAN / Wi-Fi IP
     lan_ip = detect_and_update_lan_ip()
     logging.info(f"Active LAN / Wi-Fi IP: {lan_ip} (http://{lan_ip}:8000/)")
+
+    # Start Port 80 Redirector (redirects http://127.0.0.1 and http://LAN_IP to :8000)
+    start_port_80_redirector()
 
     # 4. Run database migrations safely
     try:

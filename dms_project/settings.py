@@ -1,4 +1,5 @@
 import os
+import sys
 import socket
 from pathlib import Path
 
@@ -27,7 +28,7 @@ DEBUG = os.environ.get('DEBUG', 'True').strip().lower() in ['true', '1', 'yes']
 allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', '*')
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
 
-# CSRF Trusted Origins for Local Network, Domains, Netlify, and Render
+# CSRF Trusted Origins for Local Network, Domains, and Cloud
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
@@ -35,8 +36,6 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost',
     'https://hrmismaffpl.netlify.app',
     'https://*.netlify.app',
-    'https://hrmismaffpl.onrender.com',
-    'https://*.onrender.com',
 ]
 
 # Auto-detect all active LAN / Wi-Fi IP addresses on this host
@@ -219,7 +218,13 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 media_candidate = os.environ.get('MEDIA_ROOT')
 if not media_candidate:
-    if os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or os.environ.get('NETLIFY'):
+    if getattr(sys, 'frozen', False):
+        local_app = os.environ.get('LOCALAPPDATA', '')
+        if local_app:
+            media_candidate = os.path.join(local_app, 'DMC_System', 'media')
+        else:
+            media_candidate = os.path.join(Path(sys.executable).resolve().parent, 'media')
+    elif os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or os.environ.get('NETLIFY'):
         media_candidate = '/tmp/media'
     else:
         # Check for persistent volume mount path or standard cloud directories

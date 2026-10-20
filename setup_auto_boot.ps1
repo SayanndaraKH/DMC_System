@@ -21,12 +21,10 @@ if (-not $isAdmin) {
     }
 }
 
-$baseDir = "c:\Users\sydfi\Desktop\DCM_System"
-$pyPath = "C:\Users\sydfi\AppData\Local\Programs\Python\Python311\python.exe"
-
-if (-not (Test-Path $pyPath)) {
-    $found = (Get-Command python -ErrorAction SilentlyContinue).Source
-    if ($found) { $pyPath = $found }
+$baseDir = $PSScriptRoot
+$pyPath = (Get-Command python -ErrorAction SilentlyContinue).Source
+if (-not $pyPath) {
+    $pyPath = "C:\Program Files\Python311\python.exe"
 }
 
 Write-Host "[1/5] កំពុងសម្អាត Shortcut ចាស់ក្នុង Startup Folder..." -ForegroundColor Green

@@ -45,7 +45,7 @@ function Apply-StaticIP($targetIP) {
     Write-Host "[+] កំពុង Flush DNS Cache..." -ForegroundColor Green
     & ipconfig /flushdns | Out-Null
 
-    $ipFile = "c:\Users\sydfi\Desktop\DCM_System\IP.txt"
+    $ipFile = Join-Path $PSScriptRoot "IP.txt"
     if (Test-Path $ipFile) {
         $content = Get-Content $ipFile -Raw -Encoding UTF8
         $content = $content -replace "http://192\.168\.\d+\.\d+:8000/", "http://$targetIP`:8000/"

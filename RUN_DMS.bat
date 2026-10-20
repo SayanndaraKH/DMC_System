@@ -60,11 +60,12 @@ echo [INFO] Checking database migrations...
 :: 4. Start Server in Background
 start "" "%PYW_BIN%" manage.py runserver 0.0.0.0:8000
 
-:: 5. Wait for server startup
-timeout /t 2 >nul
+:: 5. Wait for server startup safely (up to 45 seconds)
+echo [INFO] Waiting for DMS Server to initialize...
+powershell -NoProfile -Command "$w=0; while($w -lt 45){ try { $r=Invoke-WebRequest -Uri 'http://127.0.0.1:8000/' -UseBasicParsing -TimeoutSec 1; if($r.StatusCode -in 200,302){ break } } catch { if($_.Exception.Response.StatusCode -in 200,302){ break } } Start-Sleep -Milliseconds 600; $w++ }" >nul 2>&1
 
 :: 6. Open browser
-start "" "http://127.0.0.1:8000"
+start "" "http://127.0.0.1:8000/login/"
 
 :: 7. Close CMD window
 exit

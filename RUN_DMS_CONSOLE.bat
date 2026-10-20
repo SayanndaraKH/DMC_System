@@ -60,8 +60,8 @@ echo ============================================================
 echo   (Press Ctrl+C to stop the server)
 echo.
 
-:: 5. Open browser automatically
-start "" "http://127.0.0.1:8000"
+:: 5. Open browser automatically once server is ready
+start "" powershell -NoProfile -WindowStyle Hidden -Command "$w=0; while($w -lt 45){ try { $r=Invoke-WebRequest -Uri 'http://127.0.0.1:8000/' -UseBasicParsing -TimeoutSec 1; if($r.StatusCode -in 200,302){ break } } catch { if($_.Exception.Response.StatusCode -in 200,302){ break } } Start-Sleep -Milliseconds 600; $w++ }; Start-Process 'http://127.0.0.1:8000/'"
 
 :: 6. Start Server with live console
 "%PY_BIN%" manage.py runserver 0.0.0.0:8000
