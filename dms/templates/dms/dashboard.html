@@ -1,100 +1,294 @@
 {% extends 'dms/base.html' %}
 {% load dms_tags %}
 
-{% block title %}ផ្ទាំងបញ្ជា - ប្រព័ន្ធគ្រប់គ្រងឯកសាររដ្ឋបាល{% endblock %}
+{% block title %}ផ្ទាំងបញ្ជាចម្រុះ - DMC System{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-        <h4 class="fw-bold m-0 text-dark">ផ្ទាំងបញ្ជា និងសង្ខេបលំហូរការងារ</h4>
-        <p class="text-muted fs-7 m-0">ស្វាគមន៍មកកាន់ប្រព័ន្ធគ្រប់គ្រងឯកសាររដ្ឋបាលមន្ទីរ</p>
+<!-- 🌟 Executive Header Banner -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 p-4 rounded-4 shadow-sm" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%); color: white;">
+    <div class="d-flex align-items-center gap-3">
+        <div class="p-3 rounded-circle bg-white bg-opacity-15 shadow-xs d-flex align-items-center justify-content-center" style="width: 58px; height: 58px;">
+            <i class="fa-solid fa-gauge-high fs-3 text-warning"></i>
+        </div>
+        <div>
+            <h4 class="fw-bold m-0 text-white">ផ្ទាំងបញ្ជា និងសង្ខេបប្រតិបត្តិការ (Executive Dashboard)</h4>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-1 fs-7 text-white-50">
+                <span class="badge bg-warning text-dark fw-bold px-2.5 py-1">
+                    <i class="fa-solid fa-building-columns me-1"></i> {{ dept.name_kh|default:"មន្ទីររដ្ឋបាល" }}
+                </span>
+                <span>&bull;</span>
+                <span><i class="fa-regular fa-calendar-days me-1 text-light"></i> ថ្ងៃនេះ៖ {{ today|date:"d/m/Y" }}</span>
+                <span>&bull;</span>
+                <span class="text-light"><i class="fa-solid fa-cloud text-info me-1"></i> Neon Cloud Database</span>
+            </div>
+        </div>
     </div>
-    <div class="d-flex gap-2">
-        <a href="{% url 'pdf_page_viewer' %}" class="btn btn-outline-danger shadow-sm rounded-pill px-3 fw-bold">
-            <i class="fa-solid fa-file-pdf me-1 text-danger"></i> បំបែកទំព័រ PDF
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'officer_list' %}" class="btn btn-warning shadow-sm rounded-pill px-3.5 py-2 fw-bold text-dark d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-users"></i>
+            <span>បញ្ជីមន្ត្រី ({{ total_officers }})</span>
+        </a>
+        <a href="{% url 'pdf_page_viewer' %}" class="btn btn-outline-light shadow-sm rounded-pill px-3 py-2 fw-bold d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-file-pdf text-danger"></i>
+            <span>បំបែកទំព័រ PDF</span>
         </a>
         {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_create_document %}
-        <a href="{% url 'document_create' %}?doc_type=OUTBOUND" class="btn btn-success shadow-sm rounded-pill px-3">
-            <i class="fa-solid fa-plus me-1"></i> ចុះលេខលិខិតចេញ
-        </a>
-        {% endif %}
-        {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_view_reports %}
-        <a href="{% url 'reports' %}" class="btn btn-outline-secondary shadow-sm rounded-pill px-3">
-            <i class="fa-solid fa-chart-pie me-1"></i> របាយការណ៍ស្ថិតិ
+        <a href="{% url 'document_create' %}?doc_type=OUTBOUND" class="btn btn-light shadow-sm rounded-pill px-3 py-2 fw-bold text-success d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-plus text-success"></i>
+            <span>ចុះលេខលិខិត</span>
         </a>
         {% endif %}
     </div>
 </div>
 
-<!-- Stat Cards Row -->
+<!-- 📊 4 Primary Executive Stat Cards -->
 <div class="row g-3 mb-4">
+    <!-- Card 1: មន្ត្រីរាជការសរុប -->
     <div class="col-xl-3 col-md-6">
-        <div class="card card-stat p-3">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="text-muted fs-7 mb-1">លិខិតសរុបក្នុងប្រព័ន្ធ</div>
-                    <h3 class="fw-bold m-0 text-dark">{{ total_docs }}</h3>
-                </div>
-                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
-                    <i class="fa-solid fa-folder-open"></i>
+        <a href="{% url 'officer_list' %}" class="text-decoration-none">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-3 hover-lift transition-all" style="background: linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%); border-left: 5px solid #10b981 !important;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="badge bg-success bg-opacity-15 text-success rounded-pill px-2.5 py-1 fs-9 fw-bold mb-2">
+                            <i class="fa-solid fa-id-card me-1"></i> មន្ត្រីរាជការ (Civil Servants)
+                        </span>
+                        <h2 class="fw-bold m-0 text-dark">{{ total_officers }} <span class="fs-6 text-muted fw-normal">នាក់</span></h2>
+                        <div class="text-muted fs-8 mt-1.5">
+                            <span class="text-primary fw-semibold"><i class="fa-solid fa-mars me-0.5"></i> ប្រុស {{ officers_male }}</span> &bull; 
+                            <span class="text-danger fw-semibold"><i class="fa-solid fa-venus me-0.5"></i> ស្រី {{ officers_female }}</span>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-4 bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                        <i class="fa-solid fa-users fs-3"></i>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
+    <!-- Card 2: មន្ត្រីកិច្ចសន្យា & បុគ្គលិកសរុប -->
     <div class="col-xl-3 col-md-6">
-        <div class="card card-stat p-3 border-start border-warning border-4">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="text-muted fs-7 mb-1">រង់ចាំលោកអ្នកចាត់ចែង</div>
-                    <h3 class="fw-bold m-0 text-warning">{{ pending_count }}</h3>
-                </div>
-                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
-                    <i class="fa-solid fa-clock"></i>
+        <a href="{% url 'contract_officer_list' %}" class="text-decoration-none">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-3 hover-lift transition-all" style="background: linear-gradient(145deg, #ffffff 0%, #fefce8 100%); border-left: 5px solid #f59e0b !important;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="badge bg-warning bg-opacity-20 text-dark rounded-pill px-2.5 py-1 fs-9 fw-bold mb-2">
+                            <i class="fa-solid fa-file-signature me-1"></i> មន្ត្រីកិច្ចសន្យា (Contract Staff)
+                        </span>
+                        <h2 class="fw-bold m-0 text-dark">{{ contract_officers_count }} <span class="fs-6 text-muted fw-normal">នាក់</span></h2>
+                        <div class="text-muted fs-8 mt-1.5">
+                            <span class="text-dark fw-bold"><i class="fa-solid fa-user-group me-1 text-warning"></i>សរុបទាំងអស់៖ {{ total_personnel }} នាក់</span>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-4 bg-warning bg-opacity-15 text-warning d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                        <i class="fa-solid fa-user-tie fs-3"></i>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
+    <!-- Card 3: វត្តមានថ្ងៃនេះ -->
     <div class="col-xl-3 col-md-6">
-        <div class="card card-stat p-3">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="text-muted fs-7 mb-1">លិខិតចូលសរុប (Inbound)</div>
-                    <h3 class="fw-bold m-0 text-info">{{ inbound_count }}</h3>
-                </div>
-                <div class="stat-icon bg-info bg-opacity-10 text-info">
-                    <i class="fa-solid fa-inbox"></i>
+        <a href="{% url 'attendance_daily_entry' %}" class="text-decoration-none">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-3 hover-lift transition-all" style="background: linear-gradient(145deg, #ffffff 0%, #eff6ff 100%); border-left: 5px solid #3b82f6 !important;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="badge bg-primary bg-opacity-15 text-primary rounded-pill px-2.5 py-1 fs-9 fw-bold mb-2">
+                            <i class="fa-solid fa-calendar-check me-1"></i> វត្តមានថ្ងៃនេះ (Today Attendance)
+                        </span>
+                        <h2 class="fw-bold m-0 text-dark">{{ present_count }} <span class="fs-6 text-success fw-bold">មានវត្តមាន</span></h2>
+                        <div class="text-muted fs-8 mt-1.5">
+                            <span class="text-warning fw-semibold">ច្បាប់ {{ permission_count }}</span> &bull; 
+                            <span class="text-danger fw-semibold">អវត្តមាន {{ absent_count }}</span> &bull; 
+                            <span class="text-info fw-semibold">បេសកកម្ម {{ mission_count }}</span>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-4 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                        <i class="fa-solid fa-clipboard-user fs-3"></i>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
+    <!-- Card 4: លិខិត & ឯកសារក្នុងប្រព័ន្ធ -->
     <div class="col-xl-3 col-md-6">
-        <div class="card card-stat p-3 border-start border-success border-4">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="text-muted fs-7 mb-1">ចាត់ចែងរួចរាល់ (Completed)</div>
-                    <h3 class="fw-bold m-0 text-success">{{ completed_count }}</h3>
-                </div>
-                <div class="stat-icon bg-success bg-opacity-10 text-success">
-                    <i class="fa-solid fa-circle-check"></i>
+        <a href="{% url 'document_list' %}" class="text-decoration-none">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-3 hover-lift transition-all" style="background: linear-gradient(145deg, #ffffff 0%, #faf5ff 100%); border-left: 5px solid #a855f7 !important;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="badge bg-purple bg-opacity-15 text-purple rounded-pill px-2.5 py-1 fs-9 fw-bold mb-2" style="background: #f3e8ff; color: #7e22ce;">
+                            <i class="fa-solid fa-folder-open me-1"></i> ឯកសារ & លិខិតស្នាម (Documents)
+                        </span>
+                        <h2 class="fw-bold m-0 text-dark">{{ total_docs }} <span class="fs-6 text-muted fw-normal">លិខិត</span></h2>
+                        <div class="text-muted fs-8 mt-1.5">
+                            <span class="text-warning fw-semibold">រង់ចាំ {{ pending_count }}</span> &bull; 
+                            <span class="text-success fw-semibold">រួចរាល់ {{ completed_count }}</span> &bull; 
+                            <span class="text-info fw-semibold">ចូល {{ inbound_count }}</span>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-4 text-purple d-flex align-items-center justify-content-center" style="width: 56px; height: 56px; background: #f3e8ff; color: #7e22ce;">
+                        <i class="fa-solid fa-folder-tree fs-3"></i>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
-<!-- Main Table and Activity Timeline Row -->
+<!-- 🚀 Quick Operations Hub (ផ្លូវកាត់រហ័ស) -->
+<div class="card border-0 shadow-sm rounded-4 p-3.5 mb-4 bg-white">
+    <div class="d-flex align-items-center justify-content-between mb-2.5">
+        <div class="fw-bold text-dark fs-7 d-flex align-items-center gap-2">
+            <span class="badge bg-primary rounded-circle p-1.5"><i class="fa-solid fa-bolt text-white fs-9"></i></span>
+            <span>ផ្លូវកាត់ប្រតិបត្តិការរហ័ស (Quick Operations Hub)</span>
+        </div>
+        <small class="text-muted fs-8">ចុចចូលទៅកាន់មុខងារសំខាន់ៗភ្លាមៗ</small>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'officer_list' %}" class="btn btn-outline-success btn-sm rounded-pill px-3 py-1.5 shadow-2xs d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-id-card-clip text-success"></i>
+            <span class="fw-bold">បញ្ជីមន្ត្រីរាជការ</span>
+        </a>
+        <a href="{% url 'officer_create' %}" class="btn btn-outline-success btn-sm rounded-pill px-3 py-1.5 shadow-2xs d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-user-plus text-success"></i>
+            <span>បញ្ចូលមន្ត្រីថ្មី</span>
+        </a>
+        <a href="{% url 'contract_officer_list' %}" class="btn btn-outline-warning btn-sm rounded-pill px-3 py-1.5 shadow-2xs d-flex align-items-center gap-1.5 text-dark">
+            <i class="fa-solid fa-file-signature text-warning"></i>
+            <span class="fw-bold">បញ្ជីមន្ត្រីកិច្ចសន្យា</span>
+        </a>
+        <a href="{% url 'attendance_daily_entry' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5 shadow-2xs d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-calendar-check text-primary"></i>
+            <span>ស្រង់វត្តមានប្រចាំថ្ងៃ</span>
+        </a>
+        <a href="{% url 'pdf_page_viewer' %}" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 shadow-2xs d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-file-pdf text-danger"></i>
+            <span class="fw-bold">ឧបករណ៍ PDF Studio</span>
+        </a>
+        <a href="{% url 'officer_promotion' %}" class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 shadow-2xs d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-chart-line text-info"></i>
+            <span>ដំឡើងថ្នាក់ & ឋានន្តរស័ក្តិ</span>
+        </a>
+        <a href="{% url 'officer_medals' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1.5 shadow-2xs d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-medal text-warning"></i>
+            <span>គ្រឿងឥស្សរិយយស</span>
+        </a>
+        <a href="{% url 'inbound_documents' %}" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1.5 shadow-2xs d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-inbox text-secondary"></i>
+            <span>លិខិតចូល</span>
+        </a>
+        <a href="{% url 'outbound_documents' %}" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1.5 shadow-2xs d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-paper-plane text-success"></i>
+            <span>លិខិតចេញ</span>
+        </a>
+        <a href="{% url 'vehicle_request_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1.5 shadow-2xs d-flex align-items-center gap-1.5">
+            <i class="fa-solid fa-car-side text-info"></i>
+            <span>ខ្ចីរថយន្ត/ម៉ូតូ</span>
+        </a>
+    </div>
+</div>
+
+<!-- 🌟 Main Data & Timeline Row -->
 <div class="row g-4">
-    <!-- Recent Documents Table -->
+    <!-- Left Column (8 cols): Recent Civil Servants & Documents -->
     <div class="col-lg-8">
+        <!-- 👥 Recent Civil Servants Table -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success rounded-circle p-1.5"><i class="fa-solid fa-users text-white fs-9"></i></span>
+                    <h6 class="fw-bold m-0 text-dark">មន្ត្រីរាជការដែលបាន Update ចុងក្រោយ (Civil Servants)</h6>
+                </div>
+                <a href="{% url 'officer_list' %}" class="fs-8 text-decoration-none text-success fw-bold">
+                    មើលបញ្ជីមន្ត្រីទាំងអស់ ({{ total_officers }}) <i class="fa-solid fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle m-0 fs-7">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="py-3 px-3">រូបថត & ឈ្មោះមន្ត្រី</th>
+                            <th class="py-3">តួនាទី / មុខតំណែង</th>
+                            <th class="py-3">ការិយាល័យ / អង្គភាព</th>
+                            <th class="py-3 text-center">ភេទ</th>
+                            <th class="py-3 text-end px-3">សកម្មភាព</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in recent_officers %}
+                        <tr>
+                            <td class="px-3">
+                                <div class="d-flex align-items-center gap-2.5">
+                                    {% if o.photo %}
+                                    <img src="{{ o.photo.url }}" alt="{{ o.khmer_last_name }}" class="rounded-circle object-fit-cover border shadow-2xs" style="width: 38px; height: 38px;">
+                                    {% else %}
+                                    <div class="rounded-circle bg-success bg-opacity-15 text-success d-flex align-items-center justify-content-center fw-bold fs-7 shadow-2xs" style="width: 38px; height: 38px;">
+                                        {{ o.khmer_first_name|slice:":1"|default:"ម" }}
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <a href="{% url 'officer_detail' o.pk %}" class="text-decoration-none text-dark fw-bold text-truncate d-block" style="max-width: 180px;">
+                                            {{ o.khmer_last_name }} {{ o.khmer_first_name }}
+                                        </a>
+                                        <small class="text-muted fs-8 font-monospace">{{ o.latin_last_name }} {{ o.latin_first_name }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-medium text-dark">{{ o.current_position_title|default:"មន្ត្រី" }}</span>
+                                {% if o.framework_letter %}
+                                <div class="fs-8 text-muted">ក្របខ័ណ្ឌ៖ {{ o.framework_letter }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border border-secondary border-opacity-25 rounded-pill px-2.5 py-1">
+                                    {{ o.department.name_kh|default:"មន្ទីរ" }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                {% if o.gender == 'FEMALE' %}
+                                <span class="badge bg-danger bg-opacity-15 text-danger rounded-pill px-2 py-0.5 fs-8">ស្រី</span>
+                                {% else %}
+                                <span class="badge bg-primary bg-opacity-15 text-primary rounded-pill px-2 py-0.5 fs-8">ប្រុស</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end px-3">
+                                <div class="d-inline-flex align-items-center gap-1.5">
+                                    <a href="{% url 'officer_detail' o.pk %}" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-1 fs-8" title="មើលព័ត៌មានលម្អិត">
+                                        <i class="fa-solid fa-eye me-1"></i> មើល
+                                    </a>
+                                    <a href="{% url 'officer_edit' o.pk %}" class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1 fs-8" title="កែប្រែព័ត៌មាន">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">
+                                <i class="fa-solid fa-users fa-2x d-block mb-2 text-secondary opacity-50"></i>
+                                មិនទាន់មានទិន្នន័យមន្ត្រីរាជការឡើយ
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 📁 Recent Documents Table -->
         <div class="card border-0 shadow-sm rounded-4">
             <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
-                <h6 class="fw-bold m-0 text-dark">
-                    <i class="fa-solid fa-file-invoice text-success me-2"></i> លិខិតថ្មីៗក្នុងប្រព័ន្ធ
-                </h6>
-                <a href="{% url 'document_list' %}" class="fs-7 text-decoration-none text-success">មើលទាំងអស់ <i class="fa-solid fa-arrow-right ms-1"></i></a>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-info rounded-circle p-1.5"><i class="fa-solid fa-folder text-white fs-9"></i></span>
+                    <h6 class="fw-bold m-0 text-dark">លិខិត & ឯកសាររដ្ឋបាលថ្មីៗក្នុងប្រព័ន្ធ</h6>
+                </div>
+                <a href="{% url 'document_list' %}" class="fs-8 text-decoration-none text-info fw-bold">
+                    មើលឯកសារទាំងអស់ <i class="fa-solid fa-arrow-right ms-1"></i>
+                </a>
             </div>
 
             <div class="table-responsive">
@@ -114,11 +308,11 @@
                         <tr>
                             <td class="fw-bold text-success px-3">{{ doc.registry_number }}</td>
                             <td>
-                                <a href="{% url 'document_detail' doc.pk %}" class="text-decoration-none text-dark fw-medium d-block text-truncate" style="max-width: 260px;" title="{{ doc.title }}">
+                                <a href="{% url 'document_detail' doc.pk %}" class="text-decoration-none text-dark fw-medium d-block text-truncate" style="max-width: 240px;" title="{{ doc.title }}">
                                     {{ doc.title }}
                                 </a>
                             </td>
-                            <td class="text-muted text-truncate" style="max-width: 150px;">{{ doc.origin_org|default:"-" }}</td>
+                            <td class="text-muted text-truncate" style="max-width: 140px;">{{ doc.origin_org|default:"-" }}</td>
                             <td class="text-center">
                                 <span class="badge {{ doc.urgency|urgency_badge_class }} rounded-pill px-2.5 py-1">
                                     {{ doc.get_urgency_display }}
@@ -130,26 +324,16 @@
                                 </span>
                             </td>
                             <td class="text-end px-3">
-                                <div class="d-inline-flex align-items-center gap-1.5">
-                                    <a href="{% url 'document_detail' doc.pk %}" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-1 fs-8" title="ពិនិត្យ">
-                                        <i class="fa-solid fa-eye me-1"></i> មើល
-                                    </a>
-                                    {% if user.is_superuser or user.username|upper == 'ADMIN' or profile.can_delete_document %}
-                                    <form method="POST" action="{% url 'document_delete' doc.pk %}" class="d-inline" onsubmit="return confirm('⚠️ តើអ្នកពិតជាចង់លុបឯកសារលេខ «{{ doc.registry_number }}» នេះចេញពីប្រព័ន្ធមែនទេ?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-1.5" title="លុបឯកសារ" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">
-                                            <i class="fa-solid fa-trash-can fs-9"></i>
-                                        </button>
-                                    </form>
-                                    {% endif %}
-                                </div>
+                                <a href="{% url 'document_detail' doc.pk %}" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-1 fs-8">
+                                    <i class="fa-solid fa-eye me-1"></i> មើល
+                                </a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="6" class="text-center py-4 text-muted">
                                 <i class="fa-solid fa-folder-open fa-2x d-block mb-2 text-secondary opacity-50"></i>
-                                មិនទាន់មានទិន្នន័យឯកសារថ្មីៗឡើយ
+                                មិនទាន់មានទិន្នន័យឯកសារថ្មីៗឡើយ (អាចចុច «ចុះលេខលិខិត» ដើម្បីបង្កើត)
                             </td>
                         </tr>
                         {% endfor %}
@@ -159,15 +343,101 @@
         </div>
     </div>
 
-    <!-- Recent Routings Timeline -->
+    <!-- Right Column (4 cols): Pending Requests, Attendance Breakdown, Recent Routing -->
     <div class="col-lg-4">
+        <!-- 🔔 Pending Workflows & Requests Card -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-header bg-white border-0 py-3">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="fa-solid fa-bell text-warning me-2"></i> ការងារ & សំណើរង់ចាំពិនិត្យ
+                </h6>
+            </div>
+            <div class="card-body p-3 pt-0">
+                <div class="d-flex flex-column gap-2">
+                    <a href="{% url 'officer_promotion' %}" class="text-decoration-none p-2.5 rounded-3 border bg-light bg-opacity-50 d-flex align-items-center justify-content-between hover-lift">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-warning text-dark rounded-circle p-2"><i class="fa-solid fa-chart-line fs-9"></i></span>
+                            <span class="fs-7 fw-bold text-dark">សំណើដំឡើងថ្នាក់</span>
+                        </div>
+                        <span class="badge bg-warning text-dark rounded-pill">{{ pending_promotions }} រង់ចាំ</span>
+                    </a>
+
+                    <a href="{% url 'officer_medals' %}" class="text-decoration-none p-2.5 rounded-3 border bg-light bg-opacity-50 d-flex align-items-center justify-content-between hover-lift">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success rounded-circle p-2"><i class="fa-solid fa-medal fs-9 text-white"></i></span>
+                            <span class="fs-7 fw-bold text-dark">សំណើគ្រឿងឥស្សរិយយស</span>
+                        </div>
+                        <span class="badge bg-success rounded-pill">{{ pending_medals }} រង់ចាំ</span>
+                    </a>
+
+                    <a href="{% url 'vehicle_request_list' %}" class="text-decoration-none p-2.5 rounded-3 border bg-light bg-opacity-50 d-flex align-items-center justify-content-between hover-lift">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-info rounded-circle p-2"><i class="fa-solid fa-car-side fs-9 text-white"></i></span>
+                            <span class="fs-7 fw-bold text-dark">ពាក្យសុំខ្ចីរថយន្ត</span>
+                        </div>
+                        <span class="badge bg-info rounded-pill">{{ pending_vehicles }} រង់ចាំ</span>
+                    </a>
+
+                    <a href="{% url 'document_list' %}" class="text-decoration-none p-2.5 rounded-3 border bg-light bg-opacity-50 d-flex align-items-center justify-content-between hover-lift">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-danger rounded-circle p-2"><i class="fa-solid fa-clock fs-9 text-white"></i></span>
+                            <span class="fs-7 fw-bold text-dark">លិខិតរង់ចាំចាត់ចែង</span>
+                        </div>
+                        <span class="badge bg-danger rounded-pill">{{ pending_count }} លិខិត</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📅 Today's Attendance Overview Card -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="fa-solid fa-calendar-check text-primary me-2"></i> ស្ថានភាពវត្តមានថ្ងៃនេះ
+                </h6>
+                <a href="{% url 'attendance_daily_entry' %}" class="fs-8 text-primary fw-bold text-decoration-none">កត់ត្រា <i class="fa-solid fa-arrow-right ms-1"></i></a>
+            </div>
+            <div class="card-body p-3 pt-0">
+                <div class="row g-2 text-center mb-3">
+                    <div class="col-6">
+                        <div class="p-2.5 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-25">
+                            <div class="fs-4 fw-bold text-success">{{ present_count }}</div>
+                            <small class="text-muted fs-8 fw-semibold">វត្តមាន</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2.5 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25">
+                            <div class="fs-4 fw-bold text-warning">{{ permission_count }}</div>
+                            <small class="text-muted fs-8 fw-semibold">សុំច្បាប់</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2.5 rounded-3 bg-info bg-opacity-10 border border-info border-opacity-25">
+                            <div class="fs-4 fw-bold text-info">{{ mission_count }}</div>
+                            <small class="text-muted fs-8 fw-semibold">បេសកកម្ម</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2.5 rounded-3 bg-danger bg-opacity-10 border border-danger border-opacity-25">
+                            <div class="fs-4 fw-bold text-danger">{{ absent_count }}</div>
+                            <small class="text-muted fs-8 fw-semibold">អវត្តមាន</small>
+                        </div>
+                    </div>
+                </div>
+                <a href="{% url 'attendance_daily_entry' %}" class="btn btn-outline-primary btn-sm w-100 rounded-pill py-2 fw-bold">
+                    <i class="fa-solid fa-pen-nib me-1"></i> បញ្ចូលវត្តមានមន្ត្រីប្រចាំថ្ងៃ
+                </a>
+            </div>
+        </div>
+
+        <!-- 🚀 Recent Routing Activity Timeline -->
         <div class="card border-0 shadow-sm rounded-4">
             <div class="card-header bg-white border-0 py-3">
                 <h6 class="fw-bold m-0 text-dark">
-                    <i class="fa-solid fa-route text-warning me-2"></i> ប្រវត្តិបញ្ជូនចុងក្រោយ
+                    <i class="fa-solid fa-route text-warning me-2"></i> ប្រវត្តិបញ្ជូនលិខិតចុងក្រោយ
                 </h6>
             </div>
-            <div class="card-body p-3">
+            <div class="card-body p-3 pt-0">
                 <div class="timeline d-flex flex-column gap-2">
                     {% for r in recent_routings %}
                     <div class="d-flex gap-2.5 p-2.5 rounded-3 bg-light bg-opacity-50 border border-light-subtle">
@@ -186,7 +456,7 @@
                         </div>
                     </div>
                     {% empty %}
-                    <div class="text-center text-muted py-4">គ្មានប្រវត្តិបញ្ជូនឡើយ</div>
+                    <div class="text-center text-muted py-4 fs-8">គ្មានប្រវត្តិបញ្ជូនលិខិតឡើយ</div>
                     {% endfor %}
                 </div>
             </div>

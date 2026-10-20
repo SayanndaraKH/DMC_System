@@ -86,12 +86,29 @@ SYNC_AUTH_TOKEN = os.environ.get('SYNC_AUTH_TOKEN', 'dms-secure-sync-token-2026-
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_AGE = 60 * 60 * 12  # 12 hours
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Discard session on window close
+# Session Optimization: Read sessions from local memory cache first, avoiding Neon roundtrips
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+SESSION_SAVE_EVERY_REQUEST = False  # Only save when session data is actually modified!
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Reverse Proxy HTTPS Headers
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
+
+# High-speed in-memory cache for Neon Cloud query results and dashboard statistics
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'dms_memory_cache',
+        'TIMEOUT': 180,
+        'OPTIONS': {
+            'MAX_ENTRIES': 3000
+        }
+    }
+}
 
 
 INSTALLED_APPS = [
@@ -143,20 +160,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'dms_project.wsgi.application'
 
-# Database Configuration (Auto-detects PostgreSQL DATABASE_URL or persistent storage / local SQLite)
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
+# Database Configuration: STRICT NEON CLOUD DATABASE (PRIMARY)
+# db.sqlite3 is deactivated / placed on standby as requested by the user.
+USE_LOCAL_SQLITE = os.environ.get('USE_LOCAL_SQLITE', 'False').strip().lower() in ['true', '1', 'yes']
+NEON_CLOUD_DATABASE_URL = "postgresql://neondb_owner:npg_bw8CSyjXtql6@ep-wandering-fire-awc8mlbh-pooler.c-12.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL = os.environ.get('DATABASE_URL', NEON_CLOUD_DATABASE_URL)
+
+if not USE_LOCAL_SQLITE and DATABASE_URL:
     try:
         import dj_database_url
         DATABASES = {
             'default': dj_database_url.config(
                 default=DATABASE_URL,
                 conn_max_age=600,
-                conn_health_checks=True,
+                conn_health_checks=False,
                 ssl_require=True
             )
         }
-    except Exception:
+    except Exception as e:
+        print(f"Warning: Neon Cloud PostgreSQL configuration error ({e}). Falling back to local db.sqlite3.")
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.sqlite3',
@@ -164,27 +186,11 @@ if DATABASE_URL:
             }
         }
 else:
-    # If in Serverless / Netlify environment without DATABASE_URL, fallback to /tmp
-    if os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or os.environ.get('NETLIFY'):
-        db_file = '/tmp/db.sqlite3'
-    else:
-        # If no PostgreSQL, check for persistent volume mount paths (/app/data, /data, /app/media, or DATA_DIR)
-        persistent_db_dir = os.environ.get('DATA_DIR')
-        if not persistent_db_dir:
-            for candidate in ['/app/data', '/data', '/app/media']:
-                if os.path.exists(candidate) and os.path.isdir(candidate):
-                    persistent_db_dir = candidate
-                    break
-
-        if persistent_db_dir and os.path.exists(persistent_db_dir):
-            db_file = os.path.join(persistent_db_dir, 'db.sqlite3')
-        else:
-            db_file = BASE_DIR / 'db.sqlite3'
-
+    # Local SQLite standby mode (activated only when USE_LOCAL_SQLITE=True is explicitly set)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': db_file,
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 

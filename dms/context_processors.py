@@ -1,3 +1,5 @@
+from django.core.cache import cache
+
 def dms_context(request):
     if request.user.is_authenticated:
         try:
@@ -5,13 +7,20 @@ def dms_context(request):
         except Exception:
             profile = None
             
-        unread_notifications_count = request.user.notifications.filter(is_read=False).count()
-        recent_notifications = request.user.notifications.filter(is_read=False)[:5]
+        notif_cache_key = f"user_recent_notifs_{request.user.id}"
+        cached_notifs = cache.get(notif_cache_key)
+        if cached_notifs is None:
+            recent_notifications = list(request.user.notifications.filter(is_read=False)[:5])
+            unread_notifications_count = request.user.notifications.filter(is_read=False).count()
+            cache.set(notif_cache_key, (recent_notifications, unread_notifications_count), 25)
+        else:
+            recent_notifications, unread_notifications_count = cached_notifs
         
         pending_users_count = 0
-        from .models import UserProfile
+        from .models import UserProfile, ContractOfficer, VehicleRequest
         from django.contrib.auth.models import User
         from django.conf import settings
+        from django.db.models import Q
 
         is_impersonating = 'original_admin_id' in request.session
         is_admin_or_impersonating = (
@@ -20,25 +29,29 @@ def dms_context(request):
             is_impersonating
         )
 
-        from django.db.models import Q
         all_dev_users = []
         if is_admin_or_impersonating or settings.DEBUG:
-            all_dev_users = (
-                User.objects.filter(is_active=True)
-                .filter(
-                    Q(profile__is_approved=True) |
-                    Q(username__iexact='ADMIN')
+            all_dev_users = cache.get('all_dev_users_cached')
+            if all_dev_users is None:
+                all_dev_users = list(
+                    User.objects.filter(is_active=True)
+                    .filter(
+                        Q(profile__is_approved=True) |
+                        Q(username__iexact='ADMIN')
+                    )
+                    .filter(profile__isnull=False)
+                    .select_related('profile', 'profile__department')
+                    .order_by('id')
                 )
-                .filter(profile__isnull=False)
-                .select_related('profile', 'profile__department')
-                .order_by('id')
-            )
+                cache.set('all_dev_users_cached', all_dev_users, 120)
 
         if request.user.is_superuser or request.user.username.upper() == 'ADMIN' or is_impersonating:
-            pending_users_count = UserProfile.objects.filter(is_approved=False).exclude(user__is_superuser=True).exclude(user__username__iexact='ADMIN').count()
+            pending_users_count = cache.get('pending_users_count_admin')
+            if pending_users_count is None:
+                pending_users_count = UserProfile.objects.filter(is_approved=False).exclude(user__is_superuser=True).exclude(user__username__iexact='ADMIN').count()
+                cache.set('pending_users_count_admin', pending_users_count, 45)
 
         # Contract Officer module menu permission
-        from .models import ContractOfficer
         is_lead_or_admin = (
             request.user.is_superuser or 
             request.user.username.upper() == 'ADMIN' or 
@@ -58,17 +71,29 @@ def dms_context(request):
                 elif dept_name in ['ការិយាល័យរដ្ឋបាល បុគ្គលិក', 'ការិយាល័យរដ្ឋបាល-បុគ្គលិក', 'ការិយាល័យរដ្ឋបាល', 'ការិយាល័យកិច្ចការរដ្ឋបាលទូទៅ', 'ការិយាល័យកិច្ចការទូទៅ']:
                     is_lead_or_admin = True
 
-        can_view_contract_officers_menu = is_lead_or_admin or (
-            profile and profile.department and 
-            ContractOfficer.objects.filter(department=profile.department, is_active=True).exists()
-        )
-
-        # Vehicle requests count
-        from .models import VehicleRequest
         if is_lead_or_admin:
-            pending_vehicle_requests_count = VehicleRequest.objects.filter(status='PENDING').count()
+            can_view_contract_officers_menu = True
         elif profile and profile.department:
-            pending_vehicle_requests_count = VehicleRequest.objects.filter(applicant_department=profile.department, status='PENDING').count()
+            co_cache_key = f"dept_co_menu_{profile.department.id}"
+            can_view_contract_officers_menu = cache.get(co_cache_key)
+            if can_view_contract_officers_menu is None:
+                can_view_contract_officers_menu = ContractOfficer.objects.filter(department=profile.department, is_active=True).exists()
+                cache.set(co_cache_key, can_view_contract_officers_menu, 120)
+        else:
+            can_view_contract_officers_menu = False
+
+        # Vehicle requests count (Cached 45 seconds)
+        if is_lead_or_admin:
+            pending_vehicle_requests_count = cache.get('pending_vehicle_requests_lead')
+            if pending_vehicle_requests_count is None:
+                pending_vehicle_requests_count = VehicleRequest.objects.filter(status='PENDING').count()
+                cache.set('pending_vehicle_requests_lead', pending_vehicle_requests_count, 45)
+        elif profile and profile.department:
+            vr_cache_key = f"pending_vehicle_requests_dept_{profile.department.id}"
+            pending_vehicle_requests_count = cache.get(vr_cache_key)
+            if pending_vehicle_requests_count is None:
+                pending_vehicle_requests_count = VehicleRequest.objects.filter(applicant_department=profile.department, status='PENDING').count()
+                cache.set(vr_cache_key, pending_vehicle_requests_count, 45)
         else:
             pending_vehicle_requests_count = 0
 

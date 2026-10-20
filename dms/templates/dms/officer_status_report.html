@@ -147,10 +147,9 @@
                     <label class="form-label small fw-semibold text-secondary mb-1">🏷️ ក្របខ័ណ្ឌ</label>
                     <select name="framework" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="">-- ក្របខ័ណ្ឌទាំងអស់ --</option>
-                        <option value="A" {% if fw_filter == 'A' %}selected{% endif %}>ក្របខ័ណ្ឌ (ក)</option>
-                        <option value="B" {% if fw_filter == 'B' %}selected{% endif %}>ក្របខ័ណ្ឌ (ខ)</option>
-                        <option value="C" {% if fw_filter == 'C' %}selected{% endif %}>ក្របខ័ណ្ឌ (គ)</option>
-                        <option value="D" {% if fw_filter == 'D' %}selected{% endif %}>ក្របខ័ណ្ឌ (ឃ)</option>
+                        <option value="ក" {% if fw_filter == 'ក' or fw_filter == 'A' %}selected{% endif %}>ក្របខ័ណ្ឌ (ក)</option>
+                        <option value="ខ" {% if fw_filter == 'ខ' or fw_filter == 'B' %}selected{% endif %}>ក្របខ័ណ្ឌ (ខ)</option>
+                        <option value="គ" {% if fw_filter == 'គ' or fw_filter == 'C' %}selected{% endif %}>ក្របខ័ណ្ឌ (គ)</option>
                     </select>
                 </div>
 
@@ -228,7 +227,7 @@
                     <!-- Framework Breakdown -->
                     <div class="small fw-bold text-dark mb-2">ចំនួនមន្ត្រីរាជការតាមក្របខណ្ឌ៖</div>
                     <div class="row g-2">
-                        <div class="col-6">
+                        <div class="col-4">
                             <a href="?framework=A{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
                                 <div class="stat-pill-item d-flex justify-content-between align-items-center">
                                     <span class="badge" style="background-color: #3730a3; color: #ffffff; font-weight: 700; font-size: 0.76rem;">ក្របខណ្ឌ (ក)</span>
@@ -236,7 +235,7 @@
                                 </div>
                             </a>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <a href="?framework=B{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
                                 <div class="stat-pill-item d-flex justify-content-between align-items-center">
                                     <span class="badge" style="background-color: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.76rem;">ក្របខណ្ឌ (ខ)</span>
@@ -244,19 +243,11 @@
                                 </div>
                             </a>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <a href="?framework=C{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
                                 <div class="stat-pill-item d-flex justify-content-between align-items-center">
                                     <span class="badge" style="background-color: #047857; color: #ffffff; font-weight: 700; font-size: 0.76rem;">ក្របខណ្ឌ (គ)</span>
                                     <span class="fw-bold text-dark">{{ cat_c_count_kh }} នាក់</span>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-6">
-                            <a href="?framework=D{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="text-decoration-none">
-                                <div class="stat-pill-item d-flex justify-content-between align-items-center">
-                                    <span class="badge" style="background-color: #334155; color: #ffffff; font-weight: 700; font-size: 0.76rem;">ក្របខណ្ឌ (ឃ)</span>
-                                    <span class="fw-bold text-dark">{{ cat_d_count_kh }} នាក់</span>
                                 </div>
                             </a>
                         </div>
@@ -482,14 +473,12 @@
                             <small class="text-muted">{{ o.current_position_title|default:"មន្ត្រី" }}</small>
                         </td>
                         <td class="text-center">
-                            {% if o.computed_framework_category == 'A' %}
+                            {% if o.framework_letter == 'ក' or o.computed_framework_category == 'A' %}
                             <span class="badge px-2 py-1" style="background-color: #3730a3; color: #fff; font-weight: 700; font-size: 0.76rem;" id="badge-fw-{{ o.id }}">ក្របខ័ណ្ឌ ក</span>
-                            {% elif o.computed_framework_category == 'B' %}
+                            {% elif o.framework_letter == 'ខ' or o.computed_framework_category == 'B' %}
                             <span class="badge px-2 py-1" style="background-color: #0284c7; color: #fff; font-weight: 700; font-size: 0.76rem;" id="badge-fw-{{ o.id }}">ក្របខ័ណ្ឌ ខ</span>
-                            {% elif o.computed_framework_category == 'C' %}
-                            <span class="badge px-2 py-1" style="background-color: #047857; color: #fff; font-weight: 700; font-size: 0.76rem;" id="badge-fw-{{ o.id }}">ក្របខ័ណ្ឌ គ</span>
                             {% else %}
-                            <span class="badge px-2 py-1" style="background-color: #334155; color: #fff; font-weight: 700; font-size: 0.76rem;" id="badge-fw-{{ o.id }}">ក្របខ័ណ្ឌ ឃ</span>
+                            <span class="badge px-2 py-1" style="background-color: #047857; color: #fff; font-weight: 700; font-size: 0.76rem;" id="badge-fw-{{ o.id }}">ក្របខ័ណ្ឌ គ</span>
                             {% endif %}
                         </td>
                         <td class="text-center">
@@ -505,7 +494,7 @@
                         <td class="text-center pe-3">
                             <div class="btn-group btn-group-sm">
                                 <button type="button" class="btn btn-outline-primary btn-sm px-2 py-1" title="កែប្រែស្ថានភាពរហ័ស" 
-                                        onclick="openQuickStatusModal('{{ o.id }}', '{{ o.full_name_kh|escapejs }}', '{{ o.computed_officer_status }}', '{{ o.computed_highest_degree }}', '{{ o.computed_framework_category }}')">
+                                        onclick="openQuickStatusModal('{{ o.id }}', '{{ o.full_name_kh|escapejs }}', '{{ o.computed_officer_status }}', '{{ o.computed_highest_degree }}', '{{ o.framework_letter }}')">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
                                 <a href="{% url 'officer_detail' o.id %}" class="btn btn-outline-secondary btn-sm px-2 py-1" title="មើលជីវប្រវត្តិ">
@@ -844,7 +833,10 @@
         document.getElementById('modal_officer_name').textContent = officerName;
         document.getElementById('modal_officer_status').value = statusVal || 'ACTIVE';
         document.getElementById('modal_highest_degree').value = degreeVal || 'BACHELOR';
-        document.getElementById('modal_framework_category').value = fwVal || 'C';
+        if (fwVal === 'A') fwVal = 'ក';
+        if (fwVal === 'B') fwVal = 'ខ';
+        if (fwVal === 'C') fwVal = 'គ';
+        document.getElementById('modal_framework_category').value = fwVal || 'គ';
 
         const modal = new bootstrap.Modal(document.getElementById('quickStatusModal'));
         modal.show();

@@ -1,3 +1,4 @@
+import time
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -502,16 +503,18 @@ class CivilServantProfile(models.Model):
     ]
 
     FRAMEWORK_CHOICES = [
-        ('A', 'ក្របខ័ណ្ឌ ក (ក) - ឧត្តមមន្ត្រី / បច្ចេកទេសជាន់ខ្ពស់'),
-        ('B', 'ក្របខ័ណ្ឌ ខ (ខ) - វរមន្ត្រី / បច្ចេកទេសមធ្យម'),
-        ('C', 'ក្របខ័ណ្ឌ គ (គ) - អនុមន្ត្រី / បច្ចេកទេសបឋម'),
-        ('D', 'ក្របខ័ណ្ឌ ឃ (ឃ) - មន្ត្រី / ជំនួយការ'),
+        ('ក', 'ក្របខ័ណ្ឌ ក - ឧត្តមមន្ត្រី / បច្ចេកទេសជាន់ខ្ពស់'),
+        ('ខ', 'ក្របខ័ណ្ឌ ខ - វរមន្ត្រី / បច្ចេកទេសមធ្យម'),
+        ('គ', 'ក្របខ័ណ្ឌ គ - អនុមន្ត្រី / បច្ចេកទេសបឋម'),
+        ('A', 'ក្របខ័ណ្ឌ ក - ឧត្តមមន្ត្រី / បច្ចេកទេសជាន់ខ្ពស់'),
+        ('B', 'ក្របខ័ណ្ឌ ខ - វរមន្ត្រី / បច្ចេកទេសមធ្យម'),
+        ('C', 'ក្របខ័ណ្ឌ គ - អនុមន្ត្រី / បច្ចេកទេសបឋម'),
     ]
 
     # Status & Categorization Fields
     officer_status = models.CharField(max_length=30, choices=OFFICER_STATUS_CHOICES, default='ACTIVE', verbose_name="ស្ថានភាពមន្ត្រី (គិតមកដល់បច្ចុប្បន្ន)")
     highest_degree = models.CharField(max_length=30, choices=DEGREE_CHOICES, blank=True, null=True, verbose_name="កម្រិតសញ្ញាបត្រខ្ពស់បំផុត")
-    framework_category = models.CharField(max_length=10, choices=FRAMEWORK_CHOICES, blank=True, null=True, verbose_name="ប្រភេទក្របខ័ណ្ឌ (ក, ខ, គ, ឃ)")
+    framework_category = models.CharField(max_length=10, choices=FRAMEWORK_CHOICES, blank=True, null=True, verbose_name="ប្រភេទក្របខ័ណ្ឌ (ក, ខ, គ)")
 
     # Links
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='civil_servant_profiles', verbose_name="គណនីប្រព័ន្ធ (ប្រសិនបើមាន)")
@@ -724,34 +727,58 @@ class CivilServantProfile(models.Model):
     def is_leadership_position(self):
         return self.current_position_title in ['ប្រធានមន្ទីរ', 'អនុប្រធានមន្ទីរ']
 
+    _cached_lead_dept = None
+    _cached_lead_dept_time = 0
+
+    @classmethod
+    def get_cached_lead_department(cls):
+        now = time.time()
+        if cls._cached_lead_dept is None or (now - cls._cached_lead_dept_time) > 120:
+            try:
+                cls._cached_lead_dept = Department.objects.filter(models.Q(code='LEAD') | models.Q(name_kh='ថ្នាក់ដឹកនាំមន្ទីរ')).first()
+                cls._cached_lead_dept_time = now
+            except Exception:
+                pass
+        return cls._cached_lead_dept
+
     @property
     def get_display_department(self):
         if self.is_leadership_position or (self.department and (self.department.code == 'LEAD' or 'ថ្នាក់ដឹកនាំ' in self.department.name_kh)):
-            lead_dept = Department.objects.filter(models.Q(code='LEAD') | models.Q(name_kh='ថ្នាក់ដឹកនាំមន្ទីរ')).first()
+            lead_dept = self.get_cached_lead_department()
             return lead_dept or self.department
         return self.department
 
     @property
     def computed_framework_category(self):
         if self.framework_category:
-            return self.framework_category
+            cat = str(self.framework_category).strip()
+            if cat in ['ក', 'A', 'a']:
+                return 'ក'
+            if cat in ['ខ', 'B', 'b']:
+                return 'ខ'
+            if cat in ['គ', 'C', 'c', 'D', 'd', 'ឃ']:
+                return 'គ'
+            return 'គ'
         s = str(self.current_rank_and_step or '').strip()
         fw_name = str(self.framework_name or '').strip()
         if 'ក' in s or 'A' in s.upper() or 'ឧត្តម' in s or 'ជាន់ខ្ពស់' in fw_name:
-            return 'A'
+            return 'ក'
         elif 'ខ' in s or 'B' in s.upper() or 'វរ' in s or 'មធ្យម' in fw_name:
-            return 'B'
+            return 'ខ'
         elif 'គ' in s or 'C' in s.upper() or 'អនុ' in s or 'បឋម' in fw_name:
-            return 'C'
-        elif 'ឃ' in s or 'D' in s.upper():
-            return 'D'
-        return 'C'
+            return 'គ'
+        return 'គ'
+
+    @property
+    def framework_letter(self):
+        """
+        Always returns strictly Khmer letter 'ក', 'ខ', or 'គ' (Never A, B, C).
+        """
+        return self.computed_framework_category
 
     @property
     def framework_category_label(self):
-        cat = self.computed_framework_category
-        labels = {'A': 'ក្របខ័ណ្ឌ ក', 'B': 'ក្របខ័ណ្ឌ ខ', 'C': 'ក្របខ័ណ្ឌ គ', 'D': 'ក្របខ័ណ្ឌ ឃ'}
-        return labels.get(cat, 'ក្របខ័ណ្ឌ គ')
+        return f"ក្របខ័ណ្ឌ {self.framework_letter}"
 
     @property
     def computed_highest_degree(self):
@@ -996,8 +1023,18 @@ class CivilServantProfile(models.Model):
         if self.phone:
             self.phone = to_arabic_digits(self.phone)
 
+        # Auto-normalize framework_category strictly to Khmer letters 'ក', 'ខ', 'គ'
+        if self.framework_category:
+            fw = str(self.framework_category).strip()
+            if fw in ['A', 'a', 'ក']:
+                self.framework_category = 'ក'
+            elif fw in ['B', 'b', 'ខ']:
+                self.framework_category = 'ខ'
+            elif fw in ['C', 'c', 'គ', 'D', 'd', 'ឃ']:
+                self.framework_category = 'គ'
+
         # Auto-assign 'ថ្នាក់ដឹកនាំមន្ទីរ' for 'ប្រធានមន្ទីរ' and 'អនុប្រធានមន្ទីរ'
-        if self.is_leadership_position or (self.department and (self.department.code == 'LEAD' or 'ថ្នាក់ដឹកនាំ' in self.department.name_kh)):
+        if self.is_leadership_position:
             lead_dept = Department.objects.filter(models.Q(code='LEAD') | models.Q(name_kh='ថ្នាក់ដឹកនាំមន្ទីរ')).first()
             if lead_dept:
                 self.department = lead_dept
@@ -1301,17 +1338,23 @@ class OfficerEditWindowSetting(models.Model):
             return False
         return True
 
+    def get_allowed_department_ids(self):
+        if not hasattr(self, '_allowed_dept_ids_cache'):
+            self._allowed_dept_ids_cache = set(self.allowed_departments.values_list('id', flat=True))
+        return self._allowed_dept_ids_cache
+
     def is_open_for_department(self, department=None):
         """
         Returns True if the window is open AND the department is allowed (or all are allowed).
         """
         if not self.is_open_for_specialized():
             return False
-        if self.allowed_departments.exists():
+        allowed_ids = self.get_allowed_department_ids()
+        if allowed_ids:
             if not department:
                 return False
             dept_id = department.id if hasattr(department, 'id') else department
-            return self.allowed_departments.filter(id=dept_id).exists()
+            return dept_id in allowed_ids
         return True
 
     @property

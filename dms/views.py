@@ -10,6 +10,7 @@ from django.contrib import messages
 from django.db.models import Q, Count
 from django.http import HttpResponse, JsonResponse, FileResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
+from django.core.cache import cache
 from django.utils import timezone
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -42,8 +43,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
 def login_view(request):
-    if request.user.is_authenticated:
-        return redirect('dashboard')
+    if request.user.is_authenticated and request.method == 'GET':
+        logout(request)
 
     if request.method == 'POST':
         form = FlexibleLoginForm(request.POST)
@@ -83,6 +84,9 @@ def login_view(request):
                         return render(request, 'dms/login.html', {'form': form})
 
                 login(request, user)
+                # Session expires on browser close so reopening the app requires entering password again
+                request.session.set_expiry(0)
+
                 full_name = user.get_full_name() or user.username
                 role_label = user_profile.get_role_display() if user_profile else 'អ្នកគ្រប់គ្រងប្រព័ន្ធ'
                 messages.success(request, f"ស្វាគមន៍មកកាន់ប្រព័ន្ធ! ចូលប្រព័ន្ធជោគជ័យជា {full_name} ({role_label})")
@@ -705,59 +709,182 @@ def dashboard(request):
     dept = profile.department if profile else None
 
     is_super_or_lead = request.user.is_superuser or request.user.username.upper() == 'ADMIN' or (profile and profile.is_leadership)
+    today = timezone.localdate()
 
-    if is_super_or_lead:
-        # Admin / Leadership see global statistics across entire ministry
-        base_docs = Document.objects.all()
-        pending_my_action = base_docs.filter(status='PENDING_LEADERSHIP') if (profile and profile.is_leadership) else base_docs.filter(status__in=['PENDING_ADMIN', 'PENDING_LEADERSHIP'])
-        recent_documents = base_docs.order_by('-updated_at')[:8]
-        recent_routings = DocumentRouting.objects.select_related('document', 'from_user', 'to_dept').order_by('-routed_at')[:6]
-        inbound_count = base_docs.filter(doc_type='INBOUND').count()
-        # Outbound count strictly for this department's own outbound letters
-        outbound_count = Document.objects.filter(origin_department=dept).count() if dept else base_docs.filter(doc_type__in=['OUTBOUND', 'INTERNAL']).count()
+    # High-speed in-memory cached statistics for Neon Cloud
+    cache_key = f"dash_stats_v2_{'global' if is_super_or_lead else (dept.id if dept else 0)}_{request.user.id}"
+    cached_stats = cache.get(cache_key)
+
+    if cached_stats is not None:
+        stats = cached_stats
     else:
-        # Specialized Office: STRICTLY scoped to their own department ONLY
-        if dept:
-            base_docs = Document.objects.filter(
-                Q(origin_department=dept) | Q(current_department=dept) | Q(routings__to_dept=dept)
-            ).distinct()
-            pending_my_action = base_docs.filter(current_department=dept).exclude(status='COMPLETED')
-            recent_documents = base_docs.order_by('-updated_at')[:8]
-            recent_routings = DocumentRouting.objects.filter(
-                Q(from_dept=dept) | Q(to_dept=dept)
-            ).select_related('document', 'from_user', 'to_dept').order_by('-routed_at')[:6]
-            
-            # Inbound: External Inbound OR routed to dept from other offices
-            inbound_count = base_docs.filter(
-                Q(doc_type='INBOUND', current_department=dept) |
-                Q(doc_type='INBOUND', routings__to_dept=dept) |
-                Q(routings__to_dept=dept)
-            ).exclude(origin_department=dept).distinct().count()
-            
-            # Outbound: Originating from this department
-            outbound_count = base_docs.filter(origin_department=dept).count()
-        else:
-            base_docs = Document.objects.none()
-            pending_my_action = base_docs
-            recent_documents = base_docs
-            recent_routings = DocumentRouting.objects.none()
-            inbound_count = 0
-            outbound_count = 0
+        if is_super_or_lead:
+            base_docs = Document.objects.all()
+            doc_stats = base_docs.aggregate(
+                total=Count('id'),
+                completed=Count('id', filter=Q(status='COMPLETED')),
+                inbound=Count('id', filter=Q(doc_type='INBOUND')),
+                outbound=Count('id', filter=Q(doc_type__in=['OUTBOUND', 'INTERNAL'])),
+                pending_lead=Count('id', filter=Q(status='PENDING_LEADERSHIP')),
+                pending_admin=Count('id', filter=Q(status__in=['PENDING_ADMIN', 'PENDING_LEADERSHIP']))
+            )
+            total_docs = doc_stats['total'] or 0
+            completed_count = doc_stats['completed'] or 0
+            inbound_count = doc_stats['inbound'] or 0
+            outbound_count = doc_stats['outbound'] or 0
+            pending_count = (doc_stats['pending_lead'] or 0) if (profile and profile.is_leadership) else (doc_stats['pending_admin'] or 0)
 
-    total_docs = base_docs.count()
-    completed_count = base_docs.filter(status='COMPLETED').count()
-    pending_count = pending_my_action.count()
+            # HRMIS Stats (1 aggregated query)
+            officer_stats = CivilServantProfile.objects.aggregate(
+                total=Count('id'),
+                female=Count('id', filter=Q(gender='FEMALE')),
+                male=Count('id', filter=Q(gender='MALE'))
+            )
+            total_officers = officer_stats['total'] or 0
+            officers_female = officer_stats['female'] or 0
+            officers_male = officer_stats['male'] or 0
+            contract_officers_count = ContractOfficer.objects.count()
+            total_personnel = total_officers + contract_officers_count
+
+            # Attendance Stats (1 aggregated query)
+            att_stats = AttendanceRecord.objects.filter(date=today).aggregate(
+                present=Count('id', filter=Q(status='PRESENT')),
+                permission=Count('id', filter=Q(status='PERMISSION')),
+                absent=Count('id', filter=Q(status='ABSENT')),
+                mission=Count('id', filter=Q(status='MISSION'))
+            )
+            present_count = att_stats['present'] or 0
+            permission_count = att_stats['permission'] or 0
+            absent_count = att_stats['absent'] or 0
+            mission_count = att_stats['mission'] or 0
+
+            pending_promotions = OfficerPromotionRequest.objects.filter(status='PENDING').count()
+            pending_medals = OfficerMedalRequest.objects.filter(status='PENDING').count()
+            total_vehicles = Vehicle.objects.count()
+            pending_vehicles = VehicleRequest.objects.filter(status='PENDING').count()
+            total_departments = Department.objects.filter(is_active=True).count()
+        else:
+            if dept:
+                base_docs = Document.objects.filter(
+                    Q(origin_department=dept) | Q(current_department=dept) | Q(routings__to_dept=dept)
+                ).distinct()
+
+                doc_stats = base_docs.aggregate(
+                    total=Count('id'),
+                    completed=Count('id', filter=Q(status='COMPLETED')),
+                    outbound=Count('id', filter=Q(origin_department=dept)),
+                    pending=Count('id', filter=Q(current_department=dept) & ~Q(status='COMPLETED'))
+                )
+                total_docs = doc_stats['total'] or 0
+                completed_count = doc_stats['completed'] or 0
+                outbound_count = doc_stats['outbound'] or 0
+                pending_count = doc_stats['pending'] or 0
+
+                inbound_count = base_docs.filter(
+                    Q(doc_type='INBOUND', current_department=dept) |
+                    Q(doc_type='INBOUND', routings__to_dept=dept) |
+                    Q(routings__to_dept=dept)
+                ).exclude(origin_department=dept).distinct().count()
+
+                officer_stats = CivilServantProfile.objects.filter(department=dept).aggregate(
+                    total=Count('id'),
+                    female=Count('id', filter=Q(gender='FEMALE')),
+                    male=Count('id', filter=Q(gender='MALE'))
+                )
+                total_officers = officer_stats['total'] or 0
+                officers_female = officer_stats['female'] or 0
+                officers_male = officer_stats['male'] or 0
+                contract_officers_count = ContractOfficer.objects.filter(department=dept).count()
+                total_personnel = total_officers + contract_officers_count
+
+                att_stats = AttendanceRecord.objects.filter(date=today, department=dept).aggregate(
+                    present=Count('id', filter=Q(status='PRESENT')),
+                    permission=Count('id', filter=Q(status='PERMISSION')),
+                    absent=Count('id', filter=Q(status='ABSENT')),
+                    mission=Count('id', filter=Q(status='MISSION'))
+                )
+                present_count = att_stats['present'] or 0
+                permission_count = att_stats['permission'] or 0
+                absent_count = att_stats['absent'] or 0
+                mission_count = att_stats['mission'] or 0
+
+                pending_promotions = OfficerPromotionRequest.objects.filter(department=dept, status='PENDING').count()
+                pending_medals = OfficerMedalRequest.objects.filter(department=dept, status='PENDING').count()
+                total_vehicles = Vehicle.objects.count()
+                pending_vehicles = VehicleRequest.objects.filter(applicant_department=dept, status='PENDING').count()
+                total_departments = 1
+            else:
+                total_docs = 0
+                completed_count = 0
+                outbound_count = 0
+                pending_count = 0
+                inbound_count = 0
+                total_officers = 0
+                officers_female = 0
+                officers_male = 0
+                contract_officers_count = 0
+                total_personnel = 0
+                present_count = 0
+                permission_count = 0
+                absent_count = 0
+                mission_count = 0
+                pending_promotions = 0
+                pending_medals = 0
+                total_vehicles = 0
+                pending_vehicles = 0
+                total_departments = 0
+
+        stats = {
+            'total_docs': total_docs,
+            'inbound_count': inbound_count,
+            'outbound_count': outbound_count,
+            'completed_count': completed_count,
+            'pending_count': pending_count,
+            'total_officers': total_officers,
+            'officers_female': officers_female,
+            'officers_male': officers_male,
+            'contract_officers_count': contract_officers_count,
+            'total_personnel': total_personnel,
+            'present_count': present_count,
+            'permission_count': permission_count,
+            'absent_count': absent_count,
+            'mission_count': mission_count,
+            'pending_promotions': pending_promotions,
+            'pending_medals': pending_medals,
+            'total_vehicles': total_vehicles,
+            'pending_vehicles': pending_vehicles,
+            'total_departments': total_departments,
+        }
+        cache.set(cache_key, stats, 30)
+
+    # Dynamic recent items (fast limited queries with select_related)
+    if is_super_or_lead:
+        recent_documents = list(Document.objects.select_related('current_department', 'origin_department').order_by('-updated_at')[:6])
+        recent_routings = list(DocumentRouting.objects.select_related('document', 'from_user', 'to_dept').order_by('-routed_at')[:6])
+        recent_officers = list(CivilServantProfile.objects.select_related('department').order_by('-updated_at')[:6])
+    elif dept:
+        base_docs = Document.objects.filter(
+            Q(origin_department=dept) | Q(current_department=dept) | Q(routings__to_dept=dept)
+        ).distinct()
+        recent_documents = list(base_docs.select_related('current_department', 'origin_department').order_by('-updated_at')[:6])
+        recent_routings = list(DocumentRouting.objects.filter(
+            Q(from_dept=dept) | Q(to_dept=dept)
+        ).select_related('document', 'from_user', 'to_dept').order_by('-routed_at')[:6])
+        recent_officers = list(CivilServantProfile.objects.filter(department=dept).select_related('department').order_by('-updated_at')[:6])
+    else:
+        recent_documents = []
+        recent_routings = []
+        recent_officers = []
 
     context = {
-        'total_docs': total_docs,
-        'inbound_count': inbound_count,
-        'outbound_count': outbound_count,
-        'completed_count': completed_count,
-        'pending_count': pending_count,
+        **stats,
         'recent_documents': recent_documents,
         'recent_routings': recent_routings,
+        'recent_officers': recent_officers,
         'profile': profile,
         'dept': dept,
+        'is_super_or_lead': is_super_or_lead,
+        'today': today,
     }
     return render(request, 'dms/dashboard.html', context)
 
@@ -826,10 +953,15 @@ def document_list(request):
     if dept_filter and is_super_or_lead:
         queryset = queryset.filter(current_department_id=dept_filter)
 
-    departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh')
+    departments = cache.get('active_departments_list')
+    if departments is None:
+        departments = list(Department.objects.filter(is_active=True).order_by('order_index', 'name_kh'))
+        cache.set('active_departments_list', departments, 120)
+
+    docs_qs = queryset.select_related('current_department', 'origin_department', 'created_by').prefetch_related('annotations').order_by('-received_date', '-id')
 
     context = {
-        'documents': queryset.order_by('-received_date', '-id'),
+        'documents': docs_qs,
         'tab': tab,
         'search_q': search_q,
         'urgency_filter': urgency_filter,
@@ -2409,14 +2541,20 @@ def officer_list(request):
     if marital_filter:
         queryset = queryset.filter(marital_status=marital_filter)
 
-    total_officers = queryset.count()
-    male_count = queryset.filter(gender='MALE').count()
-    female_count = queryset.filter(gender='FEMALE').count()
-    departments = Department.objects.filter(is_active=True).filter(Q(officers__isnull=False) | Q(contract_officers__isnull=False)).distinct().order_by('order_index', 'name_kh') if is_admin_or_lead else (Department.objects.filter(id=dept.id) if dept else [])
-
     from .models import officer_sort_key
     from collections import OrderedDict
     officers_list = list(queryset)
+    total_officers = len(officers_list)
+    male_count = sum(1 for o in officers_list if getattr(o, 'gender', '') == 'MALE')
+    female_count = sum(1 for o in officers_list if getattr(o, 'gender', '') == 'FEMALE')
+
+    if is_admin_or_lead:
+        departments = cache.get('active_departments_with_officers')
+        if departments is None:
+            departments = list(Department.objects.filter(is_active=True).filter(Q(officers__isnull=False) | Q(contract_officers__isnull=False)).distinct().order_by('order_index', 'name_kh'))
+            cache.set('active_departments_with_officers', departments, 120)
+    else:
+        departments = Department.objects.filter(id=dept.id) if dept else []
     officers_list.sort(key=officer_sort_key)
 
     for idx, o in enumerate(officers_list, 1):
@@ -2908,10 +3046,8 @@ def officer_import_docx(request):
                 data['framework_category'] = 'A'
             elif rk.startswith('ខ'):
                 data['framework_category'] = 'B'
-            elif rk.startswith('គ'):
+            else:
                 data['framework_category'] = 'C'
-            elif rk.startswith('ឃ'):
-                data['framework_category'] = 'D'
 
             # Auto-detect highest degree
             edu_list = data.get('education_data', [])
@@ -3341,7 +3477,7 @@ def officer_edit(request, pk):
         messages.warning(request, f"🔒 ប្រព័ន្ធត្រូវបានបិទមិនឱ្យកែប្រែជីវប្រវត្តិមន្ត្រីឡើយ! ({edit_window.status_label_kh})")
         return redirect('officer_detail', pk=pk)
 
-    departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh') if is_admin_or_lead else (Department.objects.filter(id=dept.id) if dept else [])
+    departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh')
     users = User.objects.filter(is_active=True).order_by('username')
 
     if request.method == 'POST':
@@ -3349,16 +3485,19 @@ def officer_edit(request, pk):
             old_dept = officer.department
             old_pos = officer.current_position_title
             pos_title = request.POST.get('current_position_title', '').strip()
+            target_dept_id = request.POST.get('department') or request.POST.get('department_select_placement')
+
             if pos_title in ['ប្រធានមន្ទីរ', 'អនុប្រធានមន្ទីរ']:
                 lead_dept = Department.objects.filter(Q(code='LEAD') | Q(name_kh='ថ្នាក់ដឹកនាំមន្ទីរ')).first()
                 if lead_dept:
                     officer.department = lead_dept
-            elif is_admin_or_lead or is_system_admin:
-                target_dept_id = request.POST.get('department')
-                if target_dept_id:
-                    officer.department = Department.objects.filter(id=target_dept_id).first()
-                if request.POST.get('user'):
-                    officer.user_id = request.POST.get('user')
+            elif target_dept_id:
+                new_dept = Department.objects.filter(id=target_dept_id).first()
+                if new_dept:
+                    officer.department = new_dept
+
+            if request.POST.get('user'):
+                officer.user_id = request.POST.get('user')
 
             # ក- ព័ត៌មានផ្ទាល់ខ្លួន
             officer.khmer_last_name = request.POST.get('khmer_last_name', '').strip()
@@ -9831,11 +9970,11 @@ def officer_status_report_view(request):
     female_count = base_qs.filter(gender='FEMALE').count()
     male_count = base_qs.filter(gender='MALE').count()
 
-    # ក. តាមក្របខ័ណ្ឌ
-    cat_a_count = base_qs.filter(framework_category='A').count()
-    cat_b_count = base_qs.filter(framework_category='B').count()
-    cat_c_count = base_qs.filter(framework_category='C').count()
-    cat_d_count = base_qs.filter(framework_category='D').count()
+    # ក. តាមក្របខ័ណ្ឌ (គាំទ្រទាំង 'ក' និង 'A')
+    cat_a_count = base_qs.filter(Q(framework_category='ក') | Q(framework_category='A')).count()
+    cat_b_count = base_qs.filter(Q(framework_category='ខ') | Q(framework_category='B')).count()
+    cat_c_count = base_qs.filter(Q(framework_category='គ') | Q(framework_category='C') | Q(framework_category='D') | Q(framework_category__isnull=True) | Q(framework_category='')).count()
+    cat_d_count = 0
 
     # ខ. តាមសញ្ញាប័ត្រ
     phd_count = base_qs.filter(highest_degree='DOCTORATE').count()
@@ -9857,7 +9996,14 @@ def officer_status_report_view(request):
     # Filter queryset for the table display
     table_qs = base_qs
     if fw_filter and fw_filter != 'ALL':
-        table_qs = table_qs.filter(framework_category=fw_filter)
+        if fw_filter in ['ក', 'A']:
+            table_qs = table_qs.filter(Q(framework_category='ក') | Q(framework_category='A'))
+        elif fw_filter in ['ខ', 'B']:
+            table_qs = table_qs.filter(Q(framework_category='ខ') | Q(framework_category='B'))
+        elif fw_filter in ['គ', 'C']:
+            table_qs = table_qs.filter(Q(framework_category='គ') | Q(framework_category='C'))
+        else:
+            table_qs = table_qs.filter(framework_category=fw_filter)
     if degree_filter and degree_filter != 'ALL':
         if degree_filter == 'OTHER':
             table_qs = table_qs.filter(Q(highest_degree='OTHER') | Q(highest_degree__isnull=True) | Q(highest_degree=''))
@@ -9968,7 +10114,7 @@ def officer_status_report_view(request):
 
         'status_choices': CivilServantProfile.OFFICER_STATUS_CHOICES,
         'degree_choices': CivilServantProfile.DEGREE_CHOICES,
-        'framework_choices': CivilServantProfile.FRAMEWORK_CHOICES,
+        'framework_choices': CivilServantProfile.FRAMEWORK_CHOICES[:3],
         'date_info': date_info,
         'today': today,
         'is_window_open': is_window_open,
@@ -10153,8 +10299,8 @@ def officer_status_report_print_view(request):
 
     cat_a_count = base_qs.filter(framework_category='A').count()
     cat_b_count = base_qs.filter(framework_category='B').count()
-    cat_c_count = base_qs.filter(framework_category='C').count()
-    cat_d_count = base_qs.filter(framework_category='D').count()
+    cat_c_count = base_qs.filter(Q(framework_category='C') | Q(framework_category='D') | Q(framework_category__isnull=True) | Q(framework_category='')).count()
+    cat_d_count = 0
 
     phd_count = base_qs.filter(highest_degree='DOCTORATE').count()
     master_count = base_qs.filter(highest_degree='MASTER').count()
@@ -10436,8 +10582,8 @@ def officer_status_export_excel(request):
 
     cat_a_count = base_qs.filter(framework_category='A').count()
     cat_b_count = base_qs.filter(framework_category='B').count()
-    cat_c_count = base_qs.filter(framework_category='C').count()
-    cat_d_count = base_qs.filter(framework_category='D').count()
+    cat_c_count = base_qs.filter(Q(framework_category='C') | Q(framework_category='D') | Q(framework_category__isnull=True) | Q(framework_category='')).count()
+    cat_d_count = 0
 
     phd_count = base_qs.filter(highest_degree='DOCTORATE').count()
     master_count = base_qs.filter(highest_degree='MASTER').count()
@@ -10516,7 +10662,7 @@ def officer_status_export_excel(request):
     ws1.cell(row=10, column=2, value=f"{total_officers} នាក់ ( ស្រី៖ {female_count} នាក់  ប្រុស៖ {male_count} នាក់ )").font = f_body
     
     ws1.cell(row=11, column=1, value="- ចំនួនមន្ត្រីរាជការតាមក្របខណ្ឌ").font = f_body_bold
-    ws1.cell(row=11, column=2, value=f"(ក) {cat_a_count} នាក់   (ខ) {cat_b_count} នាក់   (គ) {cat_c_count} នាក់   (ឃ) {cat_d_count} នាក់").font = f_body
+    ws1.cell(row=11, column=2, value=f"(ក) {cat_a_count} នាក់   (ខ) {cat_b_count} នាក់   (គ) {cat_c_count} នាក់").font = f_body
 
     # Section ខ
     ws1.merge_cells('A13:D13')

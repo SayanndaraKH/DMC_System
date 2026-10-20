@@ -23,6 +23,18 @@
     <link rel="icon" type="image/png" sizes="192x192" href="{% static 'dms/img/favicon.png' %}">
     <link rel="apple-touch-icon" href="{% static 'dms/img/favicon.png' %}">
 
+    <script>
+        // Force full screen / maximized bounds in App mode
+        (function() {
+            try {
+                if (window.screen) {
+                    window.moveTo(0, 0);
+                    window.resizeTo(window.screen.availWidth, window.screen.availHeight);
+                }
+            } catch (e) {}
+        })();
+    </script>
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -33,9 +45,9 @@
                 <button class="btn btn-sm btn-outline-light position-absolute top-0 end-0 m-2 d-lg-none rounded-circle sidebar-close-btn" id="sidebarCloseBtn" type="button" aria-label="បិទម៉ឺនុយ">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
-                <i class="fa-solid fa-landmark fa-2x text-warning mb-2"></i>
-                <h1 class="sidebar-title">ប្រព័ន្ធគ្រប់គ្រងឯកសារ</h1>
-                <div class="sidebar-subtitle">Document Management System</div>
+                <img src="{% static 'dms/img/logo.png' %}" alt="Logo" class="mb-2" style="width: 62px; height: 62px; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45));">
+                <h1 class="sidebar-title">គ្រប់គ្រងធនធានមនុស្ស</h1>
+                <div class="sidebar-subtitle">Human Resource Management System</div>
             </div>
 
             <nav class="sidebar-nav" id="sidebarNavAccordion">
@@ -105,10 +117,6 @@
                             <a href="{% url 'document_list' %}" class="submenu-link {% if request.resolver_match.url_name in 'document_list,document_create,document_detail,document_edit' %}active{% endif %}">
                                 <i class="fa-solid fa-folder-open text-info"></i>
                                 <span>ឯកសារទាំងអស់ (All)</span>
-                            </a>
-                            <a href="{% url 'pdf_page_viewer' %}" class="submenu-link {% if request.resolver_match.url_name == 'pdf_page_viewer' %}active{% endif %}">
-                                <i class="fa-solid fa-file-pdf text-danger"></i>
-                                <span>មើល & បំបែកទំព័រ PDF</span>
                             </a>
                             {% if user.is_superuser or user.username|upper == 'ADMIN' or user_profile.can_view_reports %}
                             <a href="{% url 'reports' %}" class="submenu-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
@@ -192,10 +200,6 @@
                             <a href="{% url 'officer_list' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_list,officer_detail,officer_edit,officer_print' %}active{% endif %}">
                                 <i class="fa-solid fa-id-card-clip text-info"></i>
                                 <span>បញ្ជីមន្ត្រី (Civil Servants)</span>
-                            </a>
-                            <a href="{% url 'pdf_page_viewer' %}" class="submenu-link {% if request.resolver_match.url_name == 'pdf_page_viewer' %}active{% endif %}">
-                                <i class="fa-solid fa-file-pdf text-danger"></i>
-                                <span>មើល & បំបែកទំព័រ PDF (ឯកសារយោង)</span>
                             </a>
                             <a href="{% url 'officer_status_report' %}" class="submenu-link {% if request.resolver_match.url_name in 'officer_status_report,officer_status_report_print' %}active{% endif %}">
                                 <i class="fa-solid fa-users-gear text-primary"></i>
@@ -493,6 +497,12 @@
                     </div>
                     {% endif %}
 
+                    <!-- Fullscreen Toggle Button -->
+                    <button class="btn btn-outline-success btn-sm rounded-pill px-2.5 py-1.5 shadow-sm d-flex align-items-center gap-1.5" id="btnToggleFullScreen" type="button" title="Full Screen (ពេញអេក្រង់)" onclick="toggleFullScreenMode()">
+                        <i class="fa-solid fa-expand text-success"></i>
+                        <span class="fs-8 fw-bold d-none d-md-inline">ពេញអេក្រង់</span>
+                    </button>
+
                     <!-- Notification Bell Dropdown -->
                     <div class="dropdown">
                         <button class="notif-bell-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -616,6 +626,22 @@
             <div class="content-body">
                 {% block content %}{% endblock %}
             </div>
+
+            <!-- 🌟 DMC System Global Footer -->
+            <footer class="app-system-footer text-center py-3 px-4 border-top mt-auto bg-white bg-opacity-75">
+                <div class="container-fluid">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 text-muted fs-8">
+                        <div>
+                            <strong class="text-dark">ប្រព័ន្ធគ្រប់គ្រងធនធានមនុស្ស (DMC System)</strong> • រក្សាសិទ្ធិដោយ៖ <strong class="text-dark">លោក យ៉ន សាយ៉ាន់ដារ៉ា</strong> មន្ត្រីទទួលបន្ទុកការងារធនធានមនុស្ស
+                        </div>
+                        <div>
+                            <a href="https://t.me/sydadmin168" target="_blank" rel="noopener noreferrer" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1.5 text-decoration-none rounded-pill">
+                                <i class="fa-brands fa-telegram me-1"></i> Telegram: sydadmin168 (ចុចភ្ជាប់ទំនាក់ទំនង)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
         </main>
 
         <!-- Mobile Sidebar Backdrop Overlay -->
@@ -858,6 +884,534 @@
             if (Math.abs(currentZoom - 1.0) >= 0.01) {
                 applyZoom(currentZoom);
             }
+        })();
+
+        function toggleFullScreenMode() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+    </script>
+
+    <!-- 🌟 Universal Global Processing & Loading Overlay System -->
+    <!-- 1. Top Slim Progress Bar -->
+    <div id="globalTopProgressBar" class="global-top-progress-bar" style="display: none;"></div>
+
+    <!-- 2. Centered Frosted Processing Overlay -->
+    <div id="globalProcessingOverlay" class="global-processing-overlay" style="display: none;" role="status" aria-live="polite">
+        <div class="global-processing-card">
+            <div class="processing-spinner-container">
+                <div class="processing-dual-ring"></div>
+                <img src="{% static 'dms/img/logo.png' %}" alt="Logo" class="processing-logo-center">
+            </div>
+            <div class="processing-title" id="globalProcessingTitle">កំពុងដំណើរការ...</div>
+            <div class="processing-subtitle" id="globalProcessingSub">សូមរង់ចាំមួយភ្លែត...</div>
+            <div class="processing-micro-bar">
+                <div class="processing-micro-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* 🌟 Universal Global Processing & Loading Styles */
+        .global-top-progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3.5px;
+            width: 0%;
+            background: linear-gradient(90deg, #10b981 0%, #34d399 50%, #059669 100%);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.8), 0 0 5px rgba(52, 211, 153, 0.5);
+            z-index: 10000000;
+            transition: width 0.3s ease, opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .global-processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.50);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            z-index: 9999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.22s ease, visibility 0.22s ease;
+        }
+
+        .global-processing-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .global-processing-card {
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.05);
+            padding: 26px 36px;
+            min-width: 320px;
+            max-width: 90vw;
+            text-align: center;
+            transform: scale(0.92);
+            transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .global-processing-overlay.active .global-processing-card {
+            transform: scale(1);
+        }
+
+        .processing-spinner-container {
+            position: relative;
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 14px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .processing-dual-ring {
+            position: absolute;
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 3.5px solid rgba(16, 185, 129, 0.15);
+            border-top-color: #10b981;
+            border-right-color: #059669;
+            animation: procRingSpin 0.85s linear infinite;
+        }
+
+        @keyframes procRingSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .processing-logo-center {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+            border-radius: 50%;
+            z-index: 1;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+        }
+
+        .processing-title {
+            font-family: var(--khmer-font);
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.2px;
+            margin-bottom: 4px;
+        }
+
+        .processing-subtitle {
+            font-family: var(--khmer-font);
+            font-size: 0.84rem;
+            color: #64748b;
+            font-weight: 500;
+            margin-bottom: 14px;
+        }
+
+        .processing-micro-bar {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 99px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .processing-micro-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, #10b981, #059669);
+            border-radius: 99px;
+            width: 40%;
+            animation: procIndeterminate 1.4s ease-in-out infinite;
+        }
+
+        @keyframes procIndeterminate {
+            0% { left: -40%; width: 30%; }
+            50% { left: 30%; width: 50%; }
+            100% { left: 100%; width: 30%; }
+        }
+
+        /* 📅 Smart Dual-Mode Datepicker & Custom Input Styles */
+        .smart-date-group {
+            position: relative;
+            display: inline-flex !important;
+            align-items: stretch;
+            width: 100%;
+        }
+        .smart-date-group .smart-date-btn {
+            padding: 0.25rem 0.55rem;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            color: #0284c7;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+        }
+        .smart-date-group .smart-date-btn:hover {
+            background: #e0f2fe;
+            color: #0369a1;
+            border-color: #38bdf8;
+        }
+        .smart-date-group .smart-date-present-btn {
+            padding: 0.2rem 0.5rem;
+            font-size: 0.72rem !important;
+            font-weight: 700;
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            color: #15803d;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s ease-in-out;
+            border-radius: 0 6px 6px 0 !important;
+        }
+        .smart-date-group .smart-date-present-btn:hover {
+            background: #16a34a;
+            color: #ffffff;
+            border-color: #16a34a;
+        }
+        .smart-date-group input:not(:last-child) {
+            border-top-right-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+        }
+        .smart-date-group .smart-date-btn:not(:last-child) {
+            border-radius: 0 !important;
+        }
+    </style>
+
+    <script>
+        (function() {
+            const overlay = document.getElementById('globalProcessingOverlay');
+            const topBar = document.getElementById('globalTopProgressBar');
+            const titleEl = document.getElementById('globalProcessingTitle');
+            const subEl = document.getElementById('globalProcessingSub');
+            let hideTimeout = null;
+            let overlayTimeout = null;
+            let topBarInterval = null;
+
+            function startTopBar() {
+                if (!topBar) return;
+                topBar.style.display = 'block';
+                topBar.style.opacity = '1';
+                topBar.style.width = '15%';
+                clearInterval(topBarInterval);
+                let w = 15;
+                topBarInterval = setInterval(() => {
+                    if (w < 85) {
+                        w += Math.random() * 12;
+                        topBar.style.width = Math.min(w, 85) + '%';
+                    }
+                }, 250);
+            }
+
+            function finishTopBar() {
+                if (!topBar) return;
+                clearInterval(topBarInterval);
+                topBar.style.width = '100%';
+                setTimeout(() => {
+                    topBar.style.opacity = '0';
+                    setTimeout(() => {
+                        topBar.style.display = 'none';
+                        topBar.style.width = '0%';
+                    }, 300);
+                }, 200);
+            }
+
+            window.showProcessing = function(title, subtitle, forceImmediate = false) {
+                if (title && titleEl) titleEl.textContent = title;
+                if (subtitle && subEl) subEl.innerHTML = subtitle;
+                
+                // Top progress bar starts with 0ms delay (lightning fast feedback)
+                startTopBar();
+
+                clearTimeout(overlayTimeout);
+                if (forceImmediate) {
+                    if (overlay) {
+                        overlay.style.display = 'flex';
+                        overlay.offsetHeight; // trigger reflow
+                        overlay.classList.add('active');
+                    }
+                } else {
+                    // Debounce full modal so ultra-fast page transitions feel instantaneous without a flashing modal
+                    overlayTimeout = setTimeout(() => {
+                        if (overlay) {
+                            overlay.style.display = 'flex';
+                            overlay.offsetHeight;
+                            overlay.classList.add('active');
+                        }
+                    }, 220);
+                }
+
+                // Safety timeout watchdog (auto-dismiss after 12s so user is never trapped)
+                clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(() => {
+                    window.hideProcessing();
+                }, 12000);
+            };
+
+            window.hideProcessing = function() {
+                clearTimeout(overlayTimeout);
+                clearTimeout(hideTimeout);
+                clearInterval(topBarInterval);
+                if (overlay) {
+                    overlay.classList.remove('active');
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                    }, 220);
+                }
+                finishTopBar();
+            };
+
+            // Auto-hide when user uses browser back/forward buttons (bfcache)
+            window.addEventListener('pageshow', function() {
+                window.hideProcessing();
+            });
+
+            // 1. ស្វែងរកទិន្នន័យ (Search forms & Filters) and Save Actions
+            document.addEventListener('submit', function(e) {
+                const form = e.target;
+                if (form && form.tagName === 'FORM') {
+                    // Check if search form
+                    const isSearch = form.querySelector('input[name="q"], input[name="search"]') || 
+                                     form.classList.contains('filter-form') || 
+                                     form.classList.contains('search-form') ||
+                                     (form.method && form.method.toUpperCase() === 'GET');
+                    
+                    if (isSearch) {
+                        window.showProcessing('កំពុងស្វែងរកទិន្នន័យ...', 'កំពុងទាញយកទិន្នន័យតាមលក្ខខណ្ឌស្វែងរក', true);
+                    } else {
+                        window.showProcessing('កំពុងរក្សាទុក & ដំណើរការ...', 'កំពុងដំណើរការប្រតិបត្តិការក្នុងប្រព័ន្ធ', true);
+                    }
+
+                    // Disable submit button and show inline spinner
+                    const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+                    if (submitBtn && !submitBtn.disabled) {
+                        setTimeout(() => {
+                            submitBtn.disabled = true;
+                        }, 50);
+                    }
+                }
+            });
+
+            // 2. Filter dropdown changes (e.g. onchange="this.form.submit()")
+            document.addEventListener('change', function(e) {
+                const target = e.target;
+                if (target && target.tagName === 'SELECT' && target.form) {
+                    const onch = target.getAttribute('onchange') || '';
+                    if (onch.includes('submit')) {
+                        window.showProcessing('កំពុងចម្រាញ់ & ស្វែងរកទិន្នន័យ...', 'កំពុងផ្ទុកទិន្នន័យតាមការជ្រើសរើស', true);
+                    }
+                }
+            });
+
+            // 3. ឆ្លាស់មុខងារណាមួយ (Switching features / Page navigation)
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('a');
+                if (!link) return;
+
+                const href = link.getAttribute('href');
+                if (!href) return;
+
+                // Ignore non-navigating links
+                if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('tel:') || href.startsWith('mailto:')) {
+                    return;
+                }
+                // Ignore new tab links
+                if (link.target === '_blank') {
+                    return;
+                }
+                // Ignore bootstrap toggles (modals, dropdowns, accordions)
+                if (link.hasAttribute('data-bs-toggle') || link.hasAttribute('data-bs-target')) {
+                    return;
+                }
+                // Ignore download links
+                if (link.hasAttribute('download') || link.classList.contains('no-loader') || link.hasAttribute('data-no-loading')) {
+                    return;
+                }
+                const cleanHref = href.split('?')[0].toLowerCase();
+                if (cleanHref.endsWith('.pdf') || cleanHref.endsWith('.xlsx') || cleanHref.endsWith('.csv') || cleanHref.endsWith('.zip')) {
+                    return;
+                }
+
+                // Clean navigation title
+                const linkText = (link.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 32);
+                window.showProcessing('កំពុងផ្ទុកទិន្នន័យ...', linkText ? `កំពុងឆ្លាស់ទៅកាន់៖ « ${linkText} »` : 'កំពុងឆ្លាស់ទៅកាន់ទំព័រថ្មី', false);
+            });
+
+            // 4. Any button with explicit data-processing attribute
+            document.addEventListener('click', function(e) {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                if (btn.getAttribute('data-processing') === 'true') {
+                    const title = btn.getAttribute('data-processing-title') || 'កំពុងដំណើរការ...';
+                    const sub = btn.getAttribute('data-processing-sub') || 'សូមរង់ចាំមួយភ្លែត';
+                    window.showProcessing(title, sub, true);
+                }
+            });
+
+            // =========================================================================
+            // 📅 SMART DUAL-MODE DATE PICKER & CUSTOM INPUT (Calendar + Custom Text)
+            // =========================================================================
+            const KHMER_DIGITS = ['០','១','២','៣','៤','៥','៦','៧','៨','៩'];
+            const toKhmerDigits = (str) => String(str).replace(/\d/g, d => KHMER_DIGITS[d]);
+            const toArabicDigits = (str) => String(str).replace(/[០-៩]/g, d => '០១២៣៤៥៦៧៨៩'.indexOf(d));
+
+            window.initSmartDatePickers = function(root) {
+                if (!root) root = document;
+
+                const dateSelectors = [
+                    'input[name="dob"]',
+                    'input[name="spouse_dob"]',
+                    'input[name="child_dob"]',
+                    'input[name="civil_service_start_date"]',
+                    'input[name="civil_service_permanent_date"]',
+                    'input[name="edu_start_date"]',
+                    'input[name="edu_end_date"]',
+                    'input[name="pub_start_date"]',
+                    'input[name="pub_end_date"]',
+                    'input[name="priv_start_date"]',
+                    'input[name="priv_end_date"]',
+                    'input[name="promo_sen_effective_date"]',
+                    'input[name="promo_deg_effective_date"]',
+                    'input[name="out_fw_start_date"]',
+                    'input[name="out_fw_end_date"]',
+                    'input[name="unpaid_start_date"]',
+                    'input[name="unpaid_end_date"]',
+                    'input[name="national_id_valid_from"]',
+                    'input[name="national_id_valid_to"]',
+                    'input.smart-date-picker'
+                ];
+
+                const inputs = root.querySelectorAll ? root.querySelectorAll(dateSelectors.join(',')) : [];
+                inputs.forEach(input => {
+                    if (input.type === 'hidden' || input.type === 'checkbox' || input.type === 'radio' || input.dataset.smartDateReady) {
+                        return;
+                    }
+                    input.dataset.smartDateReady = 'true';
+
+                    // Group wrapper
+                    let group = input.closest('.input-group');
+                    if (!group) {
+                        group = document.createElement('div');
+                        group.className = 'input-group input-group-sm smart-date-group flex-nowrap';
+                        input.parentNode.insertBefore(group, input);
+                        group.appendChild(input);
+                    } else {
+                        group.classList.add('smart-date-group', 'flex-nowrap');
+                    }
+
+                    // Native invisible date input for system calendar popup
+                    const nativeDate = document.createElement('input');
+                    nativeDate.type = 'date';
+                    nativeDate.tabIndex = -1;
+                    nativeDate.style.cssText = 'position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; border: 0; padding: 0;';
+                    group.appendChild(nativeDate);
+
+                    // Calendar icon button
+                    const calBtn = document.createElement('button');
+                    calBtn.type = 'button';
+                    calBtn.className = 'btn smart-date-btn';
+                    calBtn.title = 'ជ្រើសរើសពីប្រតិទិន (Calendar) ឬ វាយបញ្ចូលផ្ទាល់ (Custom)';
+                    calBtn.innerHTML = '<i class="fa-regular fa-calendar-days"></i>';
+                    group.appendChild(calBtn);
+
+                    // End date "បច្ចុប្បន្ន" button
+                    const isEndDate = input.name.toLowerCase().includes('end_date') || 
+                                      input.name.toLowerCase().includes('valid_to') ||
+                                      (input.placeholder && input.placeholder.includes('បច្ចុប្បន្ន'));
+                    if (isEndDate) {
+                        const nowBtn = document.createElement('button');
+                        nowBtn.type = 'button';
+                        nowBtn.className = 'btn smart-date-present-btn';
+                        nowBtn.title = 'ចុចកំណត់ «បច្ចុប្បន្ន» ភ្លាមៗ';
+                        nowBtn.textContent = 'បច្ចុប្បន្ន';
+                        nowBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            input.value = 'បច្ចុប្បន្ន';
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                        });
+                        group.appendChild(nowBtn);
+                    }
+
+                    // Open native picker on click
+                    calBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const curVal = toArabicDigits(input.value.trim());
+                        let m = curVal.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+                        if (m) {
+                            nativeDate.value = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+                        } else {
+                            m = curVal.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+                            if (m) {
+                                nativeDate.value = `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+                            }
+                        }
+
+                        if (typeof nativeDate.showPicker === 'function') {
+                            nativeDate.showPicker();
+                        } else {
+                            nativeDate.focus();
+                        }
+                    });
+
+                    // Format picked date into DD/MM/YYYY with Khmer digits
+                    nativeDate.addEventListener('change', () => {
+                        if (!nativeDate.value) return;
+                        const [y, m, d] = nativeDate.value.split('-');
+                        const khmerDate = `${toKhmerDigits(d)}/${toKhmerDigits(m)}/${toKhmerDigits(y)}`;
+                        input.value = khmerDate;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                });
+            };
+
+            // Run on initial page load
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => window.initSmartDatePickers());
+            } else {
+                window.initSmartDatePickers();
+            }
+
+            // MutationObserver to automatically decorate any dynamically added rows (Tables, Add Row, etc.)
+            const dateObserver = new MutationObserver((mutations) => {
+                for (const mutation of mutations) {
+                    if (mutation.addedNodes.length > 0) {
+                        for (const node of mutation.addedNodes) {
+                            if (node.nodeType === 1) {
+                                window.initSmartDatePickers(node);
+                            }
+                        }
+                    }
+                }
+            });
+            dateObserver.observe(document.body, { childList: true, subtree: true });
+
         })();
     </script>
 

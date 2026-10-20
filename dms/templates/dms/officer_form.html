@@ -256,7 +256,7 @@
                         <div class="row g-3 p-3 bg-light rounded-4 mb-4">
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold text-dark"><i class="fa-solid fa-building text-primary me-1"></i> ការិយាល័យ/អង្គភាពបច្ចុប្បន្ន</label>
-                                <select name="department" class="form-select bg-white">
+                                <select name="department" id="officerPrimaryDepartmentSelect" class="form-select bg-white" onchange="syncDepartmentToSecondary(this.value)">
                                     <option value="">-- ជ្រើសរើសការិយាល័យ --</option>
                                     {% for d in departments %}
                                     <option value="{{ d.id }}" {% if officer.department_id == d.id %}selected{% elif not is_edit and dept.id == d.id %}selected{% endif %}>{{ d.name_kh }}</option>
@@ -1439,20 +1439,15 @@
                             <!-- 🏢 ការិយាល័យ/ខណ្ឌបម្រើការងារ -->
                             <div class="col-12 col-md-6 mt-3">
                                 <label class="form-label fw-bold small text-dark">
-                                    <i class="fa-solid fa-building text-primary me-1"></i> ការិយាល័យ/ខណ្ឌក្នុងប្រព័ន្ធ (កំណត់ដោយ ADMIN)
+                                    <i class="fa-solid fa-building text-primary me-1"></i> ការិយាល័យ/ខណ្ឌបច្ចុប្បន្ន
                                 </label>
-                                {% if is_admin_or_lead or is_system_admin or user.is_superuser or user.is_staff %}
-                                <select name="department" class="form-select border-primary fw-semibold">
+                                <select id="officerSecondaryDepartmentSelect" class="form-select border-primary fw-semibold" onchange="syncDepartmentToPrimary(this.value)">
                                     <option value="">-- ជ្រើសរើសការិយាល័យ/ខណ្ឌ --</option>
                                     {% for d in departments %}
                                     <option value="{{ d.id }}" {% if is_edit and officer.department_id == d.id %}selected{% elif not is_edit and dept and dept.id == d.id %}selected{% endif %}>{{ d.name_kh }}</option>
                                     {% endfor %}
                                 </select>
-                                <small class="text-primary fs-9">💡 ADMIN អាចផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌបានដោយសេរី</small>
-                                {% else %}
-                                <input type="text" class="form-control bg-light fw-bold text-dark" value="{{ officer.department.name_kh|default:dept.name_kh|default:'(ការិយាល័យបច្ចុប្បន្ន)' }}" readonly>
-                                <input type="hidden" name="department" value="{{ officer.department_id|default:dept.id }}">
-                                {% endif %}
+                                <small class="text-primary fs-9">💡 អាចផ្លាស់ប្តូរការិយាល័យ/ខណ្ឌនៅទីនេះ ឬក្នុងផ្នែក «ក- ព័ត៌មានផ្ទាល់ខ្លួន» ក៏បាន (ប្រព័ន្ធ sync ដោយស្វ័យប្រវត្តិ)</small>
                             </div>
 
                             <!-- 📌 ស្ថានភាពមន្ត្រី ក្របខ័ណ្ឌ & កម្រិតសញ្ញាបត្រខ្ពស់បំផុត -->
@@ -1478,14 +1473,13 @@
 
                                     <div class="col-12 col-md-4">
                                         <label class="form-label fw-bold small text-dark">
-                                            <i class="fa-solid fa-id-badge text-primary me-1"></i> ប្រភេទក្របខ័ណ្ឌ (ក, ខ, គ, ឃ)
+                                            <i class="fa-solid fa-id-badge text-primary me-1"></i> ប្រភេទក្របខ័ណ្ឌ (ក, ខ, គ)
                                         </label>
                                         <select name="framework_category" class="form-select border-primary">
                                             <option value="">-- Auto តាមថ្នាក់ (ក/ខ/គ) --</option>
-                                            <option value="A" {% if officer.framework_category == 'A' %}selected{% endif %}>ក្របខ័ណ្ឌ ក (ក) - ឧត្តមមន្ត្រី / បច្ចេកទេសជាន់ខ្ពស់</option>
-                                            <option value="B" {% if officer.framework_category == 'B' %}selected{% endif %}>ក្របខ័ណ្ឌ ខ (ខ) - វរមន្ត្រី / បច្ចេកទេសមធ្យម</option>
-                                            <option value="C" {% if officer.framework_category == 'C' %}selected{% endif %}>ក្របខ័ណ្ឌ គ (គ) - អនុមន្ត្រី / បច្ចេកទេសបឋម</option>
-                                            <option value="D" {% if officer.framework_category == 'D' %}selected{% endif %}>ក្របខ័ណ្ឌ ឃ (ឃ) - មន្ត្រី / ជំនួយការ</option>
+                                            <option value="ក" {% if officer.framework_category == 'ក' or officer.framework_category == 'A' %}selected{% endif %}>ក្របខ័ណ្ឌ ក - ឧត្តមមន្ត្រី / បច្ចេកទេសជាន់ខ្ពស់</option>
+                                            <option value="ខ" {% if officer.framework_category == 'ខ' or officer.framework_category == 'B' %}selected{% endif %}>ក្របខ័ណ្ឌ ខ - វរមន្ត្រី / បច្ចេកទេសមធ្យម</option>
+                                            <option value="គ" {% if officer.framework_category == 'គ' or officer.framework_category == 'C' %}selected{% endif %}>ក្របខ័ណ្ឌ គ - អនុមន្ត្រី / បច្ចេកទេសបឋម</option>
                                         </select>
                                     </div>
 
@@ -2521,6 +2515,20 @@ function switchToTab(tabId) {
     }
 }
 
+function syncDepartmentToPrimary(val) {
+    const primary = document.getElementById('officerPrimaryDepartmentSelect');
+    if (primary && primary.value !== val) {
+        primary.value = val;
+    }
+}
+
+function syncDepartmentToSecondary(val) {
+    const secondary = document.getElementById('officerSecondaryDepartmentSelect');
+    if (secondary && secondary.value !== val) {
+        secondary.value = val;
+    }
+}
+
 function validateFileSize(input) {
     // មិនកំណត់ទំហំ File ឯកសារយោង (Unlimited file size allowed)
     return true;
@@ -3507,12 +3515,12 @@ function zoomOutPdf() {
 
 // Dynamic Framework to Rank Filtering (ចាប់ឋានន្តរស័ក្តិ តាមប្រភេទក្របខណ្ឌ)
 const FRAMEWORK_CATEGORY_MAP = {
-    'មន្ត្រីគ្រប់គ្រងរដ្ឋបាល': 'A',
-    'មន្ត្រីបច្ចេកទេសជាន់ខ្ពស់': 'A',
-    'មន្ត្រីក្រមការ': 'B',
-    'មន្ត្រីបច្ចេកទេសមធ្យម': 'B',
-    'លេខាធិការរដ្ឋបាល': 'C',
-    'មន្ត្រីបច្ចេកទេសបឋម': 'C',
+    'មន្ត្រីគ្រប់គ្រងរដ្ឋបាល': 'ក',
+    'មន្ត្រីបច្ចេកទេសជាន់ខ្ពស់': 'ក',
+    'មន្ត្រីក្រមការ': 'ខ',
+    'មន្ត្រីបច្ចេកទេសមធ្យម': 'ខ',
+    'លេខាធិការរដ្ឋបាល': 'គ',
+    'មន្ត្រីបច្ចេកទេសបឋម': 'គ',
 };
 
 const CATEGORY_RANKS_CONFIG = {
@@ -3561,6 +3569,9 @@ const CATEGORY_RANKS_CONFIG = {
         { value: 'គ.១', label: 'គ.១ (ថ្នាក់លេខ១)' },
     ]
 };
+CATEGORY_RANKS_CONFIG['ក'] = CATEGORY_RANKS_CONFIG['A'];
+CATEGORY_RANKS_CONFIG['ខ'] = CATEGORY_RANKS_CONFIG['B'];
+CATEGORY_RANKS_CONFIG['គ'] = CATEGORY_RANKS_CONFIG['C'];
 
 
 // Auto Position Code ID Mapping
@@ -3614,9 +3625,14 @@ function onFrameworkChange() {
 
     let cat = FRAMEWORK_CATEGORY_MAP[fwVal];
     if (!cat) {
-        if (fwVal.includes('ក') || fwVal.includes('គ្រប់គ្រង') || fwVal.includes('ជាន់ខ្ពស់')) cat = 'A';
-        else if (fwVal.includes('ខ') || fwVal.includes('ក្រមការ') || fwVal.includes('មធ្យម')) cat = 'B';
-        else if (fwVal.includes('គ') || fwVal.includes('លេខាធិការ') || fwVal.includes('បឋម')) cat = 'C';
+        if (fwVal.includes('ក') || fwVal.includes('គ្រប់គ្រង') || fwVal.includes('ជាន់ខ្ពស់')) cat = 'ក';
+        else if (fwVal.includes('ខ') || fwVal.includes('ក្រមការ') || fwVal.includes('មធ្យម')) cat = 'ខ';
+        else if (fwVal.includes('គ') || fwVal.includes('លេខាធិការ') || fwVal.includes('បឋម')) cat = 'គ';
+    }
+
+    const fwCatSelect = document.querySelector('select[name="framework_category"]');
+    if (fwCatSelect && cat) {
+        fwCatSelect.value = cat;
     }
 
     rankSelect.innerHTML = '';
@@ -3624,11 +3640,11 @@ function onFrameworkChange() {
     if (cat && CATEGORY_RANKS_CONFIG[cat]) {
         const defaultOpt = document.createElement('option');
         defaultOpt.value = '';
-        defaultOpt.textContent = `-- ជ្រើសរើសថ្នាក់ (ប្រភេទ ${cat === 'A' ? 'ក' : cat === 'B' ? 'ខ' : 'គ'}) --`;
+        defaultOpt.textContent = `-- ជ្រើសរើសថ្នាក់ (ប្រភេទ ${cat}) --`;
         rankSelect.appendChild(defaultOpt);
 
         const grp = document.createElement('optgroup');
-        grp.label = `ប្រភេទ ${cat === 'A' ? 'ក (Category A: ពី ក.៣.៤ ដល់ ក.១.១)' : cat === 'B' ? 'ខ (Category B: ពី ខ.៣.៤ ដល់ ខ.១.១)' : 'គ (Category C: ពី គ.១០ ដល់ គ.១)'}`;
+        grp.label = `ប្រភេទ ${cat === 'ក' ? 'ក (ពី ក.៣.៤ ដល់ ក.១.១)' : cat === 'ខ' ? 'ខ (ពី ខ.៣.៤ ដល់ ខ.១.១)' : 'គ (ពី គ.១០ ដល់ គ.១)'}`;
 
         CATEGORY_RANKS_CONFIG[cat].forEach(item => {
             const opt = document.createElement('option');
