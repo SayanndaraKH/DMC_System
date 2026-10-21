@@ -11,8 +11,8 @@ staticfiles/
 # Environment variables & secrets
 .env
 
-# Media uploads
-media/
+# Media uploads (tracked and synced for User PC access)
+# media/
 
 # Virtual environments
 venv/

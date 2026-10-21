@@ -223,28 +223,40 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Media files (Uploads - persistent detection)
+# Media files (Uploads - persistent detection & multi-location fallback)
 MEDIA_URL = '/media/'
 media_candidate = os.environ.get('MEDIA_ROOT')
 if not media_candidate:
     if getattr(sys, 'frozen', False):
-        local_app = os.environ.get('LOCALAPPDATA', '')
-        if local_app:
-            media_candidate = os.path.join(local_app, 'DMC_System', 'media')
+        exe_dir = Path(sys.executable).resolve().parent
+        # 1. If 'media' folder is placed directly next to DMC_System.exe, prioritize it!
+        if (exe_dir / 'media').is_dir() and any((exe_dir / 'media').iterdir()):
+            media_candidate = str(exe_dir / 'media')
+        elif (exe_dir.parent / 'media').is_dir() and any((exe_dir.parent / 'media').iterdir()):
+            media_candidate = str(exe_dir.parent / 'media')
         else:
-            media_candidate = os.path.join(Path(sys.executable).resolve().parent, 'media')
+            # 2. Use persistent folder in %LOCALAPPDATA%\DMC_System\media
+            local_app = os.environ.get('LOCALAPPDATA', '')
+            if local_app:
+                media_candidate = os.path.join(local_app, 'DMC_System', 'media')
+            else:
+                media_candidate = str(exe_dir / 'media')
     elif os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or os.environ.get('NETLIFY'):
         media_candidate = '/tmp/media'
     else:
-        # Check for persistent volume mount path or standard cloud directories
-        volume_mount = os.environ.get('VOLUME_MOUNT_PATH') or os.environ.get('DATA_DIR')
-        if volume_mount and os.path.isdir(volume_mount):
-            media_candidate = os.path.join(volume_mount, 'media')
-        elif os.path.isdir('/app/media'):
-            media_candidate = '/app/media'
+        # Check project media folder
+        if (BASE_DIR / 'media').is_dir():
+            media_candidate = str(BASE_DIR / 'media')
         else:
-            media_candidate = os.path.join(BASE_DIR, 'media')
-MEDIA_ROOT = media_candidate
+            volume_mount = os.environ.get('VOLUME_MOUNT_PATH') or os.environ.get('DATA_DIR')
+            if volume_mount and os.path.isdir(volume_mount):
+                media_candidate = os.path.join(volume_mount, 'media')
+            elif os.path.isdir('/app/media'):
+                media_candidate = '/app/media'
+            else:
+                media_candidate = str(BASE_DIR / 'media')
+
+MEDIA_ROOT = str(media_candidate)
 # Uploads fail if the directory is missing; ignore read-only FS errors on Lambda boot
 try:
     os.makedirs(MEDIA_ROOT, exist_ok=True)

@@ -1538,8 +1538,9 @@ def document_version_download(request, pk, version_id):
         return redirect('document_detail', pk=pk)
 
     try:
-        file_path = version.file.path
-        if not os.path.exists(file_path):
+        from dms.media_service import resolve_media_path
+        file_path = resolve_media_path(version.file.name, auto_download=True)
+        if not file_path or not os.path.exists(file_path):
             messages.error(request, "⚠️ រកមិនឃើញ File ឯកសារក្នុង Server ឡើយ!")
             return redirect('document_detail', pk=pk)
 
@@ -1567,8 +1568,9 @@ def document_version_view(request, pk, version_id):
         return redirect('document_detail', pk=pk)
 
     try:
-        file_path = version.file.path
-        if not os.path.exists(file_path):
+        from dms.media_service import resolve_media_path
+        file_path = resolve_media_path(version.file.name, auto_download=True)
+        if not file_path or not os.path.exists(file_path):
             messages.error(request, "⚠️ រកមិនឃើញ File ឯកសារក្នុង Server ឡើយ!")
             return redirect('document_detail', pk=pk)
 
@@ -4476,7 +4478,12 @@ def officer_attachment_view(request, pk, attachment_id):
     if not is_admin_or_lead and (not dept or officer.department != dept) and officer.user != request.user:
         raise Http404("លោកអ្នកគ្មានសិទ្ធិមើលឯកសារយោងរបស់មន្ត្រីនេះឡើយ!")
     
-    if not att.file or not os.path.exists(att.file.path):
+    if not att.file:
+        raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
+
+    from dms.media_service import resolve_media_path
+    file_path = resolve_media_path(att.file.name, auto_download=True)
+    if not file_path or not os.path.exists(file_path):
         raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
 
     # Record view log
@@ -4490,7 +4497,6 @@ def officer_attachment_view(request, pk, attachment_id):
     )
 
     filename = os.path.basename(att.file.name)
-    file_path = att.file.path
     content_type, _ = mimetypes.guess_type(file_path)
 
     if not content_type:
@@ -4531,7 +4537,12 @@ def officer_attachment_download(request, pk, attachment_id):
     if not is_admin_or_lead and (not dept or officer.department != dept) and officer.user != request.user:
         raise Http404("លោកអ្នកគ្មានសិទ្ធិទាញយកឯកសារយោងរបស់មន្ត្រីនេះឡើយ!")
 
-    if not att.file or not os.path.exists(att.file.path):
+    if not att.file:
+        raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
+
+    from dms.media_service import resolve_media_path
+    file_path = resolve_media_path(att.file.name, auto_download=True)
+    if not file_path or not os.path.exists(file_path):
         raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
 
     log_officer_action(
@@ -4543,8 +4554,8 @@ def officer_attachment_download(request, pk, attachment_id):
         details=f"បានទាញយកឯកសារយោង៖ «{att.title}»"
     )
 
-    content_type, _ = mimetypes.guess_type(att.file.path)
-    response = FileResponse(open(att.file.path, 'rb'), content_type=content_type or 'application/octet-stream')
+    content_type, _ = mimetypes.guess_type(file_path)
+    response = FileResponse(open(file_path, 'rb'), content_type=content_type or 'application/octet-stream')
     response['Content-Disposition'] = f'attachment; filename="{os.path.basename(att.file.name)}"'
     return response
 
@@ -13035,8 +13046,9 @@ def contract_officer_attachment_view(request, pk, attachment_id):
             return redirect('contract_officer_list')
 
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
-    file_path = attachment.file.path
-    if not os.path.exists(file_path):
+    from dms.media_service import resolve_media_path
+    file_path = resolve_media_path(attachment.file.name, auto_download=True)
+    if not file_path or not os.path.exists(file_path):
         messages.error(request, "រកមិនឃើញឯកសារក្នុង Server ទេ!")
         return redirect('contract_officer_detail', pk=contract_officer.pk)
     content_type, _ = mimetypes.guess_type(file_path)
@@ -13060,8 +13072,9 @@ def contract_officer_attachment_download(request, pk, attachment_id):
             return redirect('contract_officer_list')
 
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
-    file_path = attachment.file.path
-    if not os.path.exists(file_path):
+    from dms.media_service import resolve_media_path
+    file_path = resolve_media_path(attachment.file.name, auto_download=True)
+    if not file_path or not os.path.exists(file_path):
         messages.error(request, "រកមិនឃើញឯកសារក្នុង Server ទេ!")
         return redirect('contract_officer_detail', pk=contract_officer.pk)
     return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=os.path.basename(file_path))

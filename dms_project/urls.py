@@ -27,11 +27,11 @@ urlpatterns = [
     path('', include('dms.urls')),
 ]
 
-from django.views.static import serve
 from django.urls import re_path
+from dms.media_service import smart_serve_media
 
 urlpatterns += [
-    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    re_path(r'^media/(?P<path>.*)$', smart_serve_media, name='serve_media'),
 ]
 
 if settings.DEBUG:

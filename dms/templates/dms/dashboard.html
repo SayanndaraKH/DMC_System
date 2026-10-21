@@ -219,7 +219,10 @@
                             <td class="px-3">
                                 <div class="d-flex align-items-center gap-2.5">
                                     {% if o.photo %}
-                                    <img src="{{ o.photo.url }}" alt="{{ o.khmer_last_name }}" class="rounded-circle object-fit-cover border shadow-2xs" style="width: 38px; height: 38px;">
+                                    <img src="{{ o.photo.url }}" alt="{{ o.khmer_last_name }}" class="rounded-circle object-fit-cover border shadow-2xs" style="width: 38px; height: 38px;" onerror="this.style.display='none'; if (this.nextElementSibling) { this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('d-flex'); }">
+                                    <div class="rounded-circle bg-success bg-opacity-15 text-success d-none align-items-center justify-content-center fw-bold fs-7 shadow-2xs" style="width: 38px; height: 38px;">
+                                        {{ o.khmer_first_name|slice:":1"|default:"ម" }}
+                                    </div>
                                     {% else %}
                                     <div class="rounded-circle bg-success bg-opacity-15 text-success d-flex align-items-center justify-content-center fw-bold fs-7 shadow-2xs" style="width: 38px; height: 38px;">
                                         {{ o.khmer_first_name|slice:":1"|default:"ម" }}

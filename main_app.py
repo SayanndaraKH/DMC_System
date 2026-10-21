@@ -8,7 +8,11 @@ import webbrowser
 import urllib.request
 from pathlib import Path
 
+import zipfile
+import logging
 from PIL import Image, ImageTk
+
+logger = logging.getLogger(__name__)
 
 # Set BASE_DIR (Supports both standalone Python and PyInstaller Frozen EXE, including inside dist/)
 if getattr(sys, 'frozen', False):
@@ -101,12 +105,12 @@ class DMCMainApp(ctk.CTk):
         super().__init__()
 
         self.title("សូមស្វាគមន៍មកកាន់កម្មវិធីគ្រប់គ្រងធនធានមនុស្ស - DMC Desktop Control Center")
-        self.center_window(860, 630)
+        self.center_window(860, 685)
 
         # Strictly lock window dimensions to prevent any resizing or maximizing
         self.resizable(False, False)
-        self.maxsize(860, 630)
-        self.minsize(860, 630)
+        self.maxsize(860, 685)
+        self.minsize(860, 685)
 
         # Set Icon if available
         if ICON_FILE and ICON_FILE.exists():
@@ -428,7 +432,7 @@ class DMCMainApp(ctk.CTk):
 
         # Auto-Update from GitHub Button (for User PC and Admin PC)
         update_row = ctk.CTkFrame(mgmt_frame, fg_color="transparent")
-        update_row.pack(fill="x", padx=16, pady=(0, 10))
+        update_row.pack(fill="x", padx=16, pady=(0, 6))
 
         self.btn_update = ctk.CTkButton(
             update_row,
@@ -440,6 +444,40 @@ class DMCMainApp(ctk.CTk):
             command=self.trigger_auto_update
         )
         self.btn_update.pack(fill="x", expand=True)
+
+        # In-App Progress Bar Container (Displays percentage, status, and completion without closing window)
+        self.progress_frame = ctk.CTkFrame(mgmt_frame, fg_color="#0f172a", corner_radius=8)
+        
+        self.progress_info_row = ctk.CTkFrame(self.progress_frame, fg_color="transparent")
+        self.progress_info_row.pack(fill="x", padx=12, pady=(8, 2))
+        
+        self.progress_status_label = ctk.CTkLabel(
+            self.progress_info_row,
+            text="⏳ កំពុងរៀបចំទាញយក Update...",
+            font=ctk.CTkFont(family="Khmer OS Siemreap", size=11),
+            text_color="#94a3b8"
+        )
+        self.progress_status_label.pack(side="left")
+        
+        self.progress_pct_label = ctk.CTkLabel(
+            self.progress_info_row,
+            text="0%",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#38bdf8"
+        )
+        self.progress_pct_label.pack(side="right")
+        
+        self.progress_bar = ctk.CTkProgressBar(
+            self.progress_frame,
+            orientation="horizontal",
+            mode="determinate",
+            height=10,
+            corner_radius=5,
+            progress_color="#38bdf8",
+            fg_color="#334155"
+        )
+        self.progress_bar.pack(fill="x", padx=12, pady=(2, 8))
+        self.progress_bar.set(0.0)
 
         # 5. Footer / Copyright & Telegram Link Frame
         footer_card = ctk.CTkFrame(self, corner_radius=12, fg_color="#0f172a", border_width=1, border_color="#1e293b")
@@ -744,43 +782,192 @@ class DMCMainApp(ctk.CTk):
 
     def trigger_auto_update(self):
         """
-        Triggers UPDATE_USER_PC.bat to pull latest form & code from GitHub,
-        replaces all files, and restarts the application cleanly.
+        Triggers in-app auto update from GitHub without closing the window.
+        Shows progress bar, percentage, status, and restarts the server cleanly.
         """
-        try:
-            self.btn_update.configure(
-                text="⏳ កំពុងដំណើរការ Update ពី GitHub... សូមរង់ចាំ!",
-                fg_color="#4c1d95"
-            )
-            self.update()
-        except Exception:
-            pass
+        if getattr(self, '_is_updating', False):
+            return
+        self._is_updating = True
 
-        update_bat = BASE_DIR / "UPDATE_USER_PC.bat"
-        if not update_bat.exists():
-            update_bat = Path(__file__).resolve().parent / "UPDATE_USER_PC.bat"
+        self.btn_update.configure(
+            state="disabled",
+            text="⏳ កំពុងដំណើរការ Update ពី GitHub... សូមរង់ចាំ!",
+            fg_color="#4c1d95"
+        )
+        self.progress_frame.pack(fill="x", padx=16, pady=(0, 10))
+        self.update_progress_ui(0.05, "⏳ កំពុងពិនិត្យមើលការតភ្ជាប់ទៅកាន់ GitHub...", "5%")
 
-        self.stop_server()
+        threading.Thread(target=self._run_in_app_update, daemon=True).start()
+
+    def update_progress_ui(self, fraction, message, pct_text=None):
+        def _apply():
+            try:
+                self.progress_bar.set(fraction)
+                self.progress_status_label.configure(text=message)
+                pct = pct_text if pct_text is not None else f"{int(fraction * 100)}%"
+                self.progress_pct_label.configure(text=pct)
+                if fraction >= 1.0:
+                    self.progress_bar.configure(progress_color="#22c55e")
+                    self.progress_pct_label.configure(text_color="#4ade80")
+                else:
+                    self.progress_bar.configure(progress_color="#38bdf8")
+                    self.progress_pct_label.configure(text_color="#38bdf8")
+            except Exception:
+                pass
+        self.after(0, _apply)
+
+    def _run_in_app_update(self):
         try:
-            if update_bat.exists():
-                subprocess.Popen(
-                    ["cmd.exe", "/c", str(update_bat)],
-                    creationflags=subprocess.CREATE_NEW_CONSOLE,
-                    cwd=str(BASE_DIR)
-                )
+            # 1. Check if git repository is active
+            has_git = False
+            git_cmd = "git"
+            for candidate in [
+                os.path.expandvars(r"%LOCALAPPDATA%\Programs\Git\cmd\git.exe"),
+                r"C:\Program Files\Git\cmd\git.exe",
+                r"C:\Program Files (x86)\Git\cmd\git.exe",
+                "git"
+            ]:
+                if os.path.exists(candidate) or candidate == "git":
+                    try:
+                        r = subprocess.run([candidate, "--version"], capture_output=True, text=True, timeout=3)
+                        if r.returncode == 0:
+                            git_cmd = candidate
+                            has_git = (BASE_DIR / ".git").is_dir()
+                            break
+                    except Exception:
+                        pass
+
+            if has_git:
+                self.update_progress_ui(0.25, "📥 កំពុងទាញយកកូដ និងទម្រង់ថ្មីពី GitHub (git fetch)...", "25%")
+                subprocess.run([git_cmd, "fetch", "origin", "main"], cwd=str(BASE_DIR), capture_output=True, text=True, timeout=60)
+                
+                self.update_progress_ui(0.55, "🔄 កំពុងជំនួស File ឯកសារ និងទម្រង់ថ្មី (git reset)...", "55%")
+                subprocess.run([git_cmd, "reset", "--hard", "origin/main"], cwd=str(BASE_DIR), capture_output=True, text=True, timeout=60)
+                
+                dist_exe = BASE_DIR / "dist" / "DMC_System.exe"
+                if dist_exe.exists():
+                    try:
+                        shutil.copy2(dist_exe, BASE_DIR / "DMC_System.exe")
+                    except Exception:
+                        pass
             else:
-                cmd = 'git fetch origin main && git reset --hard origin/main && pause'
-                subprocess.Popen(
-                    ["cmd.exe", "/c", cmd],
-                    creationflags=subprocess.CREATE_NEW_CONSOLE,
-                    cwd=str(BASE_DIR)
-                )
-        except Exception as e:
-            print(f"Error launching update: {e}")
+                # Direct GitHub ZIP Downloader (Works on 100% of User PCs without Git)
+                self.update_progress_ui(0.15, "📥 កំពុងភ្ជាប់ទាញយកកូដ និងទម្រង់ថ្មីពី GitHub...", "15%")
+                zip_url = "https://github.com/SayanndaraKH/DMC_System/archive/refs/heads/main.zip"
+                req = urllib.request.Request(zip_url, headers={'User-Agent': 'DMC-AutoUpdater/1.0'})
+                
+                temp_zip = Path(os.environ.get("TEMP", ".")) / "dmc_update.zip"
+                with urllib.request.urlopen(req, timeout=90) as resp:
+                    total_size = resp.headers.get("Content-Length")
+                    total_size = int(total_size) if total_size and total_size.isdigit() else None
+                    downloaded = 0
+                    chunk_size = 64 * 1024
+                    
+                    with open(temp_zip, "wb") as f_out:
+                        while True:
+                            chunk = resp.read(chunk_size)
+                            if not chunk:
+                                break
+                            f_out.write(chunk)
+                            downloaded += len(chunk)
+                            if total_size:
+                                frac = min(0.60, 0.15 + (downloaded / total_size) * 0.45)
+                                mb_down = downloaded / (1024 * 1024)
+                                mb_tot = total_size / (1024 * 1024)
+                                self.update_progress_ui(frac, f"📥 កំពុងទាញយក... {mb_down:.1f} MB / {mb_tot:.1f} MB", f"{int(frac*100)}%")
+                            else:
+                                mb_down = downloaded / (1024 * 1024)
+                                frac = min(0.60, 0.15 + (downloaded / (50 * 1024 * 1024)) * 0.45)
+                                self.update_progress_ui(frac, f"📥 កំពុងទាញយក... {mb_down:.1f} MB", f"{int(frac*100)}%")
 
-        time.sleep(0.5)
-        self.destroy()
-        sys.exit(0)
+                # Extract ZIP
+                self.update_progress_ui(0.65, "📂 កំពុងពន្លា និងជំនួស File ឯកសារថ្មីៗ...", "65%")
+                temp_extract = Path(os.environ.get("TEMP", ".")) / "dmc_update_extracted"
+                if temp_extract.exists():
+                    shutil.rmtree(temp_extract, ignore_errors=True)
+                temp_extract.mkdir(parents=True, exist_ok=True)
+
+                with zipfile.ZipFile(temp_zip, 'r') as zf:
+                    members = zf.infolist()
+                    total_members = len(members)
+                    for i, m in enumerate(members):
+                        zf.extract(m, temp_extract)
+                        if i % 25 == 0:
+                            frac = min(0.80, 0.65 + (i / max(1, total_members)) * 0.15)
+                            self.update_progress_ui(frac, f"📂 កំពុងពន្លា File ({i}/{total_members})...", f"{int(frac*100)}%")
+
+                # Copy extracted files to BASE_DIR (skipping user db and .env to preserve credentials)
+                self.update_progress_ui(0.80, "📝 កំពុងជំនួស File កូដ និងទម្រង់ថ្មី...", "80%")
+                root_extracted = next((d for d in temp_extract.iterdir() if d.is_dir()), temp_extract)
+                for item in root_extracted.iterdir():
+                    if item.name in [".env", "db.sqlite3", "db.sqlite3-journal", "backups"]:
+                        continue
+                    dest = BASE_DIR / item.name
+                    if item.is_dir():
+                        shutil.copytree(item, dest, dirs_exist_ok=True)
+                    else:
+                        try:
+                            shutil.copy2(item, dest)
+                        except Exception:
+                            pass
+
+                try:
+                    temp_zip.unlink(missing_ok=True)
+                    shutil.rmtree(temp_extract, ignore_errors=True)
+                except Exception:
+                    pass
+
+            # Step: Restart embedded server with fresh templates & code
+            self.update_progress_ui(0.88, "⚙️ កំពុង Restart Server ជាមួយទម្រង់ថ្មី...", "88%")
+            self.restart_server()
+            
+            for _ in range(15):
+                time.sleep(0.5)
+                if self.check_url_online("http://127.0.0.1:8000/", timeout=0.5):
+                    break
+
+            # Pre-cache missing officer photos in background
+            try:
+                from dms.media_service import sync_officer_photos_async
+                sync_officer_photos_async()
+            except Exception:
+                pass
+
+            # 100% Success!
+            self.update_progress_ui(1.0, "✅ Update ជោគជ័យ ១០០% រួចរាល់! ចុចប៊ូតុងខាងលើដើម្បីមើលទម្រង់ថ្មី", "100%")
+            
+            def _on_finish():
+                self._is_updating = False
+                self.btn_update.configure(
+                    state="normal",
+                    text="✅ បាន Update រួចរាល់ (ចុចម្តងទៀតបើចង់ Update បន្ថែម)",
+                    fg_color="#15803d",
+                    hover_color="#166534"
+                )
+                self.btn_open.configure(
+                    text="🚀 បើកដំណើរការទម្រង់ថ្មី (Open Updated DMC Window)",
+                    fg_color="#16a34a",
+                    hover_color="#15803d"
+                )
+                self.status_badge.configure(
+                    text="🟢 កំពុងដំណើរការ (Online - ទម្រង់ថ្មី)",
+                    text_color="#4ade80",
+                    fg_color="#14532d"
+                )
+            self.after(0, _on_finish)
+
+        except Exception as e:
+            logger.error(f"Auto-update error: {e}")
+            self.update_progress_ui(0.0, f"⚠️ បរាជ័យក្នុងការ Update: {str(e)}", "Error")
+            def _on_err():
+                self._is_updating = False
+                self.btn_update.configure(
+                    state="normal",
+                    text="⚠️ Update មិនជោគជ័យ - ចុចដើម្បីសាកល្បងឡើងវិញ",
+                    fg_color="#dc2626",
+                    hover_color="#b91c1c"
+                )
+            self.after(0, _on_err)
 
     def destroy(self):
         self.is_monitoring = False

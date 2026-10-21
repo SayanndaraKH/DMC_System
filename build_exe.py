@@ -57,6 +57,7 @@ pyinstaller_args = [
     "--hidden-import", "dms.apps",
     "--hidden-import", "dms.models",
     "--hidden-import", "dms.views",
+    "--hidden-import", "dms.media_service",
     "--hidden-import", "dms.context_processors",
     "--hidden-import", "dms.urls",
     "--hidden-import", "dms_project.urls",
