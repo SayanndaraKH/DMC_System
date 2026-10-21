@@ -8,6 +8,8 @@ import webbrowser
 import urllib.request
 from pathlib import Path
 
+import json
+import shutil
 import zipfile
 import logging
 from PIL import Image, ImageTk
@@ -102,6 +104,78 @@ for old_name in ["DMC_System.exe.old", "DMC_System_Client.exe.old"]:
                 pass
 
 
+def get_local_version_data():
+    """Reads local version info from current_version.json or git."""
+    version_file = BASE_DIR / "current_version.json"
+    if version_file.exists():
+        try:
+            with open(version_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    if (BASE_DIR / ".git").is_dir():
+        try:
+            r = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(BASE_DIR), capture_output=True, text=True, timeout=2)
+            if r.returncode == 0:
+                return {"sha": r.stdout.strip(), "timestamp": "", "message": ""}
+        except Exception:
+            pass
+    return {"sha": "", "timestamp": "", "message": ""}
+
+
+def save_local_version_data(sha, message="", timestamp=""):
+    """Saves local version info to current_version.json."""
+    try:
+        data = {
+            "sha": sha,
+            "message": message,
+            "timestamp": timestamp or time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        with open(BASE_DIR / "current_version.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        if (BASE_DIR / "dist").is_dir():
+            with open(BASE_DIR / "dist" / "current_version.json", "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def check_github_update_status():
+    """
+    Checks GitHub API commits/main to see if PUSH_TO_GITHUB has pushed a new commit.
+    Returns dict: has_update, remote_sha, commit_msg, commit_date, error.
+    """
+    try:
+        req = urllib.request.Request(
+            'https://api.github.com/repos/SayanndaraKH/DMC_System/commits/main',
+            headers={'User-Agent': 'DMC-UpdateChecker/1.0'}
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            remote_sha = data.get('sha', '').strip()
+            commit_msg = data.get('commit', {}).get('message', '').strip().split('\n')[0]
+            commit_date = data.get('commit', {}).get('committer', {}).get('date', '')
+            local_data = get_local_version_data()
+            local_sha = local_data.get('sha', '').strip()
+
+            has_update = bool(remote_sha and (remote_sha != local_sha))
+            return {
+                'has_update': has_update,
+                'remote_sha': remote_sha,
+                'commit_msg': commit_msg,
+                'commit_date': commit_date,
+                'error': None
+            }
+    except Exception as e:
+        return {
+            'has_update': False,
+            'remote_sha': '',
+            'commit_msg': '',
+            'commit_date': '',
+            'error': str(e)
+        }
+
+
 def free_port_8000():
     if sys.platform == "win32":
         try:
@@ -178,9 +252,16 @@ class DMCMainApp(ctk.CTk):
         # State flags
         self.has_auto_launched = False
         self.is_monitoring = True
+        self._has_new_update = False
+        self._remote_sha = None
+        self._remote_msg = None
+        self._is_updating = False
 
         # UI Components
         self.create_widgets()
+
+        # Start live background GitHub update checker
+        threading.Thread(target=self._start_update_polling, daemon=True).start()
 
         # Background server auto-start & auto-launch Form 2
         threading.Thread(target=self.auto_start_and_launch_form2, daemon=True).start()
@@ -337,22 +418,24 @@ class DMCMainApp(ctk.CTk):
         )
         sub_lbl.pack(anchor="w")
 
-        # 2. Status & Network Overview Card
-        status_card = ctk.CTkFrame(self, corner_radius=12, fg_color="#0f172a")
-        status_card.pack(fill="x", padx=20, pady=6)
+        # 2. Status & Network Overview: 3-Column Layout (រៀបចំជា ៣ ជួរឈរ)
+        status_card = ctk.CTkFrame(self, fg_color="transparent")
+        status_card.pack(fill="x", padx=20, pady=(4, 6))
+        status_card.grid_columnconfigure((0, 1, 2), weight=1, uniform="status_col")
 
-        # Row 1: Server Status
-        row1 = ctk.CTkFrame(status_card, fg_color="transparent")
-        row1.pack(fill="x", padx=16, pady=6)
+        # Column 1: Server Status
+        col1 = ctk.CTkFrame(status_card, corner_radius=12, fg_color="#0f172a", border_width=1, border_color="#1e293b")
+        col1.grid(row=0, column=0, sticky="nsew", padx=(0, 5), pady=0)
 
         ctk.CTkLabel(
-            row1,
-            text="ស្ថានភាពប្រព័ន្ធ (Server Status):",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=13, weight="bold")
-        ).pack(side="left")
+            col1,
+            text="⚡ ស្ថានភាពប្រព័ន្ធ (Server)",
+            font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
+            text_color="#94a3b8"
+        ).pack(anchor="center", pady=(10, 4))
 
         self.status_badge = ctk.CTkLabel(
-            row1,
+            col1,
             text="⏳ កំពុងដំណើរការ...",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color="#94a3b8",
@@ -361,20 +444,21 @@ class DMCMainApp(ctk.CTk):
             padx=12,
             pady=4
         )
-        self.status_badge.pack(side="right")
+        self.status_badge.pack(anchor="center", pady=(0, 10))
 
-        # Row 2: Database Mode
-        row2 = ctk.CTkFrame(status_card, fg_color="transparent")
-        row2.pack(fill="x", padx=16, pady=6)
+        # Column 2: Database Mode
+        col2 = ctk.CTkFrame(status_card, corner_radius=12, fg_color="#0f172a", border_width=1, border_color="#1e293b")
+        col2.grid(row=0, column=1, sticky="nsew", padx=3, pady=0)
 
         ctk.CTkLabel(
-            row2,
-            text="មូលទិន្នន័យ (Database Connected):",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=13, weight="bold")
-        ).pack(side="left")
+            col2,
+            text="🗄️ មូលទិន្នន័យ (Database)",
+            font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
+            text_color="#94a3b8"
+        ).pack(anchor="center", pady=(10, 4))
 
         self.db_badge = ctk.CTkLabel(
-            row2,
+            col2,
             text="🟢 បានភ្ជាប់ជោគជ័យ (Connected)",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color="#4ade80",
@@ -383,21 +467,22 @@ class DMCMainApp(ctk.CTk):
             padx=12,
             pady=4
         )
-        self.db_badge.pack(side="right")
+        self.db_badge.pack(anchor="center", pady=(0, 10))
 
-        # Row 3: Application Mode
-        row3 = ctk.CTkFrame(status_card, fg_color="transparent")
-        row3.pack(fill="x", padx=16, pady=(6, 12))
+        # Column 3: Application Mode
+        col3 = ctk.CTkFrame(status_card, corner_radius=12, fg_color="#0f172a", border_width=1, border_color="#1e293b")
+        col3.grid(row=0, column=2, sticky="nsew", padx=(5, 0), pady=0)
 
         ctk.CTkLabel(
-            row3,
-            text="ទម្រង់ដំណើរការ (Application Mode):",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=13, weight="bold")
-        ).pack(side="left")
+            col3,
+            text="💻 ទម្រង់ដំណើរការ (Mode)",
+            font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
+            text_color="#94a3b8"
+        ).pack(anchor="center", pady=(10, 4))
 
         self.mode_badge = ctk.CTkLabel(
-            row3,
-            text="💻 Windows Desktop Application",
+            col3,
+            text="💻 Desktop Application",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color="#a7f3d0",
             fg_color="#064e3b",
@@ -405,7 +490,7 @@ class DMCMainApp(ctk.CTk):
             padx=12,
             pady=4
         )
-        self.mode_badge.pack(side="right")
+        self.mode_badge.pack(anchor="center", pady=(0, 10))
 
         # 3. Primary Hero Launch Action Button (Form 2)
         launch_frame = ctk.CTkFrame(self, corner_radius=12, fg_color="transparent")
@@ -472,20 +557,28 @@ class DMCMainApp(ctk.CTk):
         )
         btn_stop.pack(side="right", fill="x", expand=True, padx=(4, 0))
 
-        # Auto-Update from GitHub Button (for User PC and Admin PC)
+        # Auto-Update from GitHub Button (with smart update indicator)
         update_row = ctk.CTkFrame(mgmt_frame, fg_color="transparent")
         update_row.pack(fill="x", padx=16, pady=(0, 6))
 
         self.btn_update = ctk.CTkButton(
             update_row,
-            text="🔄 ទាញយក Update ពី GitHub (Auto-Update User PC)",
+            text="🔍 កំពុងពិនិត្យមើលកំណែថ្មី...",
             font=ctk.CTkFont(family="Khmer OS Siemreap", size=13, weight="bold"),
-            fg_color="#7c3aed",
-            hover_color="#6d28d9",
-            height=36,
-            command=self.trigger_auto_update
+            fg_color="#334155",
+            hover_color="#475569",
+            height=38,
+            command=self.handle_update_click
         )
         self.btn_update.pack(fill="x", expand=True)
+
+        self.update_notice_label = ctk.CTkLabel(
+            update_row,
+            text="",
+            font=ctk.CTkFont(family="Khmer OS Siemreap", size=11),
+            text_color="#94a3b8"
+        )
+        self.update_notice_label.pack(anchor="center", pady=(3, 0))
 
         # In-App Progress Bar Container (Displays percentage, status, and completion without closing window)
         self.progress_frame = ctk.CTkFrame(mgmt_frame, fg_color="#0f172a", corner_radius=8)
@@ -822,6 +915,78 @@ class DMCMainApp(ctk.CTk):
         free_port_8000()
         self.status_badge.configure(text="🔴 មិនទាន់ដំណើរការ (Offline)", text_color="#f87171", fg_color="#7f1d1d")
 
+    def _start_update_polling(self):
+        # Initial check
+        time.sleep(2)
+        self._check_and_update_button_state()
+        while not getattr(self, '_stop_polling', False):
+            time.sleep(30)
+            if not getattr(self, '_is_updating', False):
+                self._check_and_update_button_state()
+
+    def _check_and_update_button_state(self):
+        res = check_github_update_status()
+        self._has_new_update = res['has_update']
+        self._remote_sha = res['remote_sha']
+        self._remote_msg = res['commit_msg']
+
+        def _apply():
+            if getattr(self, '_is_updating', False):
+                return
+            if res['has_update']:
+                self.btn_update.configure(
+                    state="normal",
+                    text="✨ មានកំណែទម្រង់ថ្មី! (ចុចដើម្បី Update ពី GitHub)",
+                    fg_color="#7c3aed",
+                    hover_color="#6d28d9",
+                    text_color="#ffffff"
+                )
+                short_msg = res['commit_msg'][:50] if res['commit_msg'] else 'កំណែទម្រង់ថ្មី'
+                self.update_notice_label.configure(
+                    text=f"🔔 មានកំណែថ្មីពី PUSH_TO_GITHUB៖ «{short_msg}»",
+                    text_color="#c084fc"
+                )
+            elif res['error']:
+                self.btn_update.configure(
+                    state="normal",
+                    text="🔄 ពិនិត្យមើល Update ពី GitHub",
+                    fg_color="#334155",
+                    hover_color="#475569",
+                    text_color="#94a3b8"
+                )
+                self.update_notice_label.configure(
+                    text="ℹ️ មិនទាន់អាចភ្ជាប់ GitHub បាន (Offline)",
+                    text_color="#64748b"
+                )
+            else:
+                self.btn_update.configure(
+                    state="normal",
+                    text="✅ កំណែចុងក្រោយបំផុត (Up-to-Date)",
+                    fg_color="#1e293b",
+                    hover_color="#334155",
+                    text_color="#94a3b8"
+                )
+                self.update_notice_label.configure(
+                    text="ℹ️ ប្រព័ន្ធរបស់អ្នកជាកំណែចុងក្រោយបំផុត មិនទាន់មានកំណែថ្មីពី PUSH_TO_GITHUB ឡើយ",
+                    text_color="#64748b"
+                )
+        self.after(0, _apply)
+
+    def handle_update_click(self):
+        if getattr(self, '_is_updating', False):
+            return
+
+        if getattr(self, '_has_new_update', False):
+            self.trigger_auto_update()
+        else:
+            self.btn_update.configure(
+                text="🔍 កំពុងពិនិត្យលើ GitHub...",
+                state="disabled"
+            )
+            def _check():
+                self._check_and_update_button_state()
+            threading.Thread(target=_check, daemon=True).start()
+
     def trigger_auto_update(self):
         """
         Triggers in-app auto update from GitHub without closing the window.
@@ -974,6 +1139,15 @@ class DMCMainApp(ctk.CTk):
             except Exception:
                 pass
 
+            # Save new version info locally
+            if getattr(self, '_remote_sha', None):
+                save_local_version_data(self._remote_sha, getattr(self, '_remote_msg', ''))
+            else:
+                chk = check_github_update_status()
+                if chk.get('remote_sha'):
+                    save_local_version_data(chk['remote_sha'], chk.get('commit_msg', ''))
+            self._has_new_update = False
+
             # 100% Success!
             self.update_progress_ui(1.0, "✅ Update ជោគជ័យ ១០០% រួចរាល់! ចុចប៊ូតុងខាងលើដើម្បីមើលទម្រង់ថ្មី", "100%")
             
@@ -981,9 +1155,14 @@ class DMCMainApp(ctk.CTk):
                 self._is_updating = False
                 self.btn_update.configure(
                     state="normal",
-                    text="✅ បាន Update រួចរាល់ (ចុចម្តងទៀតបើចង់ Update បន្ថែម)",
-                    fg_color="#15803d",
-                    hover_color="#166534"
+                    text="✅ កំណែចុងក្រោយបំផុត (Up-to-Date)",
+                    fg_color="#1e293b",
+                    hover_color="#334155",
+                    text_color="#94a3b8"
+                )
+                self.update_notice_label.configure(
+                    text="✅ បាន Update ជោគជ័យ ១០០%! កំពុងដំណើរការលើកំណែចុងក្រោយបង្អស់",
+                    text_color="#4ade80"
                 )
                 self.btn_open.configure(
                     text="🚀 បើកដំណើរការទម្រង់ថ្មី (Open Updated DMC Window)",

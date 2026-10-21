@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -75,14 +76,28 @@ def main():
 
     # Step 3: Add and Commit automatically
     print("\n[3/4] កំពុងបន្ថែម File និង Commit ដោយស្វ័យប្រវត្ត...")
-    subprocess.run([git_bin, "add", "-A"], check=True)
-
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     custom_args = [a for a in sys.argv[1:] if not a.startswith("--")]
     if custom_args and custom_args[0].strip():
         commit_msg = custom_args[0].strip()
     else:
         commit_msg = f"Auto Update DMC System: {timestamp}"
+
+    # Write version info file so client PCs immediately know the update version
+    try:
+        version_data = {
+            "timestamp": timestamp,
+            "message": commit_msg
+        }
+        with open(BASE_DIR / "current_version.json", "w", encoding="utf-8") as vf:
+            json.dump(version_data, vf, indent=2, ensure_ascii=False)
+        if (BASE_DIR / "dist").is_dir():
+            with open(BASE_DIR / "dist" / "current_version.json", "w", encoding="utf-8") as vf:
+                json.dump(version_data, vf, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+    subprocess.run([git_bin, "add", "-A"], check=True)
 
     # Commit only if there are staged changes
     diff_res = subprocess.run([git_bin, "diff", "--cached", "--quiet"])
@@ -100,13 +115,29 @@ def main():
     push_res = subprocess.run([git_bin, "push", "-u", "origin", "main"], capture_output=True, text=True)
 
     if push_res.returncode == 0:
+        # Update current_version.json with the exact pushed commit SHA
+        try:
+            head_sha = subprocess.run([git_bin, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+            version_data = {
+                "sha": head_sha,
+                "timestamp": timestamp,
+                "message": commit_msg
+            }
+            with open(BASE_DIR / "current_version.json", "w", encoding="utf-8") as vf:
+                json.dump(version_data, vf, indent=2, ensure_ascii=False)
+            if (BASE_DIR / "dist").is_dir():
+                with open(BASE_DIR / "dist" / "current_version.json", "w", encoding="utf-8") as vf:
+                    json.dump(version_data, vf, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
         print()
         print("=" * 72)
         print("  ✅ [ជោគជ័យ ១០០%] ទិន្នន័យ កូដថ្មី និង File Media ត្រូវបានបញ្ជូនទៅ GitHub រួចរាល់!")
         print()
         print("  📌 នៅលើ User PC:")
-        print("     គ្រាន់តែចុចលើ «UPDATE_USER_PC.bat» (ឬចុចប៊ូតុង Auto Update ក្នុងកម្មវិធី)")
-        print("     នោះទម្រង់ថ្មី រូបភាព និងឯកសារយោងនឹងត្រូវបានទាញយក និងជំនួសភ្លាមៗតែម្តង!")
+        print("     ប៊ូតុង Update ក្នុង Form នឹងបង្ហាញភ្លាមៗថា៖ «✨ មានកំណែទម្រង់ថ្មី! ចុចដើម្បី Update»")
+        print("     ពេល User ចុចលើវា នោះប្រព័ន្ធនឹងទាញយកកូដ និងទម្រង់ថ្មីនេះមកជំនួសស្វ័យប្រវត្ត!")
         print("=" * 72)
     else:
         print()
