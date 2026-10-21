@@ -45,19 +45,34 @@
         }
 
         /**
-         * Initialize worker if not set
+         * Initialize worker if not set, with multi-level fallback
          */
-        _ensureWorker() {
-            if (typeof pdfjsLib !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/dms/vendor/pdf.worker.min.js';
+        async _ensureWorker() {
+            if (typeof pdfjsLib === 'undefined') return;
+            if (pdfjsLib.GlobalWorkerOptions.workerSrc) return;
+
+            // Strategy 1: Attempt to load local worker via Blob URL (bypasses any origin/IP/port worker security restrictions)
+            try {
+                const localWorkerUrl = window.location.origin + '/static/dms/vendor/pdf.worker.min.js';
+                const resp = await fetch(localWorkerUrl);
+                if (resp.ok) {
+                    const blob = await resp.blob();
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
+                    return;
+                }
+            } catch (e) {
+                console.warn("Could not prefetch worker as Blob:", e);
             }
+
+            // Strategy 2: Relative local URL
+            pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/dms/vendor/pdf.worker.min.js';
         }
 
         /**
          * Load PDF from URL or ArrayBuffer or File
          */
         async load(source, title = 'document.pdf', officerId = null) {
-            this._ensureWorker();
+            await this._ensureWorker();
             this.currentTitle = title;
             if (officerId) this.officerId = officerId;
             this.selectedPages.clear();
@@ -87,8 +102,31 @@
                     throw new Error('Unsupported source format');
                 }
 
-                const loadingTask = pdfjsLib.getDocument({ data: this.rawArrayBuffer.slice(0) });
-                this.pdfDoc = await loadingTask.promise;
+                // Resilient PDF document loading with automatic fallback
+                let loadingTask;
+                try {
+                    loadingTask = pdfjsLib.getDocument({
+                        data: this.rawArrayBuffer.slice(0),
+                        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+                        cMapPacked: true,
+                    });
+                    this.pdfDoc = await loadingTask.promise;
+                } catch (firstErr) {
+                    console.warn("Primary PDF loading failed, attempting CDN fallback worker:", firstErr);
+                    try {
+                        if (typeof pdfjsLib !== 'undefined') {
+                            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                        }
+                        loadingTask = pdfjsLib.getDocument({
+                            data: this.rawArrayBuffer.slice(0),
+                        });
+                        this.pdfDoc = await loadingTask.promise;
+                    } catch (secondErr) {
+                        console.error("Fallback PDF loading failed:", secondErr);
+                        throw secondErr;
+                    }
+                }
+
                 this.numPages = this.pdfDoc.numPages;
 
                 this.renderGrid();

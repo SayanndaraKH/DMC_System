@@ -4509,6 +4509,17 @@ def officer_attachment_view(request, pk, attachment_id):
     from dms.media_service import resolve_media_path
     file_path = resolve_media_path(att.file.name, auto_download=True)
 
+    is_word_doc = filename.lower().endswith(('.docx', '.doc'))
+    if is_word_doc:
+        from dms.docx_service import get_or_convert_docx_to_pdf
+        pdf_path = get_or_convert_docx_to_pdf(file_path, sync_to_cloud=True) if file_path else None
+        if pdf_path and os.path.exists(pdf_path):
+            file_path = pdf_path
+            content_type = 'application/pdf'
+            filename = os.path.splitext(filename)[0] + '.pdf'
+        else:
+            content_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
     if file_path and os.path.exists(file_path):
         response = FileResponse(open(file_path, 'rb'), content_type=content_type)
     else:
@@ -4517,7 +4528,21 @@ def officer_attachment_view(request, pk, attachment_id):
         import io
         clean_rel = str(att.file.name).replace('\\', '/').lstrip('/')
         fname = os.path.basename(clean_rel)
-        record = CloudMediaStorage.objects.filter(file_path=clean_rel).first()
+
+        # Check if pre-converted PDF exists in CloudMediaStorage
+        record = None
+        if is_word_doc:
+            pdf_rel = os.path.splitext(clean_rel)[0] + '.docx.pdf'
+            record = CloudMediaStorage.objects.filter(file_path=pdf_rel).first()
+            if not record:
+                pdf_fname = os.path.splitext(fname)[0] + '.docx.pdf'
+                record = CloudMediaStorage.objects.filter(file_name=pdf_fname).first()
+            if record and record.file_data:
+                content_type = 'application/pdf'
+                filename = os.path.splitext(filename)[0] + '.pdf'
+
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path=clean_rel).first()
         if not record:
             record = CloudMediaStorage.objects.filter(file_path__iexact=clean_rel).first()
         if not record:
@@ -4595,6 +4620,33 @@ def officer_attachment_download(request, pk, attachment_id):
     response['Access-Control-Allow-Origin'] = '*'
     response['Accept-Ranges'] = 'bytes'
     return response
+
+
+@login_required
+def officer_attachment_open_word(request, pk, attachment_id):
+    """
+    Directly launches the attachment in Microsoft Word on Windows desktop.
+    """
+    officer = get_object_or_404(CivilServantProfile, pk=pk)
+    att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
+
+    if not att.file:
+        return JsonResponse({'status': 'error', 'message': 'រកមិនឃើញ File ឯកសារឡើយ!'}, status=404)
+
+    from dms.media_service import resolve_media_path
+    file_path = resolve_media_path(att.file.name, auto_download=True)
+
+    if not file_path or not os.path.exists(file_path):
+        return JsonResponse({'status': 'error', 'message': 'File មិនទាន់មានក្នុង Disk ឡើយ!'}, status=404)
+
+    try:
+        if sys.platform == 'win32':
+            os.startfile(file_path)
+            return JsonResponse({'status': 'ok', 'message': f'បានបើកឯកសារ «{att.title}» ក្នុងកម្មវិធី Microsoft Word រួចរាល់!'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'មុខងារនេះគាំទ្រតែលើ Windows ប៉ុណ្ណោះ'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'កំហុសក្នុងការបើក Word: {str(e)}'}, status=500)
 
 
 @login_required
@@ -13096,6 +13148,17 @@ def contract_officer_attachment_view(request, pk, attachment_id):
     from dms.media_service import resolve_media_path
     file_path = resolve_media_path(attachment.file.name, auto_download=True)
 
+    is_word_doc = filename.lower().endswith(('.docx', '.doc'))
+    if is_word_doc:
+        from dms.docx_service import get_or_convert_docx_to_pdf
+        pdf_path = get_or_convert_docx_to_pdf(file_path, sync_to_cloud=True) if file_path else None
+        if pdf_path and os.path.exists(pdf_path):
+            file_path = pdf_path
+            content_type = 'application/pdf'
+            filename = os.path.splitext(filename)[0] + '.pdf'
+        else:
+            content_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
     if file_path and os.path.exists(file_path):
         response = FileResponse(open(file_path, 'rb'), content_type=content_type)
     else:
@@ -13104,7 +13167,20 @@ def contract_officer_attachment_view(request, pk, attachment_id):
         import io
         clean_rel = str(attachment.file.name).replace('\\', '/').lstrip('/')
         fname = os.path.basename(clean_rel)
-        record = CloudMediaStorage.objects.filter(file_path=clean_rel).first()
+
+        record = None
+        if is_word_doc:
+            pdf_rel = os.path.splitext(clean_rel)[0] + '.docx.pdf'
+            record = CloudMediaStorage.objects.filter(file_path=pdf_rel).first()
+            if not record:
+                pdf_fname = os.path.splitext(fname)[0] + '.docx.pdf'
+                record = CloudMediaStorage.objects.filter(file_name=pdf_fname).first()
+            if record and record.file_data:
+                content_type = 'application/pdf'
+                filename = os.path.splitext(filename)[0] + '.pdf'
+
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path=clean_rel).first()
         if not record:
             record = CloudMediaStorage.objects.filter(file_path__iexact=clean_rel).first()
         if not record:
@@ -13173,6 +13249,33 @@ def contract_officer_attachment_download(request, pk, attachment_id):
     response['Access-Control-Allow-Origin'] = '*'
     response['Accept-Ranges'] = 'bytes'
     return response
+
+
+@login_required
+def contract_officer_attachment_open_word(request, pk, attachment_id):
+    """
+    Directly opens the contract officer attachment in desktop Microsoft Word on Windows.
+    """
+    contract_officer = get_object_or_404(ContractOfficer, pk=pk)
+    attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
+
+    if not attachment.file:
+        return JsonResponse({'status': 'error', 'message': 'រកមិនឃើញ File ឯកសារឡើយ!'}, status=404)
+
+    from dms.media_service import resolve_media_path
+    file_path = resolve_media_path(attachment.file.name, auto_download=True)
+
+    if not file_path or not os.path.exists(file_path):
+        return JsonResponse({'status': 'error', 'message': 'File មិនទាន់មានក្នុង Disk ឡើយ!'}, status=404)
+
+    try:
+        if sys.platform == 'win32':
+            os.startfile(file_path)
+            return JsonResponse({'status': 'ok', 'message': f'បានបើកឯកសារ «{attachment.title}» ក្នុងកម្មវិធី Microsoft Word រួចរាល់!'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'មុខងារនេះគាំទ្រតែលើ Windows ប៉ុណ្ណោះ'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'កំហុសក្នុងការបើក Word: {str(e)}'}, status=500)
 
 
 @login_required

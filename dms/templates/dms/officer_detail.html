@@ -1207,6 +1207,9 @@
                     <a id="previewNewTabBtn" href="#" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3">
                         <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> បើកផ្ទាំងថ្មី
                     </a>
+                    <button type="button" class="btn btn-sm btn-info text-white rounded-pill px-3 fw-bold shadow-xs d-none" id="previewOpenWordBtn" onclick="openActiveDocInWord()" title="បើកផ្ទាល់ក្នុងកម្មវិធី Microsoft Word លើកុំព្យូទ័រ">
+                        <i class="fa-solid fa-file-word me-1"></i> បើកក្នុង Microsoft Word
+                    </button>
                     <a id="previewDownloadBtn" href="#" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-xs">
                         <i class="fa-solid fa-download me-1"></i> ទាញយក (Download)
                     </a>
@@ -1297,6 +1300,8 @@
 <script src="{% static 'dms/vendor/pdf.min.js' %}"></script>
 <script src="{% static 'dms/vendor/pdf-lib.min.js' %}"></script>
 <script src="{% static 'dms/js/pdf_page_viewer.js' %}"></script>
+<script src="{% static 'dms/vendor/jszip.min.js' %}"></script>
+<script src="{% static 'dms/vendor/docx-preview.min.js' %}"></script>
 <script src="{% static 'dms/vendor/mammoth.browser.min.js' %}"></script>
 <script>
 if (typeof pdfjsLib !== 'undefined') {
@@ -1438,6 +1443,47 @@ function toggleIframeViewer() {
     }
 }
 
+let currentOpenWordUrl = null;
+
+async function openActiveDocInWord(customUrl = null) {
+    const url = customUrl || currentOpenWordUrl;
+    if (!url) return;
+    const btn = document.getElementById('previewOpenWordBtn');
+    const oldHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> កំពុងបើក...';
+        btn.disabled = true;
+    }
+
+    try {
+        const res = await fetch(url, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'បានបើកក្នុង Microsoft Word',
+                    text: data.message || 'ឯកសារកំពុងបើកក្នុងកម្មវិធី Microsoft Word លើកុំព្យូទ័រ!',
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            } else {
+                alert(data.message || 'បានបើកក្នុង Microsoft Word រួចរាល់!');
+            }
+        } else {
+            alert(data.message || 'មិនអាចបើកក្នុង Word បានទេ');
+        }
+    } catch (e) {
+        console.error("Open Word error:", e);
+        alert("កំហុសក្នុងការបើក Word: " + e.message);
+    } finally {
+        if (btn) {
+            btn.innerHTML = oldHtml;
+            btn.disabled = false;
+        }
+    }
+}
+
 async function previewOfficerAttachment(viewUrl, title, ext, attId = null) {
     currentActiveViewUrl = viewUrl;
     currentPdfTitle = title || 'document.pdf';
@@ -1455,6 +1501,22 @@ async function previewOfficerAttachment(viewUrl, title, ext, attId = null) {
     if (unsuppNewTab) unsuppNewTab.href = viewUrl;
     const unsuppTitle = document.getElementById('unsupportedDocTitle');
     if (unsuppTitle) unsuppTitle.innerText = title;
+
+    const fileExt = (ext || '').toLowerCase();
+    const isImage = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].some(e => fileExt.endsWith(e) || viewUrl.toLowerCase().includes(e));
+    const isDocx = fileExt.endsWith('.docx') || fileExt.endsWith('.doc') || viewUrl.toLowerCase().includes('.docx') || viewUrl.toLowerCase().includes('.doc');
+    const isPdf = fileExt.endsWith('.pdf') || viewUrl.toLowerCase().includes('.pdf') || fileExt === 'pdf' || (!isImage && !isDocx && !fileExt.includes('.xls'));
+
+    const openWordBtn = document.getElementById('previewOpenWordBtn');
+    if (openWordBtn) {
+        if (isDocx) {
+            currentOpenWordUrl = viewUrl.replace('/view/', '/open-word/');
+            openWordBtn.classList.remove('d-none');
+        } else {
+            currentOpenWordUrl = null;
+            openWordBtn.classList.add('d-none');
+        }
+    }
 
     const loader = document.getElementById('previewLoader');
     const pdfControls = document.getElementById('pdfControls');
@@ -1505,12 +1567,7 @@ async function previewOfficerAttachment(viewUrl, title, ext, attId = null) {
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
 
-    const fileExt = (ext || '').toLowerCase();
-    const isImage = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].some(e => fileExt.endsWith(e) || viewUrl.toLowerCase().includes(e));
-    const isDocx = fileExt.endsWith('.docx') || viewUrl.toLowerCase().includes('.docx');
-    const isPdf = fileExt.endsWith('.pdf') || viewUrl.toLowerCase().includes('.pdf') || fileExt === 'pdf' || (!isImage && !isDocx && !fileExt.includes('.doc') && !fileExt.includes('.xls'));
-
-    if (isPdf) {
+    if (isPdf || isDocx) {
         if (modalToggleBtn) modalToggleBtn.classList.remove('d-none');
         if (modalToolBtn) {
             modalToolBtn.classList.remove('d-none');
@@ -1528,27 +1585,10 @@ async function previewOfficerAttachment(viewUrl, title, ext, attId = null) {
             loader.classList.add('d-none');
             unsupported.classList.remove('d-none');
         };
-    } else if (isDocx && docxContainer) {
-        try {
-            const res = await fetch(viewUrl, { credentials: 'same-origin' });
-            if (!res.ok) throw new Error("HTTP " + res.status);
-            const arrayBuffer = await res.arrayBuffer();
-            if (typeof mammoth !== 'undefined') {
-                const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
-                docxContainer.innerHTML = `<div class="bg-white p-4 p-md-5 rounded shadow-sm text-dark fs-7" style="max-width: 850px; min-height: 70vh; line-height: 1.7; word-break: break-word;">${result.value || '<p class="text-muted fst-italic">ឯកសារទទេ (Empty document)</p>'}</div>`;
-                loader.classList.add('d-none');
-                docxContainer.classList.remove('d-none');
-            } else {
-                throw new Error("Mammoth.js not loaded");
-            }
-        } catch (err) {
-            console.error("DOCX preview error:", err);
-            loader.classList.add('d-none');
-            unsupported.classList.remove('d-none');
-        }
-    } else if (isPdf) {
+    } else {
+        // PDF or DOCX (Word files are converted server-side via MS Word COM to high-fidelity PDF, perfectly preserving Khmer fonts & tables)
         if (switchBtn) switchBtn.classList.remove('d-none');
-        let pdfRendered = false;
+        let renderedSuccessfully = false;
         let fetchFailed = false;
 
         if (typeof pdfjsLib !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -1561,43 +1601,69 @@ async function previewOfficerAttachment(viewUrl, title, ext, attId = null) {
                 fetchFailed = true;
                 throw new Error("HTTP error " + res.status);
             }
+
+            const contentType = (res.headers.get('content-type') || '').toLowerCase();
             const arrayBuffer = await res.arrayBuffer();
 
-            if (typeof pdfjsLib !== 'undefined') {
-                const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
-                currentPdfDoc = await loadingTask.promise;
-                currentPdfPage = 1;
-                document.getElementById('pdfTotalPages').textContent = currentPdfDoc.numPages;
+            // 1. Primary High-Fidelity Rendering: PDF Canvas (Used for PDFs and Word docs converted by Word Engine)
+            if (contentType.includes('application/pdf') || isPdf || !contentType.includes('wordprocessingml')) {
+                try {
+                    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+                    currentPdfDoc = await loadingTask.promise;
+                    currentPdfPage = 1;
+                    document.getElementById('pdfTotalPages').textContent = currentPdfDoc.numPages;
 
-                loader.classList.add('d-none');
-                pdfContainer.classList.remove('d-none');
-                if (pdfControls) pdfControls.classList.remove('d-none');
+                    loader.classList.add('d-none');
+                    pdfContainer.classList.remove('d-none');
+                    if (pdfControls) pdfControls.classList.remove('d-none');
 
-                await renderPdfPage(currentPdfPage);
-                pdfRendered = true;
+                    await renderPdfPage(currentPdfPage);
+                    renderedSuccessfully = true;
+                } catch (pdfErr) {
+                    console.warn("PDF Canvas render failed, checking docx-preview:", pdfErr);
+                }
+            }
+
+            // 2. Secondary High-Fidelity Rendering: docx-preview.js (Preserves real Word layout, styles, tables & pages)
+            if (!renderedSuccessfully && isDocx && docxContainer) {
+                try {
+                    if (typeof docx !== 'undefined' && docx.renderAsync) {
+                        docxContainer.innerHTML = '';
+                        await docx.renderAsync(arrayBuffer, docxContainer, null, {
+                            className: 'docx-preview-wrapper shadow-lg my-3 rounded bg-white',
+                            inWrapper: true,
+                            ignoreWidth: false,
+                            ignoreHeight: false
+                        });
+                        loader.classList.add('d-none');
+                        docxContainer.classList.remove('d-none');
+                        renderedSuccessfully = true;
+                    }
+                } catch (docxErr) {
+                    console.warn("docx-preview failed:", docxErr);
+                }
             }
         } catch (err) {
-            console.warn("PDF preview engine error:", err);
+            console.warn("Attachment fetch error:", err);
             if (err.message && err.message.includes("HTTP error")) {
                 fetchFailed = true;
             }
         }
 
-        // If server returned an HTTP error (e.g. 404 or connection error), show clear message with Download button
         if (fetchFailed) {
             loader.classList.add('d-none');
             if (pdfControls) pdfControls.classList.add('d-none');
             if (pdfContainer) pdfContainer.classList.add('d-none');
             if (iframeContainer) iframeContainer.classList.add('d-none');
-            if (unsupported) {
-                unsupported.classList.remove('d-none');
-            }
-        } else if (!pdfRendered) {
-            // If fetch was successful but PDF.js rendering was unavailable, fallback to Browser Iframe
+            if (docxContainer) docxContainer.classList.add('d-none');
+            if (unsupported) unsupported.classList.remove('d-none');
+        } else if (!renderedSuccessfully) {
+            // Fallback to Native Browser Iframe
             if (iframe && iframeContainer) {
                 loader.classList.add('d-none');
                 if (pdfControls) pdfControls.classList.add('d-none');
                 if (pdfContainer) pdfContainer.classList.add('d-none');
+                if (docxContainer) docxContainer.classList.add('d-none');
                 iframe.src = viewUrl;
                 iframeContainer.classList.remove('d-none');
                 if (switchBtn) switchBtn.classList.add('d-none');
@@ -1606,9 +1672,6 @@ async function previewOfficerAttachment(viewUrl, title, ext, attId = null) {
                 if (unsupported) unsupported.classList.remove('d-none');
             }
         }
-    } else {
-        loader.classList.add('d-none');
-        unsupported.classList.remove('d-none');
     }
 }
 

@@ -22,10 +22,10 @@ print("=" * 70)
 print()
 
 # 1. Check & Install Required Packages
-print("[1/4] កំពុងពិនិត្យមើល Packages (PyInstaller, CustomTkinter)...")
+print("[1/5] កំពុងពិនិត្យមើល Packages (PyInstaller, CustomTkinter, pywin32)...")
 try:
     subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--upgrade", "pyinstaller", "customtkinter"],
+        [sys.executable, "-m", "pip", "install", "--upgrade", "pyinstaller", "customtkinter", "pywin32"],
         check=True
     )
 except subprocess.CalledProcessError as e:
@@ -33,7 +33,14 @@ except subprocess.CalledProcessError as e:
     input("\nPress Enter to exit...")
     sys.exit(1)
 
-# 2. Prepare Icon & Arguments
+# 2. Collect Static Files (Crucial for PDF.js, Workers, and WhiteNoise across all PCs)
+print("\n[2/5] កំពុងប្រមូលផ្តុំ Static Files (collectstatic)...")
+try:
+    subprocess.run([sys.executable, "manage.py", "collectstatic", "--noinput"], check=True)
+except Exception as e:
+    print(f"⚠️ collectstatic warning: {e}")
+
+# 3. Prepare Icon & Arguments
 icon_path = BASE_DIR / "dms" / "static" / "dms" / "img" / "favicon.ico"
 pyinstaller_args = [
     sys.executable,
@@ -49,14 +56,17 @@ pyinstaller_args = [
     "--collect-all", "dms_project",
     "--collect-all", "whitenoise",
     "--collect-all", "psycopg2",
+    "--collect-all", "pywin32",
     "--add-data", f"{BASE_DIR / 'dms'};dms",
     "--add-data", f"{BASE_DIR / 'dms_project'};dms_project",
+    "--add-data", f"{BASE_DIR / 'staticfiles'};staticfiles",
     "--hidden-import", "waitress",
     "--hidden-import", "django",
     "--hidden-import", "dms",
     "--hidden-import", "dms.apps",
     "--hidden-import", "dms.models",
     "--hidden-import", "dms.views",
+    "--hidden-import", "dms.docx_service",
     "--hidden-import", "dms.media_service",
     "--hidden-import", "dms.signals",
     "--hidden-import", "dms.context_processors",
@@ -66,6 +76,8 @@ pyinstaller_args = [
     "--hidden-import", "dms_project.settings",
     "--hidden-import", "psycopg2",
     "--hidden-import", "dj_database_url",
+    "--hidden-import", "win32com",
+    "--hidden-import", "pythoncom",
     "--exclude-module", "cv2",
     "--exclude-module", "matplotlib",
     "--exclude-module", "torch",
@@ -82,8 +94,8 @@ if logo_path.exists():
 
 pyinstaller_args.append("main_app.py")
 
-# 3. Clean Old Build Artifacts & Compile EXE
-print("\n[2/4] កំពុងសម្អាត Cache និងដំណើរការ Compile Python Code ទៅជា EXE (សូមរង់ចាំបន្តិច)...")
+# 4. Clean Old Build Artifacts & Compile EXE
+print("\n[4/5] កំពុងសម្អាត Cache និងដំណើរការ Compile Python Code ទៅជា EXE (សូមរង់ចាំបន្តិច)...")
 
 # Terminate any running instances FIRST so Windows unlocks the file
 try:
@@ -101,8 +113,8 @@ except subprocess.CalledProcessError as e:
     input("\nPress Enter to exit...")
     sys.exit(1)
 
-# 4. Copy to Root Directory & Ensure Config in Dist
-print("\n[3/4] កំពុងចម្លង file DMC_System.exe មកកាន់ Root Folder...")
+# 5. Copy to Root Directory & Ensure Config in Dist
+print("\n[5/5] កំពុងចម្លង file DMC_System.exe មកកាន់ Root Folder...")
 dist_exe = BASE_DIR / "dist" / "DMC_System.exe"
 target_exe = BASE_DIR / "DMC_System.exe"
 
@@ -112,6 +124,14 @@ if (BASE_DIR / "dmc_config.txt").exists():
         shutil.copy2(BASE_DIR / "dmc_config.txt", BASE_DIR / "dist" / "dmc_config.txt")
     except Exception:
         pass
+
+# Copy staticfiles to dist folder as well so it's always accessible
+try:
+    dist_static = BASE_DIR / "dist" / "staticfiles"
+    shutil.rmtree(dist_static, ignore_errors=True)
+    shutil.copytree(BASE_DIR / "staticfiles", dist_static)
+except Exception:
+    pass
 
 if dist_exe.exists():
     try:

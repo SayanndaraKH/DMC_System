@@ -499,6 +499,11 @@
                                 <a href="{% url 'contract_officer_attachment_view' contract_officer.pk att.pk %}" target="_blank" class="btn btn-sm btn-light border p-1 rounded" title="មើល">
                                     <i class="fa-solid fa-eye text-primary fs-8"></i>
                                 </a>
+                                {% if att.file_extension == '.docx' or att.file_extension == '.doc' %}
+                                <button type="button" onclick="openContractWord('{% url 'contract_officer_attachment_open_word' contract_officer.pk att.pk %}')" class="btn btn-sm btn-light border p-1 rounded text-primary" title="បើកផ្ទាល់ក្នុង Microsoft Word">
+                                    <i class="fa-solid fa-file-word fs-8" style="color: #2b579a;"></i>
+                                </button>
+                                {% endif %}
                                 <a href="{% url 'contract_officer_attachment_download' contract_officer.pk att.pk %}" class="btn btn-sm btn-light border p-1 rounded" title="ទាញយក">
                                     <i class="fa-solid fa-download text-success fs-8"></i>
                                 </a>

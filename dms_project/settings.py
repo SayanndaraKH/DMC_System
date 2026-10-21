@@ -135,6 +135,8 @@ try:
     import whitenoise  # noqa: F401
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_AUTOREFRESH = True
 except ImportError:
     pass
 
@@ -221,7 +223,20 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'dms', 'static'),
 ]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+if getattr(sys, 'frozen', False):
+    exe_dir = Path(sys.executable).resolve().parent
+    disk_static = exe_dir / 'staticfiles'
+    if disk_static.is_dir():
+        STATIC_ROOT = str(disk_static)
+    else:
+        STATIC_ROOT = os.path.join(str(BASE_DIR), 'staticfiles')
+else:
+    STATIC_ROOT = os.path.join(str(BASE_DIR), 'staticfiles')
+
+try:
+    os.makedirs(STATIC_ROOT, exist_ok=True)
+except OSError:
+    pass
 
 # Media files (Uploads - persistent detection & multi-location fallback)
 MEDIA_URL = '/media/'

@@ -1184,6 +1184,10 @@ class OfficerAttachment(models.Model):
         return self.file_extension in ['.jpg', '.jpeg', '.png', '.gif', '.webp']
 
     @property
+    def is_word(self):
+        return self.file_extension in ['.docx', '.doc']
+
+    @property
     def formatted_file_size(self):
         size = self.file_size or (self.file.size if self.file else 0)
         if size < 1024:
@@ -1902,6 +1906,23 @@ class ContractOfficerAttachment(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.contract_officer.full_name_kh})"
+
+    @property
+    def file_extension(self):
+        import os
+        return os.path.splitext(self.file.name)[1].lower() if self.file else ""
+
+    @property
+    def is_pdf(self):
+        return self.file_extension == '.pdf'
+
+    @property
+    def is_image(self):
+        return self.file_extension in ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+
+    @property
+    def is_word(self):
+        return self.file_extension in ['.docx', '.doc']
 
 
 class ContractOfficerTransferHistory(models.Model):

@@ -122,6 +122,7 @@ urlpatterns = [
     path('officers/<int:pk>/attachments/<int:attachment_id>/delete/', views.officer_attachment_delete, name='officer_attachment_delete'),
     path('officers/<int:pk>/attachments/<int:attachment_id>/view/', views.officer_attachment_view, name='officer_attachment_view'),
     path('officers/<int:pk>/attachments/<int:attachment_id>/download/', views.officer_attachment_download, name='officer_attachment_download'),
+    path('officers/<int:pk>/attachments/<int:attachment_id>/open-word/', views.officer_attachment_open_word, name='officer_attachment_open_word'),
     path('officers/<int:pk>/transfer/', views.officer_transfer, name='officer_transfer'),
     path('officers/<int:pk>/transfers/<int:transfer_id>/delete/', views.officer_transfer_delete, name='officer_transfer_delete'),
     path('officers/audit-logs/', views.officer_audit_trail_view, name='officer_audit_trail'),
@@ -151,6 +152,7 @@ urlpatterns = [
     path('contract-officers/<int:pk>/attachments/<int:attachment_id>/delete/', views.contract_officer_attachment_delete, name='contract_officer_attachment_delete'),
     path('contract-officers/<int:pk>/attachments/<int:attachment_id>/view/', views.contract_officer_attachment_view, name='contract_officer_attachment_view'),
     path('contract-officers/<int:pk>/attachments/<int:attachment_id>/download/', views.contract_officer_attachment_download, name='contract_officer_attachment_download'),
+    path('contract-officers/<int:pk>/attachments/<int:attachment_id>/open-word/', views.contract_officer_attachment_open_word, name='contract_officer_attachment_open_word'),
 
     # 🗺️ Cambodia Geography API (Cascading Address Selector & Admin Management)
     path('settings/geography/', views.geography_manage_view, name='geography_manage'),
