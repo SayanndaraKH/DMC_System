@@ -148,9 +148,14 @@ def check_github_update_status():
     Returns dict: has_update, remote_sha, commit_msg, commit_date, error.
     """
     try:
+        url = f'https://api.github.com/repos/SayanndaraKH/DMC_System/commits/main?t={int(time.time())}'
         req = urllib.request.Request(
-            'https://api.github.com/repos/SayanndaraKH/DMC_System/commits/main',
-            headers={'User-Agent': 'DMC-UpdateChecker/1.0'}
+            url,
+            headers={
+                'User-Agent': 'DMC-UpdateChecker/1.0',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode('utf-8'))

@@ -1,4 +1,4 @@
 {
-  "timestamp": "2026-10-21 10:37:47",
-  "message": "Sync latest DMC_System.exe and smart update alert dialog"
+  "timestamp": "2026-10-21 10:39:00",
+  "message": "Enable real-time cache-busting on update check"
 }
