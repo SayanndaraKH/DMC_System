@@ -60,6 +60,48 @@ ICON_FILE = get_resource_path("dms/static/dms/img/favicon.ico") or (BASE_DIR / "
 LOGO_FILE = get_resource_path("dms/static/dms/img/logo.png") or (BASE_DIR / "logo.png")
 
 
+def safe_replace_file(src_path, dst_path):
+    """
+    Safely replaces dst_path with src_path on Windows, even if dst_path is a currently running executable.
+    On Windows, running executables can be renamed but not overwritten directly.
+    """
+    src = Path(src_path)
+    dst = Path(dst_path)
+    if not src.exists():
+        return False
+    try:
+        shutil.copy2(src, dst)
+        return True
+    except PermissionError:
+        try:
+            old_file = dst.with_name(dst.name + ".old")
+            if old_file.exists():
+                try:
+                    old_file.unlink()
+                except Exception:
+                    pass
+            dst.rename(old_file)
+            shutil.copy2(src, dst)
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to replace {dst} using rename fallback: {e}")
+            return False
+    except Exception as e:
+        logger.warning(f"Failed to copy {src} to {dst}: {e}")
+        return False
+
+
+# Clean up any leftover .old files from previous updates
+for old_name in ["DMC_System.exe.old", "DMC_System_Client.exe.old"]:
+    for d in [BASE_DIR, BASE_DIR / "dist"]:
+        old_f = d / old_name
+        if old_f.exists():
+            try:
+                old_f.unlink()
+            except Exception:
+                pass
+
+
 def free_port_8000():
     if sys.platform == "win32":
         try:
@@ -846,10 +888,7 @@ class DMCMainApp(ctk.CTk):
                 
                 dist_exe = BASE_DIR / "dist" / "DMC_System.exe"
                 if dist_exe.exists():
-                    try:
-                        shutil.copy2(dist_exe, BASE_DIR / "DMC_System.exe")
-                    except Exception:
-                        pass
+                    safe_replace_file(dist_exe, BASE_DIR / "DMC_System.exe")
             else:
                 # Direct GitHub ZIP Downloader (Works on 100% of User PCs without Git)
                 self.update_progress_ui(0.15, "📥 កំពុងភ្ជាប់ទាញយកកូដ និងទម្រង់ថ្មីពី GitHub...", "15%")
@@ -906,10 +945,12 @@ class DMCMainApp(ctk.CTk):
                     if item.is_dir():
                         shutil.copytree(item, dest, dirs_exist_ok=True)
                     else:
-                        try:
-                            shutil.copy2(item, dest)
-                        except Exception:
-                            pass
+                        safe_replace_file(item, dest)
+
+                # Ensure dist/DMC_System.exe replaces root DMC_System.exe if present in update
+                for cand in [BASE_DIR / "dist" / "DMC_System.exe", root_extracted / "dist" / "DMC_System.exe"]:
+                    if cand.exists():
+                        safe_replace_file(cand, BASE_DIR / "DMC_System.exe")
 
                 try:
                     temp_zip.unlink(missing_ok=True)

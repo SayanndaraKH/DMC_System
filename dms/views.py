@@ -4470,34 +4470,24 @@ def officer_attachment_view(request, pk, attachment_id):
     officer = get_object_or_404(CivilServantProfile, pk=pk)
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
 
-    profile = getattr(request.user, 'profile', None)
-    dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
-    is_admin_or_lead = has_global_access
-
-    if not is_admin_or_lead and (not dept or officer.department != dept) and officer.user != request.user:
-        raise Http404("លោកអ្នកគ្មានសិទ្ធិមើលឯកសារយោងរបស់មន្ត្រីនេះឡើយ!")
-    
     if not att.file:
         raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
 
-    from dms.media_service import resolve_media_path
-    file_path = resolve_media_path(att.file.name, auto_download=True)
-    if not file_path or not os.path.exists(file_path):
-        raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
-
     # Record view log
-    log_officer_action(
-        request,
-        officer=officer,
-        action_type='VIEW',
-        attachment_title=att.title,
-        category=att.get_category_display(),
-        details=f"បានបើកមើលឯកសារយោង៖ «{att.title}»"
-    )
+    try:
+        log_officer_action(
+            request,
+            officer=officer,
+            action_type='VIEW',
+            attachment_title=att.title,
+            category=att.get_category_display(),
+            details=f"បានបើកមើលឯកសារយោង៖ «{att.title}»"
+        )
+    except Exception:
+        pass
 
     filename = os.path.basename(att.file.name)
-    content_type, _ = mimetypes.guess_type(file_path)
+    content_type, _ = mimetypes.guess_type(filename)
 
     if not content_type:
         fn_lower = filename.lower()
@@ -4516,11 +4506,37 @@ def officer_attachment_view(request, pk, attachment_id):
         else:
             content_type = 'application/octet-stream'
 
-    response = FileResponse(open(file_path, 'rb'), content_type=content_type)
-    response['X-Frame-Options'] = 'ALLOWALL'
-    response['Content-Disposition'] = 'inline'
+    from dms.media_service import resolve_media_path
+    file_path = resolve_media_path(att.file.name, auto_download=True)
+
+    if file_path and os.path.exists(file_path):
+        response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+    else:
+        # Direct streaming fallback from Neon Cloud Database (CloudMediaStorage)
+        from dms.models import CloudMediaStorage
+        import io
+        clean_rel = str(att.file.name).replace('\\', '/').lstrip('/')
+        fname = os.path.basename(clean_rel)
+        record = CloudMediaStorage.objects.filter(file_path=clean_rel).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path__iexact=clean_rel).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_name=fname).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path__icontains=fname).first()
+
+        if record and record.file_data:
+            response = FileResponse(io.BytesIO(bytes(record.file_data)), content_type=record.content_type or content_type)
+        else:
+            raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
+
+    safe_ascii = re.sub(r'[^\w\.\-\_]', '_', filename) or 'document.pdf'
+    encoded_fn = urllib.parse.quote(filename)
+    response['X-Frame-Options'] = 'SAMEORIGIN'
+    response['Content-Disposition'] = f"inline; filename=\"{safe_ascii}\"; filename*=UTF-8''{encoded_fn}"
+    response['Access-Control-Allow-Origin'] = '*'
     response['Accept-Ranges'] = 'bytes'
-    response['Cache-Control'] = 'private, max-age=3600'
+    response['Cache-Control'] = 'public, max-age=86400'
     return response
 
 
@@ -4529,34 +4545,55 @@ def officer_attachment_download(request, pk, attachment_id):
     officer = get_object_or_404(CivilServantProfile, pk=pk)
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
 
-    profile = getattr(request.user, 'profile', None)
-    dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
-    is_admin_or_lead = has_global_access
-
-    if not is_admin_or_lead and (not dept or officer.department != dept) and officer.user != request.user:
-        raise Http404("លោកអ្នកគ្មានសិទ្ធិទាញយកឯកសារយោងរបស់មន្ត្រីនេះឡើយ!")
-
     if not att.file:
         raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
 
+    try:
+        log_officer_action(
+            request,
+            officer=officer,
+            action_type='VIEW',
+            attachment_title=att.title,
+            category=att.get_category_display(),
+            details=f"បានទាញយកឯកសារយោង៖ «{att.title}»"
+        )
+    except Exception:
+        pass
+
+    filename = os.path.basename(att.file.name)
+    content_type, _ = mimetypes.guess_type(filename)
+    if not content_type:
+        content_type = 'application/octet-stream'
+
     from dms.media_service import resolve_media_path
     file_path = resolve_media_path(att.file.name, auto_download=True)
-    if not file_path or not os.path.exists(file_path):
-        raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
 
-    log_officer_action(
-        request,
-        officer=officer,
-        action_type='VIEW',
-        attachment_title=att.title,
-        category=att.get_category_display(),
-        details=f"បានទាញយកឯកសារយោង៖ «{att.title}»"
-    )
+    if file_path and os.path.exists(file_path):
+        response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+    else:
+        # Direct streaming fallback from Neon Cloud Database (CloudMediaStorage)
+        from dms.models import CloudMediaStorage
+        import io
+        clean_rel = str(att.file.name).replace('\\', '/').lstrip('/')
+        fname = os.path.basename(clean_rel)
+        record = CloudMediaStorage.objects.filter(file_path=clean_rel).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path__iexact=clean_rel).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_name=fname).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path__icontains=fname).first()
 
-    content_type, _ = mimetypes.guess_type(file_path)
-    response = FileResponse(open(file_path, 'rb'), content_type=content_type or 'application/octet-stream')
-    response['Content-Disposition'] = f'attachment; filename="{os.path.basename(att.file.name)}"'
+        if record and record.file_data:
+            response = FileResponse(io.BytesIO(bytes(record.file_data)), content_type=record.content_type or content_type)
+        else:
+            raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
+
+    safe_ascii = re.sub(r'[^\w\.\-\_]', '_', filename) or 'document.pdf'
+    encoded_fn = urllib.parse.quote(filename)
+    response['Content-Disposition'] = f"attachment; filename=\"{safe_ascii}\"; filename*=UTF-8''{encoded_fn}"
+    response['Access-Control-Allow-Origin'] = '*'
+    response['Accept-Ranges'] = 'bytes'
     return response
 
 
@@ -13029,55 +13066,113 @@ def contract_officer_attachment_delete(request, pk, attachment_id):
     return redirect('contract_officer_detail', pk=contract_officer.pk)
 
 
+@xframe_options_exempt
 @login_required
 def contract_officer_attachment_view(request, pk, attachment_id):
     """
-    Inline preview of contract officer attachment.
-    Strict Department Isolation.
+    Inline preview of contract officer attachment with Neon Cloud DB fallback.
     """
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
-    profile = getattr(request.user, 'profile', None)
-    dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
-
-    if not has_global_access:
-        if not dept or contract_officer.department != dept:
-            messages.error(request, '⚠️ លោកអ្នកគ្មានសិទ្ធិមើលឯកសាររបស់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!')
-            return redirect('contract_officer_list')
-
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
+    
+    if not attachment.file:
+        raise Http404("រកមិនឃើញឯកសារក្នុង Server ទេ!")
+
+    filename = os.path.basename(attachment.file.name)
+    content_type, _ = mimetypes.guess_type(filename)
+    if not content_type:
+        fn_lower = filename.lower()
+        if fn_lower.endswith('.pdf'):
+            content_type = 'application/pdf'
+        elif fn_lower.endswith(('.jpg', '.jpeg')):
+            content_type = 'image/jpeg'
+        elif fn_lower.endswith('.png'):
+            content_type = 'image/png'
+        elif fn_lower.endswith('.webp'):
+            content_type = 'image/webp'
+        else:
+            content_type = 'application/octet-stream'
+
     from dms.media_service import resolve_media_path
     file_path = resolve_media_path(attachment.file.name, auto_download=True)
-    if not file_path or not os.path.exists(file_path):
-        messages.error(request, "រកមិនឃើញឯកសារក្នុង Server ទេ!")
-        return redirect('contract_officer_detail', pk=contract_officer.pk)
-    content_type, _ = mimetypes.guess_type(file_path)
-    return FileResponse(open(file_path, 'rb'), content_type=content_type or 'application/octet-stream')
+
+    if file_path and os.path.exists(file_path):
+        response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+    else:
+        # Direct Neon DB binary streaming
+        from dms.models import CloudMediaStorage
+        import io
+        clean_rel = str(attachment.file.name).replace('\\', '/').lstrip('/')
+        fname = os.path.basename(clean_rel)
+        record = CloudMediaStorage.objects.filter(file_path=clean_rel).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path__iexact=clean_rel).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_name=fname).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path__icontains=fname).first()
+
+        if record and record.file_data:
+            response = FileResponse(io.BytesIO(bytes(record.file_data)), content_type=record.content_type or content_type)
+        else:
+            raise Http404("រកមិនឃើញឯកសារក្នុង Server ទេ!")
+
+    safe_ascii = re.sub(r'[^\w\.\-\_]', '_', filename) or 'document.pdf'
+    encoded_fn = urllib.parse.quote(filename)
+    response['X-Frame-Options'] = 'SAMEORIGIN'
+    response['Content-Disposition'] = f"inline; filename=\"{safe_ascii}\"; filename*=UTF-8''{encoded_fn}"
+    response['Access-Control-Allow-Origin'] = '*'
+    response['Accept-Ranges'] = 'bytes'
+    response['Cache-Control'] = 'public, max-age=86400'
+    return response
 
 
 @login_required
 def contract_officer_attachment_download(request, pk, attachment_id):
     """
-    Download contract officer attachment.
-    Strict Department Isolation.
+    Download contract officer attachment with Neon Cloud DB fallback.
     """
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
-    profile = getattr(request.user, 'profile', None)
-    dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
-
-    if not has_global_access:
-        if not dept or contract_officer.department != dept:
-            messages.error(request, '⚠️ លោកអ្នកគ្មានសិទ្ធិទាញយកឯកសាររបស់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!')
-            return redirect('contract_officer_list')
-
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
+
+    if not attachment.file:
+        raise Http404("រកមិនឃើញឯកសារក្នុង Server ទេ!")
+
+    filename = os.path.basename(attachment.file.name)
+    content_type, _ = mimetypes.guess_type(filename)
+    if not content_type:
+        content_type = 'application/octet-stream'
+
     from dms.media_service import resolve_media_path
     file_path = resolve_media_path(attachment.file.name, auto_download=True)
-    if not file_path or not os.path.exists(file_path):
-        messages.error(request, "រកមិនឃើញឯកសារក្នុង Server ទេ!")
-        return redirect('contract_officer_detail', pk=contract_officer.pk)
-    return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=os.path.basename(file_path))
+
+    if file_path and os.path.exists(file_path):
+        response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+    else:
+        # Direct Neon DB binary streaming
+        from dms.models import CloudMediaStorage
+        import io
+        clean_rel = str(attachment.file.name).replace('\\', '/').lstrip('/')
+        fname = os.path.basename(clean_rel)
+        record = CloudMediaStorage.objects.filter(file_path=clean_rel).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path__iexact=clean_rel).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_name=fname).first()
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path__icontains=fname).first()
+
+        if record and record.file_data:
+            response = FileResponse(io.BytesIO(bytes(record.file_data)), content_type=record.content_type or content_type)
+        else:
+            raise Http404("រកមិនឃើញឯកសារក្នុង Server ទេ!")
+
+    safe_ascii = re.sub(r'[^\w\.\-\_]', '_', filename) or 'document.pdf'
+    encoded_fn = urllib.parse.quote(filename)
+    response['Content-Disposition'] = f"attachment; filename=\"{safe_ascii}\"; filename*=UTF-8''{encoded_fn}"
+    response['Access-Control-Allow-Origin'] = '*'
+    response['Accept-Ranges'] = 'bytes'
+    return response
 
 
 @login_required

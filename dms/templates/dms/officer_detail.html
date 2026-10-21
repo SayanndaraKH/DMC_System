@@ -1549,15 +1549,22 @@ async function previewOfficerAttachment(viewUrl, title, ext, attId = null) {
     } else if (isPdf) {
         if (switchBtn) switchBtn.classList.remove('d-none');
         let pdfRendered = false;
+        let fetchFailed = false;
 
-        // Try Canvas rendering via PDF.js first
-        if (typeof pdfjsLib !== 'undefined') {
-            try {
-                const res = await fetch(viewUrl, { credentials: 'same-origin' });
-                if (!res.ok) throw new Error("HTTP error " + res.status);
-                const arrayBuffer = await res.arrayBuffer();
+        if (typeof pdfjsLib !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = "{% static 'dms/vendor/pdf.worker.min.js' %}";
+        }
 
-                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        try {
+            const res = await fetch(viewUrl, { credentials: 'same-origin' });
+            if (!res.ok) {
+                fetchFailed = true;
+                throw new Error("HTTP error " + res.status);
+            }
+            const arrayBuffer = await res.arrayBuffer();
+
+            if (typeof pdfjsLib !== 'undefined') {
+                const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
                 currentPdfDoc = await loadingTask.promise;
                 currentPdfPage = 1;
                 document.getElementById('pdfTotalPages').textContent = currentPdfDoc.numPages;
@@ -1568,13 +1575,25 @@ async function previewOfficerAttachment(viewUrl, title, ext, attId = null) {
 
                 await renderPdfPage(currentPdfPage);
                 pdfRendered = true;
-            } catch (err) {
-                console.warn("PDF.js Canvas error (will fallback to browser iframe):", err);
+            }
+        } catch (err) {
+            console.warn("PDF preview engine error:", err);
+            if (err.message && err.message.includes("HTTP error")) {
+                fetchFailed = true;
             }
         }
 
-        // If PDF.js failed or unavailable, fallback seamlessly to Native Browser Iframe (Works 100% on every PC!)
-        if (!pdfRendered) {
+        // If server returned an HTTP error (e.g. 404 or connection error), show clear message with Download button
+        if (fetchFailed) {
+            loader.classList.add('d-none');
+            if (pdfControls) pdfControls.classList.add('d-none');
+            if (pdfContainer) pdfContainer.classList.add('d-none');
+            if (iframeContainer) iframeContainer.classList.add('d-none');
+            if (unsupported) {
+                unsupported.classList.remove('d-none');
+            }
+        } else if (!pdfRendered) {
+            // If fetch was successful but PDF.js rendering was unavailable, fallback to Browser Iframe
             if (iframe && iframeContainer) {
                 loader.classList.add('d-none');
                 if (pdfControls) pdfControls.classList.add('d-none');
@@ -1584,7 +1603,7 @@ async function previewOfficerAttachment(viewUrl, title, ext, attId = null) {
                 if (switchBtn) switchBtn.classList.add('d-none');
             } else {
                 loader.classList.add('d-none');
-                unsupported.classList.remove('d-none');
+                if (unsupported) unsupported.classList.remove('d-none');
             }
         }
     } else {
