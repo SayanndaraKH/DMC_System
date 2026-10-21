@@ -78,8 +78,9 @@ def main():
     subprocess.run([git_bin, "add", "-A"], check=True)
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if len(sys.argv) > 1 and sys.argv[1].strip():
-        commit_msg = sys.argv[1].strip()
+    custom_args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if custom_args and custom_args[0].strip():
+        commit_msg = custom_args[0].strip()
     else:
         commit_msg = f"Auto Update DMC System: {timestamp}"
 
