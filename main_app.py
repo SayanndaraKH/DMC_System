@@ -62,6 +62,9 @@ CONFIG_FILE = BASE_DIR / "dmc_config.txt"
 ENV_FILE = BASE_DIR / ".env"
 ICON_FILE = get_resource_path("dms/static/dms/img/favicon.ico") or (BASE_DIR / "favicon.ico")
 LOGO_FILE = get_resource_path("dms/static/dms/img/logo.png") or (BASE_DIR / "logo.png")
+ICON_SERVER_FILE = get_resource_path("dms/static/dms/img/icon_server.png") or (BASE_DIR / "dms/static/dms/img/icon_server.png")
+ICON_DB_FILE = get_resource_path("dms/static/dms/img/icon_database.png") or (BASE_DIR / "dms/static/dms/img/icon_database.png")
+ICON_DESKTOP_FILE = get_resource_path("dms/static/dms/img/icon_desktop.png") or (BASE_DIR / "dms/static/dms/img/icon_desktop.png")
 
 
 def safe_replace_file(src_path, dst_path):
@@ -228,12 +231,12 @@ class DMCMainApp(ctk.CTk):
         super().__init__()
 
         self.title("សូមស្វាគមន៍មកកាន់កម្មវិធីគ្រប់គ្រងធនធានមនុស្ស - DMC Desktop Control Center")
-        self.center_window(860, 685)
+        self.center_window(920, 750)
 
         # Strictly lock window dimensions to prevent any resizing or maximizing
         self.resizable(False, False)
-        self.maxsize(860, 685)
-        self.minsize(860, 685)
+        self.maxsize(920, 750)
+        self.minsize(920, 750)
 
         # Set Icon if available
         if ICON_FILE and ICON_FILE.exists():
@@ -277,7 +280,7 @@ class DMCMainApp(ctk.CTk):
         self.monitor_thread = threading.Thread(target=self.monitor_server_status, daemon=True)
         self.monitor_thread.start()
 
-    def center_window(self, width=860, height=600):
+    def center_window(self, width=920, height=750):
         """Centers the window perfectly on the primary display and fixes dimensions."""
         self.update_idletasks()
         screen_width = self.winfo_screenwidth()
@@ -425,21 +428,50 @@ class DMCMainApp(ctk.CTk):
         )
         sub_lbl.pack(anchor="w")
 
-        # 2. Status & Network Overview: 3-Column Layout (រៀបចំជា ៣ ជួរឈរ)
+        # Load 3 representative Google Material icons
+        self.icon_server_ctk = None
+        self.icon_db_ctk = None
+        self.icon_desktop_ctk = None
+
+        if ICON_SERVER_FILE and ICON_SERVER_FILE.exists():
+            try:
+                pil_s = Image.open(ICON_SERVER_FILE)
+                self.icon_server_ctk = ctk.CTkImage(light_image=pil_s, dark_image=pil_s, size=(58, 58))
+            except Exception:
+                pass
+
+        if ICON_DB_FILE and ICON_DB_FILE.exists():
+            try:
+                pil_db = Image.open(ICON_DB_FILE)
+                self.icon_db_ctk = ctk.CTkImage(light_image=pil_db, dark_image=pil_db, size=(58, 58))
+            except Exception:
+                pass
+
+        if ICON_DESKTOP_FILE and ICON_DESKTOP_FILE.exists():
+            try:
+                pil_desk = Image.open(ICON_DESKTOP_FILE)
+                self.icon_desktop_ctk = ctk.CTkImage(light_image=pil_desk, dark_image=pil_desk, size=(58, 58))
+            except Exception:
+                pass
+
+        # 2. Status & Network Overview: 3-Column Layout (3 Panels with Large Google Icons centered)
         status_card = ctk.CTkFrame(self, fg_color="transparent")
         status_card.pack(fill="x", padx=20, pady=(4, 6))
         status_card.grid_columnconfigure((0, 1, 2), weight=1, uniform="status_col")
 
-        # Column 1: Server Status
-        col1 = ctk.CTkFrame(status_card, corner_radius=12, fg_color="#0f172a", border_width=1, border_color="#1e293b")
-        col1.grid(row=0, column=0, sticky="nsew", padx=(0, 5), pady=0)
+        # Column 1: Server Status Panel
+        col1 = ctk.CTkFrame(status_card, corner_radius=14, fg_color="#0f172a", border_width=1, border_color="#1e293b")
+        col1.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=0)
+
+        if self.icon_server_ctk:
+            ctk.CTkLabel(col1, image=self.icon_server_ctk, text="").pack(anchor="center", pady=(12, 4))
 
         ctk.CTkLabel(
             col1,
             text="⚡ ស្ថានភាពប្រព័ន្ធ (Server)",
             font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
-            text_color="#94a3b8"
-        ).pack(anchor="center", pady=(10, 4))
+            text_color="#f1f5f9"
+        ).pack(anchor="center", pady=(0, 6))
 
         self.status_badge = ctk.CTkLabel(
             col1,
@@ -448,21 +480,24 @@ class DMCMainApp(ctk.CTk):
             text_color="#94a3b8",
             fg_color="#334155",
             corner_radius=8,
-            padx=12,
+            padx=14,
             pady=4
         )
-        self.status_badge.pack(anchor="center", pady=(0, 10))
+        self.status_badge.pack(anchor="center", pady=(0, 12))
 
-        # Column 2: Database Mode
-        col2 = ctk.CTkFrame(status_card, corner_radius=12, fg_color="#0f172a", border_width=1, border_color="#1e293b")
+        # Column 2: Database Mode Panel
+        col2 = ctk.CTkFrame(status_card, corner_radius=14, fg_color="#0f172a", border_width=1, border_color="#1e293b")
         col2.grid(row=0, column=1, sticky="nsew", padx=3, pady=0)
+
+        if self.icon_db_ctk:
+            ctk.CTkLabel(col2, image=self.icon_db_ctk, text="").pack(anchor="center", pady=(12, 4))
 
         ctk.CTkLabel(
             col2,
             text="🗄️ មូលទិន្នន័យ (Database)",
             font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
-            text_color="#94a3b8"
-        ).pack(anchor="center", pady=(10, 4))
+            text_color="#f1f5f9"
+        ).pack(anchor="center", pady=(0, 6))
 
         self.db_badge = ctk.CTkLabel(
             col2,
@@ -471,21 +506,24 @@ class DMCMainApp(ctk.CTk):
             text_color="#4ade80",
             fg_color="#14532d",
             corner_radius=8,
-            padx=12,
+            padx=14,
             pady=4
         )
-        self.db_badge.pack(anchor="center", pady=(0, 10))
+        self.db_badge.pack(anchor="center", pady=(0, 12))
 
-        # Column 3: Application Mode
-        col3 = ctk.CTkFrame(status_card, corner_radius=12, fg_color="#0f172a", border_width=1, border_color="#1e293b")
-        col3.grid(row=0, column=2, sticky="nsew", padx=(5, 0), pady=0)
+        # Column 3: Application Mode Panel
+        col3 = ctk.CTkFrame(status_card, corner_radius=14, fg_color="#0f172a", border_width=1, border_color="#1e293b")
+        col3.grid(row=0, column=2, sticky="nsew", padx=(6, 0), pady=0)
+
+        if self.icon_desktop_ctk:
+            ctk.CTkLabel(col3, image=self.icon_desktop_ctk, text="").pack(anchor="center", pady=(12, 4))
 
         ctk.CTkLabel(
             col3,
             text="💻 ទម្រង់ដំណើរការ (Mode)",
             font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
-            text_color="#94a3b8"
-        ).pack(anchor="center", pady=(10, 4))
+            text_color="#f1f5f9"
+        ).pack(anchor="center", pady=(0, 6))
 
         self.mode_badge = ctk.CTkLabel(
             col3,
@@ -494,10 +532,10 @@ class DMCMainApp(ctk.CTk):
             text_color="#a7f3d0",
             fg_color="#064e3b",
             corner_radius=8,
-            padx=12,
+            padx=14,
             pady=4
         )
-        self.mode_badge.pack(anchor="center", pady=(0, 10))
+        self.mode_badge.pack(anchor="center", pady=(0, 12))
 
         # 3. Primary Hero Launch Action Button (Form 2)
         launch_frame = ctk.CTkFrame(self, corner_radius=12, fg_color="transparent")
@@ -630,10 +668,12 @@ class DMCMainApp(ctk.CTk):
 
         ctk.CTkLabel(
             footer_inner,
-            text="រក្សាសិទ្ធិដោយ៖ លោក យ៉ន សាយ៉ាន់ដារ៉ា មន្ត្រីទទួលបន្ទុកការងារធនធានមនុស្ស",
+            text="រក្សាសិទ្ធិដោយ៖ លោក យ៉ន សាយ៉ាន់ដារ៉ា • មន្ត្រីទទួលបន្ទុកការងារធនធានមនុស្ស",
             font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
-            text_color="#f1f5f9"
-        ).pack(anchor="center", pady=(0, 3))
+            text_color="#f1f5f9",
+            wraplength=880,
+            justify="center"
+        ).pack(anchor="center", pady=(0, 4))
 
         def open_telegram():
             try:

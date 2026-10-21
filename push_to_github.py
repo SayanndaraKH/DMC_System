@@ -64,8 +64,8 @@ def main():
 
     # Step 2: Check git status
     print("\n[2/4] កំពុងពិនិត្យមើលស្ថានភាព File ដែលបានកែប្រែ (Git Status)...")
-    status_res = subprocess.run([git_bin, "status", "-s"], capture_output=True, text=True)
-    status_out = status_res.stdout.strip()
+    status_res = subprocess.run([git_bin, "status", "-s"], capture_output=True, text=True, encoding="utf-8", errors="replace")
+    status_out = (status_res.stdout or "").strip()
 
     if status_out:
         print("-" * 50)
@@ -102,22 +102,22 @@ def main():
     # Commit only if there are staged changes
     diff_res = subprocess.run([git_bin, "diff", "--cached", "--quiet"])
     if diff_res.returncode != 0:
-        commit_res = subprocess.run([git_bin, "commit", "-m", commit_msg], capture_output=True, text=True)
+        commit_res = subprocess.run([git_bin, "commit", "-m", commit_msg], capture_output=True, text=True, encoding="utf-8", errors="replace")
         if commit_res.returncode == 0:
             print(f"  + បាន Commit ជោគជ័យ: «{commit_msg}»")
         else:
-            print(f"  [Notice] Commit output: {commit_res.stdout.strip() or commit_res.stderr.strip()}")
+            print(f"  [Notice] Commit output: {(commit_res.stdout or commit_res.stderr or '').strip()}")
     else:
         print("  + មិនមានការផ្លាស់ប្តូរថ្មីសម្រាប់ Commit ឡើយ (Working tree clean)")
 
     # Step 4: Push to GitHub
     print("\n[4/4] កំពុងបញ្ជូនទៅកាន់ GitHub (git push origin main)...")
-    push_res = subprocess.run([git_bin, "push", "-u", "origin", "main"], capture_output=True, text=True)
+    push_res = subprocess.run([git_bin, "push", "-u", "origin", "main"], capture_output=True, text=True, encoding="utf-8", errors="replace")
 
     if push_res.returncode == 0:
         # Update current_version.json with the exact pushed commit SHA
         try:
-            head_sha = subprocess.run([git_bin, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+            head_sha = subprocess.run([git_bin, "rev-parse", "HEAD"], capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.strip()
             version_data = {
                 "sha": head_sha,
                 "timestamp": timestamp,
