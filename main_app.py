@@ -32,8 +32,10 @@ sys.path.insert(0, str(BASE_DIR))
 
 try:
     import customtkinter as ctk
+    from tkinter import messagebox
 except ImportError:
     import tkinter as ctk
+    from tkinter import messagebox
 
 # Configure Appearance
 try:
@@ -984,7 +986,15 @@ class DMCMainApp(ctk.CTk):
                 state="disabled"
             )
             def _check():
+                res = check_github_update_status()
                 self._check_and_update_button_state()
+                if not res.get('has_update', False):
+                    msg = (
+                        "✅ ប្រព័ន្ធរបស់អ្នកកំពុងដំណើរការលើកំណែចុងក្រោយបំផុត (Up-to-Date) រួចរាល់ហើយ!\n\n"
+                        "ពុំទាន់មានកំណែទម្រង់ថ្មីនៅលើ GitHub ឡើយ។\n"
+                        "លុះត្រាតែ Admin ចុច «PUSH_TO_GITHUB» ជោគជ័យ ទើបប៊ូតុងនេះបង្ហាញកំណែទម្រង់ថ្មីសម្រាប់ធ្វើបច្ចុប្បន្នភាព (Update)។"
+                    )
+                    self.after(0, lambda: messagebox.showinfo("ស្ថានភាពកំណែប្រព័ន្ធ (Version Status)", msg))
             threading.Thread(target=_check, daemon=True).start()
 
     def trigger_auto_update(self):
