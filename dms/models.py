@@ -2435,4 +2435,29 @@ class AttendanceRecord(models.Model):
         return badges.get(self.status, 'bg-success text-white')
 
 
+# ==============================================================================
+# ☁️ CLOUD MEDIA & ATTACHMENT STORAGE (NEON POSTGRESQL DATABASE)
+# ==============================================================================
+
+class CloudMediaStorage(models.Model):
+    file_path = models.CharField(max_length=500, unique=True, db_index=True, verbose_name="ផ្លូវឯកសារ Media")
+    file_name = models.CharField(max_length=255, blank=True, verbose_name="ឈ្មោះឯកសារ")
+    content_type = models.CharField(max_length=150, blank=True, verbose_name="ប្រភេទ Content-Type")
+    file_size = models.BigIntegerField(default=0, verbose_name="ទំហំឯកសារ (Bytes)")
+    file_data = models.BinaryField(verbose_name="ទិន្នន័យឯកសារ (Binary)")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="កាលបរិច្ឆេទបញ្ជូន")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="កាលបរិច្ឆេទកែប្រែ")
+
+    class Meta:
+        verbose_name = "Cloud Media Storage"
+        verbose_name_plural = "Cloud Media Storage"
+        indexes = [
+            models.Index(fields=['file_path']),
+        ]
+
+    def __str__(self):
+        return f"{self.file_path} ({self.file_size} bytes)"
+
+
+
 

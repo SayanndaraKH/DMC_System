@@ -8,7 +8,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from django.db.models import Q, Count
-from django.http import HttpResponse, JsonResponse, FileResponse, HttpResponseForbidden
+from django.http import HttpResponse, JsonResponse, FileResponse, HttpResponseForbidden, Http404
 from django.core.paginator import Paginator
 from django.core.cache import cache
 from django.utils import timezone

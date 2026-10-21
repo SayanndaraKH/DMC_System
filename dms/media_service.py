@@ -134,12 +134,135 @@ def download_remote_media_file(rel_path, target_abs_path, timeout=15):
     return False
 
 
+def fetch_media_from_neon_cloud(rel_path, target_dest):
+    """
+    Retrieves the binary content of a media file directly from the Neon Cloud PostgreSQL Database
+    and writes it to target_dest on the local disk (serving as a persistent local cache).
+    """
+    clean_rel = str(rel_path).replace('\\', '/').lstrip('/')
+    if not clean_rel:
+        return False
+
+    try:
+        from dms.models import CloudMediaStorage
+        # 1. Exact match
+        record = CloudMediaStorage.objects.filter(file_path=clean_rel).first()
+        # 2. Case-insensitive match
+        if not record:
+            record = CloudMediaStorage.objects.filter(file_path__iexact=clean_rel).first()
+        # 3. Filename match fallback
+        if not record:
+            fname = os.path.basename(clean_rel)
+            record = CloudMediaStorage.objects.filter(file_name=fname).first()
+
+        if record and record.file_data:
+            target_dest.parent.mkdir(parents=True, exist_ok=True)
+            tmp_file = target_dest.with_suffix(target_dest.suffix + f'.tmp_{os.getpid()}_{threading.get_ident()}')
+            raw_bytes = bytes(record.file_data)
+            with open(tmp_file, 'wb') as f:
+                f.write(raw_bytes)
+            if tmp_file.exists():
+                if target_dest.exists():
+                    try:
+                        target_dest.unlink()
+                    except OSError:
+                        pass
+                tmp_file.replace(target_dest)
+                logger.info(f"Loaded and cached media from Neon Cloud DB: {clean_rel} ({len(raw_bytes)} bytes)")
+                return True
+    except Exception as e:
+        logger.warning(f"Neon Cloud media lookup failed for {clean_rel}: {e}")
+
+    return False
+
+
+def save_media_to_neon_cloud(rel_path, data=None, local_abs_path=None):
+    """
+    Uploads or updates a media file in the Neon Cloud Database.
+    Accepts either raw bytes `data` or local file path `local_abs_path`.
+    """
+    clean_rel = str(rel_path).replace('\\', '/').lstrip('/')
+    if not clean_rel:
+        return False
+
+    try:
+        from dms.models import CloudMediaStorage
+        if data is None and local_abs_path and os.path.exists(local_abs_path):
+            with open(local_abs_path, 'rb') as f:
+                data = f.read()
+
+        if not data:
+            return False
+
+        content_type, _ = mimetypes.guess_type(clean_rel)
+        if not content_type:
+            ext = os.path.splitext(clean_rel)[1].lower()
+            if ext == '.pdf':
+                content_type = 'application/pdf'
+            elif ext in ['.jpg', '.jpeg']:
+                content_type = 'image/jpeg'
+            elif ext == '.png':
+                content_type = 'image/png'
+            elif ext == '.webp':
+                content_type = 'image/webp'
+            else:
+                content_type = 'application/octet-stream'
+
+        fname = os.path.basename(clean_rel)
+        CloudMediaStorage.objects.update_or_create(
+            file_path=clean_rel,
+            defaults={
+                'file_name': fname,
+                'content_type': content_type,
+                'file_size': len(data),
+                'file_data': data,
+            }
+        )
+        logger.info(f"Saved media to Neon Cloud DB: {clean_rel} ({len(data)} bytes)")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save {clean_rel} to Neon Cloud DB: {e}")
+        return False
+
+
+def sync_field_file_to_neon_async(field_file):
+    """
+    Saves a Django FieldFile/ImageField to Neon Cloud DB in a background thread.
+    """
+    if not field_file or not hasattr(field_file, 'name') or not field_file.name:
+        return
+
+    rel_name = str(field_file.name)
+
+    def _task():
+        try:
+            from django.db import close_old_connections
+            close_old_connections()
+            abs_path = resolve_media_path(rel_name, auto_download=False)
+            if abs_path and os.path.isfile(abs_path):
+                save_media_to_neon_cloud(rel_name, local_abs_path=abs_path)
+            elif hasattr(field_file, 'file') and field_file.file:
+                field_file.file.seek(0)
+                data = field_file.file.read()
+                save_media_to_neon_cloud(rel_name, data=data)
+        except Exception as e:
+            logger.debug(f"Async Neon DB upload notice for {rel_name}: {e}")
+        finally:
+            try:
+                from django.db import close_old_connections
+                close_old_connections()
+            except Exception:
+                pass
+
+    threading.Thread(target=_task, daemon=True).start()
+
+
 def resolve_media_path(rel_path_or_field, auto_download=True, timeout=20):
     """
     Finds the absolute path of a media file.
-    1. Looks in local candidate directories.
-    2. If found in a secondary directory, copies to primary MEDIA_ROOT.
-    3. If missing locally and auto_download=True, downloads from remote GitHub/LAN.
+    1. Looks in local candidate directories (instant cache hit).
+    2. If missing locally, fetches from Neon Cloud Database (primary cloud source).
+    3. If not found in Neon DB, falls back to GitHub Raw / Central LAN.
     """
     if not rel_path_or_field:
         return None
@@ -175,11 +298,23 @@ def resolve_media_path(rel_path_or_field, auto_download=True, timeout=20):
                     pass
             return str(candidate_file)
 
-    # Step 2: Not found locally -> Download on demand
+    # Step 2: Not found locally -> Fetch from Neon Cloud Database (Instant & Cloud-Synced)
     target_dest = (primary_root / rel_str).resolve()
     if auto_download:
+        if fetch_media_from_neon_cloud(rel_str, target_dest):
+            if target_dest.is_file():
+                return str(target_dest)
+
+        # Step 3: Fallback to GitHub / Central LAN
         if download_remote_media_file(rel_str, target_dest, timeout=timeout):
             if target_dest.is_file():
+                # Also save to Neon Cloud DB so subsequent queries are ultra-fast from DB
+                threading.Thread(
+                    target=save_media_to_neon_cloud,
+                    args=(rel_str,),
+                    kwargs={'local_abs_path': str(target_dest)},
+                    daemon=True
+                ).start()
                 return str(target_dest)
 
     return None
