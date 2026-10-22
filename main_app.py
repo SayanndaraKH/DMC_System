@@ -1079,6 +1079,14 @@ class DMCMainApp(ctk.CTk):
         self.after(0, _apply)
 
     def _run_in_app_update(self):
+        import shutil
+        import zipfile
+        import urllib.request
+        import os
+        import sys
+        import time
+        import subprocess
+
         try:
             # 1. Check if git repository is active
             has_git = False
