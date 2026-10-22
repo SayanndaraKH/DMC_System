@@ -36,6 +36,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost',
     'https://hrmismaffpl.netlify.app',
     'https://*.netlify.app',
+    'https://*.trycloudflare.com',
 ]
 
 # Auto-detect all active LAN / Wi-Fi IP addresses on this host

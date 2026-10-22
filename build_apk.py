@@ -44,10 +44,26 @@ def get_lan_ip():
         return "127.0.0.1"
 
 
-def sync_android_main_activity(lan_ip):
+def get_effective_server_url():
+    """Returns active Cloudflare Tunnel URL if set, otherwise returns LAN IP URL."""
+    tunnel_file = BASE_DIR / "current_tunnel_url.txt"
+    if tunnel_file.exists():
+        try:
+            t_url = tunnel_file.read_text(encoding="utf-8").strip()
+            if t_url.startswith("https://") or t_url.startswith("http://"):
+                if not t_url.endswith("/"):
+                    t_url += "/"
+                return t_url
+        except Exception:
+            pass
+    lan_ip = get_lan_ip()
+    return f"http://{lan_ip}:8000/"
+
+
+def sync_android_main_activity(server_url):
     """
-    Updates MainActivity.java with the latest LAN IP and a unique build timestamp
-    to ensure GitHub Actions always detects an android_app change and builds a fresh APK.
+    Updates MainActivity.java with the latest server URL (Cloudflare Tunnel or LAN IP)
+    and a unique build timestamp to ensure GitHub Actions detects changes.
     """
     main_activity = BASE_DIR / "android_app" / "app" / "src" / "main" / "java" / "com" / "dmc" / "system" / "MainActivity.java"
     if not main_activity.exists():
@@ -56,16 +72,19 @@ def sync_android_main_activity(lan_ip):
 
     try:
         content = main_activity.read_text(encoding="utf-8")
+        if not server_url.endswith("/"):
+            server_url += "/"
+
         # 1. Update DEFAULT_URL
         content = re.sub(
-            r'private static final String DEFAULT_URL = "http://[^"]+";',
-            f'private static final String DEFAULT_URL = "http://{lan_ip}:8000/";',
+            r'private static final String DEFAULT_URL = "[^"]+";',
+            f'private static final String DEFAULT_URL = "{server_url}";',
             content
         )
         # 2. Update dialog placeholder
         content = re.sub(
-            r'\(ឧទាហរណ៍៖ http://[^"]+\)៖',
-            f'(ឧទាហរណ៍៖ http://{lan_ip}:8000/)៖',
+            r'\(ឧទាហរណ៍៖ [^"]+\)៖',
+            f'(ឧទាហរណ៍៖ {server_url})៖',
             content
         )
         # 3. Add or update build timestamp trigger comment at the bottom
@@ -78,7 +97,7 @@ def sync_android_main_activity(lan_ip):
             content = content.rstrip() + f"\n\n{new_trigger}\n"
 
         main_activity.write_text(content, encoding="utf-8")
-        print(f"  + បានកំណត់ Server URL ក្នុង APK: http://{lan_ip}:8000/")
+        print(f"  + បានកំណត់ Server URL ក្នុង APK: {server_url}")
         return True
     except Exception as e:
         print(f"⚠️ កំហុសក្នុងការកែប្រែ MainActivity.java: {e}")
@@ -121,14 +140,14 @@ def auto_build_and_download_apk():
     print("=" * 76)
     print()
 
-    lan_ip = get_lan_ip()
-    print(f"🌐 អាសយដ្ឋាន Server Wi-Fi បច្ចុប្បន្ន: http://{lan_ip}:8000/")
+    server_url = get_effective_server_url()
+    print(f"🌐 អាសយដ្ឋាន Server សម្រាប់ APK: {server_url}")
     print(f"📂 ទីតាំងគោលដៅ: {BASE_DIR / 'dist' / 'DMC_System.apk'}")
     print()
 
-    # Step 1: Configure Android project with current IP
-    print("🚀 [ជំហានទី១/៣] កំពុងរៀបចំកូដ Android Project និងបញ្ចូលលេខ IP បច្ចុប្បន្ន...")
-    sync_android_main_activity(lan_ip)
+    # Step 1: Configure Android project with server URL
+    print("🚀 [ជំហានទី១/៣] កំពុងរៀបចំកូដ Android Project និងបញ្ចូល Server URL...")
+    sync_android_main_activity(server_url)
 
     # Step 2: Push to GitHub to trigger GitHub Actions
     push_script = BASE_DIR / "push_to_github.py"
@@ -137,7 +156,7 @@ def auto_build_and_download_apk():
         return False
 
     print("\n📤 កំពុងបញ្ជូនកូដទៅកាន់ GitHub ដើម្បីដំណើរការ GitHub Actions Cloud Build...")
-    commit_msg = f"🚀 Auto-Build Android APK: Sync Server IP http://{lan_ip}:8000/"
+    commit_msg = f"🚀 Auto-Build Android APK: Sync Server {server_url}"
     push_res = subprocess.run([sys.executable, str(push_script), commit_msg, "--no-pause"])
     if push_res.returncode != 0:
         print("\n❌ [បរាជ័យ] មិនអាច Push ទៅកាន់ GitHub បានឡើយ សូមពិនិត្យមើលការតភ្ជាប់អ៊ីនធឺណិត។")
@@ -252,7 +271,7 @@ def auto_build_and_download_apk():
         print("=" * 76)
         print(f"  📁 ទីតាំង File APK : {dist_apk}")
         print(f"  📦 ទំហំ File      : {size_mb:.2f} MB")
-        print(f"  🌐 Server URL ក្នុង APK: http://{lan_ip}:8000/")
+        print(f"  🌐 Server URL ក្នុង APK: {server_url}")
         print(f"  ⏱️ ម៉ោងបង្កើត      : {mtime_str}")
         print("=" * 76)
         print()

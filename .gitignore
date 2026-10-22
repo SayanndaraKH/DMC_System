@@ -37,6 +37,9 @@ $RECYCLE.BIN/
 scratch/
 scratch_*
 output_apk/
+cloudflared.exe
+current_tunnel_url.txt
+.gradle/
 *.txt.bak
 server_log.txt
 dms.pid
