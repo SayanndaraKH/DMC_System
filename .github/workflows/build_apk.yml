@@ -3,25 +3,29 @@ name: 📱 Build DMC System Android APK
 on:
   push:
     branches: [ main, master ]
+    paths-ignore:
+      - 'dist/**'
+      - '*.md'
   workflow_dispatch:
 
 jobs:
   build-apk:
     name: 🔨 Build Android APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: ☕ Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-
-      - name: 🛠️ Setup Android SDK
-        uses: android-actions/setup-android@v3
 
       - name: 🐘 Setup Gradle 8.5
         uses: gradle/actions/setup-gradle@v3
@@ -33,15 +37,25 @@ jobs:
         run: |
           gradle assembleDebug --stacktrace
 
-      - name: 📁 Rename and Prepare APK
+      - name: 📁 Copy APK to dist and output folder
         run: |
+          mkdir -p dist
           mkdir -p output_apk
+          cp android_app/app/build/outputs/apk/debug/app-debug.apk dist/DMC_System.apk
           cp android_app/app/build/outputs/apk/debug/app-debug.apk output_apk/DMC_System.apk
-          ls -lh output_apk/
+          ls -lh dist/DMC_System.apk
 
       - name: 🚀 Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: DMC_System_Android_APK
-          path: output_apk/DMC_System.apk
+          path: dist/DMC_System.apk
           retention-days: 30
+
+      - name: 📤 Commit & Push APK directly into dist/ folder
+        run: |
+          git config --global user.name "GitHub Actions [Bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add dist/DMC_System.apk
+          git commit -m "🚀 Auto-built DMC_System.apk added to dist/ folder [skip ci]" || echo "No changes to commit"
+          git push origin main || echo "Push failed or nothing to push"
