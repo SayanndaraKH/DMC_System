@@ -23,17 +23,21 @@ jobs:
       - name: 🛠️ Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: 📦 Build Android Debug & Release APK
+      - name: 🐘 Setup Gradle 8.5
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.5'
+
+      - name: 📦 Build Android Debug APK
         working-directory: ./android_app
         run: |
-          gradle wrapper
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          gradle assembleDebug --stacktrace
 
       - name: 📁 Rename and Prepare APK
         run: |
           mkdir -p output_apk
           cp android_app/app/build/outputs/apk/debug/app-debug.apk output_apk/DMC_System.apk
+          ls -lh output_apk/
 
       - name: 🚀 Upload APK Artifact
         uses: actions/upload-artifact@v4
