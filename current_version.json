@@ -1,6 +1,6 @@
 {
-  "version": "20261022.110114",
-  "timestamp": "2026-10-22 11:01:14",
-  "message": "Update dist/DMC_System.exe with direct single-file EXE auto-updater and rebase",
-  "sha": "e4f70a026c81137d4c9a88d8c42d62da58e0a859"
+  "version": "20261022.114937",
+  "timestamp": "2026-10-22 11:49:37",
+  "message": "🚀 Auto-Build Android APK: Sync Server IP http://192.168.1.16:8000/",
+  "sha": "b2d60cd87624356cea66fb1c3295f048f361b67d"
 }
