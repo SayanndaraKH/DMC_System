@@ -4,6 +4,7 @@ from . import backup_views
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
+    path('mobile-preview/', views.mobile_preview_view, name='mobile_preview'),
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('verify-otp/', views.otp_verify_view, name='otp_verify'),
@@ -130,6 +131,10 @@ urlpatterns = [
     path('officers/audit-logs/bulk-delete/', views.officer_audit_trail_bulk_delete, name='officer_audit_trail_bulk_delete'),
     path('officers/audit-logs/<int:log_id>/delete/', views.officer_audit_log_delete, name='officer_audit_log_delete'),
 
+    # 📁 Personnel Reference Documents Hub (គ្រប់គ្រងឯកសារយោងមន្ត្រី & កិច្ចសន្យា)
+    path('personnel/reference-hub/', views.personnel_reference_hub, name='personnel_reference_hub'),
+    path('personnel/reference-hub/data/', views.api_personnel_reference_data, name='api_personnel_reference_data'),
+
     # 📝 Contract Civil Servants & Staff (មន្ត្រីជាប់កិច្ចសន្យា)
     path('contract-officers/', views.contract_officer_list, name='contract_officer_list'),
     path('contract-officers/new/', views.contract_officer_create, name='contract_officer_create'),
@@ -149,6 +154,7 @@ urlpatterns = [
     path('contract-officers/export/excel/', views.contract_officer_export_excel, name='contract_officer_export_excel'),
     path('contract-officers/preview/d1/', views.contract_officer_preview_pdf_d1, name='contract_officer_preview_pdf_d1'),
     path('contract-officers/<int:pk>/attachments/add/', views.contract_officer_attachment_add, name='contract_officer_attachment_add'),
+    path('contract-officers/<int:pk>/attachments/<int:attachment_id>/edit/', views.contract_officer_attachment_edit, name='contract_officer_attachment_edit'),
     path('contract-officers/<int:pk>/attachments/<int:attachment_id>/delete/', views.contract_officer_attachment_delete, name='contract_officer_attachment_delete'),
     path('contract-officers/<int:pk>/attachments/<int:attachment_id>/view/', views.contract_officer_attachment_view, name='contract_officer_attachment_view'),
     path('contract-officers/<int:pk>/attachments/<int:attachment_id>/download/', views.contract_officer_attachment_download, name='contract_officer_attachment_download'),

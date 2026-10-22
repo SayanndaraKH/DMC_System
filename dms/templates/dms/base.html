@@ -3,7 +3,7 @@
 <html lang="km">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.5, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.5, user-scalable=yes, viewport-fit=cover">
     <title>{% block title %}ប្រព័ន្ធគ្រប់គ្រងឯកសាររដ្ឋបាល (DMS){% endblock %}</title>
 
     <!-- Google Khmer Fonts & Icons -->
@@ -16,12 +16,315 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Custom Khmer Styling -->
-    <link rel="stylesheet" href="{% static 'dms/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'dms/css/styles.css' %}?v=20261022_emerald_v5">
 
-    <!-- Favicon -->
+    <!-- 🌟 Critical Enforced Styling for Permanent Green Bottom Bar & Zero-Gap Docking -->
+    <style>
+        html, body {
+            height: 100% !important;
+            max-height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+        .app-wrapper {
+            display: flex !important;
+            width: 100% !important;
+            height: calc(100vh - 38px) !important;
+            max-height: calc(100vh - 38px) !important;
+            overflow: hidden !important;
+            position: relative !important;
+        }
+        .sidebar {
+            width: 285px !important;
+            min-width: 285px !important;
+            max-width: 285px !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            flex-shrink: 0 !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            z-index: 1050 !important;
+            user-select: none;
+            filter: none !important;
+            -webkit-filter: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+        @media (max-width: 991.98px) {
+            .sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 38px !important;
+                height: calc(100vh - 38px) !important;
+                width: 290px !important;
+                max-width: 85vw !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                z-index: 1000005 !important; /* ALWAYS ABOVE BACKDROP */
+                box-shadow: none !important;
+                filter: none !important;
+                -webkit-filter: none !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+            .sidebar.show {
+                transform: translateX(0) !important;
+                box-shadow: 12px 0 45px rgba(0, 0, 0, 0.75) !important;
+            }
+            .sidebar-backdrop {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 38px !important;
+                background: rgba(0, 0, 0, 0.55) !important;
+                backdrop-filter: none !important; /* NO BLUR ARTIFACTS */
+                -webkit-backdrop-filter: none !important;
+                filter: none !important;
+                -webkit-filter: none !important;
+                z-index: 1000001 !important; /* ALWAYS BELOW SIDEBAR */
+                display: none;
+                opacity: 0;
+                transition: opacity 0.25s ease;
+            }
+            .sidebar-backdrop.show {
+                display: block !important;
+                opacity: 1 !important;
+            }
+            .main-content {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                touch-action: pan-x pan-y !important;
+            }
+            .content-body {
+                width: 100% !important;
+                overflow-x: visible !important;
+            }
+            /* 📱 Mobile Table Horizontal Swipe/Scroll */
+            .table-responsive,
+            .officer-table-scroll,
+            .contract-table-scroll,
+            .medals-table-scroll,
+            .promotion-table-scroll,
+            .tracking-table-scroll,
+            .retirement-table-scroll,
+            .vehicle-table-scroll,
+            .table-responsive-scroll {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                touch-action: pan-x pan-y !important;
+                overscroll-behavior-x: contain;
+            }
+            .table-responsive > table,
+            .officer-table-scroll > table,
+            .contract-table-scroll > table,
+            .medals-table-scroll > table,
+            .promotion-table-scroll > table,
+            .tracking-table-scroll > table,
+            .retirement-table-scroll > table,
+            .vehicle-table-scroll > table,
+            .table-responsive-scroll > table {
+                min-width: 780px !important;
+            }
+
+            /* 📱 APK Font Size Reduction (ចុះ ១-២ លេខតាមសំណើ) */
+            .sidebar-title {
+                font-size: 15px !important;
+                line-height: 1.35 !important;
+            }
+            .sidebar-subtitle {
+                font-size: 0.70rem !important;
+            }
+            .sidebar-section-header {
+                font-size: 0.62rem !important;
+                padding: 0.50rem 0.5rem 0.20rem 0.5rem !important;
+            }
+            .nav-group-toggle,
+            .sidebar-nav .nav-link {
+                font-size: 0.80rem !important;
+                padding: 0.48rem 0.70rem !important;
+            }
+            .submenu-link {
+                font-size: 0.75rem !important;
+                padding: 0.38rem 0.65rem !important;
+            }
+            .sidebar-brand {
+                padding: 0.75rem 0.75rem 0.55rem 0.75rem !important;
+            }
+            .sidebar-brand .brand-logo {
+                width: 36px !important;
+                height: 36px !important;
+                margin-bottom: 0.25rem !important;
+            }
+            .fs-7 { font-size: 0.78rem !important; }
+            .fs-8 { font-size: 0.70rem !important; }
+            .fs-9 { font-size: 0.63rem !important; }
+            .table th, .table td { font-size: 0.78rem !important; }
+        }
+        @keyframes logoMirrorSpin {
+            0% { transform: perspective(400px) rotateY(0deg); }
+            50% { transform: perspective(400px) rotateY(180deg); }
+            100% { transform: perspective(400px) rotateY(360deg); }
+        }
+        .bottom-rotating-logo {
+            animation: logoMirrorSpin 4.5s ease-in-out infinite !important;
+            transform-style: preserve-3d !important;
+            backface-visibility: visible !important;
+        }
+        .main-content {
+            flex: 1 1 0% !important;
+            width: calc(100% - 285px) !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow-y: auto !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-x pan-y !important;
+        }
+        .content-body {
+            padding-bottom: 8px !important;
+            min-height: calc(100% - 60px) !important;
+        }
+        .app-fixed-bottom-bar {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            height: 38px !important;
+            background: #064e3b !important;
+            background-color: #064e3b !important;
+            border-top: 2px solid #10b981 !important;
+            box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.4) !important;
+            z-index: 999999 !important;
+            display: flex !important;
+            align-items: center !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            transform: translateZ(0) !important;
+            pointer-events: auto !important;
+        }
+        .officer-table-scroll,
+        .contract-table-scroll,
+        .medals-table-scroll,
+        .promotion-table-scroll,
+        .tracking-table-scroll,
+        .retirement-table-scroll,
+        .vehicle-table-scroll,
+        .table-responsive-scroll {
+            max-height: calc((100vh - 170px) / var(--current-zoom, 1)) !important;
+            min-height: calc((100vh - 260px) / var(--current-zoom, 1)) !important;
+            overflow-y: auto !important;
+            overflow-x: auto !important;
+        }
+        .hub-personnel-scroll {
+            max-height: calc((100vh - 215px) / var(--current-zoom, 1)) !important;
+            min-height: calc((100vh - 240px) / var(--current-zoom, 1)) !important;
+            height: calc((100vh - 215px) / var(--current-zoom, 1)) !important;
+            overflow-y: auto !important;
+        }
+        .hub-workspace-scroll {
+            max-height: calc((100vh - 195px) / var(--current-zoom, 1)) !important;
+            min-height: calc((100vh - 225px) / var(--current-zoom, 1)) !important;
+            height: calc((100vh - 195px) / var(--current-zoom, 1)) !important;
+            overflow-y: auto !important;
+        }
+        .zoom-assistant-wrapper {
+            position: fixed !important;
+            bottom: 44px !important;
+            right: 12px !important;
+            z-index: 1000000 !important;
+        }
+        .zoom-assistant {
+            background: rgba(255, 255, 255, 0.96) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
+            border: 1.5px solid #10b981 !important;
+            border-radius: 30px !important;
+            padding: 3px 6px !important;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+            user-select: none;
+        }
+        .zoom-presets-popup {
+            display: none;
+            position: absolute;
+            bottom: 46px;
+            right: 0;
+            width: 220px;
+            background: #0f172a;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: 16px;
+            padding: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            z-index: 1000001;
+        }
+        .zoom-presets-popup.show {
+            display: block !important;
+        }
+        .zoom-presets-header {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        .zoom-presets-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .btn-preset {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #f8fafc;
+            border-radius: 8px;
+            padding: 5px 0;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-preset:hover, .btn-preset.active {
+            background: #10b981 !important;
+            border-color: #10b981 !important;
+            color: #ffffff !important;
+        }
+        .btn-preset-fit {
+            width: 100%;
+            background: rgba(16, 185, 129, 0.18);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #34d399;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-preset-fit:hover {
+            background: #10b981 !important;
+            color: #ffffff !important;
+        }
+    </style>
+
+    <!-- Favicon & PWA Mobile App Support -->
     <link rel="icon" type="image/x-icon" href="{% static 'dms/img/favicon.ico' %}">
     <link rel="icon" type="image/png" sizes="192x192" href="{% static 'dms/img/favicon.png' %}">
     <link rel="apple-touch-icon" href="{% static 'dms/img/favicon.png' %}">
+    <link rel="manifest" href="{% static 'dms/manifest.json' %}">
+    <meta name="theme-color" content="#065f46">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DMC System">
 
     <script>
         // Force full screen / maximized bounds in App mode
@@ -317,6 +620,15 @@
                 </div>
                 {% endwith %}
 
+                <!-- 📁 គ្រប់គ្រងឯកសារយោងមន្ត្រី & កិច្ចសន្យា (Personnel Reference Files Hub) -->
+                <div class="nav-item">
+                    <a href="{% url 'personnel_reference_hub' %}" class="nav-link {% if request.resolver_match.url_name == 'personnel_reference_hub' %}active{% endif %}" title="គ្រប់គ្រងលើឯកសារយោងទាំងអស់របស់មន្ត្រី និងមន្ត្រីជាប់កិច្ចសន្យា តាមឈ្មោះនីមួយៗ">
+                        <i class="fa-solid fa-folder-open text-warning"></i>
+                        <span>ឯកសារយោងមន្ត្រី & កិច្ចសន្យា</span>
+                        <span class="badge bg-warning text-dark font-monospace fs-9 ms-auto">HUB</span>
+                    </a>
+                </div>
+
                 <!-- ⚙️ ការកំណត់ & ប្រព័ន្ធ -->
                 {% if user.is_superuser or user.username|upper == 'ADMIN' %}
                 <div class="sidebar-section-header">
@@ -391,13 +703,6 @@
                 </div>
                 {% endif %}
             </nav>
-
-            <div class="p-3 border-top border-secondary border-opacity-25 fs-8 text-white-50 text-center">
-                <div class="mb-1 text-white-50">អភិវឌ្ឍន៍ដោយ៖ <strong class="text-white">លោក យ៉ន សាយ៉ាន់ដារ៉ា</strong></div>
-                <a href="https://t.me/SayanndaraYornDaffpl" target="_blank" class="badge bg-info text-white text-decoration-none rounded-pill px-2.5 py-1" style="background-color: #229ED9 !important;">
-                    <i class="fa-brands fa-telegram me-1"></i> Telegram: @SayanndaraYornDaffpl
-                </a>
-            </div>
         </aside>
 
         <!-- Main Content Area -->
@@ -452,7 +757,7 @@
                     <button class="btn btn-outline-success d-lg-none p-1.5 px-2.5 rounded-3 shadow-xs sidebar-toggle-btn" id="sidebarToggle" type="button" aria-label="បើកម៉ឺនុយ">
                         <i class="fa-solid fa-bars fs-5"></i>
                     </button>
-                    <h5 class="m-0 fw-bold text-success d-none d-sm-block text-truncate" style="max-width: 280px;">
+                    <h5 class="m-0 fw-bold text-success d-none d-md-block text-truncate" style="max-width: clamp(140px, 18vw, 260px); font-size: clamp(0.85rem, 1.2vw, 1.05rem);">
                         <i class="fa-solid fa-building-columns me-2"></i>
                         {{ user_profile.department.name_kh|default:"មន្ទីររដ្ឋបាល" }}
                     </h5>
@@ -463,9 +768,9 @@
                     {% if user.is_superuser or user.username|upper == 'ADMIN' or is_impersonating %}
                     <!-- ⚡ Dev Mode Switch User Button in Header -->
                     <div class="dropdown">
-                        <button class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1.5 shadow-sm dropdown-toggle d-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" title="Dev: Switch to User">
+                        <button class="btn btn-outline-dark btn-sm rounded-pill p-2 px-2.5 shadow-sm dropdown-toggle d-flex align-items-center gap-1 text-nowrap flex-shrink-0" type="button" data-bs-toggle="dropdown" title="Dev: Switch to User">
                             <i class="fa-solid fa-code text-warning"></i>
-                            <span class="fs-8 fw-bold">Dev: Switch User</span>
+                            <span class="fs-8 fw-bold d-none d-xl-inline">Dev: Switch User</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-2 rounded-3" style="min-width: 280px; max-height: 400px; overflow-y: auto;">
                             <li class="dropdown-header small text-muted px-2 py-1">
@@ -498,14 +803,14 @@
                     {% endif %}
 
                     <!-- Fullscreen Toggle Button -->
-                    <button class="btn btn-outline-success btn-sm rounded-pill px-2.5 py-1.5 shadow-sm d-flex align-items-center gap-1.5" id="btnToggleFullScreen" type="button" title="Full Screen (ពេញអេក្រង់)" onclick="toggleFullScreenMode()">
+                    <button class="btn btn-outline-success btn-sm rounded-pill p-2 px-2.5 shadow-sm d-flex align-items-center gap-1.5 text-nowrap flex-shrink-0" id="btnToggleFullScreen" type="button" title="Full Screen (ពេញអេក្រង់)" onclick="toggleFullScreenMode()">
                         <i class="fa-solid fa-expand text-success"></i>
-                        <span class="fs-8 fw-bold d-none d-md-inline">ពេញអេក្រង់</span>
+                        <span class="fs-8 fw-bold d-none d-xl-inline">ពេញអេក្រង់</span>
                     </button>
 
                     <!-- Notification Bell Dropdown -->
-                    <div class="dropdown">
-                        <button class="notif-bell-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="dropdown flex-shrink-0">
+                        <button class="notif-bell-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="សារជូនដំណឹង">
                             <i class="fa-regular fa-bell text-secondary fs-5"></i>
                             {% if unread_notifications_count > 0 %}
                             <span class="notif-badge">{{ unread_notifications_count }}</span>
@@ -535,29 +840,29 @@
                     </div>
 
                     <!-- 📄 ឧបករណ៍ PDF Studio Quick Access Button in Header -->
-                    <a href="{% url 'pdf_page_viewer' %}" class="btn btn-danger btn-sm rounded-pill px-3 py-1.5 shadow-sm d-flex align-items-center gap-1.5 text-white fw-bold" title="ឧបករណ៍មើលឃើញ Page នីមួយៗ & បំបែក File PDF ដោយសេរី">
+                    <a href="{% url 'pdf_page_viewer' %}" class="btn btn-danger btn-sm rounded-pill p-2 px-2.5 shadow-sm d-flex align-items-center gap-1 text-white fw-bold text-nowrap flex-shrink-0" title="ឧបករណ៍មើលឃើញ Page នីមួយៗ & បំបែក File PDF ដោយសេរី">
                         <i class="fa-solid fa-file-pdf"></i>
-                        <span class="fs-8 d-none d-sm-inline">បំបែកទំព័រ PDF</span>
-                        <span class="badge bg-white text-danger rounded-pill fs-9 py-0 px-1.5 ms-0.5">ថ្មី</span>
+                        <span class="fs-8 d-none d-xl-inline">បំបែកទំព័រ PDF</span>
+                        <span class="badge bg-white text-danger rounded-pill fs-9 py-0 px-1.5 ms-0.5 d-none d-xl-inline">ថ្មី</span>
                     </a>
 
                     <!-- 💾 Backup & Sync Center Quick Access -->
-                    <a href="{% url 'backup_sync_dashboard' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5 shadow-xs d-flex align-items-center gap-1.5" title="Backup & សមកាលកម្មទិន្នន័យ">
+                    <a href="{% url 'backup_sync_dashboard' %}" class="btn btn-outline-primary btn-sm rounded-pill p-2 px-2.5 shadow-xs d-flex align-items-center gap-1.5 text-nowrap flex-shrink-0" title="Backup & សមកាលកម្មទិន្នន័យ">
                         <i class="fa-solid fa-cloud-arrow-down text-primary"></i>
-                        <span class="fs-8 fw-bold d-none d-md-inline">Backup & Sync</span>
+                        <span class="fs-8 fw-bold d-none d-xl-inline">Backup & Sync</span>
                     </a>
 
                     <!-- User Profile Dropdown -->
-                    <div class="dropdown">
-                        <button class="btn btn-light d-flex align-items-center gap-2 border rounded-pill px-3 py-1.5 shadow-sm" type="button" data-bs-toggle="dropdown">
-                            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 34px; height: 34px;">
+                    <div class="dropdown flex-shrink-0">
+                        <button class="btn btn-light d-flex align-items-center gap-1.5 border rounded-pill p-1.5 px-2 shadow-sm text-nowrap" type="button" data-bs-toggle="dropdown">
+                            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 32px; height: 32px;">
                                 {{ user.username|slice:":1"|upper }}
                             </div>
-                            <div class="text-start d-none d-sm-block">
-                                <div class="fw-bold text-dark fs-7">{{ user.get_full_name|default:user.username }}</div>
-                                <div class="text-muted fs-8">{{ user_profile.get_role_display|default:"អ្នកប្រើប្រាស់" }}</div>
+                            <div class="text-start d-none d-xl-block">
+                                <div class="fw-bold text-dark fs-7 lh-1">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="text-muted fs-8 mt-0.5">{{ user_profile.get_role_display|default:"អ្នកប្រើប្រាស់" }}</div>
                             </div>
-                            <i class="fa-solid fa-chevron-down text-muted fs-8 ms-1"></i>
+                            <i class="fa-solid fa-chevron-down text-muted fs-8 ms-0.5"></i>
                         </button>
 
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3 p-2" style="min-width: 230px;">
@@ -626,39 +931,103 @@
             <div class="content-body">
                 {% block content %}{% endblock %}
             </div>
-
-            <!-- 🌟 DMC System Global Footer -->
-            <footer class="app-system-footer text-center py-3 px-4 border-top mt-auto bg-white bg-opacity-75">
-                <div class="container-fluid">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 text-muted fs-8">
-                        <div>
-                            <strong class="text-dark">ប្រព័ន្ធគ្រប់គ្រងធនធានមនុស្ស (DMC System)</strong> • រក្សាសិទ្ធិដោយ៖ <strong class="text-dark">លោក យ៉ន សាយ៉ាន់ដារ៉ា</strong> មន្ត្រីទទួលបន្ទុកការងារធនធានមនុស្ស
-                        </div>
-                        <div>
-                            <a href="https://t.me/sydadmin168" target="_blank" rel="noopener noreferrer" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1.5 text-decoration-none rounded-pill">
-                                <i class="fa-brands fa-telegram me-1"></i> Telegram: sydadmin168 (ចុចភ្ជាប់ទំនាក់ទំនង)
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </footer>
         </main>
 
         <!-- Mobile Sidebar Backdrop Overlay -->
         <div class="sidebar-backdrop d-lg-none" id="sidebarBackdrop"></div>
     </div>
 
-    <!-- Floating Responsive Zoom Control Assistant -->
-    <div class="zoom-assistant d-flex align-items-center gap-1 shadow-lg" id="zoomAssistant" title="ឧបករណ៍ជំនួយការពង្រីក/ពង្រួមអេក្រង់">
-        <button class="btn btn-sm btn-zoom-action" id="zoomOutBtn" title="ពង្រួម (Zoom Out)" aria-label="Zoom Out">
-            <i class="fa-solid fa-magnifying-glass-minus"></i>
-        </button>
-        <button class="btn btn-sm btn-zoom-level" id="zoomResetBtn" title="ទំហំដើម 100% (ចុចដើម្បី Reset)" aria-label="Reset Zoom">
-            <span id="zoomLevelText">100%</span>
-        </button>
-        <button class="btn btn-sm btn-zoom-action" id="zoomInBtn" title="ពង្រីក (Zoom In)" aria-label="Zoom In">
-            <i class="fa-solid fa-magnifying-glass-plus"></i>
-        </button>
+    <!-- 🌟 Dedicated Fixed Bottom Running Text Panel (ពណ៌ផ្ទៃបៃតងសុទ្ធ #064e3b ជាប់បាតក្រោមជានិច្ច មិនប្រែប្រួលដាច់ខាត) -->
+    <div class="app-fixed-bottom-bar" id="appFixedBottomBar" style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 38px !important; background: #064e3b !important; background-color: #064e3b !important; border-top: 2px solid #10b981 !important; box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.45) !important; z-index: 999999 !important; display: flex !important; align-items: center !important; margin: 0 !important; padding: 0 !important; transform: translateZ(0) !important; pointer-events: auto !important;">
+        <!-- 🔄 Spinning Logo & Version Badge -->
+        <div class="bottom-panel-badge" style="height: 100% !important; background: #04382a !important; background-color: #04382a !important; color: #ffffff !important; display: flex !important; align-items: center !important; gap: 7px !important; padding: 0 12px !important; font-size: 0.78rem !important; font-weight: 800 !important; flex-shrink: 0 !important; border-right: 1.5px solid #10b981 !important;">
+            <img src="{% static 'dms/img/logo.png' %}" alt="Logo" class="bottom-rotating-logo" title="DMC System Logo">
+            <span style="color: #ffffff !important; font-weight: 800 !important; letter-spacing: 0.5px !important;">DMC SYSTEM</span>
+            <span class="badge rounded-pill text-dark fw-bold ms-1" style="background: linear-gradient(135deg, #facc15 0%, #eab308 100%) !important; font-size: 0.65rem !important; padding: 2px 6px !important; box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important;">V3.8.5</span>
+        </div>
+
+        <!-- 🎯 Active Feature Indicator Pill (ឆ្លាស់បង្ហាញមុខងារដែលកំពុងប្រើប្រាស់ភ្លាមៗ) -->
+        <div class="bottom-active-feature-pill d-none d-sm-flex align-items-center gap-1.5 px-2.5 py-0.5 text-nowrap" id="bottomActiveFeaturePill" style="height: 26px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(74, 222, 128, 0.45); border-radius: 20px; font-size: 0.74rem; color: #a7f3d0; margin-left: 8px; flex-shrink: 0; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);">
+            <i class="fa-solid fa-crosshairs text-warning fs-8"></i>
+            <span class="text-white-50 fs-9">មុខងារ៖</span>
+            <strong class="text-white" id="bottomActiveFeatureText">
+                {% if request.resolver_match.url_name == 'dashboard' %}ផ្ទាំងបញ្ជា (Dashboard)
+                {% elif 'personnel_reference_hub' in request.resolver_match.url_name %}ឯកសារយោងមន្ត្រី & កិច្ចសន្យា (Reference Hub)
+                {% elif 'audit' in request.resolver_match.url_name %}កំណត់ត្រាសកម្មភាព & Audit Log (Live)
+                {% elif 'officer_status' in request.resolver_match.url_name %}ស្ថានភាពមន្ត្រី (Status & Cadre)
+                {% elif 'officer_retirement' in request.resolver_match.url_name %}មន្ត្រីចូលនិវត្តន៍ (Retirement)
+                {% elif 'officer_promotion' in request.resolver_match.url_name %}ដំឡើងថ្នាក់ & ឋានន្តរស័ក្តិ (Promotion)
+                {% elif 'officer_medal' in request.resolver_match.url_name %}គ្រឿងឥស្សរិយយស (Medals)
+                {% elif 'officer_tracking' in request.resolver_match.url_name %}តាមដានវត្តមាន (Tracking)
+                {% elif 'contract_officer' in request.resolver_match.url_name %}មន្ត្រីកិច្ចសន្យា (Contract Staff)
+                {% elif 'officer' in request.resolver_match.url_name %}បញ្ជីមន្ត្រីរាជការ (Civil Servants)
+                {% elif 'vehicle_request' in request.resolver_match.url_name %}ពាក្យសុំខ្ចីយានយន្ត (Vehicle Request)
+                {% elif 'vehicle' in request.resolver_match.url_name %}បញ្ជីរថយន្ត & ម៉ូតូ (Vehicles)
+                {% elif 'inbound' in request.resolver_match.url_name %}លិខិតចូល (Inbound Docs)
+                {% elif 'outbound' in request.resolver_match.url_name %}លិខិតចេញ (Outbound Docs)
+                {% elif 'document' in request.resolver_match.url_name %}គ្រប់គ្រងឯកសារ (Documents)
+                {% elif 'backup' in request.resolver_match.url_name %}Backup & Sync
+                {% elif 'pdf' in request.resolver_match.url_name %}បំបែកទំព័រ PDF (PDF Studio)
+                {% elif 'chat' in request.resolver_match.url_name %}Live Chat ផ្ទៃក្នុង
+                {% else %}ប្រព័ន្ធគ្រប់គ្រង (DMC)
+                {% endif %}
+            </strong>
+        </div>
+
+        <div class="flex-grow-1 overflow-hidden px-2" style="background: transparent !important;">
+            <marquee behavior="scroll" direction="left" scrollamount="3" scrolldelay="30" onmouseover="this.stop();" onmouseout="this.start();" style="vertical-align: middle; cursor: default;">
+                <span class="d-inline-flex align-items-center gap-3 text-white fs-8">
+                    <span>
+                        <strong style="color: #ffffff !important;"><i class="fa-solid fa-shield-halved text-warning me-1"></i> ប្រព័ន្ធគ្រប់គ្រងធនធានមនុស្ស (DMC System)</strong>
+                        <span class="badge bg-warning text-dark rounded-pill px-2 py-0.5 ms-1 fw-bold fs-9">ជំនាន់ V3.8.5 (APK v1.0.0)</span>
+                        <span style="color: #4ade80 !important; margin: 0 8px;">&bull;</span>
+                        <span style="color: #e2e8f0 !important;">អភិវឌ្ឍន៍ & រក្សាសិទ្ធិដោយ៖</span> <strong style="color: #facc15 !important;">លោក យ៉ន សាយ៉ាន់ដារ៉ា</strong> <span style="color: #cbd5e1 !important;">(មន្ត្រីទទួលបន្ទុកការងារធនធានមនុស្ស)</span>
+                    </span>
+                    <span style="color: #4ade80 !important; margin: 0 8px;">&bull;</span>
+                    <a href="https://t.me/SayanndaraYornDaffpl" target="_blank" rel="noopener noreferrer" class="badge text-white px-2.5 py-1 text-decoration-none rounded-pill d-inline-flex align-items-center gap-1 shadow-sm" style="background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%) !important; border: 1px solid rgba(255, 255, 255, 0.4) !important; font-weight: 600 !important; color: #ffffff !important;">
+                        <i class="fa-brands fa-telegram text-white"></i> Telegram: @SayanndaraYornDaffpl (ចុចភ្ជាប់ទំនាក់ទំនង)
+                    </a>
+                    <span style="color: #facc15 !important; margin: 0 12px;">★★★</span>
+                </span>
+            </marquee>
+        </div>
+    </div>
+
+    <!-- Floating Responsive Zoom Control Assistant & Percentage Selector -->
+    <div class="zoom-assistant-wrapper" id="zoomAssistantWrapper">
+        <!-- 🎯 Floating Percentage Selector Popup -->
+        <div class="zoom-presets-popup shadow-lg" id="zoomPresetsPopup">
+            <div class="zoom-presets-header">
+                <i class="fa-solid fa-sliders text-success me-1"></i>
+                <span>ជ្រើសរើសភាគរយ Zoom</span>
+            </div>
+            <div class="zoom-presets-grid">
+                <button type="button" class="btn-preset" data-zoom="0.65">65%</button>
+                <button type="button" class="btn-preset" data-zoom="0.75">75%</button>
+                <button type="button" class="btn-preset" data-zoom="0.85">85%</button>
+                <button type="button" class="btn-preset" data-zoom="0.90">90%</button>
+                <button type="button" class="btn-preset active" data-zoom="1.0">100%</button>
+                <button type="button" class="btn-preset" data-zoom="1.15">115%</button>
+                <button type="button" class="btn-preset" data-zoom="1.30">130%</button>
+            </div>
+            <div class="zoom-presets-footer">
+                <button type="button" class="btn-preset-fit" data-zoom="fit" id="btnZoomFitAll">
+                    <i class="fa-solid fa-expand text-success me-1"></i> បង្រួមបង្ហាញអស់ទិន្នន័យ (Auto Fit)
+                </button>
+            </div>
+        </div>
+
+        <div class="zoom-assistant d-flex align-items-center gap-1 shadow-lg" id="zoomAssistant" title="ឧបករណ៍ជំនួយការពង្រីក/ពង្រួមអេក្រង់">
+            <button class="btn btn-sm btn-zoom-action" id="zoomOutBtn" title="ពង្រួម (Zoom Out)" aria-label="Zoom Out">
+                <i class="fa-solid fa-magnifying-glass-minus"></i>
+            </button>
+            <button class="btn btn-sm btn-zoom-level" id="zoomResetBtn" title="ចុចដើម្បីកំណត់ភាគរយ Zoom" aria-label="Set Zoom Percentage">
+                <span id="zoomLevelText">100%</span>
+            </button>
+            <button class="btn btn-sm btn-zoom-action" id="zoomInBtn" title="ពង្រីក (Zoom In)" aria-label="Zoom In">
+                <i class="fa-solid fa-magnifying-glass-plus"></i>
+            </button>
+        </div>
     </div>
 
     <!-- Real-time Live Chat Toast Notification Popup Container -->
@@ -839,51 +1208,135 @@
                 });
             });
 
-            // 🔍 On-Screen Zoom / Scale Assistant for Mobile & Tablet
+            // 🔍 On-Screen Zoom & Scale Assistant with Percentage Presets
             let currentZoom = parseFloat(localStorage.getItem('dms_user_zoom') || '1.0');
             const zoomInBtn = document.getElementById('zoomInBtn');
             const zoomOutBtn = document.getElementById('zoomOutBtn');
             const zoomResetBtn = document.getElementById('zoomResetBtn');
             const zoomLevelText = document.getElementById('zoomLevelText');
+            const zoomPresetsPopup = document.getElementById('zoomPresetsPopup');
+            const btnZoomFitAll = document.getElementById('btnZoomFitAll');
             const mainContent = document.querySelector('.main-content');
 
             function applyZoom(zoom) {
-                currentZoom = Math.min(Math.max(parseFloat(zoom.toFixed(2)), 0.70), 1.80);
+                if (zoom === 'fit') {
+                    // Auto fit: on phone screens (< 600px), 75% zoom fits all table columns on screen!
+                    const w = window.innerWidth;
+                    zoom = w < 480 ? 0.75 : (w < 768 ? 0.85 : 1.0);
+                } else {
+                    zoom = parseFloat(zoom);
+                }
+
+                currentZoom = Math.min(Math.max(parseFloat(zoom.toFixed(2)), 0.50), 1.60);
                 localStorage.setItem('dms_user_zoom', currentZoom.toFixed(2));
+                document.documentElement.style.setProperty('--current-zoom', currentZoom);
+
                 if (zoomLevelText) {
                     zoomLevelText.innerText = Math.round(currentZoom * 100) + '%';
                 }
+
+                // Update active state in presets popup
+                if (zoomPresetsPopup) {
+                    zoomPresetsPopup.querySelectorAll('.btn-preset').forEach(function(btn) {
+                        const bz = parseFloat(btn.dataset.zoom);
+                        if (Math.abs(bz - currentZoom) < 0.04) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+                }
+
                 if (mainContent) {
                     if (Math.abs(currentZoom - 1.0) < 0.01) {
                         mainContent.style.zoom = '';
+                        mainContent.style.width = '';
+                        mainContent.style.maxWidth = '';
+                        mainContent.style.height = '';
+                        mainContent.style.maxHeight = '';
                     } else {
-                        if ('zoom' in mainContent.style) {
-                            mainContent.style.zoom = currentZoom;
+                        // Apply CSS zoom
+                        mainContent.style.zoom = currentZoom;
+                        // MAGIC FORMULA: Expanding virtual width & height = (100 / zoom)%
+                        // So that (100 / zoom)% * zoom = 100% of viewport width & height!
+                        // This guarantees 0 blank space on right & bottom, and reaches right down to the green bar!
+                        const virtualFactor = (100 / currentZoom).toFixed(2);
+                        if (window.innerWidth < 992) {
+                            mainContent.style.width = virtualFactor + '%';
+                            mainContent.style.minWidth = virtualFactor + '%';
+                            mainContent.style.maxWidth = '';
+                        } else {
+                            mainContent.style.width = virtualFactor + '%';
+                            mainContent.style.maxWidth = virtualFactor + '%';
                         }
+                        mainContent.style.height = virtualFactor + '%';
+                        mainContent.style.maxHeight = virtualFactor + '%';
+                        mainContent.style.overflowX = 'auto';
                     }
                 }
             }
 
             if (zoomInBtn) {
-                zoomInBtn.addEventListener('click', function() {
-                    applyZoom(currentZoom + 0.1);
+                zoomInBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    applyZoom(currentZoom + 0.05);
                 });
             }
             if (zoomOutBtn) {
-                zoomOutBtn.addEventListener('click', function() {
-                    applyZoom(currentZoom - 0.1);
+                zoomOutBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    applyZoom(currentZoom - 0.05);
                 });
             }
             if (zoomResetBtn) {
-                zoomResetBtn.addEventListener('click', function() {
-                    applyZoom(1.0);
+                zoomResetBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (zoomPresetsPopup) {
+                        zoomPresetsPopup.classList.toggle('show');
+                    }
                 });
             }
 
-            // Restore saved zoom level if set
-            if (Math.abs(currentZoom - 1.0) >= 0.01) {
-                applyZoom(currentZoom);
+            // Presets grid clicks
+            if (zoomPresetsPopup) {
+                zoomPresetsPopup.querySelectorAll('.btn-preset').forEach(function(btn) {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const targetZoom = parseFloat(btn.dataset.zoom);
+                        applyZoom(targetZoom);
+                        zoomPresetsPopup.classList.remove('show');
+                    });
+                });
             }
+
+            if (btnZoomFitAll) {
+                btnZoomFitAll.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    applyZoom('fit');
+                    if (zoomPresetsPopup) zoomPresetsPopup.classList.remove('show');
+                });
+            }
+
+            // Close presets popup on outside click
+            document.addEventListener('click', function(e) {
+                if (zoomPresetsPopup && !e.target.closest('#zoomAssistantWrapper')) {
+                    zoomPresetsPopup.classList.remove('show');
+                }
+            });
+
+            // Initial restore
+            applyZoom(currentZoom);
+
+            // 🎯 Dynamic Active Feature Indicator in Bottom Panel
+            function updateBottomActiveFeature() {
+                const featureEl = document.getElementById('bottomActiveFeatureText');
+                if (!featureEl) return;
+                const activeNav = document.querySelector('.sidebar-nav .nav-link.active span, .sidebar-nav .submenu-link.active span');
+                if (activeNav && activeNav.innerText.trim()) {
+                    featureEl.innerText = activeNav.innerText.trim();
+                }
+            }
+            updateBottomActiveFeature();
         })();
 
         function toggleFullScreenMode() {
@@ -1417,5 +1870,16 @@
 
     {% block scripts %}{% endblock %}
     {% block extra_js %}{% endblock %}
+
+    <!-- 📱 Register PWA Service Worker for Mobile App -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/dms/js/service-worker.js')
+                    .then(reg => console.log('DMC Mobile PWA ServiceWorker Registered:', reg.scope))
+                    .catch(err => console.log('DMC ServiceWorker failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_emerald">#065f46</color>
+    <color name="primary_dark">#064e3b</color>
+    <color name="accent_amber">#d97706</color>
+    <color name="white">#ffffff</color>
+    <color name="black">#000000</color>
+</resources>

@@ -6,7 +6,8 @@
 {% block extra_css %}
 <style>
     .officer-table-scroll {
-        max-height: 68vh;
+        max-height: calc((100vh - 170px) / var(--current-zoom, 1)) !important;
+        min-height: calc((100vh - 260px) / var(--current-zoom, 1)) !important;
         overflow-y: auto;
         overflow-x: auto;
         scroll-behavior: smooth;

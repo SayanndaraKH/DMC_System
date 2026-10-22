@@ -1,0 +1,25 @@
+{
+  "name": "ប្រព័ន្ធគ្រប់គ្រងធនធានមនុស្ស (DMC System)",
+  "short_name": "DMC System",
+  "description": "Human Resource Management System - DMC System",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#064e3b",
+  "theme_color": "#065f46",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/dms/img/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/dms/img/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

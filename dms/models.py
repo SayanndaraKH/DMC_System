@@ -1213,6 +1213,17 @@ class OfficerAuditLog(models.Model):
         ('PROFILE_DELETE', 'លុបជីវប្រវត្តិមន្ត្រី'),
         ('PROFILE_BULK_DELETE', 'លុបជីវប្រវត្តិមន្ត្រីជាក្រុម/ទាំងអស់'),
         ('SETTING_UPDATE', 'កែប្រែកាលវិភាគ/ការកំណត់'),
+        ('CONTRACT_CREATE', 'បញ្ចូលមន្ត្រីកិច្ចសន្យាថ្មី'),
+        ('CONTRACT_EDIT', 'កែប្រែមន្ត្រីកិច្ចសន្យា'),
+        ('CONTRACT_DELETE', 'លុបមន្ត្រីកិច្ចសន្យា'),
+        ('CONTRACT_RENEW', 'បន្តកិច្ចសន្យា'),
+        ('CONTRACT_ATTACHMENT_ADD', 'បញ្ចូលឯកសារភ្ជាប់កិច្ចសន្យា'),
+        ('CONTRACT_ATTACHMENT_EDIT', 'កែប្រែឯកសារភ្ជាប់កិច្ចសន្យា'),
+        ('CONTRACT_ATTACHMENT_DELETE', 'លុបឯកសារភ្ជាប់កិច្ចសន្យា'),
+        ('DOCUMENT_CREATE', 'បញ្ចូលលិខិត/ឯកសារថ្មី'),
+        ('DOCUMENT_DELETE', 'លុបលិខិត/ឯកសារ'),
+        ('USER_LOGIN', 'ចូលប្រើប្រព័ន្ធ (Login)'),
+        ('SYSTEM_SETTING', 'ការកំណត់ប្រព័ន្ធ'),
     ]
 
     officer = models.ForeignKey(CivilServantProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs', verbose_name="មន្ត្រីរាជការ")

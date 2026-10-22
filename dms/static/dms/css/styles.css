@@ -12,12 +12,15 @@
     --card-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
 }
 
-body {
+html, body {
     font-family: var(--khmer-font);
     background-color: var(--body-bg);
     color: #2d3748;
     margin: 0;
     padding: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
 }
@@ -81,20 +84,30 @@ p, label, table, td, th, input, select, textarea, button,
 /* Layout */
 .app-wrapper {
     display: flex;
-    min-height: 100vh;
+    width: 100%;
+    height: calc(100vh - 38px);
+    max-height: calc(100vh - 38px);
+    overflow: hidden;
+    position: relative;
 }
 
 .sidebar {
     width: 285px;
     min-width: 285px;
     max-width: 285px;
+    height: 100%;
+    max-height: 100%;
     background: linear-gradient(180deg, #0e2a18 0%, #143e22 50%, #1a512d 100%);
     color: #ffffff;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.18);
-    z-index: 100;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.22);
+    z-index: 1020;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    user-select: none;
 }
 
 .sidebar-header {
@@ -331,21 +344,33 @@ p, label, table, td, th, input, select, textarea, button,
 }
 
 .main-content {
-    flex-grow: 1;
+    flex: 1 1 0%;
+    width: calc(100% - 285px);
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    background-color: var(--body-bg);
 }
 
 .top-navbar {
     background: #ffffff;
-    height: 70px;
-    padding: 0 2rem;
+    height: 60px;
+    min-height: 60px;
+    padding: 0 clamp(0.75rem, 1.5vw, 1.5rem);
     display: flex;
     align-items: center;
     justify-content: space-between;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
     border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
 .top-search-form {
@@ -355,7 +380,8 @@ p, label, table, td, th, input, select, textarea, button,
 .user-nav-actions {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: clamp(0.35rem, 0.8vw, 0.75rem);
+    flex-shrink: 0;
 }
 
 /* Notification Dropdown */
@@ -398,8 +424,11 @@ p, label, table, td, th, input, select, textarea, button,
 }
 
 .content-body {
-    padding: 1.75rem 2rem;
-    flex-grow: 1;
+    padding: clamp(0.6rem, 1.2vw, 1.25rem) clamp(0.65rem, 1.5vw, 1.5rem) 0.5rem clamp(0.65rem, 1.5vw, 1.5rem);
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100% - 60px);
 }
 
 /* 📊 Tables with Spacious Breathing Room */
@@ -611,9 +640,10 @@ img, svg, video, canvas {
 @media (max-width: 991.98px) {
     .app-wrapper {
         position: relative;
-        overflow-x: hidden;
+        overflow-x: auto;
         width: 100%;
         min-height: 100vh;
+        -webkit-overflow-scrolling: touch;
     }
 
     /* 📱 Offcanvas Sliding Sidebar for Mobile & Tablet */
@@ -636,47 +666,108 @@ img, svg, video, canvas {
         transform: translateX(0) !important;
     }
 
-    /* Backdrop Dimmer Overlay */
+    /* Backdrop Dimmer Overlay - Sharp, Crisp, Zero Blur for maximum clarity */
     .sidebar-backdrop {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        bottom: 0;
+        bottom: 38px;
         width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        background: rgba(15, 23, 42, 0.65);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-        z-index: 1040;
+        height: calc(100vh - 38px);
+        background: rgba(0, 0, 0, 0.55) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        filter: none !important;
+        -webkit-filter: none !important;
+        z-index: 1000001 !important;
         opacity: 0;
         visibility: hidden;
         transition: opacity 0.25s ease, visibility 0.25s ease;
     }
 
     .sidebar-backdrop.show {
-        opacity: 1;
-        visibility: visible;
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: block !important;
     }
 
-    /* 📱 Full-width Main Content */
+    /* 📱 Full-width Main Content & Strict Edge-to-Edge Layout */
+    html, body {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    .app-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
     .main-content {
         width: 100% !important;
         min-width: 0 !important;
-        max-width: 100vw !important;
-        flex: 1 1 100%;
-        overflow-x: hidden;
+        flex: 1 1 100% !important;
+        overflow-y: auto !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
     }
 
     .top-navbar {
         height: auto;
-        min-height: 60px;
-        padding: 0.6rem 1rem;
+        min-height: 56px;
+        padding: 0.5rem 0.85rem;
+        max-width: 100% !important;
+        overflow: hidden;
     }
 
     .content-body {
-        padding: 1.25rem 1rem;
+        width: 100% !important;
+        min-width: 100% !important;
+        padding: 0.75rem 0.5rem !important;
+        overflow-x: visible !important;
+    }
+
+    /* 📱 Allow smooth left-right swipe/scroll on all tables across mobile & APK */
+    .table-responsive,
+    .officer-table-scroll,
+    .contract-table-scroll,
+    .medals-table-scroll,
+    .promotion-table-scroll,
+    .tracking-table-scroll,
+    .retirement-table-scroll,
+    .vehicle-table-scroll,
+    .table-responsive-scroll {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+        overscroll-behavior-x: contain;
+    }
+
+    .table-responsive > table,
+    .officer-table-scroll > table,
+    .contract-table-scroll > table,
+    .medals-table-scroll > table,
+    .promotion-table-scroll > table,
+    .tracking-table-scroll > table,
+    .retirement-table-scroll > table,
+    .vehicle-table-scroll > table,
+    .table-responsive-scroll > table {
+        min-width: 780px !important;
+    }
+
+    /* Force all grid columns and cards to 100% width on mobile so col-lg-8 never shrinks */
+    .row > [class*="col-"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+
+    .card {
+        width: 100% !important;
+        max-width: 100% !important;
     }
 
     .sidebar-close-btn {
@@ -697,28 +788,28 @@ img, svg, video, canvas {
 
 @media (max-width: 575.98px) {
     .top-navbar {
-        padding: 0.5rem 0.75rem;
+        padding: 0.45rem 0.65rem;
     }
 
     .content-body {
-        padding: 0.85rem 0.5rem;
+        padding: 0.75rem 0.5rem !important;
     }
 
     .user-nav-actions {
-        gap: 0.4rem;
+        gap: 0.35rem;
     }
 
     .card {
-        border-radius: 10px;
+        border-radius: 12px;
     }
 
     .card-body {
-        padding: 1rem 0.75rem;
+        padding: 0.85rem 0.65rem;
     }
 
     .table-responsive {
-        margin-left: -0.25rem;
-        margin-right: -0.25rem;
+        margin-left: 0;
+        margin-right: 0;
         border-radius: 8px;
     }
 
@@ -741,7 +832,7 @@ img, svg, video, canvas {
    ========================================================================== */
 .zoom-assistant {
     position: fixed;
-    bottom: 20px;
+    bottom: 46px;
     right: 20px;
     background: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(10px);
@@ -806,3 +897,385 @@ img, svg, video, canvas {
         display: none !important;
     }
 }
+
+@media (max-width: 991.98px) {
+    .zoom-assistant-wrapper {
+        bottom: 44px !important;
+        right: 8px !important;
+    }
+    .zoom-assistant {
+        padding: 2px 4px !important;
+        transform: scale(0.92);
+        transform-origin: bottom right;
+    }
+}
+
+/* 🎨 Background Opacity Utilities */
+.bg-opacity-10 { --bs-bg-opacity: 0.10 !important; }
+.bg-opacity-15 { --bs-bg-opacity: 0.15 !important; }
+.bg-opacity-20 { --bs-bg-opacity: 0.20 !important; }
+
+/* 🌟 Soft Pill Badges with High Contrast Readability */
+.badge-soft-success {
+    background-color: #ecfdf5 !important;
+    color: #065f46 !important;
+    border: 1px solid rgba(16, 185, 129, 0.28) !important;
+}
+
+.badge-soft-warning {
+    background-color: #fffbeb !important;
+    color: #92400e !important;
+    border: 1px solid rgba(245, 158, 11, 0.28) !important;
+}
+
+.badge-soft-primary {
+    background-color: #eff6ff !important;
+    color: #1e40af !important;
+    border: 1px solid rgba(59, 130, 246, 0.28) !important;
+}
+
+.badge-soft-purple {
+    background-color: #faf5ff !important;
+    color: #6b21a8 !important;
+    border: 1px solid rgba(168, 85, 247, 0.28) !important;
+}
+
+.badge-soft-danger {
+    background-color: #fef2f2 !important;
+    color: #991b1b !important;
+    border: 1px solid rgba(239, 68, 68, 0.28) !important;
+}
+
+.badge-soft-info {
+    background-color: #f0fdfa !important;
+    color: #0f766e !important;
+    border: 1px solid rgba(13, 148, 136, 0.28) !important;
+}
+
+/* 🌟 Dedicated Fixed Bottom Running Text Panel (ពណ៌ផ្ទៃ Dark Emerald មិនមែនពណ៌ស & ជាប់បាតក្រោមជានិច្ច មិនបាត់ពេល Scroll) */
+.app-fixed-bottom-bar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 38px !important;
+    background: linear-gradient(90deg, #064e3b 0%, #0a3320 40%, #064e3b 80%, #032e1e 100%) !important;
+    border-top: 2px solid #10b981 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+    z-index: 99999 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    pointer-events: auto !important;
+    transform: translateZ(0) !important;
+}
+
+body {
+    padding-bottom: 44px !important;
+}
+
+.content-body {
+    padding-bottom: 56px !important;
+}
+
+.bottom-panel-badge {
+    height: 100%;
+    background: #04382a !important;
+    background-color: #04382a !important;
+    color: #ffffff !important;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 12px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.25);
+    border-right: 1.5px solid #10b981;
+}
+
+@keyframes logoMirrorSpin {
+    0% {
+        transform: perspective(400px) rotateY(0deg);
+    }
+    50% {
+        transform: perspective(400px) rotateY(180deg);
+    }
+    100% {
+        transform: perspective(400px) rotateY(360deg);
+    }
+}
+
+.bottom-rotating-logo {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    animation: logoMirrorSpin 4.5s ease-in-out infinite;
+    transform-style: preserve-3d;
+    backface-visibility: visible;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    display: inline-block;
+}
+
+.bottom-active-feature-pill {
+    animation: fadeInFeature 0.3s ease;
+}
+
+@keyframes fadeInFeature {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #4ade80;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 rgba(74, 222, 128, 0.6);
+    animation: pulseDot 2s infinite;
+}
+
+@keyframes pulseDot {
+    0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.8); }
+    70% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
+
+/* ==========================================================================
+   📱 FLUID RESPONSIVE SYSTEM & MOBILE / TABLET / APK OPTIMIZATIONS
+   ========================================================================== */
+
+/* 🔤 Fluid Responsive Khmer Typography */
+.main-title, .page-title, .muol-title, .muol-text, .royal-title {
+    font-family: var(--khmer-muol) !important;
+    font-size: clamp(16px, 2.2vw, 22px) !important;
+    line-height: 1.4 !important;
+}
+
+.sidebar-title {
+    font-family: var(--khmer-muol) !important;
+    font-size: clamp(14px, 1.8vw, 19px) !important;
+    line-height: 1.35 !important;
+}
+
+/* 🔘 Dynamic Touch Buttons & Pills */
+.btn {
+    white-space: nowrap !important;
+    font-family: var(--khmer-font);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-sm {
+    padding: 0.32rem clamp(0.45rem, 1vw, 0.75rem) !important;
+    font-size: clamp(0.72rem, 1.1vw, 0.82rem) !important;
+    line-height: 1.4 !important;
+}
+
+.btn-lg {
+    padding: 0.55rem clamp(0.85rem, 1.8vw, 1.25rem) !important;
+    font-size: clamp(0.88rem, 1.3vw, 1.05rem) !important;
+}
+
+.card {
+    border-radius: clamp(10px, 1.5vw, 16px) !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.card-stat {
+    border-radius: clamp(10px, 1.5vw, 14px) !important;
+}
+
+.stat-icon {
+    width: clamp(40px, 4.5vw, 52px) !important;
+    height: clamp(40px, 4.5vw, 52px) !important;
+    font-size: clamp(1.1rem, 1.6vw, 1.4rem) !important;
+    border-radius: clamp(8px, 1.2vw, 12px) !important;
+}
+
+/* 🏷️ Badge Fluid Sizing */
+.badge {
+    font-size: clamp(0.66rem, 0.85vw, 0.78rem) !important;
+    padding: 0.32em 0.6em !important;
+    white-space: nowrap !important;
+}
+
+/* 📋 Stretch Tables Cleanly Down to Fixed Green Bottom Panel */
+.officer-table-scroll,
+.contract-table-scroll,
+.medals-table-scroll,
+.promotion-table-scroll,
+.tracking-table-scroll,
+.retirement-table-scroll,
+.vehicle-table-scroll,
+.table-responsive-scroll {
+    max-height: calc((100vh - 170px) / var(--current-zoom, 1)) !important;
+    min-height: calc((100vh - 260px) / var(--current-zoom, 1)) !important;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    scroll-behavior: smooth !important;
+}
+
+/* 📱 Responsive Mobile Breakpoint (< 992px) */
+@media (max-width: 991.98px) {
+    .sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 38px !important;
+        height: calc(100vh - 38px) !important;
+        width: 290px !important;
+        max-width: 85vw !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        z-index: 1000005 !important; /* ALWAYS IN FRONT OF BACKDROP */
+        filter: none !important;
+        -webkit-filter: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    .sidebar.show {
+        transform: translateX(0) !important;
+        box-shadow: 12px 0 45px rgba(0, 0, 0, 0.75) !important;
+    }
+    .sidebar-backdrop {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 38px !important;
+        background: rgba(0, 0, 0, 0.55) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        filter: none !important;
+        -webkit-filter: none !important;
+        z-index: 1000001 !important;
+        display: none;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+    .sidebar-backdrop.show {
+        display: block !important;
+        opacity: 1 !important;
+    }
+    .main-content {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .top-navbar {
+        height: 52px !important;
+        min-height: 52px !important;
+        padding: 0 0.6rem !important;
+    }
+    .content-body {
+        padding: 0.5rem 0.5rem 0.25rem 0.5rem !important;
+    }
+
+    /* 📱 APK / Mobile Font Size Refinement (Reduced by 1-2 sizes) */
+    .sidebar-title {
+        font-size: 15px !important;
+        line-height: 1.35 !important;
+    }
+    .sidebar-subtitle {
+        font-size: 0.70rem !important;
+    }
+    .sidebar-section-header {
+        font-size: 0.62rem !important;
+        padding: 0.50rem 0.5rem 0.20rem 0.5rem !important;
+    }
+    .nav-group-toggle,
+    .sidebar-nav .nav-link {
+        font-size: 0.80rem !important; /* Reduced 1-2 sizes */
+        padding: 0.48rem 0.70rem !important;
+    }
+    .submenu-link {
+        font-size: 0.75rem !important; /* Reduced 1-2 sizes */
+        padding: 0.38rem 0.65rem !important;
+    }
+    .sidebar-brand {
+        padding: 0.75rem 0.75rem 0.55rem 0.75rem !important;
+    }
+    .sidebar-brand .brand-logo {
+        width: 36px !important;
+        height: 36px !important;
+        margin-bottom: 0.25rem !important;
+    }
+
+    /* 📱 APK Content Table & Text Scaling */
+    .fs-7 { font-size: 0.78rem !important; }
+    .fs-8 { font-size: 0.70rem !important; }
+    .fs-9 { font-size: 0.63rem !important; }
+    .table th, .table td {
+        font-size: 0.78rem !important;
+    }
+}
+
+/* 🟢 Real-time Audit Log Live Sync Animations */
+@keyframes newLogPulseHighlight {
+    0% {
+        background-color: #d1fae5 !important;
+        box-shadow: inset 0 0 14px rgba(16, 185, 129, 0.45);
+    }
+    40% {
+        background-color: #ecfdf5 !important;
+    }
+    100% {
+        background-color: transparent !important;
+    }
+}
+
+.new-log-flash {
+    animation: newLogPulseHighlight 3.5s ease-out forwards;
+}
+
+.live-sync-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.live-pulse-dot {
+    width: 9px;
+    height: 9px;
+    background-color: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: livePulseGlow 1.8s infinite;
+}
+
+@keyframes livePulseGlow {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+

@@ -89,6 +89,21 @@ def login_view(request):
                 # Session expires on browser close so reopening the app requires entering password again
                 request.session.set_expiry(0)
 
+                try:
+                    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
+                    if ip and ',' in ip:
+                        ip = ip.split(',')[0].strip()
+                    OfficerAuditLog.objects.create(
+                        user=user,
+                        action_type='USER_LOGIN',
+                        details=f"គណនី @{user.username} ({user.get_full_name() or user.username}) បាន Login ចូលប្រើប្រាស់ប្រព័ន្ធ",
+                        category="ការចូលប្រើប្រព័ន្ធ",
+                        ip_address=ip or '127.0.0.1',
+                        officer_name_cache=f"User: {user.username}"
+                    )
+                except Exception:
+                    pass
+
                 full_name = user.get_full_name() or user.username
                 role_label = user_profile.get_role_display() if user_profile else 'អ្នកគ្រប់គ្រងប្រព័ន្ធ'
                 messages.success(request, f"ស្វាគមន៍មកកាន់ប្រព័ន្ធ! ចូលប្រព័ន្ធជោគជ័យជា {full_name} ({role_label})")
@@ -685,7 +700,17 @@ def document_delete(request, pk):
         return redirect('document_detail', pk=pk)
 
     reg_num = document.registry_number
+    title = document.title
     document.delete()
+    log_officer_action(
+        request,
+        officer=None,
+        action_type='DOCUMENT_DELETE',
+        attachment_title=title,
+        details=f"បានលុបឯកសារ «{title}» (លេខចុះ: {reg_num}) ចេញពីប្រព័ន្ធ",
+        category="គ្រប់គ្រងលិខិតស្នាម",
+        officer_name_cache="លិខិតរដ្ឋបាល"
+    )
     messages.success(request, f"បានលុបឯកសារលេខ {reg_num} ចេញពីប្រព័ន្ធដោយជោគជ័យ!")
 
     next_url = request.META.get('HTTP_REFERER')
@@ -1176,6 +1201,16 @@ def document_create(request):
                         title="លិខិតរង់ចាំចំណារពីថ្នាក់ដឹកនាំ",
                         message=f"ឯកសារលេខ {doc.registry_number} កំពុងរង់ចាំចំណារ"
                     )
+
+            log_officer_action(
+                request,
+                officer=None,
+                action_type='DOCUMENT_CREATE',
+                attachment_title=doc.title,
+                details=f"បានចុះបញ្ជីឯកសារថ្មី «{doc.title}» (លេខចុះ: {doc.registry_number})",
+                category="គ្រប់គ្រងលិខិតស្នាម",
+                officer_name_cache="លិខិតរដ្ឋបាល"
+            )
 
             messages.success(request, f"បានចុះលេខ និងរក្សាទុកឯកសារ {doc.registry_number} ដោយជោគជ័យ!")
             return redirect('document_detail', pk=doc.pk)
@@ -2615,18 +2650,33 @@ def officer_list(request):
     return render(request, 'dms/officer_list.html', context)
 
 
-def log_officer_action(request, officer, action_type, attachment_title="", category="", details=""):
+def log_officer_action(request, officer, action_type, attachment_title="", category="", details="", officer_name_cache=""):
     """
-    Records an audit log entry for any action performed on an officer profile or attachment.
+    Records an audit log entry for any action performed on an officer profile, contract staff, or attachment.
     """
     try:
-        ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
-        if ip and ',' in ip:
-            ip = ip.split(',')[0].strip()
+        ip = ''
+        if request:
+            ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
+            if ip and ',' in ip:
+                ip = ip.split(',')[0].strip()
+        
+        name_cache = ''
+        target_officer = None
+        if officer and isinstance(officer, CivilServantProfile):
+            target_officer = officer
+            name_cache = officer.full_name_kh
+        elif officer:
+            name_cache = getattr(officer, 'full_name_kh', str(officer))
+        elif officer_name_cache:
+            name_cache = officer_name_cache
+        elif category:
+            name_cache = category
+
         OfficerAuditLog.objects.create(
-            officer=officer,
-            officer_name_cache=officer.full_name_kh if officer else '',
-            user=request.user if request.user.is_authenticated else None,
+            officer=target_officer,
+            officer_name_cache=name_cache,
+            user=request.user if (request and request.user.is_authenticated) else None,
             action_type=action_type,
             attachment_title=attachment_title,
             category=category,
@@ -4657,12 +4707,88 @@ def officer_audit_trail_view(request):
     is_admin = request.user.is_superuser or request.user.username.upper() == 'ADMIN'
 
     if not is_admin:
+        if request.GET.get('live_feed') == '1':
+            return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
         messages.error(request, "⚠️ មានតែ ADMIN ប៉ុណ្ណោះដែលអាចមើលផ្ទាំង Audit Logs នេះបាន!")
         return redirect('officer_list')
 
     search_q = request.GET.get('q', '').strip()
     action_filter = request.GET.get('action_type', '').strip()
     user_filter = request.GET.get('user', '').strip()
+
+    # 🟢 Real-time Live Feed Polling API for instant updates
+    if request.GET.get('live_feed') == '1':
+        try:
+            after_id = int(request.GET.get('after_id', 0))
+        except (ValueError, TypeError):
+            after_id = 0
+
+        new_logs_qs = OfficerAuditLog.objects.select_related('officer', 'user', 'officer__department').filter(id__gt=after_id)
+
+        if search_q:
+            new_logs_qs = new_logs_qs.filter(
+                Q(officer__khmer_last_name__icontains=search_q) |
+                Q(officer__khmer_first_name__icontains=search_q) |
+                Q(officer__officer_id_number__icontains=search_q) |
+                Q(attachment_title__icontains=search_q) |
+                Q(details__icontains=search_q) |
+                Q(user__username__icontains=search_q) |
+                Q(officer_name_cache__icontains=search_q)
+            )
+        if action_filter:
+            new_logs_qs = new_logs_qs.filter(action_type=action_filter)
+        if user_filter:
+            new_logs_qs = new_logs_qs.filter(user_id=user_filter)
+
+        new_logs = list(new_logs_qs.order_by('id')[:50])
+        max_id = after_id
+        if new_logs:
+            max_id = max(log.id for log in new_logs)
+        else:
+            latest = OfficerAuditLog.objects.order_by('-id').values_list('id', flat=True).first()
+            if latest and latest > max_id:
+                max_id = latest
+
+        serialized = []
+        for log in new_logs:
+            off_name = ''
+            off_id = '-'
+            off_url = ''
+            if log.officer:
+                off_name = log.officer.full_name_kh
+                off_id = log.officer.officer_id_number or '-'
+                off_url = reverse('officer_detail', args=[log.officer.id])
+            else:
+                off_name = log.officer_name_cache or 'មន្ត្រីត្រូវបានលុប'
+
+            user_disp = log.user.get_full_name() or log.user.username if log.user else 'ប្រព័ន្ធ'
+            u_name = log.user.username if log.user else 'system'
+
+            serialized.append({
+                'id': log.id,
+                'timestamp': log.timestamp.strftime('%d/%m/%Y %H:%M:%S'),
+                'officer_name': off_name,
+                'officer_id': off_id,
+                'officer_url': off_url,
+                'has_officer': bool(log.officer),
+                'user_display': user_disp,
+                'username': u_name,
+                'action_type': log.action_type,
+                'action_display': log.get_action_type_display(),
+                'details': log.details or log.attachment_title or '',
+                'category': log.category or '',
+                'ip_address': log.ip_address or '127.0.0.1',
+                'delete_url': reverse('officer_audit_log_delete', args=[log.id]),
+            })
+
+        total_count = OfficerAuditLog.objects.count()
+        return JsonResponse({
+            'status': 'success',
+            'has_new': len(serialized) > 0,
+            'new_logs': serialized,
+            'latest_id': max_id,
+            'total_count': total_count,
+        })
 
     logs = OfficerAuditLog.objects.select_related('officer', 'user', 'officer__department').all()
 
@@ -4673,7 +4799,8 @@ def officer_audit_trail_view(request):
             Q(officer__officer_id_number__icontains=search_q) |
             Q(attachment_title__icontains=search_q) |
             Q(details__icontains=search_q) |
-            Q(user__username__icontains=search_q)
+            Q(user__username__icontains=search_q) |
+            Q(officer_name_cache__icontains=search_q)
         )
 
     if action_filter:
@@ -4687,6 +4814,7 @@ def officer_audit_trail_view(request):
     page_obj = paginator.get_page(page_number)
 
     all_users = User.objects.filter(is_active=True).order_by('username')
+    latest_log_id = OfficerAuditLog.objects.order_by('-id').values_list('id', flat=True).first() or 0
 
     context = {
         'page_obj': page_obj,
@@ -4697,6 +4825,7 @@ def officer_audit_trail_view(request):
         'all_users': all_users,
         'total_logs': logs.count(),
         'action_choices': OfficerAuditLog.ACTION_CHOICES,
+        'latest_log_id': latest_log_id,
     }
     return render(request, 'dms/officer_audit_logs.html', context)
 
@@ -11732,6 +11861,15 @@ def contract_officer_create(request):
 
             contract_officer.save()
 
+            log_officer_action(
+                request,
+                officer=None,
+                action_type='CONTRACT_CREATE',
+                details=f"បានបញ្ចូលជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យាថ្មី «{contract_officer.full_name_kh}» (ឆ្នាំ {contract_officer.contract_year})",
+                category="មន្ត្រីជាប់កិច្ចសន្យា",
+                officer_name_cache=contract_officer.full_name_kh
+            )
+
             messages.success(request, f'បានបញ្ចូលជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យា «{contract_officer.full_name_kh}» (ឆ្នាំ {contract_officer.contract_year}) ដោយជោគជ័យ!')
             
             save_action = request.POST.get('save_action', 'save_and_close')
@@ -11944,6 +12082,15 @@ def contract_officer_edit(request, pk):
                     transferred_by=request.user,
                 )
 
+            log_officer_action(
+                request,
+                officer=None,
+                action_type='CONTRACT_EDIT',
+                details=f"បានកែប្រែជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យា «{contract_officer.full_name_kh}» (ឆ្នាំ {contract_officer.contract_year})",
+                category="មន្ត្រីជាប់កិច្ចសន្យា",
+                officer_name_cache=contract_officer.full_name_kh
+            )
+
             messages.success(request, f'បានកែប្រែជីវប្រវត្តិមន្ត្រីជាប់កិច្ចសន្យា «{contract_officer.full_name_kh}» (ឆ្នាំ {contract_officer.contract_year}) ដោយជោគជ័យ!')
             return redirect('contract_officer_detail', pk=contract_officer.pk)
 
@@ -12062,6 +12209,15 @@ def contract_officer_renew(request, pk):
             contract_officer.last_renewed_at = timezone.now()
             contract_officer.last_renewed_by = request.user
             contract_officer.save()
+
+            log_officer_action(
+                request,
+                officer=None,
+                action_type='CONTRACT_RENEW',
+                details=f"បានអនុម័តបន្តកិច្ចសន្យាសម្រាប់ «{contract_officer.full_name_kh}» ពីឆ្នាំ {from_year} ទៅឆ្នាំ {to_year}",
+                category="មន្ត្រីជាប់កិច្ចសន្យា",
+                officer_name_cache=contract_officer.full_name_kh
+            )
 
             messages.success(request, f'🎉 បានអនុម័តបន្តកិច្ចសន្យាសម្រាប់ «{contract_officer.full_name_kh}» ទៅកាន់ឆ្នាំ {to_year} ដោយជោគជ័យ!')
 
@@ -12324,6 +12480,14 @@ def contract_officer_delete(request, pk):
         name = contract_officer.full_name_kh
         year = contract_officer.contract_year
         contract_officer.delete()
+        log_officer_action(
+            request,
+            officer=None,
+            action_type='CONTRACT_DELETE',
+            details=f"បានលុបមន្ត្រីជាប់កិច្ចសន្យា «{name}» (ឆ្នាំ {year}) ចេញពីប្រព័ន្ធ",
+            category="មន្ត្រីជាប់កិច្ចសន្យា",
+            officer_name_cache=name
+        )
         messages.success(request, f'🗑️ បានលុបមន្ត្រីជាប់កិច្ចសន្យា «{name}» (ឆ្នាំ {year}) ចេញពីប្រព័ន្ធដោយជោគជ័យ!')
 
     return redirect('contract_officer_list')
@@ -13080,6 +13244,7 @@ def contract_officer_attachment_add(request, pk):
         file_obj = request.FILES.get('file')
         file_type = request.POST.get('file_type', '').strip()
         notes = request.POST.get('notes', '').strip()
+        next_url = request.POST.get('next') or request.GET.get('next')
 
         if not title or not file_obj:
             messages.error(request, 'សូមបញ្ចូលចំណងជើង និងជ្រើសរើសឯកសារភ្ជាប់!')
@@ -13092,9 +13257,72 @@ def contract_officer_attachment_add(request, pk):
                 notes=notes,
                 uploaded_by=request.user
             )
+            log_officer_action(
+                request,
+                officer=None,
+                action_type='CONTRACT_ATTACHMENT_ADD',
+                attachment_title=attachment.title,
+                details=f"បានបញ្ចូលឯកសារភ្ជាប់ «{attachment.title}» ({attachment.file_type}) សម្រាប់មន្ត្រីកិច្ចសន្យា «{contract_officer.full_name_kh}»",
+                category="ឯកសារភ្ជាប់កិច្ចសន្យា",
+                officer_name_cache=contract_officer.full_name_kh
+            )
             messages.success(request, f'បានបញ្ចូលឯកសារ «{attachment.title}» ដោយជោគជ័យ!')
+            if next_url:
+                return redirect(next_url)
 
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect('contract_officer_detail', pk=contract_officer.pk)
+
+
+@login_required
+def contract_officer_attachment_edit(request, pk, attachment_id):
+    """
+    Edit an attachment of a Contract Civil Servant profile.
+    """
+    contract_officer = get_object_or_404(ContractOfficer, pk=pk)
+    profile = getattr(request.user, 'profile', None)
+    dept = profile.department if profile else None
+    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+
+    if not has_global_access:
+        if not dept or contract_officer.department != dept:
+            messages.error(request, '⚠️ លោកអ្នកគ្មានសិទ្ធិកែប្រែឯកសាររបស់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!')
+            return redirect('contract_officer_list')
+
+    attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
+    next_url = request.POST.get('next') or request.GET.get('next')
+
+    if request.method == 'POST':
+        old_title = attachment.title
+        attachment.title = request.POST.get('title', attachment.title).strip()
+        attachment.file_type = request.POST.get('file_type', attachment.file_type).strip()
+        attachment.notes = request.POST.get('notes', attachment.notes).strip()
+
+        if 'file' in request.FILES and request.FILES['file']:
+            attachment.file = request.FILES['file']
+
+        attachment.save()
+
+        log_officer_action(
+            request,
+            officer=None,
+            action_type='CONTRACT_ATTACHMENT_EDIT',
+            attachment_title=attachment.title,
+            details=f"បានកែប្រែឯកសារភ្ជាប់ «{attachment.title}» របស់មន្ត្រីកិច្ចសន្យា «{contract_officer.full_name_kh}»",
+            category="ឯកសារភ្ជាប់កិច្ចសន្យា",
+            officer_name_cache=contract_officer.full_name_kh
+        )
+
+        messages.success(request, f"✅ បានកែប្រែឯកសារភ្ជាប់ «{attachment.title}» ដោយជោគជ័យ!")
+        if next_url:
+            return redirect(next_url)
+        return redirect('contract_officer_detail', pk=pk)
+
+    if next_url:
+        return redirect(next_url)
+    return redirect('contract_officer_detail', pk=pk)
 
 
 @login_required
@@ -13116,7 +13344,21 @@ def contract_officer_attachment_delete(request, pk, attachment_id):
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
     title = attachment.title
     attachment.delete()
+
+    log_officer_action(
+        request,
+        officer=None,
+        action_type='CONTRACT_ATTACHMENT_DELETE',
+        attachment_title=title,
+        details=f"បានលុបឯកសារភ្ជាប់ «{title}» របស់មន្ត្រីកិច្ចសន្យា «{contract_officer.full_name_kh}»",
+        category="ឯកសារភ្ជាប់កិច្ចសន្យា",
+        officer_name_cache=contract_officer.full_name_kh
+    )
+
     messages.success(request, f'បានលុបឯកសារ «{title}» រួចរាល់!')
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect('contract_officer_detail', pk=contract_officer.pk)
 
 
@@ -18021,6 +18263,326 @@ def pdf_extract_pages_api(request):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'ការបំបែកទំព័រ PDF បរាជ័យ៖ {str(e)}'}, status=500)
+
+
+def mobile_preview_view(request):
+    """
+    📱 Interactive Smartphone Simulator & Mobile Preview for DMC System.
+    Serves the mobile phone preview on same-origin HTTP to avoid browser iframe security blocks.
+    """
+    host = request.get_host()
+    scheme = 'https' if request.is_secure() else 'http'
+    current_origin = f"{scheme}://{host}"
+    
+    return render(request, 'dms/mobile_preview.html', {
+        'current_origin': current_origin,
+        'host': host,
+    })
+
+
+@login_required
+def personnel_reference_hub(request):
+    """
+    📁 គ្រប់គ្រងលើឯកសារយោងទាំងអស់របស់មន្ត្រី និងមន្ត្រីជាប់កិច្ចសន្យា តាមឈ្មោះនីមួយៗ
+    ចុចលើឈ្មោះ ឃើញបញ្ជីឯកសារយោង មើល file លុប និងកែសម្រួលបានដោយសេរី
+    """
+    from django.urls import reverse
+    profile = getattr(request.user, 'profile', None)
+    dept = profile.department if profile else None
+    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+    is_admin_or_lead = has_global_access
+    is_system_admin = check_is_system_admin(request.user, request)
+
+    search_q = request.GET.get('q', '').strip()
+    type_filter = request.GET.get('type', 'ALL').strip().upper()  # 'ALL', 'CIVIL', 'CONTRACT'
+    dept_filter = request.GET.get('department', '').strip()
+    selected_person_key = request.GET.get('selected', '').strip()  # e.g. "civil_5" or "contract_2"
+
+    departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh') if is_admin_or_lead else (Department.objects.filter(id=dept.id) if dept else [])
+
+    # 1. Fetch Civil Servants
+    civil_qs = CivilServantProfile.objects.select_related('department').prefetch_related('attachments').all()
+    if not is_admin_or_lead:
+        if dept:
+            civil_qs = civil_qs.filter(department=dept)
+        else:
+            civil_qs = civil_qs.filter(user=request.user)
+
+    if dept_filter:
+        civil_qs = civil_qs.filter(department_id=dept_filter)
+
+    if search_q:
+        civil_qs = civil_qs.filter(
+            Q(khmer_last_name__icontains=search_q) |
+            Q(khmer_first_name__icontains=search_q) |
+            Q(latin_name__icontains=search_q) |
+            Q(officer_id_number__icontains=search_q) |
+            Q(phone__icontains=search_q)
+        )
+
+    # 2. Fetch Contract Officers
+    contract_qs = ContractOfficer.objects.select_related('department').prefetch_related('attachments').all()
+    if not is_admin_or_lead:
+        if dept:
+            contract_qs = contract_qs.filter(department=dept)
+        else:
+            contract_qs = contract_qs.none()
+
+    if dept_filter:
+        contract_qs = contract_qs.filter(department_id=dept_filter)
+
+    if search_q:
+        contract_qs = contract_qs.filter(
+            Q(khmer_last_name__icontains=search_q) |
+            Q(khmer_first_name__icontains=search_q) |
+            Q(latin_name__icontains=search_q) |
+            Q(id_number__icontains=search_q) |
+            Q(phone__icontains=search_q)
+        )
+
+    personnel_list = []
+
+    # If type is ALL or CIVIL
+    if type_filter in ['ALL', 'CIVIL']:
+        for o in civil_qs.order_by('khmer_last_name', 'khmer_first_name'):
+            personnel_list.append({
+                'key': f"civil_{o.id}",
+                'type': 'CIVIL',
+                'type_label': 'មន្ត្រីរាជការ',
+                'type_badge_class': 'bg-primary text-white',
+                'id': o.id,
+                'full_name_kh': o.full_name_kh,
+                'full_name_latin': o.full_name_latin,
+                'id_number': o.officer_id_number or '-',
+                'department_name': o.department.name_kh if o.department else 'មិនទាន់កំណត់',
+                'position': o.current_position_title or 'មន្ត្រីរាជការ',
+                'photo_url': o.photo.url if o.photo else None,
+                'attachments_count': o.attachments.count(),
+                'detail_url': reverse('officer_detail', args=[o.id]),
+                'add_attachment_url': reverse('officer_attachment_add', args=[o.id]),
+            })
+
+    # If type is ALL or CONTRACT
+    if type_filter in ['ALL', 'CONTRACT']:
+        for c in contract_qs.order_by('khmer_last_name', 'khmer_first_name'):
+            personnel_list.append({
+                'key': f"contract_{c.id}",
+                'type': 'CONTRACT',
+                'type_label': 'មន្ត្រីកិច្ចសន្យា',
+                'type_badge_class': 'bg-warning text-dark',
+                'id': c.id,
+                'full_name_kh': c.full_name_kh,
+                'full_name_latin': c.full_name_latin,
+                'id_number': c.id_number or '-',
+                'department_name': c.department.name_kh if c.department else (c.working_unit or 'មិនទាន់កំណត់'),
+                'position': c.position_title or 'មន្ត្រីជាប់កិច្ចសន្យា',
+                'photo_url': c.photo.url if c.photo else None,
+                'attachments_count': c.attachments.count(),
+                'detail_url': reverse('contract_officer_detail', args=[c.id]),
+                'add_attachment_url': reverse('contract_officer_attachment_add', args=[c.id]),
+            })
+
+    total_civil_files = OfficerAttachment.objects.count()
+    total_contract_files = ContractOfficerAttachment.objects.count()
+    total_files_overall = total_civil_files + total_contract_files
+
+    selected_person = None
+    selected_attachments = []
+
+    if selected_person_key:
+        selected_person = next((p for p in personnel_list if p['key'] == selected_person_key), None)
+
+    if not selected_person and personnel_list:
+        selected_person = next((p for p in personnel_list if p['attachments_count'] > 0), personnel_list[0])
+
+    if selected_person:
+        selected_person_key = selected_person['key']
+        p_type = selected_person['type']
+        p_id = selected_person['id']
+
+        if p_type == 'CIVIL':
+            att_qs = OfficerAttachment.objects.filter(officer_id=p_id).select_related('uploaded_by').order_by('category', '-created_at')
+            for a in att_qs:
+                fn = os.path.basename(a.file.name) if a.file else ''
+                selected_attachments.append({
+                    'id': a.id,
+                    'title': a.title,
+                    'category_display': a.get_category_display(),
+                    'raw_category': a.category,
+                    'doc_number': a.doc_number or '-',
+                    'issued_date': a.issued_date or '-',
+                    'description': a.description or '',
+                    'file_url': a.file.url if a.file else '',
+                    'file_name': fn,
+                    'file_size_formatted': a.formatted_file_size,
+                    'is_pdf': a.is_pdf,
+                    'is_image': a.is_image,
+                    'is_word': a.is_word,
+                    'view_url': reverse('officer_attachment_view', args=[p_id, a.id]),
+                    'download_url': reverse('officer_attachment_download', args=[p_id, a.id]),
+                    'edit_url': reverse('officer_attachment_edit', args=[p_id, a.id]),
+                    'delete_url': reverse('officer_attachment_delete', args=[p_id, a.id]),
+                    'open_word_url': reverse('officer_attachment_open_word', args=[p_id, a.id]) if a.is_word else None,
+                    'uploaded_by': a.uploaded_by.get_full_name() or a.uploaded_by.username if a.uploaded_by else 'ប្រព័ន្ធ',
+                    'created_at': a.created_at.strftime('%d/%m/%Y %H:%M') if a.created_at else '-',
+                    'person_type': 'CIVIL',
+                })
+        else:
+            att_qs = ContractOfficerAttachment.objects.filter(contract_officer_id=p_id).select_related('uploaded_by').order_by('-created_at')
+            for a in att_qs:
+                fn = os.path.basename(a.file.name) if a.file else ''
+                selected_attachments.append({
+                    'id': a.id,
+                    'title': a.title,
+                    'category_display': a.file_type or 'ឯកសារភ្ជាប់កិច្ចសន្យា',
+                    'raw_category': a.file_type or 'OTHER',
+                    'doc_number': '-',
+                    'issued_date': '-',
+                    'description': a.notes or '',
+                    'file_url': a.file.url if a.file else '',
+                    'file_name': fn,
+                    'file_size_formatted': f"{a.file.size / 1024:.1f} KB" if (a.file and a.file.size < 1024*1024) else (f"{a.file.size / (1024*1024):.1f} MB" if a.file else '-'),
+                    'is_pdf': a.is_pdf,
+                    'is_image': a.is_image,
+                    'is_word': a.is_word,
+                    'view_url': reverse('contract_officer_attachment_view', args=[p_id, a.id]),
+                    'download_url': reverse('contract_officer_attachment_download', args=[p_id, a.id]),
+                    'edit_url': reverse('contract_officer_attachment_edit', args=[p_id, a.id]),
+                    'delete_url': reverse('contract_officer_attachment_delete', args=[p_id, a.id]),
+                    'open_word_url': reverse('contract_officer_attachment_open_word', args=[p_id, a.id]) if a.is_word else None,
+                    'uploaded_by': a.uploaded_by.get_full_name() or a.uploaded_by.username if a.uploaded_by else 'ប្រព័ន្ធ',
+                    'created_at': a.created_at.strftime('%d/%m/%Y %H:%M') if a.created_at else '-',
+                    'person_type': 'CONTRACT',
+                })
+
+    context = {
+        'personnel_list': personnel_list,
+        'selected_person': selected_person,
+        'selected_person_key': selected_person_key,
+        'selected_attachments': selected_attachments,
+        'total_files_overall': total_files_overall,
+        'total_civil_files': total_civil_files,
+        'total_contract_files': total_contract_files,
+        'departments': departments,
+        'search_q': search_q,
+        'type_filter': type_filter,
+        'dept_filter': dept_filter,
+        'civil_category_choices': OfficerAttachment.CATEGORY_CHOICES,
+        'is_admin_or_lead': is_admin_or_lead,
+        'is_system_admin': is_system_admin,
+    }
+    return render(request, 'dms/personnel_reference_hub.html', context)
+
+
+@login_required
+def api_personnel_reference_data(request):
+    """
+    JSON API returning an officer's profile summary and list of attachments for instant switching without full page reload.
+    """
+    from django.urls import reverse
+    person_key = request.GET.get('key', '').strip()  # e.g. "civil_12" or "contract_5"
+    if not person_key or '_' not in person_key:
+        return JsonResponse({'status': 'error', 'message': 'Missing person key'}, status=400)
+
+    p_type, p_id = person_key.split('_', 1)
+    p_type = p_type.upper()
+    try:
+        p_id = int(p_id)
+    except ValueError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid person ID'}, status=400)
+
+    profile_data = {}
+    attachments_data = []
+
+    if p_type == 'CIVIL':
+        officer = get_object_or_404(CivilServantProfile, pk=p_id)
+        profile_data = {
+            'key': f"civil_{officer.id}",
+            'type': 'CIVIL',
+            'type_label': 'មន្ត្រីរាជការ',
+            'type_badge_class': 'bg-primary text-white',
+            'id': officer.id,
+            'full_name_kh': officer.full_name_kh,
+            'full_name_latin': officer.full_name_latin,
+            'id_number': officer.officer_id_number or '-',
+            'department_name': officer.department.name_kh if officer.department else 'មិនទាន់កំណត់',
+            'position': officer.current_position_title or 'មន្ត្រីរាជការ',
+            'photo_url': officer.photo.url if officer.photo else None,
+            'detail_url': reverse('officer_detail', args=[officer.id]),
+            'add_attachment_url': reverse('officer_attachment_add', args=[officer.id]),
+        }
+        att_qs = OfficerAttachment.objects.filter(officer=officer).select_related('uploaded_by').order_by('category', '-created_at')
+        for a in att_qs:
+            attachments_data.append({
+                'id': a.id,
+                'title': a.title,
+                'category_display': a.get_category_display(),
+                'raw_category': a.category,
+                'doc_number': a.doc_number or '-',
+                'issued_date': a.issued_date or '-',
+                'description': a.description or '',
+                'file_name': os.path.basename(a.file.name) if a.file else '',
+                'file_size_formatted': a.formatted_file_size,
+                'is_pdf': a.is_pdf,
+                'is_image': a.is_image,
+                'is_word': a.is_word,
+                'view_url': reverse('officer_attachment_view', args=[officer.id, a.id]),
+                'download_url': reverse('officer_attachment_download', args=[officer.id, a.id]),
+                'edit_url': reverse('officer_attachment_edit', args=[officer.id, a.id]),
+                'delete_url': reverse('officer_attachment_delete', args=[officer.id, a.id]),
+                'open_word_url': reverse('officer_attachment_open_word', args=[officer.id, a.id]) if a.is_word else None,
+                'uploaded_by': a.uploaded_by.get_full_name() or a.uploaded_by.username if a.uploaded_by else 'ប្រព័ន្ធ',
+                'created_at': a.created_at.strftime('%d/%m/%Y %H:%M') if a.created_at else '-',
+                'person_type': 'CIVIL',
+            })
+    else:
+        contract_officer = get_object_or_404(ContractOfficer, pk=p_id)
+        profile_data = {
+            'key': f"contract_{contract_officer.id}",
+            'type': 'CONTRACT',
+            'type_label': 'មន្ត្រីកិច្ចសន្យា',
+            'type_badge_class': 'bg-warning text-dark',
+            'id': contract_officer.id,
+            'full_name_kh': contract_officer.full_name_kh,
+            'full_name_latin': contract_officer.full_name_latin,
+            'id_number': contract_officer.id_number or '-',
+            'department_name': contract_officer.department.name_kh if contract_officer.department else (contract_officer.working_unit or 'មិនទាន់កំណត់'),
+            'position': contract_officer.position_title or 'មន្ត្រីជាប់កិច្ចសន្យា',
+            'photo_url': contract_officer.photo.url if contract_officer.photo else None,
+            'detail_url': reverse('contract_officer_detail', args=[contract_officer.id]),
+            'add_attachment_url': reverse('contract_officer_attachment_add', args=[contract_officer.id]),
+        }
+        att_qs = ContractOfficerAttachment.objects.filter(contract_officer=contract_officer).select_related('uploaded_by').order_by('-created_at')
+        for a in att_qs:
+            attachments_data.append({
+                'id': a.id,
+                'title': a.title,
+                'category_display': a.file_type or 'ឯកសារភ្ជាប់កិច្ចសន្យា',
+                'raw_category': a.file_type or 'OTHER',
+                'doc_number': '-',
+                'issued_date': '-',
+                'description': a.notes or '',
+                'file_name': os.path.basename(a.file.name) if a.file else '',
+                'file_size_formatted': f"{a.file.size / 1024:.1f} KB" if (a.file and a.file.size < 1024*1024) else (f"{a.file.size / (1024*1024):.1f} MB" if a.file else '-'),
+                'is_pdf': a.is_pdf,
+                'is_image': a.is_image,
+                'is_word': a.is_word,
+                'view_url': reverse('contract_officer_attachment_view', args=[contract_officer.id, a.id]),
+                'download_url': reverse('contract_officer_attachment_download', args=[contract_officer.id, a.id]),
+                'edit_url': reverse('contract_officer_attachment_edit', args=[contract_officer.id, a.id]),
+                'delete_url': reverse('contract_officer_attachment_delete', args=[contract_officer.id, a.id]),
+                'open_word_url': reverse('contract_officer_attachment_open_word', args=[contract_officer.id, a.id]) if a.is_word else None,
+                'uploaded_by': a.uploaded_by.get_full_name() or a.uploaded_by.username if a.uploaded_by else 'ប្រព័ន្ធ',
+                'created_at': a.created_at.strftime('%d/%m/%Y %H:%M') if a.created_at else '-',
+                'person_type': 'CONTRACT',
+            })
+
+    return JsonResponse({
+        'status': 'success',
+        'person': profile_data,
+        'attachments': attachments_data,
+        'total_count': len(attachments_data)
+    })
 
 
 

@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ឧបករណ៍មើលសាកល្បងលើទូរស័ព្ទដៃ (DMC Mobile Simulator & Previewer)</title>
+    
+    <!-- Auto-redirect to server URL if opened as file:// to prevent Chrome iframe security blocks -->
+    <script>
+        if (window.location.protocol === 'file:') {
+            window.location.href = 'http://127.0.0.1:8000/mobile-preview/';
+        }
+    </script>
+
+    <!-- Google Khmer & Inter Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- QRCode JS Library for offline & online phone sync -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --primary-emerald: #065f46;
+            --primary-dark: #064e3b;
+            --accent-amber: #d97706;
+            --khmer-font: 'Kantumruy Pro', sans-serif;
+            --phone-width: 412px;
+            --phone-height: 890px;
+            --phone-radius: 46px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--khmer-font);
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #064e3b 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Top Control Bar */
+        .preview-header {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: #ffffff;
+            padding: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .brand-text h1 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.2;
+        }
+
+        .brand-text p {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .controls-toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tool-group {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 30px;
+            padding: 4px 8px;
+            gap: 6px;
+        }
+
+        .url-input-box {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 30px;
+            padding: 4px 12px;
+            gap: 8px;
+        }
+
+        .url-input-box input {
+            background: transparent;
+            border: none;
+            color: #38bdf8;
+            font-family: 'Inter', monospace;
+            font-size: 0.85rem;
+            outline: none;
+            width: 210px;
+        }
+
+        .btn-action {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-family: var(--khmer-font);
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-action.active {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+
+        .btn-amber {
+            background: linear-gradient(135deg, #d97706, #f59e0b);
+            color: white;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+        }
+
+        .btn-amber:hover {
+            background: linear-gradient(135deg, #b45309, #d97706);
+            transform: translateY(-1px);
+        }
+
+        select.device-select {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-family: var(--khmer-font);
+            font-size: 0.8rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        select.device-select option {
+            background: #1e293b;
+            color: white;
+        }
+
+        /* Simulator Stage */
+        .simulator-stage {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px 40px;
+            perspective: 1200px;
+        }
+
+        /* Smartphone Frame */
+        .smartphone-mockup {
+            width: var(--phone-width);
+            height: var(--phone-height);
+            background: #1e293b;
+            border-radius: var(--phone-radius);
+            box-shadow: 
+                0 0 0 10px #0f172a,
+                0 0 0 12px #334155,
+                0 25px 60px -15px rgba(0, 0, 0, 0.7),
+                0 0 40px rgba(16, 185, 129, 0.15);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center center;
+        }
+
+        .smartphone-mockup.landscape {
+            width: var(--phone-height);
+            height: var(--phone-width);
+        }
+
+        /* Side physical buttons styling */
+        .smartphone-mockup::before {
+            content: '';
+            position: absolute;
+            left: -14px;
+            top: 110px;
+            width: 4px;
+            height: 48px;
+            background: #475569;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .smartphone-mockup::after {
+            content: '';
+            position: absolute;
+            right: -14px;
+            top: 160px;
+            width: 4px;
+            height: 64px;
+            background: #475569;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* Phone Top Status Bar */
+        .phone-status-bar {
+            height: 38px;
+            background: #064e3b;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            position: relative;
+            z-index: 20;
+            user-select: none;
+        }
+
+        /* Punch Hole Camera */
+        .punch-hole {
+            width: 14px;
+            height: 14px;
+            background: #000000;
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            top: 10px;
+            transform: translateX(-50%);
+            box-shadow: inset 0 0 3px rgba(255, 255, 255, 0.25);
+            z-index: 25;
+        }
+
+        .status-icons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Live Content Screen */
+        .phone-screen {
+            flex: 1;
+            width: 100%;
+            background: #f4f6f9;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .phone-screen iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            background: #ffffff;
+        }
+
+        /* Phone Bottom Navigation Bar */
+        .phone-nav-bar {
+            height: 36px;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            color: #64748b;
+            font-size: 0.9rem;
+            z-index: 20;
+            user-select: none;
+        }
+
+        .phone-nav-btn {
+            background: transparent;
+            border: none;
+            color: #64748b;
+            padding: 6px 20px;
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .phone-nav-btn:hover {
+            color: #065f46;
+        }
+
+        .home-indicator {
+            width: 100px;
+            height: 4px;
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* Modal styling for QR and Instructions */
+        .custom-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .custom-modal {
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 24px;
+            padding: 28px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-close-modal {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #cbd5e1;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .guide-step {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .step-num {
+            background: #10b981;
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 🌟 Top Control Header -->
+    <header class="preview-header">
+        <div class="brand-section">
+            <img src="/static/dms/img/logo.png" alt="Logo" class="brand-logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+            <div class="brand-text">
+                <h1>ឧបករណ៍មើលសាកល្បងលើទូរស័ព្ទដៃ</h1>
+                <p>DMC System Mobile Preview Simulator & APK Assistant</p>
+            </div>
+        </div>
+
+        <div class="controls-toolbar">
+            <!-- Device Preset Selector -->
+            <div class="tool-group">
+                <i class="fa-solid fa-mobile-screen text-success"></i>
+                <select class="device-select" id="devicePreset" onchange="changeDevice(this.value)">
+                    <option value="s24">Samsung Galaxy S24 (412 x 890)</option>
+                    <option value="pixel8">Google Pixel 8 (412 x 892)</option>
+                    <option value="iphone15">iPhone 15 Pro (393 x 852)</option>
+                    <option value="tablet">iPad / Tablet (768 x 1024)</option>
+                </select>
+            </div>
+
+            <!-- Orientation Switcher -->
+            <button class="btn-action" id="rotateBtn" onclick="toggleOrientation()" title="បង្វិលអេក្រង់ បញ្ឈរ / ផ្ដេក">
+                <i class="fa-solid fa-rotate"></i>
+                <span id="rotateLabel">បញ្ឈរ (Portrait)</span>
+            </button>
+
+            <!-- Server URL Box -->
+            <div class="url-input-box">
+                <i class="fa-solid fa-link text-info"></i>
+                <input type="text" id="targetUrlInput" value="http://127.0.0.1:8000/" placeholder="http://192.168.1.61:8000/">
+                <button class="btn-action" style="padding: 3px 8px; font-size: 0.75rem;" onclick="loadTargetUrl()">
+                    <i class="fa-solid fa-arrow-right"></i> ផ្ទុក
+                </button>
+            </div>
+
+            <!-- Reload Phone Screen -->
+            <button class="btn-action" onclick="reloadPhoneScreen()" title="Reload ទំព័រ">
+                <i class="fa-solid fa-arrow-rotate-right"></i>
+            </button>
+
+            <!-- QR Code Button -->
+            <button class="btn-action" onclick="openQrModal()" title="ស្កេនមើលលើទូរស័ព្ទពិតប្រាកដ">
+                <i class="fa-solid fa-qrcode text-warning"></i>
+                <span>ស្កេនលើទូរស័ព្ទពិត</span>
+            </button>
+
+            <!-- APK Build & Download Guide -->
+            <button class="btn-action btn-amber" onclick="openApkModal()">
+                <i class="fa-brands fa-android"></i>
+                <span>ទាញយក / បង្កើត APK</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 📱 Simulator Stage -->
+    <main class="simulator-stage">
+        <div class="smartphone-mockup" id="phoneMockup">
+            <!-- Status Bar -->
+            <div class="phone-status-bar">
+                <span id="liveClock">09:41</span>
+                <div class="punch-hole"></div>
+                <div class="status-icons">
+                    <i class="fa-solid fa-signal"></i>
+                    <i class="fa-solid fa-wifi"></i>
+                    <i class="fa-solid fa-battery-full"></i>
+                </div>
+            </div>
+
+            <!-- Live Screen View -->
+            <div class="phone-screen">
+                <iframe id="phoneFrame" src="http://127.0.0.1:8000/" title="DMC System Mobile Screen"></iframe>
+            </div>
+
+            <!-- Bottom Navigation Bar -->
+            <div class="phone-nav-bar">
+                <button class="phone-nav-btn" onclick="frameGoBack()" title="ថយក្រោយ"><i class="fa-solid fa-chevron-left"></i></button>
+                <button class="phone-nav-btn" onclick="frameGoHome()" title="ទៅកាន់ទំព័រដើម"><i class="fa-solid fa-house"></i></button>
+                <button class="phone-nav-btn" onclick="reloadPhoneScreen()" title="Reload"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 📷 Modal: QR Code to open on actual mobile phone -->
+    <div class="custom-modal-backdrop" id="qrModal">
+        <div class="custom-modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-solid fa-qrcode text-warning"></i>
+                    <span>ស្កេនដើម្បីមើលលើទូរស័ព្ទដៃផ្ទាល់</span>
+                </div>
+                <button class="btn-close-modal" onclick="closeQrModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="qr-card">
+                <div id="qrcodeDisplay"></div>
+                <div class="mt-2 text-dark fw-bold fs-7" id="qrUrlLabel" style="font-family: monospace; word-break: break-all; margin-top: 12px; color: #0f172a;">
+                    http://192.168.1.61:8000/
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="step-num">1</div>
+                <div>ភ្ជាប់ទូរស័ព្ទដៃរបស់អ្នកទៅកាន់ Wi-Fi ឬបណ្តាញតែមួយជាមួយកុំព្យូទ័រនេះ។</div>
+            </div>
+            <div class="guide-step">
+                <div class="step-num">2</div>
+                <div>បើក Camera ឬកម្មវិធីស្កេន QR លើទូរស័ព្ទ រួចស្កេនរូប QR ខាងលើ។</div>
+            </div>
+            <div class="guide-step">
+                <div class="step-num">3</div>
+                <div>ទូរស័ព្ទនឹងបើកប្រព័ន្ធ DMC System ភ្លាមៗដោយរលូន អាចចុច «បន្ថែមទៅអេក្រង់ដើម / Install App» បានភ្លាមៗ!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📦 Modal: APK Build & Install Information -->
+    <div class="custom-modal-backdrop" id="apkModal">
+        <div class="custom-modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-brands fa-android text-success fs-4"></i>
+                    <span>របៀបបង្កើត & ដំឡើង APK លើទូរស័ព្ទ Android</span>
+                </div>
+                <button class="btn-close-modal" onclick="closeApkModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <p style="font-size: 0.88rem; color: #94a3b8; margin-bottom: 16px;">
+                ប្រព័ន្ធ DMC System ត្រូវបានបំពាក់ដោយបច្ចេកវិទ្យា Mobile PWA & Android WebView App ពេញលេញ ដែលអាចប្រើប្រាស់បាន ២ វិធីយ៉ាងងាយស្រួលបំផុត៖
+            </p>
+
+            <div class="guide-step">
+                <div class="step-num">A</div>
+                <div>
+                    <strong class="text-white">វិធីទី១៖ ដំឡើងផ្ទាល់លើទូរស័ព្ទភ្លាមៗ (WebAPK PWA - មិនបាច់ដំឡើងអ្វីបន្ថែម)</strong>
+                    <p style="font-size: 0.8rem; color: #cbd5e1; margin-top: 4px;">
+                        បើកទូរស័ព្ទដៃ Chrome រួចវាយអាសយដ្ឋាន <code style="color: #38bdf8;">http://192.168.1.61:8000/</code> ឬ <code style="color: #38bdf8;">http://syd.local:8000/</code> នោះ Chrome នឹងលោតប៊ូតុង <strong>«ដំឡើងកម្មវិធី DMC System»</strong> ទៅលើអេក្រង់ដើមទូរស័ព្ទ ក្លាយជា App មួយភ្លែត!
+                    </p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="step-num">B</div>
+                <div>
+                    <strong class="text-white">វិធីទី២៖ កញ្ចប់គម្រោង Android WebView APK (សម្រាប់ Export ជា .APK)</strong>
+                    <p style="font-size: 0.8rem; color: #cbd5e1; margin-top: 4px;">
+                        កូដប្រភព Android Studio ពេញលេញមាននៅក្នុងថត <code style="color: #38bdf8;">android_app/</code> ដែលអាច Build ទៅជា file <code style="color: #4ade80;">DMC_System.apk</code> សម្រាប់ផ្ញើតាម Telegram ឬដំឡើងលើគ្រប់ទូរស័ព្ទដៃ Android ទាំងអស់។
+                    </p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="step-num">C</div>
+                <div>
+                    <strong class="text-white">វិធីទី៣៖ ស្វ័យប្រវត្តតាម GitHub Actions Build Cloud</strong>
+                    <p style="font-size: 0.8rem; color: #cbd5e1; margin-top: 4px;">
+                        គ្រាន់តែដំណើរការ <code style="color: #38bdf8;">python push_to_github.py</code> នោះ GitHub Cloud នឹងស្វ័យប្រវត្ត compile ចេញជា file APK ឲ្យអ្នក Download ភ្លាមៗ!
+                    </p>
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 18px;">
+                <button class="btn-action" onclick="closeApkModal()" style="padding: 8px 20px;">
+                    <i class="fa-solid fa-check"></i> យល់ព្រម
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Realtime Clock on Phone Status Bar
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('liveClock').textContent = `${hours}:${minutes}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Device Switcher
+        const devices = {
+            s24: { width: '412px', height: '890px', radius: '46px' },
+            pixel8: { width: '412px', height: '892px', radius: '44px' },
+            iphone15: { width: '393px', height: '852px', radius: '50px' },
+            widescreen: { width: '540px', height: '890px', radius: '40px' },
+            tablet: { width: '768px', height: '1024px', radius: '36px' },
+            foldable: { width: '840px', height: '900px', radius: '36px' }
+        };
+
+        let currentScale = 1;
+        function changeScale(val) {
+            const mockup = document.getElementById('phoneMockup');
+            if (val === 'fit') {
+                const stageHeight = window.innerHeight - 100;
+                const mockupHeight = parseInt(mockup.style.height || 890);
+                val = Math.min(1, Math.max(0.5, (stageHeight / mockupHeight) * 0.92));
+            } else {
+                val = parseFloat(val);
+            }
+            currentScale = val;
+            mockup.style.transform = `scale(${val})`;
+        }
+
+        let currentDevice = 's24';
+        let isLandscape = false;
+
+        function changeDevice(key) {
+            currentDevice = key;
+            applyDeviceDimensions();
+        }
+
+        function toggleOrientation() {
+            isLandscape = !isLandscape;
+            const mockup = document.getElementById('phoneMockup');
+            const rotateLabel = document.getElementById('rotateLabel');
+            const rotateBtn = document.getElementById('rotateBtn');
+
+            if (isLandscape) {
+                mockup.classList.add('landscape');
+                rotateLabel.textContent = 'ផ្ដេក (Landscape)';
+                rotateBtn.classList.add('active');
+            } else {
+                mockup.classList.remove('landscape');
+                rotateLabel.textContent = 'បញ្ឈរ (Portrait)';
+                rotateBtn.classList.remove('active');
+            }
+            applyDeviceDimensions();
+        }
+
+        function applyDeviceDimensions() {
+            const mockup = document.getElementById('phoneMockup');
+            const d = devices[currentDevice];
+            if (isLandscape) {
+                mockup.style.width = d.height;
+                mockup.style.height = d.width;
+            } else {
+                mockup.style.width = d.width;
+                mockup.style.height = d.height;
+            }
+            mockup.style.borderRadius = d.radius;
+        }
+
+        // Live URL Loading
+        function loadTargetUrl() {
+            let url = document.getElementById('targetUrlInput').value.trim();
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'http://' + url;
+            }
+            document.getElementById('phoneFrame').src = url;
+            generateQrCode(url);
+        }
+
+        function reloadPhoneScreen() {
+            const frame = document.getElementById('phoneFrame');
+            frame.src = frame.src;
+        }
+
+        function frameGoBack() {
+            try {
+                document.getElementById('phoneFrame').contentWindow.history.back();
+            } catch (e) {
+                reloadPhoneScreen();
+            }
+        }
+
+        function frameGoHome() {
+            const targetUrl = document.getElementById('targetUrlInput').value.trim();
+            document.getElementById('phoneFrame').src = targetUrl;
+        }
+
+        // QR Code Generator
+        let qrCodeInstance = null;
+        function generateQrCode(url) {
+            const display = document.getElementById('qrcodeDisplay');
+            display.innerHTML = '';
+            
+            // Prefer network IP if localhost is entered
+            let networkUrl = url;
+            if (url.includes('127.0.0.1') || url.includes('localhost')) {
+                networkUrl = 'http://192.168.1.61:8000/';
+            }
+            
+            document.getElementById('qrUrlLabel').textContent = networkUrl;
+
+            try {
+                if (typeof QRCode !== 'undefined') {
+                    qrCodeInstance = new QRCode(display, {
+                        text: networkUrl,
+                        width: 200,
+                        height: 200,
+                        colorDark: "#0f172a",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function openQrModal() {
+            const currentUrl = document.getElementById('targetUrlInput').value.trim();
+            generateQrCode(currentUrl);
+            document.getElementById('qrModal').style.display = 'flex';
+        }
+
+        function closeQrModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        function openApkModal() {
+            document.getElementById('apkModal').style.display = 'flex';
+        }
+
+        function closeApkModal() {
+            document.getElementById('apkModal').style.display = 'none';
+        }
+
+        // Close on backdrop click
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('qrModal')) {
+                closeQrModal();
+            }
+            if (event.target == document.getElementById('apkModal')) {
+                closeApkModal();
+            }
+        };
+
+        // Initialize with default
+        const currentOrigin = (window.location.protocol.startsWith('http')) 
+            ? window.location.origin + '/' 
+            : 'http://127.0.0.1:8000/';
+        
+        document.getElementById('targetUrlInput').value = currentOrigin;
+        document.getElementById('phoneFrame').src = currentOrigin;
+        generateQrCode('http://192.168.1.61:8000/');
+    </script>
+</body>
+</html>

@@ -18,9 +18,19 @@
                 <p class="text-muted small m-0">តាមដាន និងត្រួតពិនិត្យរាល់ការ បញ្ចូល មើល កែប្រែ ឬលុបឯកសារយោង និងជីវប្រវត្តិមន្ត្រីទាំងអស់ក្នុងប្រព័ន្ធ</p>
             </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="live-sync-indicator shadow-xs" id="liveSyncStatusBadge" title="ប្រព័ន្ធកំពុងផ្សាយបន្តផ្ទាល់រាល់សកម្មភាពថ្មីៗស្វ័យប្រវត្តិ">
+                <span class="live-pulse-dot" id="livePulseDot"></span>
+                <span id="liveSyncStatusText">ផ្សាយផ្ទាល់ (Live Sync)</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5" id="btnToggleLiveSync" onclick="toggleLiveSync()" title="ផ្អាក ឬបន្តការ Update ផ្ទាល់">
+                <i class="fa-solid fa-pause me-1" id="btnToggleLiveSyncIcon"></i> <span id="btnToggleLiveSyncText">ផ្អាក</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5" onclick="manualRefreshLiveLogs()" title="Refresh ទាញយកទិន្នន័យថ្មីភ្លាមៗ">
+                <i class="fa-solid fa-rotate me-1" id="manualRefreshIcon"></i> ផ្ទុកឡើងវិញ
+            </button>
             {% if total_logs > 0 %}
-            <button type="button" class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-bold shadow-xs" data-bs-toggle="modal" data-bs-target="#clearAllLogsModal">
+            <button type="button" class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-bold shadow-xs ms-1" data-bs-toggle="modal" data-bs-target="#clearAllLogsModal">
                 <i class="fa-solid fa-trash-can me-1.5"></i> សម្អាតកំណត់ត្រាទាំងអស់
             </button>
             {% endif %}
@@ -93,10 +103,13 @@
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2">
-                    <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-shield-halved text-warning me-2"></i> កំណត់ត្រាសកម្មភាពទាំងអស់ ({{ total_logs }})</h6>
+                    <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-shield-halved text-warning me-2"></i> កំណត់ត្រាសកម្មភាពទាំងអស់ (<span id="totalLogsCounter" class="text-primary fw-bold">{{ total_logs }}</span>)</h6>
+                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-0.5 fs-9 fw-bold d-none" id="newLogsIncomingBadge">
+                        <i class="fa-solid fa-bolt me-1"></i> មានកំណត់ត្រាថ្មី
+                    </span>
                 </div>
             </div>
-            <div class="table-responsive">
+            <div class="table-responsive officer-table-scroll">
                 <table class="table table-hover align-middle mb-0 fs-7">
                     <thead class="bg-light text-muted fs-8 text-uppercase">
                         <tr>
@@ -112,7 +125,7 @@
                             <th class="text-center pe-3" style="width: 70px;">លុប</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="auditLogsTableBody">
                         {% for log in logs %}
                         <tr>
                             <td class="ps-3 text-center">
@@ -300,5 +313,209 @@ function openDeleteSingleLogModal(deleteUrl, timestamp, actionType, details) {
     const modal = new bootstrap.Modal(document.getElementById('deleteSingleLogModal'));
     modal.show();
 }
+
+// 🟢 Real-time Continuous Audit Log Live Sync Engine
+let latestLogId = parseInt("{{ latest_log_id|default:'0' }}", 10) || 0;
+let isLiveSyncActive = true;
+let isPolling = false;
+const pollIntervalMs = 3000; // Poll every 3 seconds
+let livePollTimer = null;
+
+const currentSearchQ = "{{ search_q|escapejs }}";
+const currentActionFilter = "{{ action_filter|escapejs }}";
+const currentUserFilter = "{{ user_filter|escapejs }}";
+
+function getActionBadgeHtml(actionType, actionDisplay) {
+    if (actionType === 'UPLOAD') {
+        return `<span class="badge bg-success bg-opacity-10 text-success px-2.5 py-1.5"><i class="fa-solid fa-cloud-arrow-up me-1"></i> ${actionDisplay}</span>`;
+    } else if (actionType === 'EDIT' || actionType === 'CONTRACT_EDIT' || actionType === 'CONTRACT_ATTACHMENT_EDIT' || actionType === 'SETTING_UPDATE') {
+        return `<span class="badge bg-warning bg-opacity-25 text-dark px-2.5 py-1.5"><i class="fa-solid fa-pen-to-square me-1"></i> ${actionDisplay}</span>`;
+    } else if (actionType === 'DELETE' || actionType === 'PROFILE_DELETE' || actionType === 'CONTRACT_DELETE' || actionType === 'CONTRACT_ATTACHMENT_DELETE' || actionType === 'DOCUMENT_DELETE') {
+        return `<span class="badge bg-danger bg-opacity-10 text-danger px-2.5 py-1.5"><i class="fa-solid fa-trash me-1"></i> ${actionDisplay}</span>`;
+    } else if (actionType === 'VIEW') {
+        return `<span class="badge bg-info bg-opacity-10 text-info px-2.5 py-1.5"><i class="fa-solid fa-eye me-1"></i> ${actionDisplay}</span>`;
+    } else if (actionType === 'USER_LOGIN') {
+        return `<span class="badge bg-secondary bg-opacity-15 text-dark px-2.5 py-1.5"><i class="fa-solid fa-right-to-bracket me-1 text-primary"></i> ${actionDisplay}</span>`;
+    } else if (actionType === 'CONTRACT_CREATE' || actionType === 'PROFILE_CREATE' || actionType === 'DOCUMENT_CREATE' || actionType === 'CONTRACT_RENEW') {
+        return `<span class="badge bg-primary bg-opacity-10 text-primary px-2.5 py-1.5"><i class="fa-solid fa-circle-plus me-1"></i> ${actionDisplay}</span>`;
+    } else {
+        return `<span class="badge bg-primary bg-opacity-10 text-primary px-2.5 py-1.5">${actionDisplay}</span>`;
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+function pollNewAuditLogs() {
+    if (!isLiveSyncActive || isPolling) return;
+    isPolling = true;
+
+    const url = `{% url 'officer_audit_trail' %}?live_feed=1&after_id=${latestLogId}&q=${encodeURIComponent(currentSearchQ)}&action_type=${encodeURIComponent(currentActionFilter)}&user=${encodeURIComponent(currentUserFilter)}`;
+
+    fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            if (data.has_new && data.new_logs && data.new_logs.length > 0) {
+                renderNewLogs(data.new_logs);
+                latestLogId = data.latest_id;
+            }
+            if (data.total_count !== undefined) {
+                const counter = document.getElementById('totalLogsCounter');
+                if (counter) counter.textContent = data.total_count;
+            }
+        }
+    })
+    .catch(err => {
+        console.warn("Live sync polling error:", err);
+    })
+    .finally(() => {
+        isPolling = false;
+    });
+}
+
+function renderNewLogs(newLogs) {
+    const tbody = document.getElementById('auditLogsTableBody');
+    if (!tbody) return;
+
+    // Remove empty row if exists
+    const emptyRow = tbody.querySelector('tr td[colspan]');
+    if (emptyRow) {
+        emptyRow.closest('tr').remove();
+    }
+
+    // Flash incoming badge
+    const badge = document.getElementById('newLogsIncomingBadge');
+    if (badge) {
+        badge.classList.remove('d-none');
+        badge.textContent = `+${newLogs.length} កំណត់ត្រាថ្មីៗ`;
+        setTimeout(() => badge.classList.add('d-none'), 4000);
+    }
+
+    // Insert rows at top in reverse so newest is at the very top
+    newLogs.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.className = 'new-log-flash';
+        tr.id = `log-row-${log.id}`;
+
+        let officerCell = '';
+        if (log.has_officer && log.officer_url) {
+            officerCell = `
+                <a href="${log.officer_url}" class="fw-bold text-dark text-decoration-none hover-primary d-block">
+                    ${escapeHtml(log.officer_name)}
+                </a>
+                <span class="text-muted fs-8 font-monospace">${escapeHtml(log.officer_id)}</span>
+            `;
+        } else {
+            officerCell = `
+                <span class="fw-bold text-dark d-block">
+                    <i class="fa-solid fa-user me-1 text-primary"></i> ${escapeHtml(log.officer_name)}
+                </span>
+                <span class="badge bg-secondary bg-opacity-10 text-muted fs-9">${escapeHtml(log.category || 'ទូទៅ')}</span>
+            `;
+        }
+
+        const badgeHtml = getActionBadgeHtml(log.action_type, log.action_display);
+
+        tr.innerHTML = `
+            <td class="ps-3 text-center">
+                <input type="checkbox" name="selected_logs" value="${log.id}" class="form-check-input log-item-checkbox" onchange="updateBulkBar()">
+            </td>
+            <td class="font-monospace text-muted fs-8">${escapeHtml(log.timestamp)}</td>
+            <td>${officerCell}</td>
+            <td>
+                <div class="fw-bold text-dark">${escapeHtml(log.user_display)}</div>
+                <span class="text-muted fs-8 font-monospace">@${escapeHtml(log.username)}</span>
+            </td>
+            <td>${badgeHtml}</td>
+            <td>
+                <div class="text-dark">${escapeHtml(log.details)}</div>
+                ${log.category ? `<span class="badge bg-light text-muted border fs-9">${escapeHtml(log.category)}</span>` : ''}
+            </td>
+            <td class="text-center">
+                <span class="badge bg-light text-secondary font-monospace border">${escapeHtml(log.ip_address)}</span>
+            </td>
+            <td class="text-center pe-3">
+                <button type="button" class="btn btn-xs btn-outline-danger rounded-circle p-1" style="width: 28px; height: 28px;" onclick="openDeleteSingleLogModal('${log.delete_url}', '${escapeHtml(log.timestamp)}', '${escapeHtml(log.action_display)}', '${escapeHtml(log.details)}')" title="លុបកំណត់ត្រានេះ">
+                    <i class="fa-solid fa-trash fs-9"></i>
+                </button>
+            </td>
+        `;
+
+        tbody.insertAdjacentElement('afterbegin', tr);
+    });
+}
+
+function toggleLiveSync() {
+    isLiveSyncActive = !isLiveSyncActive;
+    const badge = document.getElementById('liveSyncStatusBadge');
+    const dot = document.getElementById('livePulseDot');
+    const text = document.getElementById('liveSyncStatusText');
+    const btnIcon = document.getElementById('btnToggleLiveSyncIcon');
+    const btnText = document.getElementById('btnToggleLiveSyncText');
+
+    if (isLiveSyncActive) {
+        if (badge) {
+            badge.style.background = '#ecfdf5';
+            badge.style.borderColor = '#a7f3d0';
+            badge.style.color = '#065f46';
+        }
+        if (dot) dot.style.display = 'inline-block';
+        if (text) text.textContent = 'ផ្សាយផ្ទាល់ (Live Sync)';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-pause me-1';
+        if (btnText) btnText.textContent = 'ផ្អាក';
+        pollNewAuditLogs();
+    } else {
+        if (badge) {
+            badge.style.background = '#fef2f2';
+            badge.style.borderColor = '#fecaca';
+            badge.style.color = '#991b1b';
+        }
+        if (dot) dot.style.display = 'none';
+        if (text) text.textContent = 'បានផ្អាក (Paused)';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-play me-1';
+        if (btnText) btnText.textContent = 'បន្ត';
+    }
+}
+
+function manualRefreshLiveLogs() {
+    const icon = document.getElementById('manualRefreshIcon');
+    if (icon) icon.classList.add('fa-spin');
+    
+    const url = `{% url 'officer_audit_trail' %}?live_feed=1&after_id=${latestLogId}&q=${encodeURIComponent(currentSearchQ)}&action_type=${encodeURIComponent(currentActionFilter)}&user=${encodeURIComponent(currentUserFilter)}`;
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success' && data.new_logs && data.new_logs.length > 0) {
+            renderNewLogs(data.new_logs);
+            latestLogId = data.latest_id;
+        }
+        if (data.total_count !== undefined) {
+            const counter = document.getElementById('totalLogsCounter');
+            if (counter) counter.textContent = data.total_count;
+        }
+    })
+    .finally(() => {
+        setTimeout(() => {
+            if (icon) icon.classList.remove('fa-spin');
+        }, 500);
+    });
+}
+
+// Start live sync heartbeat
+document.addEventListener('DOMContentLoaded', function() {
+    livePollTimer = setInterval(pollNewAuditLogs, pollIntervalMs);
+});
 </script>
 {% endblock %}

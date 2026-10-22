@@ -2687,3 +2687,13 @@ NameError: name 'sys' is not defined
 [2026-10-21 07:59:10] [INFO] Port 80 redirector active: requests to port 80 will redirect to port 8000.
 [2026-10-21 07:59:21] [INFO] Migrations check completed successfully.
 [2026-10-21 07:59:21] [INFO] DMS Server is now running on 0.0.0.0:8000
+[2026-10-22 08:25:42] [INFO] ==================================================
+[2026-10-22 08:25:42] [INFO] Starting DMS Server (Autostart=True, OpenBrowser=False)
+[2026-10-22 08:25:42] [INFO] ==================================================
+[2026-10-22 08:25:42] [INFO] Windows Startup detected. Waiting 5s for network adapters to stabilize...
+[2026-10-22 08:25:48] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-10-22 08:25:48] [INFO] Active LAN / Wi-Fi IP: 192.168.1.61 (http://192.168.1.61:8000/)
+[2026-10-22 08:25:48] [INFO] Checking database migrations...
+[2026-10-22 08:25:48] [INFO] Port 80 redirector active: requests to port 80 will redirect to port 8000.
+[2026-10-22 08:25:58] [INFO] Migrations check completed successfully.
+[2026-10-22 08:25:58] [INFO] DMS Server is now running on 0.0.0.0:8000
