@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: dmc-system
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: bash start.sh
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:npg_bw8CSyjXtql6@ep-wandering-fire-awc8mlbh-pooler.c-12.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: PYTHON_VERSION
+        value: 3.12.8
