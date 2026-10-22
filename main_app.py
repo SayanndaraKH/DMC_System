@@ -111,29 +111,30 @@ for old_name in ["DMC_System.exe.old", "DMC_System_Client.exe.old"]:
 
 def get_local_version_data():
     """Reads local version info from current_version.json or git."""
-    version_file = BASE_DIR / "current_version.json"
-    if version_file.exists():
-        try:
-            with open(version_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
+    for loc in [BASE_DIR / "current_version.json", BASE_DIR / "dist" / "current_version.json"]:
+        if loc.exists():
+            try:
+                with open(loc, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
     if (BASE_DIR / ".git").is_dir():
         try:
             r = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(BASE_DIR), capture_output=True, text=True, timeout=2)
             if r.returncode == 0:
-                return {"sha": r.stdout.strip(), "timestamp": "", "message": ""}
+                return {"sha": r.stdout.strip(), "timestamp": "", "message": "", "version": ""}
         except Exception:
             pass
-    return {"sha": "", "timestamp": "", "message": ""}
+    return {"sha": "", "timestamp": "", "message": "", "version": ""}
 
 
-def save_local_version_data(sha, message="", timestamp=""):
+def save_local_version_data(sha, message="", timestamp="", version=""):
     """Saves local version info to current_version.json."""
     try:
         data = {
-            "sha": sha,
-            "message": message,
+            "sha": sha or "",
+            "version": version or time.strftime("%Y%m%d.%H%M%S"),
+            "message": message or "",
             "timestamp": timestamp or time.strftime("%Y-%m-%d %H:%M:%S")
         }
         with open(BASE_DIR / "current_version.json", "w", encoding="utf-8") as f:
@@ -147,9 +148,54 @@ def save_local_version_data(sha, message="", timestamp=""):
 
 def check_github_update_status():
     """
-    Checks GitHub API commits/main to see if PUSH_TO_GITHUB has pushed a new commit.
-    Returns dict: has_update, remote_sha, commit_msg, commit_date, error.
+    Checks GitHub to see if PUSH_TO_GITHUB has pushed a new update for DMC_System.exe.
+    Prioritizes raw.githubusercontent.com for dist/current_version.json (NO rate limit!),
+    with fallback to api.github.com.
     """
+    local_data = get_local_version_data()
+    local_sha = (local_data.get('sha') or '').strip()
+    local_ts = (local_data.get('timestamp') or '').strip()
+    local_ver = (local_data.get('version') or '').strip()
+
+    # 1. Primary: Check raw current_version.json in dist/ (NO rate limit!)
+    try:
+        raw_url = f'https://raw.githubusercontent.com/SayanndaraKH/DMC_System/main/dist/current_version.json?t={int(time.time())}'
+        req = urllib.request.Request(
+            raw_url,
+            headers={
+                'User-Agent': 'DMC-UpdateChecker/1.0',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            remote_sha = (data.get('sha') or '').strip()
+            remote_ts = (data.get('timestamp') or '').strip()
+            remote_ver = (data.get('version') or '').strip()
+            commit_msg = (data.get('message') or '').strip().split('\n')[0]
+
+            has_update = False
+            if remote_sha and local_sha:
+                has_update = (remote_sha != local_sha)
+            elif remote_ver and local_ver:
+                has_update = (remote_ver != local_ver)
+            elif remote_ts and local_ts:
+                has_update = (remote_ts > local_ts)
+            elif remote_sha or remote_ts:
+                has_update = True
+
+            return {
+                'has_update': has_update,
+                'remote_sha': remote_sha or remote_ver or remote_ts,
+                'commit_msg': commit_msg or 'កំណែទម្រង់ថ្មី',
+                'commit_date': remote_ts,
+                'error': None
+            }
+    except Exception:
+        pass
+
+    # 2. Secondary fallback: Check GitHub API commits/main
     try:
         url = f'https://api.github.com/repos/SayanndaraKH/DMC_System/commits/main?t={int(time.time())}'
         req = urllib.request.Request(
@@ -165,9 +211,6 @@ def check_github_update_status():
             remote_sha = data.get('sha', '').strip()
             commit_msg = data.get('commit', {}).get('message', '').strip().split('\n')[0]
             commit_date = data.get('commit', {}).get('committer', {}).get('date', '')
-            local_data = get_local_version_data()
-            local_sha = local_data.get('sha', '').strip()
-
             has_update = bool(remote_sha and (remote_sha != local_sha))
             return {
                 'has_update': has_update,
@@ -1080,7 +1123,6 @@ class DMCMainApp(ctk.CTk):
 
     def _run_in_app_update(self):
         import shutil
-        import zipfile
         import urllib.request
         import os
         import sys
@@ -1088,156 +1130,218 @@ class DMCMainApp(ctk.CTk):
         import subprocess
 
         try:
-            # 1. Check if git repository is active
-            has_git = False
-            git_cmd = "git"
-            for candidate in [
-                os.path.expandvars(r"%LOCALAPPDATA%\Programs\Git\cmd\git.exe"),
-                r"C:\Program Files\Git\cmd\git.exe",
-                r"C:\Program Files (x86)\Git\cmd\git.exe",
-                "git"
-            ]:
-                if os.path.exists(candidate) or candidate == "git":
-                    try:
-                        r = subprocess.run([candidate, "--version"], capture_output=True, text=True, timeout=3)
-                        if r.returncode == 0:
-                            git_cmd = candidate
-                            has_git = (BASE_DIR / ".git").is_dir()
-                            break
-                    except Exception:
-                        pass
+            self.update_progress_ui(0.05, "⏳ កំពុងពិនិត្យមើលការតភ្ជាប់ទៅកាន់ GitHub...", "5%")
 
-            if has_git:
-                self.update_progress_ui(0.25, "📥 កំពុងទាញយកកូដ និងទម្រង់ថ្មីពី GitHub (git fetch)...", "25%")
-                subprocess.run([git_cmd, "fetch", "origin", "main"], cwd=str(BASE_DIR), capture_output=True, text=True, timeout=60)
-                
-                self.update_progress_ui(0.55, "🔄 កំពុងជំនួស File ឯកសារ និងទម្រង់ថ្មី (git reset)...", "55%")
-                subprocess.run([git_cmd, "reset", "--hard", "origin/main"], cwd=str(BASE_DIR), capture_output=True, text=True, timeout=60)
-                
-                dist_exe = BASE_DIR / "dist" / "DMC_System.exe"
-                if dist_exe.exists():
-                    safe_replace_file(dist_exe, BASE_DIR / "DMC_System.exe")
-            else:
-                # Direct GitHub ZIP Downloader (Works on 100% of User PCs without Git)
-                self.update_progress_ui(0.15, "📥 កំពុងភ្ជាប់ទាញយកកូដ និងទម្រង់ថ្មីពី GitHub...", "15%")
-                zip_url = "https://github.com/SayanndaraKH/DMC_System/archive/refs/heads/main.zip"
-                req = urllib.request.Request(zip_url, headers={'User-Agent': 'DMC-AutoUpdater/1.0'})
-                
-                temp_zip = Path(os.environ.get("TEMP", ".")) / "dmc_update.zip"
-                with urllib.request.urlopen(req, timeout=90) as resp:
-                    total_size = resp.headers.get("Content-Length")
-                    total_size = int(total_size) if total_size and total_size.isdigit() else None
-                    downloaded = 0
-                    chunk_size = 64 * 1024
-                    
-                    with open(temp_zip, "wb") as f_out:
-                        while True:
-                            chunk = resp.read(chunk_size)
-                            if not chunk:
-                                break
-                            f_out.write(chunk)
-                            downloaded += len(chunk)
-                            if total_size:
-                                frac = min(0.60, 0.15 + (downloaded / total_size) * 0.45)
-                                mb_down = downloaded / (1024 * 1024)
-                                mb_tot = total_size / (1024 * 1024)
-                                self.update_progress_ui(frac, f"📥 កំពុងទាញយក... {mb_down:.1f} MB / {mb_tot:.1f} MB", f"{int(frac*100)}%")
-                            else:
-                                mb_down = downloaded / (1024 * 1024)
-                                frac = min(0.60, 0.15 + (downloaded / (50 * 1024 * 1024)) * 0.45)
-                                self.update_progress_ui(frac, f"📥 កំពុងទាញយក... {mb_down:.1f} MB", f"{int(frac*100)}%")
-
-                # Extract ZIP
-                self.update_progress_ui(0.65, "📂 កំពុងពន្លា និងជំនួស File ឯកសារថ្មីៗ...", "65%")
-                temp_extract = Path(os.environ.get("TEMP", ".")) / "dmc_update_extracted"
-                if temp_extract.exists():
-                    shutil.rmtree(temp_extract, ignore_errors=True)
-                temp_extract.mkdir(parents=True, exist_ok=True)
-
-                with zipfile.ZipFile(temp_zip, 'r') as zf:
-                    members = zf.infolist()
-                    total_members = len(members)
-                    for i, m in enumerate(members):
-                        zf.extract(m, temp_extract)
-                        if i % 25 == 0:
-                            frac = min(0.80, 0.65 + (i / max(1, total_members)) * 0.15)
-                            self.update_progress_ui(frac, f"📂 កំពុងពន្លា File ({i}/{total_members})...", f"{int(frac*100)}%")
-
-                # Copy extracted files to BASE_DIR (skipping user db and .env to preserve credentials)
-                self.update_progress_ui(0.80, "📝 កំពុងជំនួស File កូដ និងទម្រង់ថ្មី...", "80%")
-                root_extracted = next((d for d in temp_extract.iterdir() if d.is_dir()), temp_extract)
-                for item in root_extracted.iterdir():
-                    if item.name in [".env", "db.sqlite3", "db.sqlite3-journal", "backups"]:
-                        continue
-                    dest = BASE_DIR / item.name
-                    if item.is_dir():
-                        shutil.copytree(item, dest, dirs_exist_ok=True)
-                    else:
-                        safe_replace_file(item, dest)
-
-                # Ensure dist/DMC_System.exe replaces root DMC_System.exe if present in update
-                for cand in [BASE_DIR / "dist" / "DMC_System.exe", root_extracted / "dist" / "DMC_System.exe"]:
-                    if cand.exists():
-                        safe_replace_file(cand, BASE_DIR / "DMC_System.exe")
-
-                try:
-                    temp_zip.unlink(missing_ok=True)
-                    shutil.rmtree(temp_extract, ignore_errors=True)
-                except Exception:
-                    pass
-
-            # Step: Restart embedded server with fresh templates & code
-            self.update_progress_ui(0.88, "⚙️ កំពុង Restart Server ជាមួយទម្រង់ថ្មី...", "88%")
-            self.restart_server()
-            
-            for _ in range(15):
-                time.sleep(0.5)
-                if self.check_url_online("http://127.0.0.1:8000/", timeout=0.5):
-                    break
-
-            # Pre-cache missing officer photos in background
+            # 1. Fetch remote version info from dist/current_version.json
+            remote_version_info = {}
             try:
-                from dms.media_service import sync_officer_photos_async
-                sync_officer_photos_async()
+                ver_url = f"https://raw.githubusercontent.com/SayanndaraKH/DMC_System/main/dist/current_version.json?t={int(time.time())}"
+                req = urllib.request.Request(ver_url, headers={'User-Agent': 'DMC-AutoUpdater/1.0'})
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    remote_version_info = json.loads(resp.read().decode('utf-8'))
             except Exception:
                 pass
 
-            # Save new version info locally
-            if getattr(self, '_remote_sha', None):
-                save_local_version_data(self._remote_sha, getattr(self, '_remote_msg', ''))
+            # 2. Determine target executable path
+            is_frozen = getattr(sys, 'frozen', False)
+            if is_frozen:
+                target_exe = Path(sys.executable).resolve()
             else:
-                chk = check_github_update_status()
-                if chk.get('remote_sha'):
-                    save_local_version_data(chk['remote_sha'], chk.get('commit_msg', ''))
-            self._has_new_update = False
+                target_exe = BASE_DIR / "dist" / "DMC_System.exe"
 
-            # 100% Success!
-            self.update_progress_ui(1.0, "✅ Update ជោគជ័យ ១០០% រួចរាល់! ចុចប៊ូតុងខាងលើដើម្បីមើលទម្រង់ថ្មី", "100%")
-            
-            def _on_finish():
-                self._is_updating = False
-                self.btn_update.configure(
-                    state="normal",
-                    text="✅ កំណែចុងក្រោយបំផុត (Up-to-Date)",
-                    fg_color="#1e293b",
-                    hover_color="#334155",
-                    text_color="#94a3b8"
-                )
-                self.update_notice_label.configure(
-                    text="✅ បាន Update ជោគជ័យ ១០០%! កំពុងដំណើរការលើកំណែចុងក្រោយបង្អស់",
-                    text_color="#4ade80"
-                )
-                self.btn_open.configure(
-                    text="🚀 បើកដំណើរការទម្រង់ថ្មី (Open Updated DMC Window)",
-                    fg_color="#16a34a",
-                    hover_color="#15803d"
-                )
-                self.status_badge.configure(
-                    text="🟢 កំពុងដំណើរការ (Online - ទម្រង់ថ្មី)",
-                    text_color="#4ade80",
-                    fg_color="#14532d"
-                )
-            self.after(0, _on_finish)
+            target_dir = target_exe.parent
+            target_dir.mkdir(parents=True, exist_ok=True)
+
+            # Temp download file (placed on the same drive/folder as target_exe for instant atomic move)
+            temp_new_exe = target_dir / "DMC_System.exe.new"
+            if temp_new_exe.exists():
+                try:
+                    temp_new_exe.unlink()
+                except Exception:
+                    pass
+
+            # 3. Download ONLY dist/DMC_System.exe from GitHub
+            self.update_progress_ui(0.10, "📥 កំពុងចាប់ផ្តើមទាញយក file DMC_System.exe ពី dist...", "10%")
+            exe_urls = [
+                "https://raw.githubusercontent.com/SayanndaraKH/DMC_System/main/dist/DMC_System.exe",
+                "https://github.com/SayanndaraKH/DMC_System/raw/main/dist/DMC_System.exe"
+            ]
+
+            download_success = False
+            last_err = None
+
+            for url in exe_urls:
+                try:
+                    req = urllib.request.Request(
+                        url,
+                        headers={
+                            'User-Agent': 'DMC-AutoUpdater/1.0',
+                            'Accept': '*/*'
+                        }
+                    )
+                    with urllib.request.urlopen(req, timeout=120) as resp:
+                        total_size = resp.headers.get("Content-Length")
+                        total_size = int(total_size) if total_size and total_size.isdigit() else None
+                        downloaded = 0
+                        chunk_size = 128 * 1024  # 128 KB chunks for smooth, fast transfer
+
+                        with open(temp_new_exe, "wb") as f_out:
+                            while True:
+                                chunk = resp.read(chunk_size)
+                                if not chunk:
+                                    break
+                                f_out.write(chunk)
+                                downloaded += len(chunk)
+                                if total_size:
+                                    # Progress 10% to 85% during download
+                                    frac = min(0.85, 0.10 + (downloaded / total_size) * 0.75)
+                                    mb_down = downloaded / (1024 * 1024)
+                                    mb_tot = total_size / (1024 * 1024)
+                                    self.update_progress_ui(
+                                        frac,
+                                        f"📥 កំពុងទាញយក DMC_System.exe... ({mb_down:.1f} MB / {mb_tot:.1f} MB)",
+                                        f"{int(frac * 100)}%"
+                                    )
+                                else:
+                                    mb_down = downloaded / (1024 * 1024)
+                                    frac = min(0.85, 0.10 + (downloaded / (95 * 1024 * 1024)) * 0.75)
+                                    self.update_progress_ui(
+                                        frac,
+                                        f"📥 កំពុងទាញយក DMC_System.exe... ({mb_down:.1f} MB)",
+                                        f"{int(frac * 100)}%"
+                                    )
+
+                        # Verify downloaded file size
+                        if temp_new_exe.exists() and temp_new_exe.stat().st_size > 10 * 1024 * 1024:
+                            download_success = True
+                            break
+                        else:
+                            raise Exception("Downloaded file is too small or incomplete.")
+                except Exception as e:
+                    last_err = e
+                    if temp_new_exe.exists():
+                        try:
+                            temp_new_exe.unlink()
+                        except Exception:
+                            pass
+                    continue
+
+            if not download_success:
+                raise Exception(f"មិនអាចទាញយក file exe ពី GitHub បានឡើយ: {last_err}")
+
+            # 4. Verification
+            self.update_progress_ui(0.88, "🔍 កំពុងផ្ទៀងផ្ទាត់ទំហំ និងសុពលភាពនៃ File...", "88%")
+            time.sleep(0.5)
+
+            # 5. File replacement
+            self.update_progress_ui(0.92, "🔄 កំពុងជំនួស File DMC_System.exe ថ្មី...", "92%")
+
+            # Also update current_version.json locally
+            saved_sha = remote_version_info.get("sha") or getattr(self, '_remote_sha', '')
+            saved_msg = remote_version_info.get("message") or getattr(self, '_remote_msg', '')
+            saved_ts = remote_version_info.get("timestamp") or time.strftime("%Y-%m-%d %H:%M:%S")
+            saved_ver = remote_version_info.get("version") or time.strftime("%Y%m%d.%H%M%S")
+            save_local_version_data(saved_sha, saved_msg, saved_ts, saved_ver)
+
+            # Handle file replacement based on execution mode
+            root_exe = BASE_DIR / "DMC_System.exe"
+            dist_exe = BASE_DIR / "dist" / "DMC_System.exe"
+
+            if is_frozen:
+                # App is running as DMC_System.exe
+                # Windows allows renaming running executable, then copying new one over
+                old_exe = target_exe.with_name(target_exe.name + ".old")
+                if old_exe.exists():
+                    try:
+                        old_exe.unlink()
+                    except Exception:
+                        pass
+
+                replaced_directly = False
+                try:
+                    target_exe.rename(old_exe)
+                    shutil.copy2(temp_new_exe, target_exe)
+                    temp_new_exe.unlink(missing_ok=True)
+                    replaced_directly = True
+                except Exception as e:
+                    logger.warning(f"Could not rename running exe directly: {e}")
+
+                # Also sync root and dist exe if they are accessible and different
+                for sibling in [root_exe, dist_exe]:
+                    if sibling.exists() and sibling.resolve() != target_exe.resolve():
+                        try:
+                            shutil.copy2(target_exe if replaced_directly else temp_new_exe, sibling)
+                        except Exception:
+                            pass
+
+                # Create detached restart script that guarantees clean swap & relaunch
+                restart_bat = target_dir / "restart_after_update.bat"
+                bat_code = f"""@echo off
+timeout /t 2 /nobreak >nul
+if exist "{temp_new_exe}" (
+    copy /y "{temp_new_exe}" "{target_exe}" >nul
+    del /f /q "{temp_new_exe}" >nul
+)
+if exist "{old_exe}" del /f /q "{old_exe}" >nul
+start "" "{target_exe}"
+del "%~f0" & exit
+"""
+                try:
+                    with open(restart_bat, "w", encoding="utf-8") as bf:
+                        bf.write(bat_code)
+                except Exception:
+                    pass
+
+                self.update_progress_ui(1.0, "✅ Update DMC_System.exe ជោគជ័យ ១០០%! កម្មវិធីនឹង Restart ក្នុងពេលបន្តិចទៀត...", "100%")
+                self._has_new_update = False
+
+                def _do_restart():
+                    time.sleep(2)
+                    try:
+                        if restart_bat.exists():
+                            subprocess.Popen(
+                                ["cmd.exe", "/c", str(restart_bat)],
+                                creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
+                                close_fds=True
+                            )
+                    except Exception as re:
+                        logger.warning(f"Failed to spawn restart script: {re}")
+                    # Exit the old process cleanly
+                    self.after(200, lambda: self.destroy())
+                    self.after(500, lambda: os._exit(0))
+
+                threading.Thread(target=_do_restart, daemon=True).start()
+
+            else:
+                # App is running as python script in dev mode (e.g. python main_app.py)
+                try:
+                    shutil.copy2(temp_new_exe, dist_exe)
+                    shutil.copy2(temp_new_exe, root_exe)
+                    temp_new_exe.unlink(missing_ok=True)
+                except Exception as e:
+                    logger.warning(f"Failed to copy exe in dev mode: {e}")
+
+                # Restart embedded server
+                self.update_progress_ui(0.96, "⚙️ កំពុង Restart Server...", "96%")
+                self.restart_server()
+
+                self.update_progress_ui(1.0, "✅ Update DMC_System.exe ពី dist ជោគជ័យ ១០០%!", "100%")
+                self._has_new_update = False
+
+                def _on_finish():
+                    self._is_updating = False
+                    self.btn_update.configure(
+                        state="normal",
+                        text="✅ កំណែចុងក្រោយបំផុត (Up-to-Date)",
+                        fg_color="#1e293b",
+                        hover_color="#334155",
+                        text_color="#94a3b8"
+                    )
+                    self.update_notice_label.configure(
+                        text="✅ បាន Update File DMC_System.exe ពី dist ជោគជ័យ ១០០%!",
+                        text_color="#4ade80"
+                    )
+                self.after(0, _on_finish)
 
         except Exception as e:
             logger.error(f"Auto-update error: {e}")

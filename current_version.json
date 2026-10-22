@@ -1,4 +1,6 @@
 {
-  "timestamp": "2026-10-22 10:30:24",
-  "message": "Auto Update DMC System: 2026-10-22 10:30:24"
+  "version": "20261022.110032",
+  "timestamp": "2026-10-22 11:00:32",
+  "message": "Update dist/DMC_System.exe and implement direct single-file EXE auto-updater for User PCs",
+  "sha": "edc1fe64b12898f837099ef208535b64e5eb1175"
 }
