@@ -1,6 +1,6 @@
 {
-  "version": "20261022.110032",
-  "timestamp": "2026-10-22 11:00:32",
-  "message": "Update dist/DMC_System.exe and implement direct single-file EXE auto-updater for User PCs",
-  "sha": "edc1fe64b12898f837099ef208535b64e5eb1175"
+  "version": "20261022.110114",
+  "timestamp": "2026-10-22 11:01:14",
+  "message": "Update dist/DMC_System.exe with direct single-file EXE auto-updater and rebase",
+  "sha": "e4f70a026c81137d4c9a88d8c42d62da58e0a859"
 }

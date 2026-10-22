@@ -161,8 +161,9 @@ def main():
     else:
         print("  + មិនមានការផ្លាស់ប្តូរថ្មីសម្រាប់ Commit ឡើយ (Working tree clean)")
 
-    # Step 4: Push to GitHub
-    print("\n[4/4] កំពុងបញ្ជូនទៅកាន់ GitHub (git push origin main)...")
+    # Step 4: Pull remote changes (if any) and push to GitHub
+    print("\n[4/4] កំពុងផ្ទៀងផ្ទាត់ និងបញ្ជូនទៅកាន់ GitHub (git push origin main)...")
+    subprocess.run([git_bin, "pull", "--rebase", "origin", "main"], capture_output=True, text=True, encoding="utf-8", errors="replace")
     push_res = subprocess.run([git_bin, "push", "-u", "origin", "main"], capture_output=True, text=True, encoding="utf-8", errors="replace")
 
     if push_res.returncode == 0:
