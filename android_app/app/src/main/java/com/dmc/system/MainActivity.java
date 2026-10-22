@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String PREF_NAME = "DMC_PREFS";
     private static final String KEY_SERVER_URL = "SERVER_URL";
-    private static final String DEFAULT_URL = "http://192.168.1.16:8000/";
+    private static final String DEFAULT_URL = "http://192.168.1.61:8000/";
     private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
 
     private WebView webView;
@@ -144,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
     public void showServerSettingsDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("កំណត់អាសយដ្ឋាន Server (DMC System)");
-        builder.setMessage("សូមបញ្ចូលលេខ IP របស់កុំព្យូទ័រ Server (ឧទាហរណ៍៖ http://192.168.1.16:8000/)៖");
+        builder.setMessage("សូមបញ្ចូលលេខ IP របស់កុំព្យូទ័រ Server (ឧទាហរណ៍៖ http://192.168.1.61:8000/)៖");
 
         final EditText input = new EditText(this);
         input.setText(prefs.getString(KEY_SERVER_URL, DEFAULT_URL));
@@ -208,5 +208,3 @@ public class MainActivity extends AppCompatActivity {
         return super.onKeyDown(keyCode, event);
     }
 }
-
-// Auto-Build Trigger: 2026-10-22 11:49:37

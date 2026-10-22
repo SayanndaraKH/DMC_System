@@ -143,15 +143,6 @@ def auto_build_and_download_apk():
         print("\n❌ [បរាជ័យ] មិនអាច Push ទៅកាន់ GitHub បានឡើយ សូមពិនិត្យមើលការតភ្ជាប់អ៊ីនធឺណិត។")
         return False
 
-    # Get the latest commit SHA that was just pushed
-    try:
-        head_sha = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace"
-        ).stdout.strip()
-    except Exception:
-        head_sha = ""
-
     # Step 3: Monitor GitHub Actions Cloud Build
     print("\n" + "=" * 76)
     print("  ☁️  [ជំហានទី២/៣] GitHub Actions Cloud កំពុង Compile & Build file DMC_System.apk...")
@@ -225,23 +216,23 @@ def auto_build_and_download_apk():
     dist_folder.mkdir(parents=True, exist_ok=True)
     dist_apk = dist_folder / "DMC_System.apk"
 
-    # Wait 2 seconds for GitHub branch commit to settle
+    # Wait 3 seconds for GitHub branch commit to settle
     time.sleep(3)
 
-    # 1. Try git pull first (fetches bot commit)
+    # 1. Pull changes directly via git
     try:
-        subprocess.run(["git", "pull", "--rebase", "origin", "main"], capture_output=True, text=True, timeout=30)
+        subprocess.run(["git", "pull", "--no-rebase", "origin", "main"], capture_output=True, text=True, timeout=30)
     except Exception:
         pass
 
-    # 2. Check or download directly from raw GitHub with cache-busting timestamp
+    # 2. Directly ensure latest APK is downloaded using cache-busting timestamp
     raw_url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/dist/DMC_System.apk?t={int(time.time())}"
     need_download = True
     if dist_apk.exists() and dist_apk.stat().st_size > 1024 * 1024:
-        # Check if file was updated recently (within last 3 minutes)
-        if time.time() - dist_apk.stat().st_mtime < 180:
+        # Check if file was modified recently (within last 4 minutes)
+        if time.time() - dist_apk.stat().st_mtime < 240:
             need_download = False
-            print("  + បាន Sync យក File ពី GitHub តាមរយៈ Git Pull ដោយជោគជ័យ!")
+            print("  + បាន Sync យក File ពី GitHub ដោយជោគជ័យ!")
 
     if need_download:
         try:
@@ -254,14 +245,6 @@ def auto_build_and_download_apk():
     if dist_apk.exists() and dist_apk.stat().st_size > 500 * 1024:
         size_mb = dist_apk.stat().st_size / (1024 * 1024)
         mtime_str = datetime.fromtimestamp(dist_apk.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-
-        # Also copy to root output folder if desired
-        output_folder = BASE_DIR / "output_apk"
-        try:
-            output_folder.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(dist_apk, output_folder / "DMC_System.apk")
-        except Exception:
-            pass
 
         print()
         print("=" * 76)

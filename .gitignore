@@ -36,6 +36,7 @@ $RECYCLE.BIN/
 # Temporary scratch & data folders
 scratch/
 scratch_*
+output_apk/
 *.txt.bak
 server_log.txt
 dms.pid
