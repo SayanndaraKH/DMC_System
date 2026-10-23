@@ -1,4 +1,16 @@
 @echo off
+:: Self-relocation: Run from %TEMP% so git reset/pull cannot modify this batch file while cmd.exe is reading it
+if "%~1"=="--in-temp" goto :run_update
+copy /y "%~f0" "%TEMP%\dmc_user_update.bat" >nul 2>&1
+"%TEMP%\dmc_user_update.bat" --in-temp "%~dp0"
+exit /b
+
+:run_update
+shift
+set "APP_DIR=%~1"
+if not defined APP_DIR set "APP_DIR=%~dp0"
+cd /d "%APP_DIR%"
+
 chcp 65001 >nul
 title DMC System - Auto Update ពី GitHub (សម្រាប់ User PC)
 color 0b
@@ -7,8 +19,6 @@ echo ========================================================================
 echo        DMC SYSTEM - AUTO UPDATE ពី GITHUB (សម្រាប់ USER PC)
 echo ========================================================================
 echo.
-
-cd /d "%~dp0"
 
 echo [1/4] កំពុងបិទដំណើរការចាស់ៗ និងសម្អាត Port 8000...
 :: Terminate any running DMC_System or python processes holding files or port 8000

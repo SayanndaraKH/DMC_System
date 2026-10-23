@@ -2809,3 +2809,14 @@ Watching for file changes with StatReloader
 [2026-10-22 19:19:19] [INFO] Port 80 redirector active: requests to port 80 will redirect to port 8000.
 [2026-10-22 19:19:29] [INFO] Migrations check completed successfully.
 [2026-10-22 19:19:29] [INFO] DMS Server is now running on 0.0.0.0:8000
+[2026-10-23 16:03:39] [INFO] ==================================================
+[2026-10-23 16:03:39] [INFO] Starting DMS Server (Autostart=False, OpenBrowser=False)
+[2026-10-23 16:03:39] [INFO] ==================================================
+[2026-10-23 16:03:39] [INFO] Port 8000 is occupied. Terminating conflicting process...
+[2026-10-23 16:03:41] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-10-23 16:03:41] [INFO] Active LAN / Wi-Fi IP: 192.168.1.48 (http://192.168.1.48:8000/)
+[2026-10-23 16:03:41] [INFO] Checking database migrations...
+[2026-10-23 16:03:41] [INFO] Port 80 redirector active: requests to port 80 will redirect to port 8000.
+[2026-10-23 16:04:05] [INFO] Migrations check completed successfully.
+[2026-10-23 16:04:16] [INFO] PostgreSQL sequences synchronized successfully.
+[2026-10-23 16:04:16] [INFO] DMS Server is now running on 0.0.0.0:8000
