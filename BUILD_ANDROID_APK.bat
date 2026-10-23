@@ -1,19 +1,19 @@
 @echo off
-setlocal
-chcp 65001 >nul
 cd /d "%~dp0"
 title DMC System - Auto Build Android APK into dist/
 
-echo ==============================================================================
-echo   📱 ប្រព័ន្ធ DMC SYSTEM - ដំណើរការបង្កើត File APK ចូល dist/ ដោយស្វ័យប្រវត្ត
-echo ==============================================================================
-echo.
+set "PY_BIN="
+if exist "%~dp0venv\Scripts\python.exe" set "PY_BIN=%~dp0venv\Scripts\python.exe"
+if not defined PY_BIN if exist "C:\Program Files\Python312\python.exe" set "PY_BIN=C:\Program Files\Python312\python.exe"
+if not defined PY_BIN if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" set "PY_BIN=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
+if not defined PY_BIN if exist "C:\Program Files\Python311\python.exe" set "PY_BIN=C:\Program Files\Python311\python.exe"
+if not defined PY_BIN if exist "%LOCALAPPDATA%\Programs\Python\Python311\python.exe" set "PY_BIN=%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
+if not defined PY_BIN for /f "delims=" %%i in ('where python 2^>nul') do if not defined PY_BIN set "PY_BIN=%%i"
+if not defined PY_BIN set "PY_BIN=python.exe"
 
-python "%~dp0build_apk.py" --auto
-if errorlevel 1 (
+"%PY_BIN%" "%~dp0build_apk.py" --auto
+if %errorlevel% neq 0 (
     echo.
-    echo ❌ [កំហុស] មានបញ្ហាក្នុងដំណើរការបង្កើត APK សូមពិនិត្យមើលសារខាងលើ។
+    echo [ERROR] An error occurred during APK build.
+    pause
 )
-
-echo.
-pause

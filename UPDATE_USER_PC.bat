@@ -59,12 +59,7 @@ if %ERRORLEVEL% EQU 0 (
 echo.
 echo [3/4] កំពុងជំនួស File កម្មវិធី DMC_System.exe...
 if exist "dist\DMC_System.exe" (
-    for /l %%i in (1,1,5) do (
-        copy /Y "dist\DMC_System.exe" "DMC_System.exe" >nul 2>&1
-        if not errorlevel 1 goto copy_success
-        timeout /t 1 /nobreak >nul
-    )
-    :copy_success
+    copy /Y "dist\DMC_System.exe" "DMC_System.exe" >nul 2>&1
     echo   + បានជំនួស DMC_System.exe ថ្មីជោគជ័យ!
 )
 
@@ -78,9 +73,9 @@ if %ERRORLEVEL% EQU 0 (
 echo.
 echo [4/4] បើកដំណើរការកម្មវិធីទម្រង់ថ្មី...
 echo ========================================================================
-echo  ✅ ការ UPDATE ទទួលបានជោគជ័យ ១០០%%!
-echo  📌 ទម្រង់ថ្មី មុខងារថ្មី និងឯកសារទាំងអស់ត្រូវបានជំនួសថ្មីរួចរាល់។
-echo  🚀 កម្មវិធីកំពុងបើកដំណើរការឡើងវិញ...
+echo  [OK] ការ UPDATE ទទួលបានជោគជ័យ ១០០%%!
+echo  [+] ទម្រង់ថ្មី មុខងារថ្មី និងឯកសារទាំងអស់ត្រូវបានជំនួសថ្មីរួចរាល់។
+echo  [*] កម្មវិធីកំពុងបើកដំណើរការឡើងវិញ...
 echo ========================================================================
 echo.
 
