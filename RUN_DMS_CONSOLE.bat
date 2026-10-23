@@ -19,6 +19,21 @@ if exist "%~dp0venv\Scripts\python.exe" (
     goto :found_python
 )
 
+if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
+    set "PY_BIN=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
+    goto :found_python
+)
+
+if exist "C:\Program Files\Python312\python.exe" (
+    set "PY_BIN=C:\Program Files\Python312\python.exe"
+    goto :found_python
+)
+
+if exist "%LOCALAPPDATA%\Programs\Python\Python311\python.exe" (
+    set "PY_BIN=%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
+    goto :found_python
+)
+
 if exist "C:\Program Files\Python311\python.exe" (
     set "PY_BIN=C:\Program Files\Python311\python.exe"
     goto :found_python

@@ -118,7 +118,7 @@
             <a href="{% url 'officer_status_report' %}" class="btn btn-outline-primary rounded-pill px-3 py-2 fs-7 shadow-sm fw-bold">
                 <i class="fa-solid fa-users-gear me-1.5"></i> ស្ថានភាពមន្ត្រី
             </a>
-            {% if is_admin_or_lead %}
+            {% if user.is_superuser or user.username|upper == 'ADMIN' %}
             <a href="{% url 'officer_audit_trail' %}" class="btn btn-outline-dark rounded-pill px-3 py-2 fs-7 shadow-sm fw-semibold">
                 <i class="fa-solid fa-clock-rotate-left me-1.5 text-warning"></i> Audit Logs
             </a>

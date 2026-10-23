@@ -53,8 +53,12 @@ echo [2/3] Loading Cambodia administrative geography into Neon...
 "%PY_BIN%" manage.py load_geo
 
 echo.
-echo [3/3] Initializing default Admin account and core departments...
+echo [3/4] Initializing default Admin account and core departments...
 "%PY_BIN%" manage.py init_admin
+
+echo.
+echo [4/4] Synchronizing database primary key sequences...
+"%PY_BIN%" manage.py reset_sequences
 
 echo.
 echo =======================================================================

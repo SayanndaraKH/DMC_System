@@ -15,9 +15,23 @@
                             <i class="fa-solid fa-server fa-2x text-white"></i>
                         </div>
                         <div>
-                            <h3 class="fw-bold mb-1">មជ្ឈមណ្ឌល Backup & សមកាលកម្មទិន្នន័យ (Data Center)</h3>
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <h3 class="fw-bold mb-0">មជ្ឈមណ្ឌល Backup & សមកាលកម្មទិន្នន័យ (Data Center)</h3>
+                                {% if is_neon_cloud %}
+                                <span class="badge bg-success border border-light border-opacity-50 px-2.5 py-1 rounded-pill fs-8">
+                                    <i class="fa-solid fa-cloud me-1"></i>Neon Cloud PostgreSQL (Active Live)
+                                </span>
+                                {% else %}
+                                <span class="badge bg-info text-dark px-2.5 py-1 rounded-pill fs-8">
+                                    <i class="fa-solid fa-database me-1"></i>Local Database
+                                </span>
+                                {% endif %}
+                                <span class="badge bg-warning text-dark px-2.5 py-1 rounded-pill fs-8 fw-bold">
+                                    <i class="fa-solid fa-shield-halved me-1"></i>UserAccount: ADMIN ប៉ុណ្ណោះ
+                                </span>
+                            </div>
                             <p class="mb-0 text-white-50 fs-6">
-                                ទាញយកទិន្នន័យរក្សាទុកក្នុង Local PC ដោយសេរី, ស្តារទិន្នន័យឡើងវិញដោយមិនបាត់បង់, សមកាលកម្ម (Sync) ជាមួយ Cloud/ម៉ាស៊ីនមេ, និងដំណើរការតាម LAN/Wi-Fi
+                                គ្រប់គ្រង បម្រុងទុក (Backup), ស្ដារទិន្នន័យ (Restore), និងសមកាលកម្មទិន្នន័យផ្ទាល់ជាមួយ Neon Cloud Database ដោយសុវត្ថិភាពខ្ពស់
                             </p>
                         </div>
                     </div>
@@ -26,11 +40,9 @@
                     <button type="button" class="btn btn-warning fw-bold shadow-sm px-3 py-2" onclick="openBackupModal('FULL')">
                         <i class="fa-solid fa-cloud-arrow-down me-1.5"></i>Full Backup (.zip)
                     </button>
-                    {% if is_admin_user %}
                     <button type="button" class="btn btn-danger fw-bold shadow-sm px-3 py-2" onclick="switchToCleanTab()">
                         <i class="fa-solid fa-broom me-1.5"></i>សម្អាតទិន្នន័យប្រព័ន្ធ
                     </button>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -132,13 +144,11 @@
                 <i class="fa-solid fa-clock-rotate-left me-1.5 text-secondary"></i> ៥. ប្រវត្តិ Snapshots ({{ local_backups|length }})
             </button>
         </li>
-        {% if is_admin_user %}
         <li class="nav-item" role="presentation">
             <button class="nav-link fw-bold py-2.5 text-danger" id="clean-tab" data-bs-toggle="tab" data-bs-target="#tab-clean" type="button" role="tab">
                 <i class="fa-solid fa-broom me-1.5 text-danger"></i> ៦. សម្អាតទិន្នន័យដាក់ដំណើរការ
             </button>
         </li>
-        {% endif %}
     </ul>
 
     <div class="tab-content" id="backupSyncTabContent">
@@ -160,12 +170,12 @@
                                 <i class="fa-solid fa-box-archive me-2"></i>Full System Backup (.zip)
                             </h4>
                             <p class="text-secondary fs-7 mb-3">
-                                កញ្ចប់បម្រុងទុកពេញលេញ រួមមាន <strong>ទិន្នន័យទាំងអស់ (Database JSON)</strong> បូករួមទាំង <strong>ឯកសារ Media ទាំងអស់ (រូបថតមន្ត្រី, ឯកសារស្កេន PDF, យានយន្ត)</strong> និង Metadata Manifest ធានាសុវត្ថិភាពទិន្នន័យ ១០០%។
+                                កញ្ចប់បម្រុងទុកពេញលេញ រួមមាន <strong>ទិន្នន័យទាំងអស់ពី Neon Cloud Database (JSON)</strong> បូករួមទាំង <strong>ឯកសារ Media ទាំងអស់ (រូបថតមន្ត្រី, ឯកសារស្កេន PDF, យានយន្ត)</strong> និង Metadata Manifest ធានាសុវត្ថិភាពទិន្នន័យ ១០០%។
                             </p>
                             <div class="bg-light p-3 rounded-3 mb-4 fs-7 text-muted">
-                                <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> រួមបញ្ចូលព័ត៌មានមន្ត្រី, ឯកសារ, វត្តមាន, យានយន្ត, គណនី</div>
+                                <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> រួមបញ្ចូលទិន្នន័យពី Neon Cloud Database (មន្ត្រី, ឯកសារ, វត្តមាន, យានយន្ត, គណនី)</div>
                                 <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> រួមបញ្ចូលរូបថត និងឯកសារ PDF ភ្ជាប់ទាំងអស់ក្នុង `media/`</div>
-                                <div class="d-flex align-items-center"><i class="fa-solid fa-check text-success me-2"></i> អាចយកទៅ Restore លើ PC ផ្សេងទៀត ឬលើ Cloud បានភ្លាមៗ</div>
+                                <div class="d-flex align-items-center"><i class="fa-solid fa-check text-success me-2"></i> អាចយកទៅ Restore លើ Neon Cloud ឬ PC ផ្សេងទៀតបានភ្លាមៗ</div>
                             </div>
                             <button type="button" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" onclick="openBackupModal('FULL')">
                                 <i class="fa-solid fa-file-zipper me-2"></i>ទាញយក Full Backup ZIP ឥឡូវនេះ
@@ -186,10 +196,10 @@
                                 <i class="fa-solid fa-database me-2"></i>Database Only Backup (.zip)
                             </h4>
                             <p class="text-secondary fs-7 mb-3">
-                                ទាញយកតែ <strong>មូលដ្ឋានទិន្នន័យ (Database Records)</strong> ជាទម្រង់ UTF-8 JSON ដែលបានបង្ហាប់ជា ZIP។ សមស្របសម្រាប់រក្សាទុកប្រចាំថ្ងៃ ឬផ្ញើតាម Telegram/Email ព្រោះទំហំស្រាលខ្លាំង។
+                                ទាញយកតែ <strong>មូលដ្ឋានទិន្នន័យផ្ទាល់ពី Neon Cloud Database</strong> ជាទម្រង់ UTF-8 JSON ដែលបានបង្ហាប់ជា ZIP។ សមស្របសម្រាប់រក្សាទុកប្រចាំថ្ងៃ ឬផ្ញើតាម Telegram/Email ព្រោះទំហំស្រាលខ្លាំង។
                             </p>
                             <div class="bg-light p-3 rounded-3 mb-4 fs-7 text-muted">
-                                <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> ទិន្នន័យអត្ថបទ និងតារាងទាំងអស់ក្នុងប្រព័ន្ធ</div>
+                                <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> ទិន្នន័យអត្ថបទ និងតារាងទាំងអស់ផ្ទាល់ពី Neon Cloud Database</div>
                                 <div class="d-flex align-items-center mb-1"><i class="fa-solid fa-check text-success me-2"></i> គាំទ្រអក្សរខ្មែរពេញលេញ (UTF-8 Encoded)</div>
                                 <div class="d-flex align-items-center text-warning"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> មិនរួមបញ្ចូលរូបថត និងឯកសារ PDF ឡើយ</div>
                             </div>
@@ -230,10 +240,10 @@
                                 <span class="badge bg-light text-dark border">1-Click</span>
                             </div>
                             <h4 class="fw-bold text-info mb-2">
-                                <i class="fa-solid fa-hard-drive me-2"></i>បង្កើត Snapshot លើម៉ាស៊ីនផ្ទាល់
+                                <i class="fa-solid fa-hard-drive me-2"></i>បង្កើត Snapshot ពី Neon Cloud លើម៉ាស៊ីនផ្ទាល់
                             </h4>
                             <p class="text-secondary fs-7 mb-3">
-                                បង្កើតកញ្ចប់ Backup ពេញលេញមួយភ្លាមៗ ហើយរក្សាទុកដោយស្វ័យប្រវត្តិក្នងថត <code>backups/</code> លើ Hard Drive នៃកុំព្យូទ័រនេះដោយមិនចាំបាច់ទាញយកតាម Browser ឡើយ។
+                                ទាញទិន្នន័យពី Neon Cloud Database បង្កើតជាកញ្ចប់ Backup ពេញលេញមួយភ្លាមៗ ហើយរក្សាទុកដោយស្វ័យប្រវត្តិក្នងថត <code>backups/</code> លើ Hard Drive នៃកុំព្យូទ័រនេះដោយមិនចាំបាច់ទាញយកតាម Browser ឡើយ។
                             </p>
                             <button type="button" class="btn btn-info text-white btn-lg w-100 fw-bold shadow-sm" onclick="openBackupModal('SNAPSHOT')">
                                 <i class="fa-solid fa-floppy-disk me-2"></i>បង្កើត Local Snapshot ឥឡូវនេះ
@@ -253,7 +263,7 @@
                     <div class="card border-0 shadow-sm rounded-3">
                         <div class="card-header bg-white py-3 border-bottom">
                             <h5 class="fw-bold text-dark mb-0">
-                                <i class="fa-solid fa-file-import me-2 text-success"></i>បញ្ចូលទិន្នន័យត្រឡប់មកវិញ (Restore & Import)
+                                <i class="fa-solid fa-file-import me-2 text-success"></i>បញ្ចូលទិន្នន័យត្រឡប់ទៅ Neon Cloud Database (Restore & Import)
                             </h5>
                         </div>
                         <div class="card-body p-4">
@@ -283,7 +293,7 @@
                                                         <div class="fw-bold text-primary fs-6">🟢 សមកាលកម្មបញ្ចូលគ្នា (Smart Merge)</div>
                                                         <div class="badge bg-primary text-white mb-2 fs-9">អនុសាសន៍ (Recommended)</div>
                                                         <p class="fs-7 text-dark-emphasis mb-0">
-                                                            បញ្ចូលទិន្នន័យថ្មីបន្ថែម និងកែប្រែទិន្នន័យដែលដូចគ្នា ដោយ <strong>មិនលុបទិន្នន័យចាស់</strong> ដែលមានលើម៉ាស៊ីននេះឡើយ។ សមស្របបំផុតសម្រាប់ការបញ្ចូលទិន្នន័យពីសាខា ឬទាញពី Server។
+                                                            បញ្ចូលទិន្នន័យថ្មីបន្ថែម និងកែប្រែទិន្នន័យដែលដូចគ្នា ដោយ <strong>មិនលុបទិន្នន័យចាស់</strong> ដែលមានលើ Neon Cloud Database ឡើយ (រួមទាំងការ Reset PostgreSQL Sequences ស្វ័យប្រវត្តិ)។
                                                         </p>
                                                     </div>
                                                 </div>
@@ -297,7 +307,7 @@
                                                         <div class="fw-bold text-dark fs-6">🟡 ជំនួសឡើងវិញទាំងស្រុង (Full Replace)</div>
                                                         <div class="badge bg-secondary text-white mb-2 fs-9">សម្រាប់ជួសជុលប្រព័ន្ធ</div>
                                                         <p class="fs-7 text-secondary mb-0">
-                                                            លុបទិន្នន័យបច្ចុប្បន្នចេញ ហើយជំនួសដោយទិន្នន័យនៅក្នុងឯកសារ Backup ទាំងស្រុង។ (ប្រព័ន្ធនឹងរក្សាទុក Snapshot ជាមុនស្វ័យប្រវត្តិ)។
+                                                            លុបទិន្នន័យបច្ចុប្បន្នលើ Neon Cloud Database ចេញ ហើយជំនួសដោយទិន្នន័យនៅក្នុងឯកសារ Backup ទាំងស្រុង។ (ប្រព័ន្ធនឹងរក្សាទុក Snapshot ជាមុនស្វ័យប្រវត្តិ)។
                                                         </p>
                                                     </div>
                                                 </div>
@@ -631,9 +641,9 @@
                                 <i class="fa-solid fa-broom fa-2x"></i>
                             </div>
                             <div>
-                                <h4 class="fw-bold text-danger mb-1">សម្អាត និងរៀបចំប្រព័ន្ធសម្រាប់ដាក់ដំណើរការផ្លូវការ (Go-Live Data Clean)</h4>
+                                <h4 class="fw-bold text-danger mb-1">សម្អាត និងរៀបចំទិន្នន័យ Neon Cloud Database សម្រាប់ដាក់ដំណើរការផ្លូវការ (Go-Live Data Clean)</h4>
                                 <p class="text-secondary fs-7 mb-0">
-                                    សម្អាតទិន្នន័យប្រតិបត្តិការសាកល្បងទាំងអស់ ដើម្បីឱ្យប្រព័ន្ធស្អាត ស្រាល និងត្រៀមទទួលទិន្នន័យជាក់ស្តែងពីគ្រប់ការិយាល័យ។
+                                    សម្អាតទិន្នន័យប្រតិបត្តិការសាកល្បងទាំងអស់លើ Neon Cloud Database ដើម្បីឱ្យប្រព័ន្ធស្អាត ស្រាល និងត្រៀមទទួលទិន្នន័យជាក់ស្តែងពីគ្រប់ការិយាល័យ។
                                 </p>
                             </div>
                         </div>
@@ -1866,11 +1876,8 @@ async function startBackupExecution() {
                 }]
             });
         } catch (err) {
-            if (err.name === 'AbortError') {
-                // User cancelled the file picker dialog; return cleanly without error
-                return;
-            }
-            console.warn('showSaveFilePicker was cancelled or unsupported:', err);
+            console.warn('showSaveFilePicker was cancelled or unsupported, fallback to browser download:', err);
+            fileHandle = null;
         }
     }
 

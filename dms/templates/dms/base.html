@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.5, user-scalable=yes, viewport-fit=cover">
-    <title>{% block title %}ប្រព័ន្ធគ្រប់គ្រងឯកសាររដ្ឋបាល (DMS){% endblock %}</title>
+    <title>{% block title %}ប្រព័ន្ធគ្រប់គ្រងធនធានមនុស្ស និងឯកសារ (HRMS / DMC System){% endblock %}</title>
 
     <!-- Google Khmer Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -646,6 +646,7 @@
                         <div class="d-flex align-items-center gap-2">
                             <i class="fa-solid fa-users-gear text-info"></i>
                             <span>គ្រប់គ្រងទូទៅ</span>
+                            <span class="badge bg-danger text-white fs-9 px-1.5 py-0.5 rounded shadow-xs">ADMIN ONLY</span>
                         </div>
                         <div class="d-flex align-items-center gap-1.5">
                             {% if pending_users_count > 0 %}
@@ -693,14 +694,6 @@
                     </div>
                 </div>
                 {% endwith %}
-                {% else %}
-                <!-- Regular user access to Backup & Download -->
-                <div class="nav-item px-2 mt-2">
-                    <a href="{% url 'backup_sync_dashboard' %}" class="nav-link text-white d-flex align-items-center gap-2 py-2 px-3 rounded-3 bg-white bg-opacity-10 hover-bg-opacity-20 {% if 'backup' in request.resolver_match.url_name %}active{% endif %}">
-                        <i class="fa-solid fa-cloud-arrow-down text-warning"></i>
-                        <span class="fs-8 fw-bold">Backup ទិន្នន័យ (Local PC)</span>
-                    </a>
-                </div>
                 {% endif %}
             </nav>
         </aside>
@@ -846,11 +839,13 @@
                         <span class="badge bg-white text-danger rounded-pill fs-9 py-0 px-1.5 ms-0.5 d-none d-xl-inline">ថ្មី</span>
                     </a>
 
-                    <!-- 💾 Backup & Sync Center Quick Access -->
-                    <a href="{% url 'backup_sync_dashboard' %}" class="btn btn-outline-primary btn-sm rounded-pill p-2 px-2.5 shadow-xs d-flex align-items-center gap-1.5 text-nowrap flex-shrink-0" title="Backup & សមកាលកម្មទិន្នន័យ">
+                    <!-- 💾 Backup & Sync Center Quick Access (ADMIN ONLY) -->
+                    {% if user.is_superuser or user.username|upper == 'ADMIN' %}
+                    <a href="{% url 'backup_sync_dashboard' %}" class="btn btn-outline-primary btn-sm rounded-pill p-2 px-2.5 shadow-xs d-flex align-items-center gap-1.5 text-nowrap flex-shrink-0" title="Data Center (Neon Cloud) - ADMIN Only">
                         <i class="fa-solid fa-cloud-arrow-down text-primary"></i>
-                        <span class="fs-8 fw-bold d-none d-xl-inline">Backup & Sync</span>
+                        <span class="fs-8 fw-bold d-none d-xl-inline">Data Center</span>
                     </a>
+                    {% endif %}
 
                     <!-- User Profile Dropdown -->
                     <div class="dropdown flex-shrink-0">
@@ -871,11 +866,13 @@
                                 <div class="small text-muted">@{{ user.username }}</div>
                                 <div class="badge bg-success bg-opacity-10 text-success mt-1">{{ user_profile.get_role_display|default:"អ្នកប្រើប្រាស់" }}</div>
                             </li>
+                            {% if user.is_superuser or user.username|upper == 'ADMIN' %}
                             <li>
                                 <a class="dropdown-item fs-7 py-2 rounded-2 text-primary fw-semibold" href="{% url 'backup_sync_dashboard' %}">
-                                    <i class="fa-solid fa-cloud-arrow-down me-2"></i>Backup & សមកាលកម្ម
+                                    <i class="fa-solid fa-cloud-arrow-down me-2"></i>Data Center (Neon Cloud)
                                 </a>
                             </li>
+                            {% endif %}
                             {% if is_impersonating %}
                             <li>
                                 <a class="dropdown-item fs-7 py-2 rounded-2 text-warning bg-dark fw-bold" href="{% url 'dev_switch_back_admin' %}">

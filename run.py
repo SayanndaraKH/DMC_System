@@ -356,6 +356,11 @@ def main():
         from django.core.management import call_command
         call_command('migrate', interactive=False, stdout=sys.stdout, stderr=sys.stderr)
         logging.info("Migrations check completed successfully.")
+
+        # Auto-sync PostgreSQL sequences to prevent duplicate key IntegrityError
+        from dms.backup_service import reset_postgres_sequences
+        reset_postgres_sequences()
+        logging.info("PostgreSQL sequences synchronized successfully.")
     except Exception as e:
         logging.error(f"Migration error: {e}")
 

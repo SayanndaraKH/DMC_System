@@ -52,6 +52,43 @@ MODELS_TO_BACKUP = [
     'dms.AttendanceRecord',
 ]
 
+def reset_postgres_sequences():
+    """
+    On PostgreSQL / Neon Cloud, when records are imported or restored with explicit primary keys,
+    the sequence counters must be updated to MAX(id) to avoid unique constraint violations
+    (duplicate key value violates unique constraint) on subsequent model creations.
+    """
+    if connection.vendor != 'postgresql':
+        return
+    try:
+        with connection.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    c.relname AS seq_name,
+                    t.relname AS table_name,
+                    a.attname AS col_name
+                FROM pg_class c
+                JOIN pg_depend d ON d.objid = c.oid
+                JOIN pg_class t ON t.oid = d.refobjid
+                JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+                WHERE c.relkind = 'S'
+                ORDER BY t.relname;
+            """)
+            sequences = cur.fetchall()
+            for seq_name, table_name, col_name in sequences:
+                try:
+                    cur.execute(f'''
+                        SELECT setval(
+                            '"{seq_name}"',
+                            COALESCE((SELECT MAX("{col_name}") FROM "{table_name}"), 1),
+                            ((SELECT MAX("{col_name}") FROM "{table_name}") IS NOT NULL)
+                        );
+                    ''')
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"PostgreSQL sequence reset note: {e}")
+
 def get_system_stats():
     """
     Returns counts of documents, officers, attendance, vehicles, and media files.
@@ -107,29 +144,26 @@ def get_system_stats():
 def export_database_json():
     """
     Dumps all defined application models into a UTF-8 JSON string.
-    Uses in-memory StringIO with explicit UTF-8 to prevent Windows CP1252 charmap errors.
+    Uses Django's serializers.serialize directly to avoid named server-side cursors
+    and prevent connection pooler disconnection issues on Neon Cloud PostgreSQL.
     """
-    buf = io.StringIO()
-    # Filter only models that currently exist in apps
-    valid_apps_models = []
+    all_data = []
     for m_str in MODELS_TO_BACKUP:
         app_label, model_name = m_str.split('.')
         try:
-            apps.get_model(app_label, model_name)
-            valid_apps_models.append(m_str)
+            m = apps.get_model(app_label, model_name)
+            qs = m.objects.all()
+            if not qs.exists():
+                continue
+            serialized_str = serializers.serialize('json', qs)
+            items = json.loads(serialized_str)
+            all_data.extend(items)
         except LookupError:
-            pass
+            continue
+        except Exception as err:
+            print(f"Warning serializing {m_str}: {err}")
 
-    call_command(
-        'dumpdata',
-        *valid_apps_models,
-        natural_foreign=True,
-        natural_primary=True,
-        exclude=['contenttypes', 'sessions'],
-        indent=2,
-        stdout=buf
-    )
-    return buf.getvalue()
+    return json.dumps(all_data, ensure_ascii=False, indent=2)
 
 
 def create_full_backup(user=None, note=''):
@@ -559,6 +593,9 @@ def restore_backup(file_obj_or_path, mode='merge'):
                     except Exception as deser_err:
                         report['records_skipped'] += len(items)
                         report['details'].append(f"Batch deserialize note for {m_str}: {str(deser_err)}")
+
+            # Synchronize PostgreSQL primary key sequences on Neon Cloud Database
+            reset_postgres_sequences()
 
         except Exception as e:
             # Clean up temp file

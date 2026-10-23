@@ -303,6 +303,38 @@ def show_mobile_setup():
     print("=" * 74)
 
 
+def is_server_online(port=8000):
+    try:
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.6)
+            return s.connect_ex(('127.0.0.1', port)) == 0
+    except Exception:
+        return False
+
+
+def ensure_server_running():
+    if is_server_online(8000):
+        return True
+
+    print("\n⏳ DMS Server មិនទាន់ដំណើរការឡើយ។ កំពុងចាប់ផ្តើម Server ស្វ័យប្រវត្តិ...")
+    vbs_path = BASE_DIR / "start_background.vbs"
+    if vbs_path.exists():
+        subprocess.run(["wscript.exe", str(vbs_path)], check=False)
+    else:
+        subprocess.Popen([sys.executable, str(BASE_DIR / "run.py")], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+
+    for _ in range(70):
+        if is_server_online(8000):
+            print("✅ DMS Server បានចាប់ផ្តើមដំណើរការរួចរាល់!")
+            time.sleep(0.5)
+            return True
+        time.sleep(0.5)
+
+    print("⚠️ មិនអាចបញ្ជាក់ការចាប់ផ្តើម Server បានឡើយ ប៉ុន្តែនឹងព្យាយាមបើក Browser...")
+    return False
+
+
 def main():
     # If called with --auto or --build (e.g. from BUILD_ANDROID_APK.bat), execute directly!
     if "--auto" in sys.argv or "--build" in sys.argv:
@@ -338,6 +370,7 @@ def main():
             auto_build_and_download_apk()
             input("\nចុច Enter ដើម្បីត្រឡប់ទៅម៉ឺនុយដើម... ")
         elif opt == "2":
+            ensure_server_running()
             print("\nកំពុងបើកឧបករណ៍មើលសាកល្បងលើទូរស័ព្ទ...")
             webbrowser.open("http://127.0.0.1:8000/mobile-preview/")
             input("\nចុច Enter ដើម្បីត្រឡប់ទៅម៉ឺនុយដើម... ")

@@ -2707,3 +2707,105 @@ NameError: name 'sys' is not defined
 [2026-10-22 11:28:09] [INFO] Port 80 redirector active: requests to port 80 will redirect to port 8000.
 [2026-10-22 11:28:21] [INFO] Migrations check completed successfully.
 [2026-10-22 11:28:21] [INFO] DMS Server is now running on 0.0.0.0:8000
+[2026-10-22 13:49:21] [INFO] ==================================================
+[2026-10-22 13:49:21] [INFO] Starting DMS Server (Autostart=True, OpenBrowser=False)
+[2026-10-22 13:49:21] [INFO] ==================================================
+[2026-10-22 13:49:21] [INFO] Windows Startup detected. Waiting 5s for network adapters to stabilize...
+[2026-10-22 13:49:27] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-10-22 13:49:27] [INFO] Active LAN / Wi-Fi IP: 192.168.1.19 (http://192.168.1.19:8000/)
+[2026-10-22 13:49:27] [INFO] Checking database migrations...
+[2026-10-22 13:49:27] [INFO] Port 80 redirector active: requests to port 80 will redirect to port 8000.
+[2026-10-22 13:49:40] [INFO] Migrations check completed successfully.
+[2026-10-22 13:49:40] [INFO] DMS Server is now running on 0.0.0.0:8000
+[2026-10-22 19:09:34] [INFO] ==================================================
+[2026-10-22 19:09:34] [INFO] Starting DMS Server (Autostart=False, OpenBrowser=False)
+[2026-10-22 19:09:34] [INFO] ==================================================
+[2026-10-22 19:09:35] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-10-22 19:09:35] [INFO] Active LAN / Wi-Fi IP: 192.168.1.14 (http://192.168.1.14:8000/)
+[2026-10-22 19:09:35] [INFO] Checking database migrations...
+[2026-10-22 19:09:35] [INFO] Port 80 redirector active: requests to port 80 will redirect to port 8000.
+[2026-10-22 19:09:35] [ERROR] Migration error: No module named 'django'
+[2026-10-22 19:09:35] [INFO] DMS Server is now running on 0.0.0.0:8000
+[2026-10-22 19:14:22] [INFO] ==================================================
+[2026-10-22 19:14:22] [INFO] Starting DMS Server (Autostart=False, OpenBrowser=False)
+[2026-10-22 19:14:22] [INFO] ==================================================
+[2026-10-22 19:14:23] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-10-22 19:14:23] [INFO] Active LAN / Wi-Fi IP: 192.168.1.14 (http://192.168.1.14:8000/)
+[2026-10-22 19:14:23] [INFO] Checking database migrations...
+[2026-10-22 19:14:23] [INFO] Port 80 redirector active: requests to port 80 will redirect to port 8000.
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, dms, sessions
+Running migrations:
+  No migrations to apply.
+  Your models in app(s): 'dms' have changes that are not yet reflected in a migration, and so won't be applied.
+  Run 'manage.py makemigrations' to make new migrations, and then re-run 'manage.py migrate' to apply them.
+Watching for file changes with StatReloader
+"GET /mobile-preview/ HTTP/1.1" 200 28460
+- Broken pipe from ('127.0.0.1', 51814)
+"GET /mobile-preview/ HTTP/1.1" 200 28460
+"GET /static/dms/img/logo.png HTTP/1.1" 200 53273
+"GET / HTTP/1.1" 302 0
+"GET /login/?next=/ HTTP/1.1" 200 16707
+"GET /static/dms/css/styles.css HTTP/1.1" 200 30915
+"POST /login/ HTTP/1.1" 302 0
+"GET / HTTP/1.1" 200 140341
+"GET /static/dms/css/styles.css?v=20261022_emerald_v5 HTTP/1.1" 200 30915
+"GET /media/officers/photos/2026/%E1%9E%95%E1%9E%93_%E1%9E%9F%E1%9E%95%E1%9E%93%E1%9E%8E%E1%9E%9A_rffZGH0.jpg HTTP/1.1" 200 82865
+"GET /media/officers/photos/2026/%E1%9E%99%E1%9E%93_%E1%9E%9F%E1%9E%99%E1%9E%93%E1%9E%8A%E1%9E%9A.jpg HTTP/1.1" 200 182811
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%9B_%E1%9E%8E_cMrTKGs.jpg HTTP/1.1" 200 56788
+"GET /media/officers/photos/2026/%E1%9E%94%E1%9E%84_%E1%9E%86_rB4qiVT.jpg HTTP/1.1" 200 55951
+"GET /media/officers/photos/2026/%E1%9E%80%E1%9E%9C_%E1%9E%9F%E1%9E%9A_sMidzgS.jpg HTTP/1.1" 200 44646
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%84_%E1%9E%9C%E1%9E%85%E1%9E%86%E1%9E%80_ehLAczO.jpg HTTP/1.1" 200 281544
+"GET /static/dms/js/service-worker.js HTTP/1.1" 200 955
+"GET /static/dms/manifest.json HTTP/1.1" 200 653
+"GET / HTTP/1.1" 200 139733
+"GET /officers/ HTTP/1.1" 200 590843
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%98_%E1%9E%9F%E1%9E%97%E1%9E%93_A5hmRza.jpg HTTP/1.1" 200 80160
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%99_%E1%9E%9F%E1%9E%95%E1%9E%8F_QHCd9Kk.jpg HTTP/1.1" 200 347997
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%80_%E1%9E%9B%E1%9E%84%E1%9E%80.jpg HTTP/1.1" 200 60243
+"GET /media/officers/photos/2026/%E1%9E%86%E1%9E%84_%E1%9E%91%E1%9E%8F%E1%9E%99_MhfP2El.jpg HTTP/1.1" 200 79085
+"GET /media/officers/photos/2026/%E1%9E%92%E1%9E%93_%E1%9E%94%E1%9E%93%E1%9E%92%E1%9E%93.jpg HTTP/1.1" 200 37485
+"GET /media/officers/photos/2026/%E1%9E%80_%E1%9E%9F%E1%9E%97%E1%9E%9F.JPG HTTP/1.1" 200 241989
+"GET /media/officers/photos/2026/%E1%9E%96%E1%9E%9A%E1%9E%93_%E1%9E%94%E1%9E%93_zeaYund.jpg HTTP/1.1" 200 240548
+"GET /media/officers/photos/2026/%E1%9E%96%E1%9E%80_%E1%9E%81%E1%9E%98_pggdJoi.jpg HTTP/1.1" 200 97293
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%93_%E1%9E%9F%E1%9E%98%E1%9E%93_zrFU8Iv.jpg HTTP/1.1" 200 36284
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%80_%E1%9E%85%E1%9E%93%E1%9E%94_swg0rTa.jpg HTTP/1.1" 200 247797
+"GET /media/officers/photos/2026/%E1%9E%A2%E1%9E%84_%E1%9E%9C%E1%9E%9F%E1%9E%91%E1%9E%92_0j9x9Zm.jpg HTTP/1.1" 200 43161
+"GET /media/officers/photos/2026/%E1%9E%80%E1%9E%9C_%E1%9E%85%E1%9E%93%E1%9E%8A%E1%9E%9A_5gBDx0c.jpg HTTP/1.1" 200 74541
+"GET /media/officers/photos/2026/%E1%9E%9C%E1%9E%84_%E1%9E%9C%E1%9E%93_Zo1XcD6.jpg HTTP/1.1" 200 80899
+"GET /media/officers/photos/2026/%E1%9E%82%E1%9E%8F%E1%9E%9A_BNQLawF.jpg HTTP/1.1" 200 83025
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%99_%E1%9E%9F%E1%9E%93%E1%9E%97%E1%9E%98%E1%9E%9A.JPG HTTP/1.1" 200 497150
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%84_%E1%9E%9F%E1%9E%92_3.JPG HTTP/1.1" 200 1297423
+"GET /media/officers/photos/2026/%E1%9E%98_%E1%9E%86%E1%9E%98_GMNgVkj.jpg HTTP/1.1" 200 69069
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%84_%E1%9E%97%E1%9E%9A%E1%9E%8E_VUN2Hzj.jpg HTTP/1.1" 200 64140
+"GET /media/officers/photos/2026/%E1%9E%81%E1%9E%9C_%E1%9E%9F%E1%9E%90%E1%9E%93_moIWZHl.jpg HTTP/1.1" 200 57710
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%99_%E1%9E%98%E1%9E%93_rIdGsx7.jpg HTTP/1.1" 200 59824
+"GET /media/officers/photos/2026/%E1%9E%91%E1%9E%9A__%E1%9E%82%E1%9E%98%E1%9E%9F%E1%9E%93_fLispeO.jpg HTTP/1.1" 200 67786
+"GET /media/officers/photos/2026/%E1%9E%82%E1%9E%84_%E1%9E%9A%E1%9E%94_9yFVLGu.jpg HTTP/1.1" 200 48265
+"GET /media/officers/photos/2026/%E1%9E%98_%E1%9E%9A%E1%9E%8E.jpg HTTP/1.1" 200 75010
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%9A_%E1%9E%9C%E1%9E%84.jpg HTTP/1.1" 200 50672
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%93_%E1%9E%A0%E1%9E%80%E1%9E%9B%E1%9E%98_Vu692GJ.jpg HTTP/1.1" 200 57931
+"GET /media/officers/photos/2026/%E1%9E%86%E1%9E%98_%E1%9E%8A_z5YhZUz.jpg HTTP/1.1" 200 81767
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%91%E1%9E%92_%E1%9E%9C%E1%9E%9F%E1%9E%9B_WyUV9Km.jpg HTTP/1.1" 200 63549
+"GET /media/officers/photos/2026/%E1%9E%99%E1%9E%93%E1%9E%8F_%E1%9E%85%E1%9E%93%E1%9E%8A.jpg HTTP/1.1" 200 93659
+"GET /media/officers/photos/2026/%E1%9E%95_%E1%9E%9F%E1%9E%95%E1%9E%9B_sKHk0yz.jpg HTTP/1.1" 200 63076
+"GET /media/officers/photos/2026/%E1%9E%94%E1%9E%9B_%E1%9E%94%E1%9E%93_sX1Acwt.jpg HTTP/1.1" 200 79963
+"GET /media/officers/photos/2026/%E1%9E%A1%E1%9E%99_%E1%9E%96%E1%9E%9F%E1%9E%8A%E1%9E%8B_oTExJGp.jpg HTTP/1.1" 200 61648
+"GET /media/officers/photos/2026/%E1%9E%86%E1%9E%84_%E1%9E%9C_Ws7SWbE.jpg HTTP/1.1" 200 50397
+"GET /media/officers/photos/2026/%E1%9E%81%E1%9E%93_%E1%9E%9C%E1%9E%91%E1%9E%92_s37UrIN.jpg HTTP/1.1" 200 221011
+"GET /media/officers/photos/2026/photo_2026-08-31_10-11-57.jpg HTTP/1.1" 200 59685
+"GET /media/officers/photos/2026/%E1%9E%95_%E1%9E%A2%E1%9E%9F_5nzEuTF.jpg HTTP/1.1" 200 75032
+"GET /media/officers/photos/2026/%E1%9E%94%E1%9E%85_%E1%9E%80%E1%9E%93%E1%9E%92%E1%9E%8A%E1%9E%8B_Nm9Ckob.jpg HTTP/1.1" 200 74092
+"GET /media/officers/photos/2026/%E1%9E%A0%E1%9E%84_%E1%9E%94%E1%9E%93%E1%9E%88%E1%9E%93_HSsULhx.jpg HTTP/1.1" 200 71859
+"GET /media/officers/photos/2026/%E1%9E%A0%E1%9E%93_%E1%9E%96_KuUhnm1.jpg HTTP/1.1" 200 77740
+"GET /media/officers/photos/2026/%E1%9E%9F%E1%9E%84_%E1%9E%81%E1%9E%98%E1%9E%99_tgjK4i0.jpg HTTP/1.1" 200 91933
+"GET /media/officers/photos/2026/%E1%9E%A0%E1%9E%84_%E1%9E%94%E1%9E%93%E1%9E%A1%E1%9E%84_2.JPG HTTP/1.1" 200 1186381
+[2026-10-22 19:19:18] [INFO] ==================================================
+[2026-10-22 19:19:18] [INFO] Starting DMS Server (Autostart=False, OpenBrowser=False)
+[2026-10-22 19:19:18] [INFO] ==================================================
+[2026-10-22 19:19:19] [INFO] Automated SQLite database safety snapshot created successfully.
+[2026-10-22 19:19:19] [INFO] Active LAN / Wi-Fi IP: 192.168.1.14 (http://192.168.1.14:8000/)
+[2026-10-22 19:19:19] [INFO] Checking database migrations...
+[2026-10-22 19:19:19] [INFO] Port 80 redirector active: requests to port 80 will redirect to port 8000.
+[2026-10-22 19:19:29] [INFO] Migrations check completed successfully.
+[2026-10-22 19:19:29] [INFO] DMS Server is now running on 0.0.0.0:8000

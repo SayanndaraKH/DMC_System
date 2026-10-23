@@ -1,12 +1,14 @@
 import os
 import sys
 import time
+import math
 import socket
 import subprocess
 import threading
 import webbrowser
 import urllib.request
 from pathlib import Path
+import tkinter as tk
 
 import json
 import shutil
@@ -40,7 +42,7 @@ except ImportError:
 # Configure Appearance
 try:
     ctk.set_appearance_mode("dark")
-    ctk.set_default_color_theme("blue")
+    ctk.set_default_color_theme("green")
 except Exception:
     pass
 
@@ -259,6 +261,13 @@ def start_embedded_server():
             except Exception:
                 pass
 
+            # Auto-sync PostgreSQL sequences to prevent duplicate key IntegrityError
+            try:
+                from dms.backup_service import reset_postgres_sequences
+                reset_postgres_sequences()
+            except Exception:
+                pass
+
             from waitress import serve
             from dms_project.wsgi import application
             serve(application, host='0.0.0.0', port=8000, threads=8, _quiet=True)
@@ -274,12 +283,13 @@ class DMCMainApp(ctk.CTk):
         super().__init__()
 
         self.title("សូមស្វាគមន៍មកកាន់កម្មវិធីគ្រប់គ្រងធនធានមនុស្ស - DMC Desktop Control Center")
-        self.center_window(920, 750)
+        self.center_window(1000, 620)
 
         # Strictly lock window dimensions to prevent any resizing or maximizing
         self.resizable(False, False)
-        self.maxsize(920, 750)
-        self.minsize(920, 750)
+        self.maxsize(1000, 620)
+        self.minsize(1000, 620)
+        self.configure(fg_color="#071f11")
 
         # Set Icon if available
         if ICON_FILE and ICON_FILE.exists():
@@ -323,7 +333,7 @@ class DMCMainApp(ctk.CTk):
         self.monitor_thread = threading.Thread(target=self.monitor_server_status, daemon=True)
         self.monitor_thread.start()
 
-    def center_window(self, width=920, height=750):
+    def center_window(self, width=1000, height=620):
         """Centers the window perfectly on the primary display and fixes dimensions."""
         self.update_idletasks()
         screen_width = self.winfo_screenwidth()
@@ -395,8 +405,8 @@ class DMCMainApp(ctk.CTk):
         if not self.check_url_online("http://127.0.0.1:8000/", timeout=0.5):
             self.after(0, lambda: self.status_badge.configure(
                 text="⏳ កំពុងចាប់ផ្តើម Server...",
-                text_color="#facc15",
-                fg_color="#713f12"
+                text_color="#854d0e",
+                fg_color="#fef9c3"
             ))
             self.start_server()
 
@@ -412,66 +422,125 @@ class DMCMainApp(ctk.CTk):
         if server_ready:
             self.after(0, lambda: self.status_badge.configure(
                 text="🟢 កំពុងដំណើរការ (Online)",
-                text_color="#4ade80",
-                fg_color="#14532d"
+                text_color="#15803d",
+                fg_color="#dcfce7"
             ))
         else:
             self.after(0, lambda: self.status_badge.configure(
                 text="⚠️ ចាប់ផ្តើម Server យឺត (Connecting...)",
-                text_color="#f87171",
-                fg_color="#7f1d1d"
+                text_color="#dc2626",
+                fg_color="#fee2e2"
             ))
             self.after(0, self.deiconify)
 
     def create_widgets(self):
-        # 1. Header Frame with Official Logo & Welcome Banner
-        header = ctk.CTkFrame(self, corner_radius=14, fg_color="#1e293b", border_width=1, border_color="#334155")
-        header.pack(fill="x", padx=20, pady=(16, 10))
+        # Master Landscape Card Container (Royal Green Theme matching Form Login)
+        card_container = ctk.CTkFrame(
+            self,
+            corner_radius=20,
+            fg_color="#092c17",
+            border_width=1,
+            border_color="#1e5430"
+        )
+        card_container.pack(fill="both", expand=True, padx=16, pady=16)
 
-        header_inner = ctk.CTkFrame(header, fg_color="transparent")
-        header_inner.pack(anchor="center", pady=12, padx=16)
+        # ------------------------------------------------------------------
+        # LEFT PANEL: Animated Rotate-Mirror Logo with Orbital Effect & Brand
+        # ------------------------------------------------------------------
+        left_panel = ctk.CTkFrame(
+            card_container,
+            corner_radius=16,
+            fg_color="transparent",
+            width=380
+        )
+        left_panel.pack(side="left", fill="both", expand=False, padx=(16, 8), pady=16)
+        left_panel.pack_propagate(False)
 
-        # Load & display logo
-        self.logo_ctk = None
+        # Centered Animated Logo Canvas
+        self.logo_canvas = tk.Canvas(
+            left_panel,
+            width=280,
+            height=280,
+            bg="#092c17",
+            highlightthickness=0
+        )
+        self.logo_canvas.pack(expand=True)
+
+        # Bottom Footer: Divider & Copyright (Pinned to bottom matching Image 1)
+        ctk.CTkLabel(
+            left_panel,
+            text="CopyRight Owner by Mr. YORN SAYANNDARA ( 2027-2030 )",
+            font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
+            text_color="#fbbf24",
+            anchor="center",
+            justify="center"
+        ).pack(side="bottom", anchor="center", pady=(0, 6))
+
+        ctk.CTkLabel(
+            left_panel,
+            text="Human Resource Management System",
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            text_color="#6ee7b7",
+            anchor="center",
+            justify="center"
+        ).pack(side="bottom", anchor="center", pady=(0, 2))
+
+        ctk.CTkFrame(left_panel, height=1, fg_color="#184e2a").pack(side="bottom", fill="x", padx=16, pady=(0, 8))
+
+        # Initialize Animated 3D Rotate Mirror & Orbital Effect
+        self._logo_angle = 0.0
+        self._orbit_angle = 0.0
+        self._pil_base_logo = None
         if LOGO_FILE and LOGO_FILE.exists():
             try:
-                pil_logo = Image.open(LOGO_FILE)
-                self.logo_ctk = ctk.CTkImage(light_image=pil_logo, dark_image=pil_logo, size=(75, 75))
+                raw_logo = Image.open(LOGO_FILE).convert("RGBA")
+                self._pil_base_logo = raw_logo.resize((175, 175), Image.Resampling.BILINEAR)
             except Exception:
-                self.logo_ctk = None
+                self._pil_base_logo = None
 
-        if self.logo_ctk:
-            logo_lbl = ctk.CTkLabel(header_inner, image=self.logo_ctk, text="")
-            logo_lbl.pack(side="left", padx=(0, 18))
+        if self._pil_base_logo:
+            self._animate_logo_tick()
 
-        text_box = ctk.CTkFrame(header_inner, fg_color="transparent")
-        text_box.pack(side="left", fill="both")
-
-        welcome_lbl = ctk.CTkLabel(
-            text_box,
-            text="សូមស្វាគមន៍មកកាន់កម្មវិធីគ្រប់គ្រងធនធានមនុស្ស",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=18, weight="bold"),
-            text_color="#38bdf8"
+        # ------------------------------------------------------------------
+        # RIGHT PANEL: Crisp White Form Card with Controls & Live Status
+        # ------------------------------------------------------------------
+        right_panel = ctk.CTkFrame(
+            card_container,
+            corner_radius=16,
+            fg_color="#ffffff",
+            border_width=0
         )
-        welcome_lbl.pack(anchor="w", pady=(0, 2))
+        right_panel.pack(side="right", fill="both", expand=True, padx=(4, 16), pady=16)
 
-        title_lbl = ctk.CTkLabel(
-            text_box,
-            text="ប្រព័ន្ធគ្រប់គ្រងឯកសារ និងព័ត៌មានមន្ត្រី (DMC System)",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=13, weight="bold"),
-            text_color="#f1f5f9"
-        )
-        title_lbl.pack(anchor="w", pady=(0, 2))
+        # 1. Welcome and Header Titles (Centered)
+        ctk.CTkLabel(
+            right_panel,
+            text="✅ សូមស្វាគមន៍មកកាន់កម្មវិធីគ្រប់គ្រងធនធានមនុស្ស",
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=12, weight="bold"),
+            text_color="#15803d",
+            anchor="center",
+            justify="center"
+        ).pack(anchor="center", padx=20, pady=(16, 2))
 
-        sub_lbl = ctk.CTkLabel(
-            text_box,
-            text="DMC Python Main Form Application • Windows Desktop Control Center",
-            font=ctk.CTkFont(family="Segoe UI", size=11),
-            text_color="#94a3b8"
-        )
-        sub_lbl.pack(anchor="w")
+        ctk.CTkLabel(
+            right_panel,
+            text="ផ្ទាំងបញ្ជាដំណើរការប្រព័ន្ធ (Control Center)",
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=16, weight="bold"),
+            text_color="#0f172a",
+            anchor="center",
+            justify="center"
+        ).pack(anchor="center", padx=20, pady=(0, 2))
 
-        # Load 3 representative Google Material icons
+        ctk.CTkLabel(
+            right_panel,
+            text="DMC Desktop Control Center • Windows Main Form",
+            font=ctk.CTkFont(family="Segoe UI", size=10),
+            text_color="#64748b",
+            anchor="center",
+            justify="center"
+        ).pack(anchor="center", padx=20, pady=(0, 8))
+
+        # Load Status Icons
         self.icon_server_ctk = None
         self.icon_db_ctk = None
         self.icon_desktop_ctk = None
@@ -479,264 +548,319 @@ class DMCMainApp(ctk.CTk):
         if ICON_SERVER_FILE and ICON_SERVER_FILE.exists():
             try:
                 pil_s = Image.open(ICON_SERVER_FILE)
-                self.icon_server_ctk = ctk.CTkImage(light_image=pil_s, dark_image=pil_s, size=(58, 58))
+                self.icon_server_ctk = ctk.CTkImage(light_image=pil_s, dark_image=pil_s, size=(36, 36))
             except Exception:
                 pass
 
         if ICON_DB_FILE and ICON_DB_FILE.exists():
             try:
                 pil_db = Image.open(ICON_DB_FILE)
-                self.icon_db_ctk = ctk.CTkImage(light_image=pil_db, dark_image=pil_db, size=(58, 58))
+                self.icon_db_ctk = ctk.CTkImage(light_image=pil_db, dark_image=pil_db, size=(36, 36))
             except Exception:
                 pass
 
         if ICON_DESKTOP_FILE and ICON_DESKTOP_FILE.exists():
             try:
                 pil_desk = Image.open(ICON_DESKTOP_FILE)
-                self.icon_desktop_ctk = ctk.CTkImage(light_image=pil_desk, dark_image=pil_desk, size=(58, 58))
+                self.icon_desktop_ctk = ctk.CTkImage(light_image=pil_desk, dark_image=pil_desk, size=(36, 36))
             except Exception:
                 pass
 
-        # 2. Status & Network Overview: 3-Column Layout (3 Panels with Large Google Icons centered)
-        status_card = ctk.CTkFrame(self, fg_color="transparent")
-        status_card.pack(fill="x", padx=20, pady=(4, 6))
-        status_card.grid_columnconfigure((0, 1, 2), weight=1, uniform="status_col")
+        # 3. Status Overview: 3-Card Grid (Server, Database, Mode)
+        status_grid = ctk.CTkFrame(right_panel, fg_color="transparent")
+        status_grid.pack(fill="x", padx=20, pady=(0, 8))
+        status_grid.grid_columnconfigure((0, 1, 2), weight=1, uniform="status_col")
 
-        # Column 1: Server Status Panel
-        col1 = ctk.CTkFrame(status_card, corner_radius=14, fg_color="#0f172a", border_width=1, border_color="#1e293b")
-        col1.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=0)
-
+        # Column 1: Server Status
+        col1 = ctk.CTkFrame(status_grid, corner_radius=10, fg_color="#f8fafc", border_width=1, border_color="#e2e8f0")
+        col1.grid(row=0, column=0, sticky="nsew", padx=(0, 4), pady=0)
         if self.icon_server_ctk:
-            ctk.CTkLabel(col1, image=self.icon_server_ctk, text="").pack(anchor="center", pady=(12, 4))
-
+            ctk.CTkLabel(col1, image=self.icon_server_ctk, text="").pack(anchor="center", pady=(6, 2))
         ctk.CTkLabel(
             col1,
-            text="⚡ ស្ថានភាពប្រព័ន្ធ (Server)",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
-            text_color="#f1f5f9"
-        ).pack(anchor="center", pady=(0, 6))
-
+            text="⚡ ស្ថានភាពប្រព័ន្ធ",
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=11, weight="bold"),
+            text_color="#334155"
+        ).pack(anchor="center", pady=(0, 3))
         self.status_badge = ctk.CTkLabel(
             col1,
             text="⏳ កំពុងដំណើរការ...",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color="#94a3b8",
-            fg_color="#334155",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color="#15803d",
+            fg_color="#dcfce7",
             corner_radius=8,
-            padx=14,
-            pady=4
+            padx=8,
+            pady=3
         )
-        self.status_badge.pack(anchor="center", pady=(0, 12))
+        self.status_badge.pack(anchor="center", pady=(0, 8))
 
-        # Column 2: Database Mode Panel
-        col2 = ctk.CTkFrame(status_card, corner_radius=14, fg_color="#0f172a", border_width=1, border_color="#1e293b")
-        col2.grid(row=0, column=1, sticky="nsew", padx=3, pady=0)
-
+        # Column 2: Database Mode
+        col2 = ctk.CTkFrame(status_grid, corner_radius=10, fg_color="#f8fafc", border_width=1, border_color="#e2e8f0")
+        col2.grid(row=0, column=1, sticky="nsew", padx=2, pady=0)
         if self.icon_db_ctk:
-            ctk.CTkLabel(col2, image=self.icon_db_ctk, text="").pack(anchor="center", pady=(12, 4))
-
+            ctk.CTkLabel(col2, image=self.icon_db_ctk, text="").pack(anchor="center", pady=(6, 2))
         ctk.CTkLabel(
             col2,
-            text="🗄️ មូលទិន្នន័យ (Database)",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
-            text_color="#f1f5f9"
-        ).pack(anchor="center", pady=(0, 6))
-
+            text="🗄️ មូលទិន្នន័យ",
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=11, weight="bold"),
+            text_color="#334155"
+        ).pack(anchor="center", pady=(0, 3))
         self.db_badge = ctk.CTkLabel(
             col2,
-            text="🟢 បានភ្ជាប់ជោគជ័យ (Connected)",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color="#4ade80",
-            fg_color="#14532d",
+            text="🟢 បានភ្ជាប់ជោគជ័យ",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color="#15803d",
+            fg_color="#dcfce7",
             corner_radius=8,
-            padx=14,
-            pady=4
+            padx=8,
+            pady=3
         )
-        self.db_badge.pack(anchor="center", pady=(0, 12))
+        self.db_badge.pack(anchor="center", pady=(0, 8))
 
-        # Column 3: Application Mode Panel
-        col3 = ctk.CTkFrame(status_card, corner_radius=14, fg_color="#0f172a", border_width=1, border_color="#1e293b")
-        col3.grid(row=0, column=2, sticky="nsew", padx=(6, 0), pady=0)
-
+        # Column 3: Application Mode
+        col3 = ctk.CTkFrame(status_grid, corner_radius=10, fg_color="#f8fafc", border_width=1, border_color="#e2e8f0")
+        col3.grid(row=0, column=2, sticky="nsew", padx=(4, 0), pady=0)
         if self.icon_desktop_ctk:
-            ctk.CTkLabel(col3, image=self.icon_desktop_ctk, text="").pack(anchor="center", pady=(12, 4))
-
+            ctk.CTkLabel(col3, image=self.icon_desktop_ctk, text="").pack(anchor="center", pady=(6, 2))
         ctk.CTkLabel(
             col3,
-            text="💻 ទម្រង់ដំណើរការ (Mode)",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
-            text_color="#f1f5f9"
-        ).pack(anchor="center", pady=(0, 6))
-
+            text="💻 ទម្រង់ដំណើរការ",
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=11, weight="bold"),
+            text_color="#334155"
+        ).pack(anchor="center", pady=(0, 3))
         self.mode_badge = ctk.CTkLabel(
             col3,
             text="💻 Desktop Application",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color="#a7f3d0",
-            fg_color="#064e3b",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color="#0369a1",
+            fg_color="#e0f2fe",
             corner_radius=8,
-            padx=14,
-            pady=4
+            padx=8,
+            pady=3
         )
-        self.mode_badge.pack(anchor="center", pady=(0, 12))
+        self.mode_badge.pack(anchor="center", pady=(0, 8))
 
-        # 3. Primary Hero Launch Action Button (Form 2)
-        launch_frame = ctk.CTkFrame(self, corner_radius=12, fg_color="transparent")
-        launch_frame.pack(fill="x", padx=20, pady=10)
-
+        # 4. Primary Hero Launch Action Button (Styled like Form Login .btn-gov)
         self.btn_open = ctk.CTkButton(
-            launch_frame,
+            right_panel,
             text="🚀 បើកដំណើរការប្រព័ន្ធ (Open DMC System Window)",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=16, weight="bold"),
-            height=52,
-            fg_color="#0284c7",
-            hover_color="#0369a1",
-            corner_radius=10,
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=14, weight="bold"),
+            height=44,
+            fg_color="#1a4d2e",
+            hover_color="#2e7d32",
+            text_color="#ffffff",
+            corner_radius=22,
             command=self.launch_app_window
         )
-        self.btn_open.pack(fill="x")
+        self.btn_open.pack(fill="x", padx=20, pady=(6, 6))
 
-        # 4. Management & Controls (Server Controls)
-        mgmt_frame = ctk.CTkFrame(self, corner_radius=12, fg_color="#1e293b")
-        mgmt_frame.pack(fill="x", padx=20, pady=(2, 8))
+        # 5. Server Controls Box
+        srv_box = ctk.CTkFrame(right_panel, corner_radius=10, fg_color="#f8fafc", border_width=1, border_color="#e2e8f0")
+        srv_box.pack(fill="x", padx=20, pady=(0, 6))
 
-        mgmt_title = ctk.CTkLabel(
-            mgmt_frame,
+        ctk.CTkLabel(
+            srv_box,
             text="⚙️ ការគ្រប់គ្រងដំណើរការប្រព័ន្ធ (Server Controls)",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=13, weight="bold"),
-            text_color="#e2e8f0"
-        )
-        mgmt_title.pack(anchor="w", padx=16, pady=(8, 4))
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=11, weight="bold"),
+            text_color="#475569"
+        ).pack(anchor="w", padx=12, pady=(6, 4))
 
-        # Server Actions (Start, Restart, Stop)
-        srv_grid = ctk.CTkFrame(mgmt_frame, fg_color="transparent")
-        srv_grid.pack(fill="x", padx=16, pady=(4, 10))
+        srv_btn_row = ctk.CTkFrame(srv_box, fg_color="transparent")
+        srv_btn_row.pack(fill="x", padx=12, pady=(0, 8))
 
         btn_start = ctk.CTkButton(
-            srv_grid,
+            srv_btn_row,
             text="▶️ Start Server",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#15803d",
-            hover_color="#166534",
-            height=34,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#16a34a",
+            hover_color="#15803d",
+            height=32,
+            corner_radius=6,
             command=self.start_server
         )
         btn_start.pack(side="left", fill="x", expand=True, padx=(0, 4))
 
         btn_restart = ctk.CTkButton(
-            srv_grid,
+            srv_btn_row,
             text="🔄 Restart Server",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#3b82f6",
-            hover_color="#2563eb",
-            height=34,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            height=32,
+            corner_radius=6,
             command=self.restart_server
         )
         btn_restart.pack(side="left", fill="x", expand=True, padx=4)
 
         btn_stop = ctk.CTkButton(
-            srv_grid,
+            srv_btn_row,
             text="🛑 Stop Server",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#ef4444",
-            hover_color="#dc2626",
-            height=34,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#dc2626",
+            hover_color="#b91c1c",
+            height=32,
+            corner_radius=6,
             command=self.stop_server
         )
         btn_stop.pack(side="right", fill="x", expand=True, padx=(4, 0))
 
-        # Auto-Update from GitHub Button (with smart update indicator)
-        update_row = ctk.CTkFrame(mgmt_frame, fg_color="transparent")
-        update_row.pack(fill="x", padx=16, pady=(0, 6))
-
+        # 6. Auto-Update from GitHub Button
         self.btn_update = ctk.CTkButton(
-            update_row,
+            right_panel,
             text="🔍 កំពុងពិនិត្យមើលកំណែថ្មី...",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=13, weight="bold"),
-            fg_color="#334155",
-            hover_color="#475569",
-            height=38,
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=12, weight="bold"),
+            fg_color="#f0fdf4",
+            hover_color="#dcfce7",
+            border_width=1,
+            border_color="#86efac",
+            text_color="#15803d",
+            height=34,
+            corner_radius=17,
             command=self.handle_update_click
         )
-        self.btn_update.pack(fill="x", expand=True)
+        self.btn_update.pack(fill="x", padx=20, pady=(2, 2))
 
+        # Update Notice Label (Kept unpacked/hidden per user request)
         self.update_notice_label = ctk.CTkLabel(
-            update_row,
+            right_panel,
             text="",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=11),
-            text_color="#94a3b8"
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=10),
+            text_color="#64748b"
         )
-        self.update_notice_label.pack(anchor="center", pady=(3, 0))
+        # Intentionally NOT packed: "មិនបាច់បង្ហាញទេ លាក់ប្រភព"
 
-        # In-App Progress Bar Container (Displays percentage, status, and completion without closing window)
-        self.progress_frame = ctk.CTkFrame(mgmt_frame, fg_color="#0f172a", corner_radius=8)
-        
+        # In-App Progress Bar Container
+        self.progress_frame = ctk.CTkFrame(right_panel, fg_color="#f8fafc", corner_radius=8, border_width=1, border_color="#e2e8f0")
+
         self.progress_info_row = ctk.CTkFrame(self.progress_frame, fg_color="transparent")
-        self.progress_info_row.pack(fill="x", padx=12, pady=(8, 2))
-        
+        self.progress_info_row.pack(fill="x", padx=10, pady=(6, 2))
+
         self.progress_status_label = ctk.CTkLabel(
             self.progress_info_row,
             text="⏳ កំពុងរៀបចំទាញយក Update...",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=11),
-            text_color="#94a3b8"
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=10),
+            text_color="#475569"
         )
         self.progress_status_label.pack(side="left")
-        
+
         self.progress_pct_label = ctk.CTkLabel(
             self.progress_info_row,
             text="0%",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color="#38bdf8"
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color="#16a34a"
         )
         self.progress_pct_label.pack(side="right")
-        
+
         self.progress_bar = ctk.CTkProgressBar(
             self.progress_frame,
             orientation="horizontal",
             mode="determinate",
-            height=10,
-            corner_radius=5,
-            progress_color="#38bdf8",
-            fg_color="#334155"
+            height=8,
+            corner_radius=4,
+            progress_color="#16a34a",
+            fg_color="#e2e8f0"
         )
-        self.progress_bar.pack(fill="x", padx=12, pady=(2, 8))
+        self.progress_bar.pack(fill="x", padx=10, pady=(2, 6))
         self.progress_bar.set(0.0)
-
-        # 5. Footer / Copyright & Telegram Link Frame
-        footer_card = ctk.CTkFrame(self, corner_radius=12, fg_color="#0f172a", border_width=1, border_color="#1e293b")
-        footer_card.pack(fill="x", padx=20, pady=(4, 12))
-
-        footer_inner = ctk.CTkFrame(footer_card, fg_color="transparent")
-        footer_inner.pack(fill="x", padx=16, pady=8)
-
-        ctk.CTkLabel(
-            footer_inner,
-            text="រក្សាសិទ្ធិដោយ៖ លោក យ៉ន សាយ៉ាន់ដារ៉ា • មន្ត្រីទទួលបន្ទុកការងារធនធានមនុស្ស",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
-            text_color="#f1f5f9",
-            wraplength=880,
-            justify="center"
-        ).pack(anchor="center", pady=(0, 4))
 
         def open_telegram():
             try:
                 import webbrowser
-                webbrowser.open_new_tab("https://t.me/sydadmin168")
+                webbrowser.open_new_tab("https://t.me/SayanndaraYornDaffpl")
             except Exception:
                 pass
 
+        # Bottom Action Bar: Telegram button on left, "🛡️ Security Access" pill on far right (Pinned to bottom)
+        bottom_bar = ctk.CTkFrame(right_panel, fg_color="transparent")
+        bottom_bar.pack(side="bottom", fill="x", padx=20, pady=(0, 10))
+
         btn_tg = ctk.CTkButton(
-            footer_inner,
-            text="✈️ Telegram: https://t.me/sydadmin168 (ចុចដើម្បីភ្ជាប់ទំនាក់ទំនង)",
-            font=ctk.CTkFont(family="Khmer OS Siemreap", size=12, weight="bold"),
-            text_color="#ffffff",
-            fg_color="#0284c7",
-            hover_color="#0369a1",
-            height=30,
-            corner_radius=8,
+            bottom_bar,
+            text="✈️ Telegram: @SayanndaraYornDaffpl",
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=10, weight="bold"),
+            text_color="#0284c7",
+            fg_color="#e0f2fe",
+            hover_color="#bae6fd",
+            border_width=1,
+            border_color="#bae6fd",
+            height=28,
+            corner_radius=14,
             command=open_telegram
         )
-        btn_tg.pack(anchor="center", pady=(2, 0))
+        btn_tg.pack(side="left")
+
+        pill_security = ctk.CTkLabel(
+            bottom_bar,
+            text="🛡️ Security Access",
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            fg_color="#dcfce7",
+            text_color="#15803d",
+            corner_radius=12,
+            padx=12,
+            pady=3
+        )
+        pill_security.pack(side="right")
+
+        # Footer Copyright Label (Pinned to bottom)
+        ctk.CTkLabel(
+            right_panel,
+            text="រក្សាសិទ្ធិដោយ៖ លោក យ៉ន សាយ៉ាន់ដារ៉ា • មន្ត្រីទទួលបន្ទុកការងារធនធានមនុស្ស",
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=10, weight="bold"),
+            text_color="#64748b",
+            justify="center"
+        ).pack(side="bottom", anchor="center", padx=20, pady=(0, 4))
+
+        # Footer Divider Line (Pinned to bottom)
+        ctk.CTkFrame(right_panel, height=1, fg_color="#e2e8f0").pack(side="bottom", fill="x", padx=20, pady=(0, 6))
+
+        # Right Spacer to maintain vertical balance
+        right_spacer = ctk.CTkFrame(right_panel, fg_color="transparent")
+        right_spacer.pack(side="top", fill="both", expand=True)
+
+    def _animate_logo_tick(self):
+        """3D Rotate-Mirror spinning badge animation with orbital energy arc effect."""
+        if not getattr(self, 'is_monitoring', True):
+            return
+        try:
+            canvas = getattr(self, 'logo_canvas', None)
+            if not canvas or not canvas.winfo_exists():
+                return
+
+            canvas.delete("all")
+            cx, cy, R = 140, 140, 106
+
+            # 1. Outer Orbit ring & rotating energy arcs (Effect running around)
+            canvas.create_oval(cx - R, cy - R, cx + R, cy + R, outline="#165430", width=2)
+
+            deg = math.degrees(self._orbit_angle) % 360
+            canvas.create_arc(cx - R, cy - R, cx + R, cy + R, start=deg, extent=52, style="arc", outline="#34d399", width=3)
+            canvas.create_arc(cx - R, cy - R, cx + R, cy + R, start=(deg + 180) % 360, extent=52, style="arc", outline="#fbbf24", width=3)
+
+            # Orbiting glowing comet heads running around the logo
+            for offset_angle, col in [(0, "#34d399"), (math.pi, "#fbbf24")]:
+                a = self._orbit_angle + offset_angle
+                px = cx + R * math.cos(a)
+                py = cy + R * math.sin(a)
+                canvas.create_oval(px - 5, py - 5, px + 5, py + 5, fill=col, outline="#ffffff", width=1)
+                for t, r in [(0.12, 3), (0.24, 2)]:
+                    tx = cx + R * math.cos(a - t)
+                    ty = cy + R * math.sin(a - t)
+                    canvas.create_oval(tx - r, ty - r, tx + r, ty + r, fill="#1e5430", outline="")
+
+            # 2. Rotate Mirror Logo in Center (3D horizontal scale & flip)
+            cos_val = math.cos(self._logo_angle)
+            sx = abs(cos_val)
+            cur_w = max(4, int(175 * sx))
+            frame_img = self._pil_base_logo.transpose(Image.FLIP_LEFT_RIGHT) if cos_val < 0 else self._pil_base_logo
+            resized = frame_img.resize((cur_w, 175), Image.Resampling.BILINEAR)
+            self._cur_tk_logo = ImageTk.PhotoImage(resized)
+            canvas.create_image(cx, cy, image=self._cur_tk_logo)
+
+            self._logo_angle += 0.04
+            self._orbit_angle += 0.07
+            self.after(33, self._animate_logo_tick)
+        except Exception:
+            pass
 
     def monitor_server_status(self):
         """Background thread that pings target_url to update status badge live."""
@@ -745,14 +869,14 @@ class DMCMainApp(ctk.CTk):
             if is_up:
                 self.after(0, lambda: self.status_badge.configure(
                     text="🟢 កំពុងដំណើរការ (Online)",
-                    text_color="#4ade80",
-                    fg_color="#14532d"
+                    text_color="#15803d",
+                    fg_color="#dcfce7"
                 ))
             else:
                 self.after(0, lambda: self.status_badge.configure(
                     text="🔴 មិនទាន់ដំណើរការ (Offline)",
-                    text_color="#f87171",
-                    fg_color="#7f1d1d"
+                    text_color="#dc2626",
+                    fg_color="#fee2e2"
                 ))
             time.sleep(3)
 
@@ -973,7 +1097,7 @@ class DMCMainApp(ctk.CTk):
             with open(ENV_FILE, "w", encoding="utf-8") as f:
                 f.write(content)
         self.db_mode = "NEON_CLOUD"
-        self.db_badge.configure(text="⚡ Neon Cloud PostgreSQL", text_color="#38bdf8", fg_color="#0369a1")
+        self.db_badge.configure(text="⚡ Neon Cloud PostgreSQL", text_color="#0369a1", fg_color="#e0f2fe")
         self.restart_server()
 
     def switch_to_sqlite(self):
@@ -988,7 +1112,7 @@ class DMCMainApp(ctk.CTk):
             with open(ENV_FILE, "w", encoding="utf-8") as f:
                 f.write(content)
         self.db_mode = "LOCAL_SQLITE"
-        self.db_badge.configure(text="📁 Local SQLite (db.sqlite3)", text_color="#facc15", fg_color="#713f12")
+        self.db_badge.configure(text="📁 Local SQLite (db.sqlite3)", text_color="#854d0e", fg_color="#fef9c3")
         self.restart_server()
 
     def start_server(self):
@@ -1003,7 +1127,7 @@ class DMCMainApp(ctk.CTk):
 
     def stop_server(self):
         free_port_8000()
-        self.status_badge.configure(text="🔴 មិនទាន់ដំណើរការ (Offline)", text_color="#f87171", fg_color="#7f1d1d")
+        self.status_badge.configure(text="🔴 មិនទាន់ដំណើរការ (Offline)", text_color="#dc2626", fg_color="#fee2e2")
 
     def _start_update_polling(self):
         # Initial check
@@ -1034,15 +1158,17 @@ class DMCMainApp(ctk.CTk):
                 short_msg = res['commit_msg'][:50] if res['commit_msg'] else 'កំណែទម្រង់ថ្មី'
                 self.update_notice_label.configure(
                     text=f"🔔 មានកំណែថ្មីពី PUSH_TO_GITHUB៖ «{short_msg}»",
-                    text_color="#c084fc"
+                    text_color="#7c3aed"
                 )
             elif res['error']:
                 self.btn_update.configure(
                     state="normal",
                     text="🔄 ពិនិត្យមើល Update ពី GitHub",
-                    fg_color="#334155",
-                    hover_color="#475569",
-                    text_color="#94a3b8"
+                    fg_color="#f1f5f9",
+                    hover_color="#e2e8f0",
+                    border_width=1,
+                    border_color="#cbd5e1",
+                    text_color="#475569"
                 )
                 self.update_notice_label.configure(
                     text="ℹ️ មិនទាន់អាចភ្ជាប់ GitHub បាន (Offline)",
@@ -1052,9 +1178,11 @@ class DMCMainApp(ctk.CTk):
                 self.btn_update.configure(
                     state="normal",
                     text="✅ កំណែចុងក្រោយបំផុត (Up-to-Date)",
-                    fg_color="#1e293b",
-                    hover_color="#334155",
-                    text_color="#94a3b8"
+                    fg_color="#f0fdf4",
+                    hover_color="#dcfce7",
+                    border_width=1,
+                    border_color="#86efac",
+                    text_color="#15803d"
                 )
                 self.update_notice_label.configure(
                     text="ℹ️ ប្រព័ន្ធរបស់អ្នកជាកំណែចុងក្រោយបំផុត មិនទាន់មានកំណែថ្មីពី PUSH_TO_GITHUB ឡើយ",
@@ -1112,11 +1240,11 @@ class DMCMainApp(ctk.CTk):
                 pct = pct_text if pct_text is not None else f"{int(fraction * 100)}%"
                 self.progress_pct_label.configure(text=pct)
                 if fraction >= 1.0:
-                    self.progress_bar.configure(progress_color="#22c55e")
-                    self.progress_pct_label.configure(text_color="#4ade80")
+                    self.progress_bar.configure(progress_color="#16a34a")
+                    self.progress_pct_label.configure(text_color="#16a34a")
                 else:
-                    self.progress_bar.configure(progress_color="#38bdf8")
-                    self.progress_pct_label.configure(text_color="#38bdf8")
+                    self.progress_bar.configure(progress_color="#0284c7")
+                    self.progress_pct_label.configure(text_color="#0284c7")
             except Exception:
                 pass
         self.after(0, _apply)

@@ -131,58 +131,30 @@
 <body>
     <div class="login-landscape-card">
         <div class="card-row-landscape">
-            <!-- Left Side: Brand, Purpose & Developer Info Panel (Always Landscape / Horizontal) -->
-            <div class="brand-panel">
+            <!-- Left Side: Brand & Purpose Panel (Always Landscape / Horizontal) -->
+            <div class="brand-panel d-flex flex-column justify-content-between">
                 <div>
-                    <!-- Brand Header -->
-                    <div class="d-flex align-items-center gap-2.5 mb-2.5 pb-2.5 border-bottom border-white border-opacity-10">
-                        <img src="{% static 'dms/img/logo.png' %}" alt="Logo" class="flex-shrink-0" style="width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));">
-                        <div>
-                            <h5 class="fw-bold text-white m-0" style="font-size: 0.95rem; line-height: 1.3;">កម្មវិធីគ្រប់គ្រងធនធានមនុស្ស</h5>
-                            <div class="text-white-50" style="font-size: 0.74rem;">Human Resource Management System (HRMS)</div>
-                        </div>
+                    <!-- Big Prominent Logo Header -->
+                    <div class="text-center pt-2 pb-3 mb-3 border-bottom border-white border-opacity-10">
+                        <img src="{% static 'dms/img/logo.png' %}" alt="Logo" class="img-fluid mb-2.5" style="width: 86px; height: 86px; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.45));">
+                        <h5 class="fw-bold text-white mb-1" style="font-size: 1.05rem; line-height: 1.35; letter-spacing: 0.2px;">កម្មវិធីគ្រប់គ្រងធនធានមនុស្ស</h5>
+                        <div class="text-white-50" style="font-size: 0.78rem;">Human Resource Management System (HRMS)</div>
                     </div>
 
                     <!-- គោលបំណងនៃការបង្កើតកម្មវិធី -->
-                    <div class="info-card-left">
-                        <div class="fw-bold text-warning text-uppercase mb-1.5" style="font-size: 0.77rem;">
-                            <i class="fa-solid fa-bullseye me-1"></i> គោលបំណងនៃការបង្កើតកម្មវិធី
+                    <div class="info-card-left mt-2">
+                        <div class="fw-bold text-warning text-uppercase mb-2" style="font-size: 0.8rem;">
+                            <i class="fa-solid fa-bullseye me-1.5"></i> គោលបំណងនៃការបង្កើតកម្មវិធី
                         </div>
-                        <ul class="text-white-50 mb-0 ps-3" style="line-height: 1.5; font-size: 0.76rem;">
-                            <li>ធ្វើទំនើបកម្ម និងលើកកម្ពស់ប្រសិទ្ធភាពគ្រប់គ្រងលិខិត</li>
-                            <li>តាមដានលំហូរឯកសារ ចុះបញ្ជី និងផ្តល់ចំណារឆាប់រហ័ស</li>
+                        <ul class="text-white-50 mb-0 ps-3" style="line-height: 1.65; font-size: 0.78rem;">
+                            <li class="mb-1">ធ្វើទំនើបកម្ម និងលើកកម្ពស់ប្រសិទ្ធភាពគ្រប់គ្រងលិខិត</li>
+                            <li class="mb-1">តាមដានលំហូរឯកសារ ចុះបញ្ជី និងផ្តល់ចំណារឆាប់រហ័ស</li>
                             <li>ធានានូវតម្លាភាព សុវត្ថិភាព និងងាយស្រួលស្រាវជ្រាវ</li>
                         </ul>
                     </div>
-
-                    <!-- កម្មសិទ្ធិ និងអ្នកបង្កើតកម្មវិធី -->
-                    <div class="info-card-left mb-0">
-                        <div class="fw-bold text-warning text-uppercase mb-1.5" style="font-size: 0.77rem;">
-                            <i class="fa-solid fa-user-shield me-1"></i> កម្មសិទ្ធិ និងអ្នកបង្កើតកម្មវិធី
-                        </div>
-                        <div class="d-flex align-items-start gap-2 text-white">
-                            <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0 mt-0.5" style="width: 28px; height: 28px; font-size: 0.75rem;">
-                                <i class="fa-solid fa-user-tie"></i>
-                            </div>
-                            <div style="font-size: 0.78rem;">
-                                <strong class="d-block text-white" style="font-size: 0.85rem;">លោក យ៉ន សាយ៉ាន់ដារ៉ា</strong>
-                                <div class="text-white-50 mt-0.5" style="font-size: 0.73rem;">
-                                    <i class="fa-solid fa-briefcase me-1 text-warning"></i> មន្ត្រីបច្ចេកទេសទទួលបន្ទុកការងារធនធានមនុស្ស
-                                </div>
-                                <div class="d-flex flex-wrap align-items-center gap-1.5 mt-1.5">
-                                    <span class="text-warning fw-semibold font-monospace" style="font-size: 0.75rem;">
-                                        <i class="fa-solid fa-phone me-1"></i> ០៩៣ ៧៨២ ០០០
-                                    </span>
-                                    <a href="https://t.me/SayanndaraYornDaffpl" target="_blank" class="badge text-white text-decoration-none rounded-pill px-2 py-0.5 d-inline-flex align-items-center gap-1 shadow-sm" style="background-color: #229ED9 !important; font-size: 0.72rem;">
-                                        <i class="fa-brands fa-telegram"></i> Telegram
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
-                <div class="pt-2 border-top border-white border-opacity-10 mt-2">
+                <div class="pt-2 border-top border-white border-opacity-10 mt-3">
                     <div class="text-white-50 text-center" style="font-size: 0.72rem;">
                         &copy; 2026 Human Resource Management System
                     </div>
@@ -193,7 +165,7 @@
             <div class="login-form-panel">
                 <div class="mb-3">
                     <div class="d-inline-flex align-items-center gap-1.5 bg-success bg-opacity-10 text-success px-2.5 py-0.5 rounded-pill fw-bold mb-1.5" style="font-size: 0.76rem;">
-                        <i class="fa-solid fa-shield-halved"></i> សុវត្ថិភាពខ្ពស់
+                        <i class="fa-solid fa-shield-halved"></i> Security Access
                     </div>
                     <div class="text-success fw-bold mb-1" style="font-size: 0.95rem;">
                         <i class="fa-solid fa-circle-check me-1"></i> សូមស្វាគមន៍មកកាន់កម្មវិធីគ្រប់គ្រងធនធានមនុស្ស
@@ -263,8 +235,8 @@
                         រក្សាសិទ្ធិដោយ៖ <strong class="text-dark">លោក យ៉ន សាយ៉ាន់ដារ៉ា</strong> មន្ត្រីទទួលបន្ទុកការងារធនធានមនុស្ស
                     </div>
                     <div class="mt-1">
-                        <a href="https://t.me/sydadmin168" target="_blank" rel="noopener noreferrer" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1 text-decoration-none rounded-pill" style="font-size: 0.74rem;">
-                            <i class="fa-brands fa-telegram me-1"></i> Telegram: sydadmin168 (ចុចភ្ជាប់ទំនាក់ទំនង)
+                        <a href="https://t.me/SayanndaraYornDaffpl" target="_blank" rel="noopener noreferrer" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1 text-decoration-none rounded-pill" style="font-size: 0.74rem;">
+                            <i class="fa-brands fa-telegram me-1"></i> Telegram: SayanndaraYornDaffpl (ចុចភ្ជាប់ទំនាក់ទំនង)
                         </a>
                     </div>
                 </div>

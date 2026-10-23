@@ -41,6 +41,34 @@ from .forms import (
 )
 from .otp_service import send_otp_notification
 from django.views.decorators.csrf import csrf_exempt
+import functools
+
+
+def is_admin_account_strictly(user):
+    """
+    Enforces strict access: ONLY superusers or user account 'ADMIN' (case-insensitive).
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return (getattr(user, 'username', '') or '').upper() == 'ADMIN'
+
+
+def admin_account_required(view_func):
+    """
+    Decorator for views that MUST strictly only be accessed by user Account: ADMIN.
+    """
+    @functools.wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not is_admin_account_strictly(request.user):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.path.startswith('/api/'):
+                return JsonResponse({'status': 'error', 'error': '⚠️ គ្មានសិទ្ធិ! មុខងារនេះអនុញ្ញាតសម្រាប់តែ UserAccount: ADMIN ប៉ុណ្ណោះ!'}, status=403)
+            messages.error(request, "⚠️ មុខងារនេះត្រូវបានអនុញ្ញាតសម្រាប់តែ UserAccount: ADMIN ប៉ុណ្ណោះ ដាច់ខាត!")
+            return redirect('dashboard')
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
 
 
 @csrf_exempt
@@ -54,17 +82,15 @@ def login_view(request):
             identifier = form.cleaned_data['identifier'].strip()
             password = form.cleaned_data['password']
 
-            # Find matching user by username, email, or phone
-            user_obj = None
-            # 1. Try username
-            user_obj = User.objects.filter(username__iexact=identifier).first()
-            # 2. Try email
+            # Find matching user by username, email, or phone (Fast indexed lookup)
+            user_obj = User.objects.filter(username=identifier).select_related('profile').first()
+            if not user_obj:
+                user_obj = User.objects.filter(username__iexact=identifier).select_related('profile').first()
             if not user_obj and '@' in identifier:
-                user_obj = User.objects.filter(email__iexact=identifier).first()
-            # 3. Try phone in UserProfile
+                user_obj = User.objects.filter(email__iexact=identifier).select_related('profile').first()
             if not user_obj:
                 phone_clean = identifier.replace(' ', '')
-                profile_obj = UserProfile.objects.filter(phone=phone_clean).select_related('user').first()
+                profile_obj = UserProfile.objects.filter(phone=phone_clean).select_related('user', 'user__profile').first()
                 if profile_obj:
                     user_obj = profile_obj.user
 
@@ -89,20 +115,25 @@ def login_view(request):
                 # Session expires on browser close so reopening the app requires entering password again
                 request.session.set_expiry(0)
 
-                try:
-                    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
-                    if ip and ',' in ip:
-                        ip = ip.split(',')[0].strip()
-                    OfficerAuditLog.objects.create(
-                        user=user,
-                        action_type='USER_LOGIN',
-                        details=f"គណនី @{user.username} ({user.get_full_name() or user.username}) បាន Login ចូលប្រើប្រាស់ប្រព័ន្ធ",
-                        category="ការចូលប្រើប្រព័ន្ធ",
-                        ip_address=ip or '127.0.0.1',
-                        officer_name_cache=f"User: {user.username}"
-                    )
-                except Exception:
-                    pass
+                # Asynchronous audit log: write in background thread so user response is instant
+                ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
+                if ip and ',' in ip:
+                    ip = ip.split(',')[0].strip()
+
+                def _bg_audit_log(u_id, u_uname, u_fname, ip_str):
+                    try:
+                        OfficerAuditLog.objects.create(
+                            user_id=u_id,
+                            action_type='USER_LOGIN',
+                            details=f"គណនី @{u_uname} ({u_fname}) បាន Login ចូលប្រើប្រាស់ប្រព័ន្ធ",
+                            category="ការចូលប្រើប្រព័ន្ធ",
+                            ip_address=ip_str or '127.0.0.1',
+                            officer_name_cache=f"User: {u_uname}"
+                        )
+                    except Exception:
+                        pass
+                import threading
+                threading.Thread(target=_bg_audit_log, args=(user.id, user.username, user.get_full_name() or user.username, ip), daemon=True).start()
 
                 full_name = user.get_full_name() or user.username
                 role_label = user_profile.get_role_display() if user_profile else 'អ្នកគ្រប់គ្រងប្រព័ន្ធ'
@@ -296,11 +327,8 @@ def otp_resend_view(request):
 
 
 @login_required
+@admin_account_required
 def user_approvals_view(request):
-    if not request.user.is_superuser and request.user.username.upper() != 'ADMIN':
-        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិចូលទំព័រនេះឡើយ!")
-        return redirect('dashboard')
-
     status_filter = request.GET.get('status', 'pending')
     users_qs = UserProfile.objects.exclude(user__is_superuser=True).exclude(user__username__iexact='ADMIN').select_related('user', 'department').order_by('-created_at')
 
@@ -321,11 +349,8 @@ def user_approvals_view(request):
 
 
 @login_required
+@admin_account_required
 def user_approve_action(request, user_id):
-    if not request.user.is_superuser and request.user.username.upper() != 'ADMIN':
-        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តសកម្មភាពនេះឡើយ!")
-        return redirect('dashboard')
-
     target_user = get_object_or_404(User, id=user_id)
     profile = getattr(target_user, 'profile', None)
     if profile:
@@ -342,11 +367,8 @@ def user_approve_action(request, user_id):
 
 
 @login_required
+@admin_account_required
 def user_revoke_action(request, user_id):
-    if not request.user.is_superuser and request.user.username.upper() != 'ADMIN':
-        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តសកម្មភាពនេះឡើយ!")
-        return redirect('dashboard')
-
     target_user = get_object_or_404(User, id=user_id)
     profile = getattr(target_user, 'profile', None)
     if profile:
@@ -357,11 +379,8 @@ def user_revoke_action(request, user_id):
 
 
 @login_required
+@admin_account_required
 def user_delete_action(request, user_id):
-    if not request.user.is_superuser and request.user.username.upper() != 'ADMIN':
-        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តសកម្មភាពនេះឡើយ!")
-        return redirect('dashboard')
-
     target_user = get_object_or_404(User, id=user_id)
     if target_user.is_superuser or target_user.username.upper() == 'ADMIN':
         messages.error(request, "មិនអាចលុបគណនី ADMIN បានឡើយ!")
@@ -374,16 +393,12 @@ def user_delete_action(request, user_id):
 
 
 @login_required
+@admin_account_required
 def dev_switch_user(request, user_id):
     """
     DEV PHASE: Allows ADMIN to instantly switch (impersonate) into any user account for testing,
     and retain the ability to switch back to ADMIN seamlessly.
     """
-    is_admin = request.user.is_superuser or (request.user.username.upper() == 'ADMIN') or ('original_admin_id' in request.session)
-    if not is_admin:
-        messages.error(request, "⚠️ លោកអ្នកគ្មានសិទ្ធិប្រើប្រាស់មុខងារ Dev Switch User ឡើយ!")
-        return redirect('dashboard')
-
     target_user = get_object_or_404(User, id=user_id)
 
     # Track original admin user ID across session switch
@@ -432,10 +447,8 @@ def dev_switch_back_admin(request):
 
 
 @login_required
+@admin_account_required
 def user_edit_view(request, user_id):
-    if not request.user.is_superuser and request.user.username.upper() != 'ADMIN':
-        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តសកម្មភាពនេះឡើយ!")
-        return redirect('dashboard')
 
     target_user = get_object_or_404(User, id=user_id)
     profile, _ = UserProfile.objects.get_or_create(user=target_user)
@@ -530,11 +543,8 @@ def user_edit_view(request, user_id):
 # DEPARTMENT & ORGANIZATION MANAGEMENT (ADMIN)
 # ==========================================
 @login_required
+@admin_account_required
 def department_list_view(request):
-    if not request.user.is_superuser and request.user.username.upper() != 'ADMIN':
-        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិចូលកាន់ទំព័រនេះឡើយ!")
-        return redirect('dashboard')
-
     if request.method == 'POST':
         form = DepartmentForm(request.POST)
         if form.is_valid():
@@ -583,11 +593,8 @@ def department_list_view(request):
 
 
 @login_required
+@admin_account_required
 def department_toggle_active_view(request, pk):
-    if not request.user.is_superuser and request.user.username.upper() != 'ADMIN':
-        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តសកម្មភាពនេះឡើយ!")
-        return redirect('dashboard')
-
     dept = get_object_or_404(Department, pk=pk)
     if dept.code == 'LEAD':
         messages.warning(request, "⚠️ «ថ្នាក់ដឹកនាំមន្ទីរ» ជារចនាសម្ព័ន្ធស្នូលរបស់ប្រព័ន្ធ មិនអាចបិទដំណើរការបានឡើយ!")
@@ -604,11 +611,8 @@ def department_toggle_active_view(request, pk):
 
 
 @login_required
+@admin_account_required
 def department_switch_structure_view(request):
-    if not request.user.is_superuser and request.user.username.upper() != 'ADMIN':
-        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តសកម្មភាពនេះឡើយ!")
-        return redirect('dashboard')
-
     if request.method == 'POST':
         target = request.POST.get('target_structure', 'OLD')
         if target == 'NEW':
@@ -628,11 +632,8 @@ def department_switch_structure_view(request):
 
 
 @login_required
+@admin_account_required
 def department_edit_view(request, pk):
-    if not request.user.is_superuser and request.user.username.upper() != 'ADMIN':
-        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តសកម្មភាពនេះឡើយ!")
-        return redirect('dashboard')
-
     dept = get_object_or_404(Department, pk=pk)
 
     if request.method == 'POST':
@@ -651,10 +652,8 @@ def department_edit_view(request, pk):
 
 
 @login_required
+@admin_account_required
 def department_delete_view(request, pk):
-    if not request.user.is_superuser and request.user.username.upper() != 'ADMIN':
-        messages.error(request, "លោកអ្នកគ្មានសិទ្ធិអនុវត្តសកម្មភាពនេះឡើយ!")
-        return redirect('dashboard')
 
     dept = get_object_or_404(Department, pk=pk)
 
@@ -882,26 +881,32 @@ def dashboard(request):
             'pending_vehicles': pending_vehicles,
             'total_departments': total_departments,
         }
-        cache.set(cache_key, stats, 30)
+        cache.set(cache_key, stats, 180)
 
-    # Dynamic recent items (fast limited queries with select_related)
-    if is_super_or_lead:
-        recent_documents = list(Document.objects.select_related('current_department', 'origin_department').order_by('-updated_at')[:6])
-        recent_routings = list(DocumentRouting.objects.select_related('document', 'from_user', 'to_dept').order_by('-routed_at')[:6])
-        recent_officers = list(CivilServantProfile.objects.select_related('department').order_by('-updated_at')[:6])
-    elif dept:
-        base_docs = Document.objects.filter(
-            Q(origin_department=dept) | Q(current_department=dept) | Q(routings__to_dept=dept)
-        ).distinct()
-        recent_documents = list(base_docs.select_related('current_department', 'origin_department').order_by('-updated_at')[:6])
-        recent_routings = list(DocumentRouting.objects.filter(
-            Q(from_dept=dept) | Q(to_dept=dept)
-        ).select_related('document', 'from_user', 'to_dept').order_by('-routed_at')[:6])
-        recent_officers = list(CivilServantProfile.objects.filter(department=dept).select_related('department').order_by('-updated_at')[:6])
+    # Dynamic recent items (High-speed cached for Neon Cloud)
+    recent_cache_key = f"dash_recent_v1_{'global' if is_super_or_lead else (dept.id if dept else 0)}"
+    cached_recents = cache.get(recent_cache_key)
+    if cached_recents is not None:
+        recent_documents, recent_routings, recent_officers = cached_recents
     else:
-        recent_documents = []
-        recent_routings = []
-        recent_officers = []
+        if is_super_or_lead:
+            recent_documents = list(Document.objects.select_related('current_department', 'origin_department').order_by('-updated_at')[:6])
+            recent_routings = list(DocumentRouting.objects.select_related('document', 'from_user', 'to_dept').order_by('-routed_at')[:6])
+            recent_officers = list(CivilServantProfile.objects.select_related('department').order_by('-updated_at')[:6])
+        elif dept:
+            base_docs = Document.objects.filter(
+                Q(origin_department=dept) | Q(current_department=dept) | Q(routings__to_dept=dept)
+            ).distinct()
+            recent_documents = list(base_docs.select_related('current_department', 'origin_department').order_by('-updated_at')[:6])
+            recent_routings = list(DocumentRouting.objects.filter(
+                Q(from_dept=dept) | Q(to_dept=dept)
+            ).select_related('document', 'from_user', 'to_dept').order_by('-routed_at')[:6])
+            recent_officers = list(CivilServantProfile.objects.filter(department=dept).select_related('department').order_by('-updated_at')[:6])
+        else:
+            recent_documents = []
+            recent_routings = []
+            recent_officers = []
+        cache.set(recent_cache_key, (recent_documents, recent_routings, recent_officers), 60)
 
     context = {
         **stats,
@@ -4208,14 +4213,13 @@ def officer_attachment_add(request, pk):
     officer = get_object_or_404(CivilServantProfile, pk=pk)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
-    is_admin_or_lead = has_global_access
-    is_system_admin = check_is_system_admin(request.user, request)
+    is_admin = is_admin_account_strictly(request.user)
+    is_system_admin = is_admin
 
-    if not is_admin_or_lead and officer.department != dept and officer.user != request.user:
+    if not is_admin and (not dept or officer.department_id != dept.id) and officer.user != request.user:
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
-            return JsonResponse({'success': False, 'error': "⚠️ លោកអ្នកគ្មានសិទ្ធិបញ្ចូលឯកសារយោងសម្រាប់មន្ត្រីនេះឡើយ!"}, status=403)
-        messages.error(request, "⚠️ លោកអ្នកគ្មានសិទ្ធិបញ្ចូលឯកសារយោងសម្រាប់មន្ត្រីនេះឡើយ!")
+            return JsonResponse({'success': False, 'error': "⚠️ លោកអ្នកគ្មានសិទ្ធិបញ្ចូលឯកសារយោងសម្រាប់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!"}, status=403)
+        messages.error(request, "⚠️ លោកអ្នកគ្មានសិទ្ធិបញ្ចូលឯកសារយោងសម្រាប់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!")
         return redirect('officer_detail', pk=pk)
 
     # Edit window check for non-admin users
@@ -4284,14 +4288,13 @@ def officer_attachment_edit(request, pk, attachment_id):
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
-    is_admin_or_lead = has_global_access
-    is_system_admin = check_is_system_admin(request.user, request)
+    is_admin = is_admin_account_strictly(request.user)
+    is_system_admin = is_admin
 
     next_url = request.POST.get('next') or request.GET.get('next')
 
-    if not is_admin_or_lead and officer.department != dept and officer.user != request.user:
-        messages.error(request, "⚠️ លោកអ្នកគ្មានសិទ្ធិកែប្រែឯកសារយោងនេះឡើយ!")
+    if not is_admin and (not dept or officer.department_id != dept.id) and officer.user != request.user:
+        messages.error(request, "⚠️ លោកអ្នកគ្មានសិទ្ធិកែប្រែឯកសារយោងរបស់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!")
         return redirect(next_url) if next_url else redirect('officer_detail', pk=pk)
 
     # Edit window check for non-admin users
@@ -4349,16 +4352,15 @@ def officer_attachment_delete(request, pk, attachment_id):
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
-    is_admin_or_lead = has_global_access
-    is_system_admin = check_is_system_admin(request.user, request)
+    is_admin = is_admin_account_strictly(request.user)
+    is_system_admin = is_admin
 
     next_url = request.POST.get('next') or request.GET.get('next')
 
-    if not is_admin_or_lead and officer.department != dept and officer.user != request.user:
+    if not is_admin and (not dept or officer.department_id != dept.id) and officer.user != request.user:
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
-            return JsonResponse({'success': False, 'error': "⚠️ លោកអ្នកគ្មានសិទ្ធិលុបឯកសារយោងនេះឡើយ!"}, status=403)
-        messages.error(request, "⚠️ លោកអ្នកគ្មានសិទ្ធិលុបឯកសារយោងនេះឡើយ!")
+            return JsonResponse({'success': False, 'error': "⚠️ លោកអ្នកគ្មានសិទ្ធិលុបឯកសារយោងរបស់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!"}, status=403)
+        messages.error(request, "⚠️ លោកអ្នកគ្មានសិទ្ធិលុបឯកសារយោងរបស់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!")
         return redirect(next_url) if next_url else redirect('officer_detail', pk=pk)
 
     # Edit window check for non-admin users
@@ -4522,6 +4524,13 @@ def officer_attachment_view(request, pk, attachment_id):
     officer = get_object_or_404(CivilServantProfile, pk=pk)
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
 
+    # 🔒 Strict Department Isolation: only user account ADMIN or same department user
+    if not is_admin_account_strictly(request.user):
+        profile = getattr(request.user, 'profile', None)
+        user_dept = profile.department if profile else None
+        if (not user_dept or officer.department_id != user_dept.id) and officer.user != request.user:
+            return HttpResponseForbidden("សិទ្ធិត្រូវបានបដិសេធ៖ លោកអ្នកមិនអាចមើលឯកសារយោងរបស់មន្ត្រីក្នុងការិយាល័យផ្សេងបានឡើយ! (អនុញ្ញាតសម្រាប់តែ ADMIN ប៉ុណ្ណោះ)")
+
     if not att.file:
         raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
 
@@ -4622,6 +4631,13 @@ def officer_attachment_download(request, pk, attachment_id):
     officer = get_object_or_404(CivilServantProfile, pk=pk)
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
 
+    # 🔒 Strict Department Isolation: only user account ADMIN or same department user
+    if not is_admin_account_strictly(request.user):
+        profile = getattr(request.user, 'profile', None)
+        user_dept = profile.department if profile else None
+        if (not user_dept or officer.department_id != user_dept.id) and officer.user != request.user:
+            return HttpResponseForbidden("សិទ្ធិត្រូវបានបដិសេធ៖ លោកអ្នកមិនអាចទាញយកឯកសារយោងរបស់មន្ត្រីក្នុងការិយាល័យផ្សេងបានឡើយ! (អនុញ្ញាតសម្រាប់តែ ADMIN ប៉ុណ្ណោះ)")
+
     if not att.file:
         raise Http404("File ឯកសារមិនត្រូវបានរកឃើញឡើយ!")
 
@@ -4682,6 +4698,13 @@ def officer_attachment_open_word(request, pk, attachment_id):
     officer = get_object_or_404(CivilServantProfile, pk=pk)
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
 
+    # 🔒 Strict Department Isolation: only user account ADMIN or same department user
+    if not is_admin_account_strictly(request.user):
+        profile = getattr(request.user, 'profile', None)
+        user_dept = profile.department if profile else None
+        if (not user_dept or officer.department_id != user_dept.id) and officer.user != request.user:
+            return JsonResponse({'status': 'error', 'message': 'សិទ្ធិត្រូវបានបដិសេធ៖ លោកអ្នកមិនអាចបើកឯកសារយោងរបស់មន្ត្រីក្នុងការិយាល័យផ្សេងបានឡើយ! (អនុញ្ញាតសម្រាប់តែ ADMIN ប៉ុណ្ណោះ)'}, status=403)
+
     if not att.file:
         return JsonResponse({'status': 'error', 'message': 'រកមិនឃើញ File ឯកសារឡើយ!'}, status=404)
 
@@ -4702,15 +4725,9 @@ def officer_attachment_open_word(request, pk, attachment_id):
 
 
 @login_required
+@admin_account_required
 def officer_audit_trail_view(request):
     profile = getattr(request.user, 'profile', None)
-    is_admin = request.user.is_superuser or request.user.username.upper() == 'ADMIN'
-
-    if not is_admin:
-        if request.GET.get('live_feed') == '1':
-            return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
-        messages.error(request, "⚠️ មានតែ ADMIN ប៉ុណ្ណោះដែលអាចមើលផ្ទាំង Audit Logs នេះបាន!")
-        return redirect('officer_list')
 
     search_q = request.GET.get('q', '').strip()
     action_filter = request.GET.get('action_type', '').strip()
@@ -4831,12 +4848,8 @@ def officer_audit_trail_view(request):
 
 
 @login_required
+@admin_account_required
 def officer_audit_log_delete(request, log_id):
-    is_admin = request.user.is_superuser or request.user.username.upper() == 'ADMIN'
-    if not is_admin:
-        messages.error(request, "⚠️ មានតែ ADMIN ប៉ុណ្ណោះដែលអាចលុបកំណត់ត្រា Audit Log បាន!")
-        return redirect('officer_audit_trail')
-
     log_entry = get_object_or_404(OfficerAuditLog, pk=log_id)
     if request.method == 'POST':
         action_name = log_entry.get_action_type_display()
@@ -4850,12 +4863,8 @@ def officer_audit_log_delete(request, log_id):
 
 
 @login_required
+@admin_account_required
 def officer_audit_trail_clear_all(request):
-    is_admin = request.user.is_superuser or request.user.username.upper() == 'ADMIN'
-    if not is_admin:
-        messages.error(request, "⚠️ មានតែ ADMIN ប៉ុណ្ណោះដែលអាចសម្អាត Audit Log បាន!")
-        return redirect('officer_audit_trail')
-
     if request.method == 'POST':
         total = OfficerAuditLog.objects.count()
         OfficerAuditLog.objects.all().delete()
@@ -4865,12 +4874,8 @@ def officer_audit_trail_clear_all(request):
 
 
 @login_required
+@admin_account_required
 def officer_audit_trail_bulk_delete(request):
-    is_admin = request.user.is_superuser or request.user.username.upper() == 'ADMIN'
-    if not is_admin:
-        messages.error(request, "⚠️ មានតែ ADMIN ប៉ុណ្ណោះដែលអាចលុប Audit Log បាន!")
-        return redirect('officer_audit_trail')
-
     if request.method == 'POST':
         selected_ids = request.POST.getlist('selected_logs')
         if selected_ids:
@@ -11191,14 +11196,12 @@ def api_geo_villages(request):
 # ==============================================================================
 
 @login_required
+@admin_account_required
 def geography_manage_view(request):
     """
     Dedicated Geography Management Dashboard for ADMIN to browse, search, create, and update
     Cambodia Districts, Communes, and Villages.
     """
-    if not check_is_system_admin(request.user, request):
-        messages.error(request, "⚠️ មានតែ ADMIN មួយគត់ដែលត្រូវបានអនុញ្ញាតឱ្យគ្រប់គ្រងទិន្នន័យភូមិសាស្ត្ររដ្ឋបាល!")
-        return redirect('officer_list')
 
     level = request.GET.get('level', 'district')  # 'district', 'commune', 'village'
     p_code = request.GET.get('province_code', '').strip()
@@ -11268,12 +11271,11 @@ def geography_manage_view(request):
 
 
 @login_required
+@admin_account_required
 def api_geo_district_save(request):
     """
     Creates or updates a Cambodia District (Admin Only).
     """
-    if not check_is_system_admin(request.user, request):
-        return JsonResponse({'success': False, 'error': 'គ្មានសិទ្ធិអនុវត្តប្រតិបត្តិការនេះឡើយ!'}, status=403)
 
     code = request.POST.get('code', '').strip()
     province_code = request.POST.get('province_code', '').strip()
@@ -11331,12 +11333,11 @@ def api_geo_district_save(request):
 
 
 @login_required
+@admin_account_required
 def api_geo_commune_save(request):
     """
     Creates or updates a Cambodia Commune (Admin Only).
     """
-    if not check_is_system_admin(request.user, request):
-        return JsonResponse({'success': False, 'error': 'គ្មានសិទ្ធិអនុវត្តប្រតិបត្តិការនេះឡើយ!'}, status=403)
 
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid request method.'}, status=405)
@@ -11403,12 +11404,11 @@ def api_geo_commune_save(request):
 
 
 @login_required
+@admin_account_required
 def api_geo_village_save(request):
     """
     Creates or updates a Cambodia Village (Admin Only).
     """
-    if not check_is_system_admin(request.user, request):
-        return JsonResponse({'success': False, 'error': 'គ្មានសិទ្ធិអនុវត្តប្រតិបត្តិការនេះឡើយ!'}, status=403)
 
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid request method.'}, status=405)
@@ -11477,12 +11477,11 @@ def api_geo_village_save(request):
 
 
 @login_required
+@admin_account_required
 def api_geo_item_delete(request):
     """
     Deletes a district, commune, or village (Admin Only).
     """
-    if not check_is_system_admin(request.user, request):
-        return JsonResponse({'success': False, 'error': 'គ្មានសិទ្ធិអនុវត្តប្រតិបត្តិការនេះឡើយ!'}, status=403)
 
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid request method.'}, status=405)
@@ -13232,9 +13231,9 @@ def contract_officer_attachment_add(request, pk):
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+    is_admin = is_admin_account_strictly(request.user)
 
-    if not has_global_access:
+    if not is_admin:
         if not dept or contract_officer.department != dept:
             messages.error(request, '⚠️ លោកអ្នកគ្មានសិទ្ធិបន្ថែមឯកសារសម្រាប់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!')
             return redirect('contract_officer_list')
@@ -13284,9 +13283,9 @@ def contract_officer_attachment_edit(request, pk, attachment_id):
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+    is_admin = is_admin_account_strictly(request.user)
 
-    if not has_global_access:
+    if not is_admin:
         if not dept or contract_officer.department != dept:
             messages.error(request, '⚠️ លោកអ្នកគ្មានសិទ្ធិកែប្រែឯកសាររបស់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!')
             return redirect('contract_officer_list')
@@ -13334,9 +13333,9 @@ def contract_officer_attachment_delete(request, pk, attachment_id):
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
+    is_admin = is_admin_account_strictly(request.user)
 
-    if not has_global_access:
+    if not is_admin:
         if not dept or contract_officer.department != dept:
             messages.error(request, '⚠️ លោកអ្នកគ្មានសិទ្ធិលុបឯកសាររបស់មន្ត្រីនៃការិយាល័យផ្សេងឡើយ!')
             return redirect('contract_officer_list')
@@ -13370,6 +13369,13 @@ def contract_officer_attachment_view(request, pk, attachment_id):
     """
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
+
+    # 🔒 Strict Department Isolation: only user account ADMIN or same department user
+    if not is_admin_account_strictly(request.user):
+        profile = getattr(request.user, 'profile', None)
+        user_dept = profile.department if profile else None
+        if not user_dept or contract_officer.department_id != user_dept.id:
+            return HttpResponseForbidden("សិទ្ធិត្រូវបានបដិសេធ៖ លោកអ្នកមិនអាចមើលឯកសារយោងរបស់មន្ត្រីក្នុងការិយាល័យផ្សេងបានឡើយ! (អនុញ្ញាតសម្រាប់តែ ADMIN ប៉ុណ្ណោះ)")
     
     if not attachment.file:
         raise Http404("រកមិនឃើញឯកសារក្នុង Server ទេ!")
@@ -13455,6 +13461,13 @@ def contract_officer_attachment_download(request, pk, attachment_id):
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
 
+    # 🔒 Strict Department Isolation: only user account ADMIN or same department user
+    if not is_admin_account_strictly(request.user):
+        profile = getattr(request.user, 'profile', None)
+        user_dept = profile.department if profile else None
+        if not user_dept or contract_officer.department_id != user_dept.id:
+            return HttpResponseForbidden("សិទ្ធិត្រូវបានបដិសេធ៖ លោកអ្នកមិនអាចទាញយកឯកសារយោងរបស់មន្ត្រីក្នុងការិយាល័យផ្សេងបានឡើយ! (អនុញ្ញាតសម្រាប់តែ ADMIN ប៉ុណ្ណោះ)")
+
     if not attachment.file:
         raise Http404("រកមិនឃើញឯកសារក្នុង Server ទេ!")
 
@@ -13502,6 +13515,13 @@ def contract_officer_attachment_open_word(request, pk, attachment_id):
     """
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
+
+    # 🔒 Strict Department Isolation: only user account ADMIN or same department user
+    if not is_admin_account_strictly(request.user):
+        profile = getattr(request.user, 'profile', None)
+        user_dept = profile.department if profile else None
+        if not user_dept or contract_officer.department_id != user_dept.id:
+            return JsonResponse({'status': 'error', 'message': 'សិទ្ធិត្រូវបានបដិសេធ៖ លោកអ្នកមិនអាចបើកឯកសារយោងរបស់មន្ត្រីក្នុងការិយាល័យផ្សេងបានឡើយ! (អនុញ្ញាតសម្រាប់តែ ADMIN ប៉ុណ្ណោះ)'}, status=403)
 
     if not attachment.file:
         return JsonResponse({'status': 'error', 'message': 'រកមិនឃើញ File ឯកសារឡើយ!'}, status=404)
@@ -18289,26 +18309,41 @@ def personnel_reference_hub(request):
     from django.urls import reverse
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    has_global_access = check_has_global_hr_tracking_access(request.user, profile)
-    is_admin_or_lead = has_global_access
-    is_system_admin = check_is_system_admin(request.user, request)
+    # 🔒 STRICT DEPARTMENT ISOLATION: Only user account ADMIN (or superuser) can see/filter other departments
+    is_admin = is_admin_account_strictly(request.user)
+    is_admin_or_lead = is_admin
+    is_system_admin = is_admin
 
     search_q = request.GET.get('q', '').strip()
     type_filter = request.GET.get('type', 'ALL').strip().upper()  # 'ALL', 'CIVIL', 'CONTRACT'
-    dept_filter = request.GET.get('department', '').strip()
     selected_person_key = request.GET.get('selected', '').strip()  # e.g. "civil_5" or "contract_2"
 
-    departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh') if is_admin_or_lead else (Department.objects.filter(id=dept.id) if dept else [])
+    if is_admin:
+        dept_filter = request.GET.get('department', '').strip()
+        departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh')
+    else:
+        # Non-ADMIN users are strictly locked to their own department only!
+        if dept:
+            dept_filter = str(dept.id)
+            departments = Department.objects.filter(id=dept.id)
+        else:
+            dept_filter = '-1'
+            departments = Department.objects.none()
 
-    # 1. Fetch Civil Servants
-    civil_qs = CivilServantProfile.objects.select_related('department').prefetch_related('attachments').all()
-    if not is_admin_or_lead:
+    # 1. Fetch Civil Servants with annotated attachments count (1 single query, no N+1 latency to Neon Cloud)
+    civil_qs = CivilServantProfile.objects.select_related('department').only(
+        'id', 'khmer_last_name', 'khmer_first_name', 'latin_last_name', 'latin_first_name',
+        'officer_id_number', 'current_position_title', 'photo',
+        'department__id', 'department__name_kh', 'department__order_index', 'department__code'
+    ).annotate(
+        attachments_count=Count('attachments', distinct=True)
+    )
+    if not is_admin:
         if dept:
             civil_qs = civil_qs.filter(department=dept)
         else:
             civil_qs = civil_qs.filter(user=request.user)
-
-    if dept_filter:
+    elif dept_filter:
         civil_qs = civil_qs.filter(department_id=dept_filter)
 
     if search_q:
@@ -18320,15 +18355,20 @@ def personnel_reference_hub(request):
             Q(phone__icontains=search_q)
         )
 
-    # 2. Fetch Contract Officers
-    contract_qs = ContractOfficer.objects.select_related('department').prefetch_related('attachments').all()
-    if not is_admin_or_lead:
+    # 2. Fetch Contract Officers with annotated attachments count (1 single query, no N+1 latency to Neon Cloud)
+    contract_qs = ContractOfficer.objects.select_related('department').only(
+        'id', 'khmer_last_name', 'khmer_first_name', 'latin_name', 'id_number',
+        'position_title', 'photo', 'working_unit',
+        'department__id', 'department__name_kh', 'department__order_index', 'department__code'
+    ).annotate(
+        attachments_count=Count('attachments', distinct=True)
+    )
+    if not is_admin:
         if dept:
             contract_qs = contract_qs.filter(department=dept)
         else:
             contract_qs = contract_qs.none()
-
-    if dept_filter:
+    elif dept_filter:
         contract_qs = contract_qs.filter(department_id=dept_filter)
 
     if search_q:
@@ -18342,48 +18382,120 @@ def personnel_reference_hub(request):
 
     personnel_list = []
 
-    # If type is ALL or CIVIL
-    if type_filter in ['ALL', 'CIVIL']:
-        for o in civil_qs.order_by('khmer_last_name', 'khmer_first_name'):
-            personnel_list.append({
-                'key': f"civil_{o.id}",
-                'type': 'CIVIL',
-                'type_label': 'មន្ត្រីរាជការ',
-                'type_badge_class': 'bg-primary text-white',
-                'id': o.id,
-                'full_name_kh': o.full_name_kh,
-                'full_name_latin': o.full_name_latin,
-                'id_number': o.officer_id_number or '-',
-                'department_name': o.department.name_kh if o.department else 'មិនទាន់កំណត់',
-                'position': o.current_position_title or 'មន្ត្រីរាជការ',
-                'photo_url': o.photo.url if o.photo else None,
-                'attachments_count': o.attachments.count(),
-                'detail_url': reverse('officer_detail', args=[o.id]),
-                'add_attachment_url': reverse('officer_attachment_add', args=[o.id]),
-            })
+    # 3. Group Civil Servants by Department with sequential numbering (លេខរៀង)
+    civil_dept_map = {}
+    civil_ordered = civil_qs.order_by('department__order_index', 'department__name_kh', 'khmer_last_name', 'khmer_first_name')
+    for o in civil_ordered:
+        dept_id = o.department.id if o.department else 0
+        dept_name = o.department.name_kh if o.department else 'មិនទាន់កំណត់ការិយាល័យ'
+        dept_order = o.department.order_index if o.department else 9999
 
-    # If type is ALL or CONTRACT
-    if type_filter in ['ALL', 'CONTRACT']:
-        for c in contract_qs.order_by('khmer_last_name', 'khmer_first_name'):
-            personnel_list.append({
-                'key': f"contract_{c.id}",
-                'type': 'CONTRACT',
-                'type_label': 'មន្ត្រីកិច្ចសន្យា',
-                'type_badge_class': 'bg-warning text-dark',
-                'id': c.id,
-                'full_name_kh': c.full_name_kh,
-                'full_name_latin': c.full_name_latin,
-                'id_number': c.id_number or '-',
-                'department_name': c.department.name_kh if c.department else (c.working_unit or 'មិនទាន់កំណត់'),
-                'position': c.position_title or 'មន្ត្រីជាប់កិច្ចសន្យា',
-                'photo_url': c.photo.url if c.photo else None,
-                'attachments_count': c.attachments.count(),
-                'detail_url': reverse('contract_officer_detail', args=[c.id]),
-                'add_attachment_url': reverse('contract_officer_attachment_add', args=[c.id]),
-            })
+        if dept_id not in civil_dept_map:
+            civil_dept_map[dept_id] = {
+                'dept_id': dept_id,
+                'dept_name': dept_name,
+                'dept_order': dept_order,
+                'officers': [],
+                'total_attachments': 0,
+            }
 
-    total_civil_files = OfficerAttachment.objects.count()
-    total_contract_files = ContractOfficerAttachment.objects.count()
+        att_cnt = getattr(o, 'attachments_count', 0)
+        officer_data = {
+            'key': f"civil_{o.id}",
+            'type': 'CIVIL',
+            'type_label': 'មន្ត្រីរាជការ',
+            'type_badge_class': 'bg-primary text-white',
+            'id': o.id,
+            'full_name_kh': o.full_name_kh,
+            'full_name_latin': o.full_name_latin,
+            'id_number': o.officer_id_number or '-',
+            'department_id': dept_id,
+            'department_name': dept_name,
+            'position': o.current_position_title or 'មន្ត្រីរាជការ',
+            'photo_url': o.photo.url if o.photo else None,
+            'attachments_count': att_cnt,
+            'detail_url': reverse('officer_detail', args=[o.id]),
+            'add_attachment_url': reverse('officer_attachment_add', args=[o.id]),
+        }
+        civil_dept_map[dept_id]['officers'].append(officer_data)
+        civil_dept_map[dept_id]['total_attachments'] += att_cnt
+        if type_filter in ['ALL', 'CIVIL']:
+            personnel_list.append(officer_data)
+
+    civil_groups = sorted(civil_dept_map.values(), key=lambda x: (x['dept_order'], x['dept_name']))
+    for grp in civil_groups:
+        for idx, off in enumerate(grp['officers'], 1):
+            off['seq_num'] = idx
+
+    # 4. Group Contract Officers by Department with sequential numbering (លេខរៀង)
+    contract_dept_map = {}
+    contract_ordered = contract_qs.order_by('department__order_index', 'department__name_kh', 'khmer_last_name', 'khmer_first_name')
+    for c in contract_ordered:
+        dept_id = c.department.id if c.department else 0
+        dept_name = c.department.name_kh if c.department else (c.working_unit or 'មិនទាន់កំណត់ការិយាល័យ')
+        dept_order = c.department.order_index if c.department else 9999
+
+        if dept_id not in contract_dept_map:
+            contract_dept_map[dept_id] = {
+                'dept_id': dept_id,
+                'dept_name': dept_name,
+                'dept_order': dept_order,
+                'officers': [],
+                'total_attachments': 0,
+            }
+
+        att_cnt = getattr(c, 'attachments_count', 0)
+        contract_data = {
+            'key': f"contract_{c.id}",
+            'type': 'CONTRACT',
+            'type_label': 'មន្ត្រីកិច្ចសន្យា',
+            'type_badge_class': 'bg-warning text-dark',
+            'id': c.id,
+            'full_name_kh': c.full_name_kh,
+            'full_name_latin': c.full_name_latin,
+            'id_number': c.id_number or '-',
+            'department_id': dept_id,
+            'department_name': dept_name,
+            'position': c.position_title or 'មន្ត្រីជាប់កិច្ចសន្យា',
+            'photo_url': c.photo.url if c.photo else None,
+            'attachments_count': att_cnt,
+            'detail_url': reverse('contract_officer_detail', args=[c.id]),
+            'add_attachment_url': reverse('contract_officer_attachment_add', args=[c.id]),
+        }
+        contract_dept_map[dept_id]['officers'].append(contract_data)
+        contract_dept_map[dept_id]['total_attachments'] += att_cnt
+        if type_filter in ['ALL', 'CONTRACT']:
+            personnel_list.append(contract_data)
+
+    contract_groups = sorted(contract_dept_map.values(), key=lambda x: (x['dept_order'], x['dept_name']))
+    for grp in contract_groups:
+        for idx, off in enumerate(grp['officers'], 1):
+            off['seq_num'] = idx
+
+    total_civil_officers = sum(len(g['officers']) for g in civil_groups)
+    total_contract_officers = sum(len(g['officers']) for g in contract_groups)
+
+    # 5. Fast cached file counts for header badges (strictly scoped per user permissions)
+    if not is_admin:
+        if dept:
+            total_civil_files = OfficerAttachment.objects.filter(officer__department=dept).count()
+            total_contract_files = ContractOfficerAttachment.objects.filter(contract_officer__department=dept).count()
+        else:
+            total_civil_files = OfficerAttachment.objects.filter(officer__user=request.user).count()
+            total_contract_files = 0
+    elif dept_filter:
+        total_civil_files = OfficerAttachment.objects.filter(officer__department_id=dept_filter).count()
+        total_contract_files = ContractOfficerAttachment.objects.filter(contract_officer__department_id=dept_filter).count()
+    else:
+        file_counts_key = "ref_hub_file_counts_all"
+        file_counts = cache.get(file_counts_key)
+        if file_counts is None:
+            total_civil_files = OfficerAttachment.objects.count()
+            total_contract_files = ContractOfficerAttachment.objects.count()
+            cache.set(file_counts_key, (total_civil_files, total_contract_files), 60)
+        else:
+            total_civil_files, total_contract_files = file_counts
+
     total_files_overall = total_civil_files + total_contract_files
 
     selected_person = None
@@ -18457,6 +18569,10 @@ def personnel_reference_hub(request):
 
     context = {
         'personnel_list': personnel_list,
+        'civil_groups': civil_groups,
+        'contract_groups': contract_groups,
+        'total_civil_officers': total_civil_officers,
+        'total_contract_officers': total_contract_officers,
         'selected_person': selected_person,
         'selected_person_key': selected_person_key,
         'selected_attachments': selected_attachments,
@@ -18464,12 +18580,14 @@ def personnel_reference_hub(request):
         'total_civil_files': total_civil_files,
         'total_contract_files': total_contract_files,
         'departments': departments,
+        'user_department': dept,
         'search_q': search_q,
         'type_filter': type_filter,
         'dept_filter': dept_filter,
         'civil_category_choices': OfficerAttachment.CATEGORY_CHOICES,
-        'is_admin_or_lead': is_admin_or_lead,
-        'is_system_admin': is_system_admin,
+        'is_admin': is_admin,
+        'is_admin_or_lead': is_admin,
+        'is_system_admin': is_admin,
     }
     return render(request, 'dms/personnel_reference_hub.html', context)
 
@@ -18491,11 +18609,21 @@ def api_personnel_reference_data(request):
     except ValueError:
         return JsonResponse({'status': 'error', 'message': 'Invalid person ID'}, status=400)
 
+    is_admin = is_admin_account_strictly(request.user)
+    user_profile = getattr(request.user, 'profile', None)
+    user_dept = user_profile.department if user_profile else None
+
     profile_data = {}
     attachments_data = []
 
     if p_type == 'CIVIL':
         officer = get_object_or_404(CivilServantProfile, pk=p_id)
+        if not is_admin:
+            if (not user_dept or officer.department_id != user_dept.id) and officer.user != request.user:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'សិទ្ធិត្រូវបានបដិសេធ៖ លោកអ្នកមិនអាចចូលមើលឯកសារយោងរបស់មន្ត្រីក្នុងការិយាល័យផ្សេងបានឡើយ! (អនុញ្ញាតសម្រាប់តែ ADMIN ប៉ុណ្ណោះ)'
+                }, status=403)
         profile_data = {
             'key': f"civil_{officer.id}",
             'type': 'CIVIL',
@@ -18537,6 +18665,12 @@ def api_personnel_reference_data(request):
             })
     else:
         contract_officer = get_object_or_404(ContractOfficer, pk=p_id)
+        if not is_admin:
+            if not user_dept or contract_officer.department_id != user_dept.id:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'សិទ្ធិត្រូវបានបដិសេធ៖ លោកអ្នកមិនអាចចូលមើលឯកសារយោងរបស់មន្ត្រីក្នុងការិយាល័យផ្សេងបានឡើយ! (អនុញ្ញាតសម្រាប់តែ ADMIN ប៉ុណ្ណោះ)'
+                }, status=403)
         profile_data = {
             'key': f"contract_{contract_officer.id}",
             'type': 'CONTRACT',

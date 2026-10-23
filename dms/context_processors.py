@@ -22,7 +22,7 @@ def dms_context(request):
         from django.conf import settings
         from django.db.models import Q
 
-        is_impersonating = 'original_admin_id' in request.session
+        is_impersonating = hasattr(request, 'session') and ('original_admin_id' in request.session)
         is_admin_or_impersonating = (
             request.user.is_superuser or 
             request.user.username.upper() == 'ADMIN' or 

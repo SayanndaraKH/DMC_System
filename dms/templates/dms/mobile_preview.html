@@ -8,7 +8,26 @@
     <!-- Auto-redirect to server URL if opened as file:// to prevent Chrome iframe security blocks -->
     <script>
         if (window.location.protocol === 'file:') {
-            window.location.href = 'http://127.0.0.1:8000/mobile-preview/';
+            fetch('http://127.0.0.1:8000/login/', { mode: 'no-cors' })
+                .then(function() {
+                    window.location.href = 'http://127.0.0.1:8000/mobile-preview/';
+                })
+                .catch(function() {
+                    window.addEventListener('DOMContentLoaded', function() {
+                        const banner = document.createElement('div');
+                        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#dc2626;color:#ffffff;padding:14px 20px;text-align:center;font-weight:600;font-size:15px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;gap:12px;font-family:sans-serif;';
+                        banner.innerHTML = '<span>⚠️ <b>DMS Server មិនទាន់ដំណើរការឡើយ!</b> សូមចុចរត់ <b>PREVIEW_MOBILE_APP.bat</b> ឬ <b>RUN_DMS.bat</b> ដើម្បីបើក Server។</span> <span style="font-size:13px;opacity:0.9;">(កំពុងពិនិត្យភ្ជាប់ស្វ័យប្រវត្តិ...)</span>';
+                        document.body.prepend(banner);
+                        const poll = setInterval(function() {
+                            fetch('http://127.0.0.1:8000/login/', { mode: 'no-cors' })
+                                .then(function() {
+                                    clearInterval(poll);
+                                    window.location.href = 'http://127.0.0.1:8000/mobile-preview/';
+                                })
+                                .catch(function() {});
+                        }, 2000);
+                    });
+                });
         }
     </script>
 

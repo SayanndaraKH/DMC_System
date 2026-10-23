@@ -122,6 +122,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'dms.middleware.NeonDatabaseRetryMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -183,11 +184,21 @@ if not USE_LOCAL_SQLITE and DATABASE_URL:
         DATABASES = {
             'default': dj_database_url.config(
                 default=DATABASE_URL,
-                conn_max_age=600,
-                conn_health_checks=False,
+                conn_max_age=0,  # 0 recommended for Neon PgBouncer pooler to prevent dead socket errors
+                conn_health_checks=True,
                 ssl_require=True
             )
         }
+        DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
+        
+        # Add TCP Keepalives and connect timeout for robust serverless cloud connectivity
+        db_options = DATABASES['default'].get('OPTIONS', {})
+        db_options.setdefault('connect_timeout', 15)
+        db_options.setdefault('keepalives', 1)
+        db_options.setdefault('keepalives_idle', 30)
+        db_options.setdefault('keepalives_interval', 10)
+        db_options.setdefault('keepalives_count', 5)
+        DATABASES['default']['OPTIONS'] = db_options
     except Exception as e:
         print(f"Warning: Neon Cloud PostgreSQL configuration error ({e}). Falling back to local db.sqlite3.")
         DATABASES = {
@@ -204,6 +215,9 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+# High-speed cached session engine (Memory cached reads + background DB persistence for Neon Cloud)
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 AUTH_PASSWORD_VALIDATORS = [
     {

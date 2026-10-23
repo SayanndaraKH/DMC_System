@@ -6,6 +6,17 @@ from django.http import HttpResponse
 
 from django.views.generic.base import RedirectView
 
+# Strictly restrict Django Admin site to user account ADMIN or superuser
+def admin_site_has_permission(request):
+    user = request.user
+    if not user.is_active:
+        return False
+    if user.is_superuser:
+        return True
+    return (getattr(user, 'username', '') or '').upper() == 'ADMIN'
+
+admin.site.has_permission = admin_site_has_permission
+
 def unregister_service_worker(request):
     js = """
     self.addEventListener('install', function(e) { self.skipWaiting(); });

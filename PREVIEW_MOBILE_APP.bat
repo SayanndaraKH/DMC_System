@@ -1,19 +1,19 @@
 @echo off
-chcp 65001 >nul
-title 📱 DMC System - ឧបករណ៍មើលសាកល្បងលើទូរស័ព្ទដៃ (Mobile Preview Simulator)
+title DMC Mobile Preview Simulator
+cd /d "%~dp0"
 
-echo ====================================================================
-echo   📱 ប្រព័ន្ធគ្រប់គ្រងធនធានមនុស្ស (DMC System)
-echo   ឧបករណ៍មើលសាកល្បងទិដ្ឋភាពលើទូរស័ព្ទដៃ (Mobile Simulator)
-echo ====================================================================
-echo.
-echo កំពុងបើកផ្ទាំងទូរស័ព្ទសាកល្បង (Mobile Preview)...
-echo អាសយដ្ឋាន៖ http://127.0.0.1:8000/mobile-preview/
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "$r = $false; " ^
+    "try { $res = Invoke-WebRequest -Uri 'http://127.0.0.1:8000/' -UseBasicParsing -TimeoutSec 1; if ($res.StatusCode -in 200,302) { $r = $true } } catch { if ($_.Exception.Response.StatusCode -in 200,302) { $r = $true } } " ^
+    "if (-not $r) { " ^
+    "    Write-Host '[INFO] DMS Server is not running. Starting server in background...' -ForegroundColor Yellow; " ^
+    "    Start-Process 'wscript.exe' -ArgumentList '\"%~dp0start_background.vbs\"'; " ^
+    "    $w = 0; while ($w -lt 45) { " ^
+    "        try { $chk = Invoke-WebRequest -Uri 'http://127.0.0.1:8000/' -UseBasicParsing -TimeoutSec 1; if ($chk.StatusCode -in 200,302) { $r = $true; break } } catch { if ($_.Exception.Response.StatusCode -in 200,302) { $r = $true; break } } " ^
+    "        Start-Sleep -Milliseconds 600; $w++; " ^
+    "    } " ^
+    "} " ^
+    "Write-Host '[OK] DMS Server is online! Opening Mobile Preview...' -ForegroundColor Green; " ^
+    "Start-Process 'http://127.0.0.1:8000/mobile-preview/'"
 
-start "" "http://127.0.0.1:8000/mobile-preview/"
-
-echo.
-echo ✅ បានបើកដោយជោគជ័យ! អ្នកអាចមើលសាកល្បង បង្វិលអេក្រង់ និងស្កេន QR Code បានភ្លាមៗ។
-echo.
-timeout /t 3 >nul
 exit

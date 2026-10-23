@@ -3,6 +3,7 @@ import json
 import socket
 from pathlib import Path
 from datetime import datetime
+from functools import wraps
 
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -84,16 +85,56 @@ def verify_sync_token(request):
     return token and token == expected_token
 
 
+def admin_only_required(view_func):
+    """
+    Decorator strictly enforcing that only UserAccount: ADMIN (or superuser)
+    can access the Data Center, create/download backups, restore data, trigger sync,
+    or manage snapshots.
+    All other users are blocked and redirected to the dashboard with an alert message.
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('login')
+
+        is_admin = (
+            request.user.is_superuser or
+            (request.user.username and request.user.username.strip().upper() == 'ADMIN')
+        )
+
+        if not is_admin:
+            is_ajax = (
+                request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+                'application/json' in request.headers.get('Accept', '') or
+                request.path.startswith('/api/') or
+                view_func.__name__.startswith('api_')
+            )
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'សិទ្ធិត្រូវបានបដិសេធ៖ មុខងារមជ្ឈមណ្ឌលទិន្នន័យ (Data Center & Backup) ត្រូវបានអនុញ្ញាតសម្រាប់តែ UserAccount: ADMIN ប៉ុណ្ណោះ!'
+                }, status=403)
+
+            messages.error(
+                request,
+                '⛔ សិទ្ធិត្រូវបានបដិសេធ៖ មុខងារមជ្ឈមណ្ឌលទិន្នន័យ (Data Center & Backup) ត្រូវបានអនុញ្ញាតសម្រាប់តែ UserAccount: ADMIN ប៉ុណ្ណោះ!'
+            )
+            return redirect('dashboard')
+
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
 # ==============================================================================
 # USER & ADMIN UI DASHBOARD VIEWS
 # ==============================================================================
 
-@login_required
+@admin_only_required
 def backup_sync_dashboard(request):
     """
-    Main Backup, Restore, and Synchronization Center.
-    Accessible to logged-in users to freely download backups,
-    and for Admins to perform restores and trigger sync.
+    Main Backup, Restore, and Synchronization Center (Data Center).
+    Restricted strictly to UserAccount: ADMIN.
+    Connected directly to Neon Cloud Database.
     """
     stats = get_system_stats()
     local_backups = list_local_backups()
@@ -102,12 +143,19 @@ def backup_sync_dashboard(request):
     lan_port = getattr(settings, 'SERVER_PORT', 8000)
     lan_url = f"http://{primary_lan_ip}:{lan_port}"
 
-    is_admin_user = (
-        request.user.is_superuser or 
-        request.user.username.upper() == 'ADMIN' or
-        getattr(getattr(request.user, 'profile', None), 'is_admin', False) or
-        getattr(getattr(request.user, 'profile', None), 'is_leadership', False)
-    )
+    from django.db import connection
+    db_engine = connection.vendor
+    is_neon_cloud = (db_engine == 'postgresql')
+    db_host = connection.settings_dict.get('HOST', 'Neon Cloud PostgreSQL')
+    db_name = connection.settings_dict.get('NAME', 'neondb')
+    db_user = connection.settings_dict.get('USER', 'neondb_owner')
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1;")
+            db_connected = True
+    except Exception:
+        db_connected = False
 
     default_sync_token = get_default_sync_token()
 
@@ -117,15 +165,21 @@ def backup_sync_dashboard(request):
         'lan_ips': lan_ips,
         'primary_lan_ip': primary_lan_ip,
         'lan_url': lan_url,
-        'is_admin_user': is_admin_user,
+        'is_admin_user': True,
         'default_sync_token': default_sync_token,
         'clean_preview_counts': get_clean_preview_counts(),
-        'page_title': 'មជ្ឈមណ្ឌល Backup & សមកាលកម្មទិន្នន័យ (Backup & Sync Center)',
+        'page_title': 'មជ្ឈមណ្ឌល Backup & សមកាលកម្មទិន្នន័យ (Data Center - Neon Cloud)',
+        'is_neon_cloud': is_neon_cloud,
+        'db_engine': 'Neon Cloud PostgreSQL' if is_neon_cloud else 'Local Database',
+        'db_host': db_host,
+        'db_name': db_name,
+        'db_user': db_user,
+        'db_connected': db_connected,
     }
     return render(request, 'dms/backup_sync.html', context)
 
 
-@login_required
+@admin_only_required
 def download_full_backup(request):
     """
     Creates and streams the complete system backup (.zip containing data.json + media/ + manifest.json)
@@ -153,7 +207,7 @@ def download_full_backup(request):
         return redirect('backup_sync_dashboard')
 
 
-@login_required
+@admin_only_required
 def download_db_backup(request):
     """
     Streams lightweight database-only backup (.zip containing data.json + manifest.json).
@@ -175,7 +229,7 @@ def download_db_backup(request):
         return redirect('backup_sync_dashboard')
 
 
-@login_required
+@admin_only_required
 def download_media_backup(request):
     """
     Streams media attachments backup (.zip containing all media/ files).
@@ -197,7 +251,7 @@ def download_media_backup(request):
         return redirect('backup_sync_dashboard')
 
 
-@login_required
+@admin_only_required
 def download_local_backup_file(request, filename):
     """
     Allows downloading an existing saved backup from the local server's backups/ directory.
@@ -217,7 +271,7 @@ def download_local_backup_file(request, filename):
     )
 
 
-@login_required
+@admin_only_required
 def delete_local_backup_file(request, filename):
     """
     Deletes an existing saved backup from the local server's backups/ directory.
@@ -241,7 +295,7 @@ def delete_local_backup_file(request, filename):
     return redirect('backup_sync_dashboard')
 
 
-@login_required
+@admin_only_required
 def create_local_snapshot_action(request):
     """
     One-click action to create and save a fresh full backup snapshot directly into the server's backups/ directory.
@@ -261,7 +315,7 @@ def create_local_snapshot_action(request):
     return redirect('backup_sync_dashboard')
 
 
-@login_required
+@admin_only_required
 def restore_backup_action(request):
     """
     Handles uploaded backup package (.zip or .json) and restores data.
@@ -306,7 +360,7 @@ def restore_backup_action(request):
     return redirect('backup_sync_dashboard')
 
 
-@login_required
+@admin_only_required
 def clean_system_data_action(request):
     """
     Action to purge operational test data or complete factory reset to prepare DMS for live operation.
@@ -395,7 +449,7 @@ def clean_system_data_action(request):
     return redirect('backup_sync_dashboard')
 
 
-@login_required
+@admin_only_required
 def api_clean_preview(request):
     """
     AJAX endpoint returning current counts of data for live preview.
@@ -406,7 +460,7 @@ def api_clean_preview(request):
     return JsonResponse({'success': True, 'counts': counts})
 
 
-@login_required
+@admin_only_required
 def api_generate_backup(request):
     """
     AJAX endpoint to generate backup packages (FULL, DATABASE_ONLY, MEDIA_ONLY, SNAPSHOT)
@@ -482,7 +536,7 @@ def api_generate_backup(request):
 # AJAX CLIENT SYNC API (Triggers client-to-server operations from Dashboard UI)
 # ==============================================================================
 
-@login_required
+@admin_only_required
 def api_test_server_connection(request):
     """
     AJAX endpoint to test connection to remote/central server.
@@ -497,7 +551,7 @@ def api_test_server_connection(request):
     return JsonResponse(result)
 
 
-@login_required
+@admin_only_required
 def api_trigger_sync(request):
     """
     AJAX endpoint to trigger push, pull, or 2-way sync.
