@@ -110,7 +110,7 @@ def main():
         if start_bat.exists():
             subprocess.Popen([str(start_bat)], shell=True)
             print("⏳ កំពុងរង់ចាំ Server ចាប់ផ្តើម...")
-            for _ in range(20):
+            for _ in range(40):
                 time.sleep(1)
                 if is_django_running():
                     break

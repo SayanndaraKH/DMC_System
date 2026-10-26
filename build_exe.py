@@ -61,6 +61,7 @@ pyinstaller_args = [
     "--add-data", f"{BASE_DIR / 'dms_project'};dms_project",
     "--add-data", f"{BASE_DIR / 'staticfiles'};staticfiles",
     "--hidden-import", "waitress",
+    "--hidden-import", "waitress.server",
     "--hidden-import", "django",
     "--hidden-import", "dms",
     "--hidden-import", "dms.apps",
@@ -93,6 +94,9 @@ logo_path = BASE_DIR / "dms" / "static" / "dms" / "img" / "logo.png"
 if logo_path.exists():
     pyinstaller_args.extend(["--add-data", f"{logo_path};dms/static/dms/img"])
 
+if (BASE_DIR / ".env").exists():
+    pyinstaller_args.extend(["--add-data", f"{BASE_DIR / '.env'};."])
+
 pyinstaller_args.append("main_app.py")
 
 # 4. Clean Old Build Artifacts & Compile EXE
@@ -119,10 +123,16 @@ print("\n[5/5] កំពុងចម្លង file DMC_System.exe មកកា�
 dist_exe = BASE_DIR / "dist" / "DMC_System.exe"
 target_exe = BASE_DIR / "DMC_System.exe"
 
-# Copy dmc_config.txt to dist folder as well for standalone convenience
+# Copy dmc_config.txt and .env to dist folder as well for standalone convenience
 if (BASE_DIR / "dmc_config.txt").exists():
     try:
         shutil.copy2(BASE_DIR / "dmc_config.txt", BASE_DIR / "dist" / "dmc_config.txt")
+    except Exception:
+        pass
+
+if (BASE_DIR / ".env").exists():
+    try:
+        shutil.copy2(BASE_DIR / ".env", BASE_DIR / "dist" / ".env")
     except Exception:
         pass
 
@@ -135,12 +145,27 @@ except Exception:
     pass
 
 if dist_exe.exists():
+    copied = False
     try:
         shutil.copy2(dist_exe, target_exe)
-        file_size_mb = target_exe.stat().st_size / (1024 * 1024)
-        print(f"✅ ចម្លងជោគជ័យ! ទំហំ file: {file_size_mb:.2f} MB (បាន Update រូបរាងថ្មី ១០០%)")
+        copied = True
+    except PermissionError:
+        try:
+            old_f = target_exe.with_name(target_exe.name + ".old")
+            if old_f.exists():
+                old_f.unlink(missing_ok=True)
+            target_exe.rename(old_f)
+            shutil.copy2(dist_exe, target_exe)
+            old_f.unlink(missing_ok=True)
+            copied = True
+        except Exception as re:
+            print(f"⚠️ ចម្លងមិនបានសម្រេច (Rename fallback failed): {re}")
     except Exception as e:
         print(f"⚠️ ចម្លងមិនបានសម្រេច: {e}")
+
+    if copied:
+        file_size_mb = target_exe.stat().st_size / (1024 * 1024)
+        print(f"✅ ចម្លងជោគជ័យ! ទំហំ file: {file_size_mb:.2f} MB (បាន Update រូបរាងថ្មី ១០០%)")
 
 # 5. Success Banner
 print()

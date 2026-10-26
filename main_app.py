@@ -178,14 +178,21 @@ def check_github_update_status():
             commit_msg = (data.get('message') or '').strip().split('\n')[0]
 
             has_update = False
-            if remote_sha and local_sha:
-                has_update = (remote_sha != local_sha)
-            elif remote_ver and local_ver:
-                has_update = (remote_ver != local_ver)
+            # Only trigger update if remote is genuinely NEWER than local
+            if remote_ver and local_ver:
+                has_update = (remote_ver > local_ver)
             elif remote_ts and local_ts:
                 has_update = (remote_ts > local_ts)
-            elif remote_sha or remote_ts:
-                has_update = True
+            elif remote_sha and local_sha and remote_sha != local_sha:
+                if (BASE_DIR / ".git").is_dir():
+                    try:
+                        merge_base = subprocess.run(
+                            ["git", "merge-base", "--is-ancestor", remote_sha, "HEAD"],
+                            cwd=str(BASE_DIR), capture_output=True, timeout=2
+                        )
+                        has_update = (merge_base.returncode != 0)
+                    except Exception:
+                        has_update = False
 
             return {
                 'has_update': has_update,
@@ -213,7 +220,17 @@ def check_github_update_status():
             remote_sha = data.get('sha', '').strip()
             commit_msg = data.get('commit', {}).get('message', '').strip().split('\n')[0]
             commit_date = data.get('commit', {}).get('committer', {}).get('date', '')
-            has_update = bool(remote_sha and (remote_sha != local_sha))
+            has_update = False
+            if remote_sha and local_sha and remote_sha != local_sha:
+                if (BASE_DIR / ".git").is_dir():
+                    try:
+                        merge_base = subprocess.run(
+                            ["git", "merge-base", "--is-ancestor", remote_sha, "HEAD"],
+                            cwd=str(BASE_DIR), capture_output=True, timeout=2
+                        )
+                        has_update = (merge_base.returncode != 0)
+                    except Exception:
+                        has_update = False
             return {
                 'has_update': has_update,
                 'remote_sha': remote_sha,
@@ -239,43 +256,112 @@ def free_port_8000():
         except Exception:
             pass
 
-_waitress_started = False
+def start_port_80_redirector():
+    def _redirect_worker():
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(('0.0.0.0', 80))
+            sock.listen(10)
+            while True:
+                client, addr = sock.accept()
+                threading.Thread(target=_handle_client, args=(client,), daemon=True).start()
+        except Exception:
+            pass
+
+    def _handle_client(client):
+        try:
+            client.settimeout(3.0)
+            data = client.recv(2048).decode('utf-8', errors='ignore')
+            path = "/"
+            host = "127.0.0.1"
+            if data:
+                lines = data.splitlines()
+                if lines:
+                    parts = lines[0].split()
+                    if len(parts) >= 2:
+                        path = parts[1]
+                for line in lines[1:]:
+                    if line.lower().startswith("host:"):
+                        host = line.split(":", 1)[1].strip()
+                        if ":" in host:
+                            host = host.split(":", 1)[0]
+                        break
+            target = f"http://{host}:8000{path}"
+            resp = (
+                "HTTP/1.1 302 Found\r\n"
+                f"Location: {target}\r\n"
+                "Content-Length: 0\r\n"
+                "Connection: close\r\n\r\n"
+            )
+            client.sendall(resp.encode('utf-8'))
+        except Exception:
+            pass
+        finally:
+            try:
+                client.close()
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_redirect_worker, daemon=True)
+    t.start()
+
+
+_waitress_server = None
+_waitress_thread = None
 
 def start_embedded_server():
-    global _waitress_started
-    if _waitress_started:
+    global _waitress_server, _waitress_thread
+    if _waitress_server is not None:
         return
-    _waitress_started = True
+    start_port_80_redirector()
 
     def _serve():
+        global _waitress_server
         try:
             os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dms_project.settings')
             os.environ['USE_LOCAL_SQLITE'] = 'False'
             import django
             django.setup()
 
-            # Auto-migrate database on start
-            try:
-                from django.core.management import call_command
-                call_command('migrate', interactive=False)
-            except Exception:
-                pass
-
-            # Auto-sync PostgreSQL sequences to prevent duplicate key IntegrityError
-            try:
-                from dms.backup_service import reset_postgres_sequences
-                reset_postgres_sequences()
-            except Exception:
-                pass
-
-            from waitress import serve
+            # Start Waitress IMMEDIATELY so port 8000 opens in <1s
+            from waitress.server import create_server
             from dms_project.wsgi import application
-            serve(application, host='0.0.0.0', port=8000, threads=8, _quiet=True)
-        except Exception as e:
-            print(f"Waitress server error: {e}")
+            _waitress_server = create_server(application, host='0.0.0.0', port=8000, threads=8)
 
-    t = threading.Thread(target=_serve, daemon=True)
-    t.start()
+            # Asynchronous background database maintenance (does not block port 8000)
+            def _async_maintenance():
+                try:
+                    from django.core.management import call_command
+                    call_command('migrate', interactive=False)
+                except Exception:
+                    pass
+                try:
+                    from dms.backup_service import reset_postgres_sequences
+                    reset_postgres_sequences()
+                except Exception:
+                    pass
+
+            threading.Thread(target=_async_maintenance, daemon=True).start()
+
+            _waitress_server.run()
+        except Exception as e:
+            logger.error(f"Waitress server error: {e}")
+        finally:
+            _waitress_server = None
+
+    _waitress_thread = threading.Thread(target=_serve, daemon=True)
+    _waitress_thread.start()
+
+def stop_embedded_server():
+    global _waitress_server
+    if _waitress_server is not None:
+        try:
+            _waitress_server.close()
+        except Exception:
+            pass
+        _waitress_server = None
+    free_port_8000()
 
 
 class DMCMainApp(ctk.CTk):
@@ -387,11 +473,25 @@ class DMCMainApp(ctk.CTk):
         except Exception:
             pass
 
-    def check_url_online(self, url, timeout=1.0):
+    def check_url_online(self, url, timeout=1.5):
+        # 1. Quick TCP socket probe first (1ms)
+        try:
+            from urllib.parse import urlparse
+            p = urlparse(url)
+            host = p.hostname or "127.0.0.1"
+            port = p.port or (443 if p.scheme == "https" else 8000 if "8000" in url else 80)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.5)
+                if s.connect_ex((host, port)) == 0:
+                    return True
+        except Exception:
+            pass
+
+        # 2. HTTP probe fallback
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'DMC-Checker'})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return resp.status in (200, 302)
+                return resp.status in (200, 301, 302)
         except Exception:
             return False
 
@@ -402,9 +502,9 @@ class DMCMainApp(ctk.CTk):
         updates the status badge, but DOES NOT open the browser automatically.
         The web interface will ONLY open when the user clicks 'បើកដំណើរការប្រព័ន្ធ'.
         """
-        if not self.check_url_online("http://127.0.0.1:8000/", timeout=0.5):
+        if not self.check_url_online("http://127.0.0.1:8000/"):
             self.after(0, lambda: self.status_badge.configure(
-                text="⏳ កំពុងចាប់ផ្តើម Server...",
+                text="⏳ កំពុងចាប់ផ្តើម...",
                 text_color="#854d0e",
                 fg_color="#fef9c3"
             ))
@@ -414,20 +514,20 @@ class DMCMainApp(ctk.CTk):
         start_wait = time.time()
         server_ready = False
         while time.time() - start_wait < 30:
-            if self.check_url_online("http://127.0.0.1:8000/", timeout=0.5):
+            if self.check_url_online("http://127.0.0.1:8000/"):
                 server_ready = True
                 break
             time.sleep(0.5)
 
         if server_ready:
             self.after(0, lambda: self.status_badge.configure(
-                text="🟢 កំពុងដំណើរការ (Online)",
+                text="🟢 ដំណើរការ (Online)",
                 text_color="#15803d",
                 fg_color="#dcfce7"
             ))
         else:
             self.after(0, lambda: self.status_badge.configure(
-                text="⚠️ ចាប់ផ្តើម Server យឺត (Connecting...)",
+                text="⚠️ រង់ចាំ Server...",
                 text_color="#dc2626",
                 fg_color="#fee2e2"
             ))
@@ -585,11 +685,11 @@ class DMCMainApp(ctk.CTk):
         self.status_badge = ctk.CTkLabel(
             col1,
             text="⏳ កំពុងដំណើរការ...",
-            font=ctk.CTkFont(size=10, weight="bold"),
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=10, weight="bold"),
             text_color="#15803d",
             fg_color="#dcfce7",
             corner_radius=8,
-            padx=8,
+            padx=6,
             pady=3
         )
         self.status_badge.pack(anchor="center", pady=(0, 8))
@@ -868,13 +968,13 @@ class DMCMainApp(ctk.CTk):
             is_up = self.check_url_online(self.target_url) or self.check_url_online("http://127.0.0.1:8000/")
             if is_up:
                 self.after(0, lambda: self.status_badge.configure(
-                    text="🟢 កំពុងដំណើរការ (Online)",
+                    text="🟢 ដំណើរការ (Online)",
                     text_color="#15803d",
                     fg_color="#dcfce7"
                 ))
             else:
                 self.after(0, lambda: self.status_badge.configure(
-                    text="🔴 មិនទាន់ដំណើរការ (Offline)",
+                    text="🔴 មិនដំណើរការ (Offline)",
                     text_color="#dc2626",
                     fg_color="#fee2e2"
                 ))
@@ -1116,8 +1216,6 @@ class DMCMainApp(ctk.CTk):
         self.restart_server()
 
     def start_server(self):
-        free_port_8000()
-        time.sleep(0.5)
         start_embedded_server()
 
     def restart_server(self):
@@ -1126,8 +1224,8 @@ class DMCMainApp(ctk.CTk):
         self.start_server()
 
     def stop_server(self):
-        free_port_8000()
-        self.status_badge.configure(text="🔴 មិនទាន់ដំណើរការ (Offline)", text_color="#dc2626", fg_color="#fee2e2")
+        stop_embedded_server()
+        self.status_badge.configure(text="🔴 មិនដំណើរការ (Offline)", text_color="#dc2626", fg_color="#fee2e2")
 
     def _start_update_polling(self):
         # Initial check
