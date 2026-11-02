@@ -46,7 +46,16 @@ def is_django_running():
     import socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.5)
-        return s.connect_ex(('127.0.0.1', 8000)) == 0
+        if s.connect_ex(('127.0.0.1', 8000)) != 0:
+            return False
+    try:
+        req = urllib.request.Request("http://127.0.0.1:8000/login/", headers={'User-Agent': 'DMC-Checker'})
+        with urllib.request.urlopen(req, timeout=1.5) as resp:
+            return resp.status in (200, 301, 302)
+    except urllib.error.HTTPError as e:
+        return e.code in (200, 301, 302)
+    except Exception:
+        return False
 
 
 def update_android_app_url(tunnel_url):

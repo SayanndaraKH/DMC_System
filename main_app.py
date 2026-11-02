@@ -314,6 +314,8 @@ def start_embedded_server():
     global _waitress_server, _waitress_thread
     if _waitress_server is not None:
         return
+    free_port_8000()
+    time.sleep(0.3)
     start_port_80_redirector()
 
     def _serve():
@@ -474,24 +476,26 @@ class DMCMainApp(ctk.CTk):
             pass
 
     def check_url_online(self, url, timeout=1.5):
-        # 1. Quick TCP socket probe first (1ms)
+        # 1. Quick TCP socket probe first (fail fast if closed)
         try:
             from urllib.parse import urlparse
             p = urlparse(url)
             host = p.hostname or "127.0.0.1"
             port = p.port or (443 if p.scheme == "https" else 8000 if "8000" in url else 80)
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.5)
-                if s.connect_ex((host, port)) == 0:
-                    return True
+                s.settimeout(0.4)
+                if s.connect_ex((host, port)) != 0:
+                    return False
         except Exception:
-            pass
+            return False
 
-        # 2. HTTP probe fallback
+        # 2. HTTP probe to ensure real HTTP 200/301/302 response (not 404 from a foreign server)
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'DMC-Checker'})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.status in (200, 301, 302)
+        except urllib.error.HTTPError as e:
+            return e.code in (200, 301, 302)
         except Exception:
             return False
 
@@ -503,6 +507,8 @@ class DMCMainApp(ctk.CTk):
         The web interface will ONLY open when the user clicks 'បើកដំណើរការប្រព័ន្ធ'.
         """
         if not self.check_url_online("http://127.0.0.1:8000/"):
+            free_port_8000()
+            time.sleep(0.3)
             self.after(0, lambda: self.status_badge.configure(
                 text="⏳ កំពុងចាប់ផ្តើម...",
                 text_color="#854d0e",

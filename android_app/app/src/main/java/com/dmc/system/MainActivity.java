@@ -2,6 +2,7 @@ package com.dmc.system;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.DownloadManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -9,8 +10,12 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.KeyEvent;
 import android.view.View;
+import android.webkit.CookieManager;
+import android.webkit.DownloadListener;
+import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -30,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String PREF_NAME = "DMC_PREFS";
     private static final String KEY_SERVER_URL = "SERVER_URL";
-    private static final String DEFAULT_URL = "http://192.168.1.48:8000/";
+    private static final String DEFAULT_URL = "http://192.168.1.97:8000/";
     private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
 
     private WebView webView;
@@ -57,6 +62,41 @@ public class MainActivity extends AppCompatActivity {
         loadCurrentServer();
     }
 
+    /**
+     * Fixes and ensures proper scheme and port 8000 for local network connections,
+     * while preserving HTTPS for public Cloudflare Tunnels.
+     */
+    private String formatServerUrl(String raw) {
+        if (raw == null) return DEFAULT_URL;
+        String url = raw.trim();
+        if (url.isEmpty()) return DEFAULT_URL;
+
+        // Ensure protocol
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            url = "http://" + url;
+        }
+
+        // If scheme is http:// and user did not specify any port, fix port to 8000
+        try {
+            Uri parsed = Uri.parse(url);
+            String host = parsed.getHost();
+            int port = parsed.getPort();
+            if (port == -1 && !url.startsWith("https://") && host != null && !host.isEmpty()) {
+                String path = parsed.getPath();
+                if (path == null || path.isEmpty()) {
+                    path = "/";
+                }
+                url = "http://" + host + ":8000" + path;
+            }
+        } catch (Exception ignored) {
+        }
+
+        if (!url.endsWith("/")) {
+            url = url + "/";
+        }
+        return url;
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private void setupWebView() {
         WebSettings settings = webView.getSettings();
@@ -73,6 +113,50 @@ public class MainActivity extends AppCompatActivity {
         settings.setTextZoom(100);
         settings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NORMAL);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        cookieManager.setAcceptThirdPartyCookies(webView, true);
+
+        // Enable downloading reports, Excel files, PDF forms, and documents
+        webView.setDownloadListener(new DownloadListener() {
+            @Override
+            public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
+                try {
+                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                    if (mimeType != null && !mimeType.isEmpty()) {
+                        request.setMimeType(mimeType);
+                    }
+                    String cookies = CookieManager.getInstance().getCookie(url);
+                    if (cookies != null) {
+                        request.addRequestHeader("cookie", cookies);
+                    }
+                    if (userAgent != null) {
+                        request.addRequestHeader("User-Agent", userAgent);
+                    }
+                    request.setDescription("DMC System - កំពុងទាញយកឯកសារ...");
+                    String filename = URLUtil.guessFileName(url, contentDisposition, mimeType);
+                    request.setTitle(filename);
+                    request.allowScanningByMediaScanner();
+                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename);
+
+                    DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+                    if (dm != null) {
+                        dm.enqueue(request);
+                        Toast.makeText(MainActivity.this, "📥 កំពុងទាញយកឯកសារ៖ " + filename, Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception e) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(intent);
+                    } catch (Exception ex) {
+                        Toast.makeText(MainActivity.this, "មិនអាចទាញយកឯកសារបានឡើយ: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -124,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Long press anywhere with 2 fingers or header to change IP settings
+        // Long press anywhere to configure IP/Port settings
         webView.setOnLongClickListener(v -> {
             showServerSettingsDialog();
             return false;
@@ -134,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
     private void setupSwipeRefresh() {
         swipeRefreshLayout.setColorSchemeResources(R.color.primary_emerald, R.color.accent_amber);
         swipeRefreshLayout.setOnRefreshListener(() -> webView.reload());
+        swipeRefreshLayout.setOnChildScrollUpCallback((parent, child) -> webView.getScrollY() > 0);
     }
 
     private void loadCurrentServer() {
@@ -144,23 +229,27 @@ public class MainActivity extends AppCompatActivity {
     public void showServerSettingsDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("កំណត់អាសយដ្ឋាន Server (DMC System)");
-        builder.setMessage("សូមបញ្ចូលលេខ IP របស់កុំព្យូទ័រ Server (ឧទាហរណ៍៖ http://192.168.1.48:8000/)៖");
+        builder.setMessage("សូមបញ្ចូលលេខ IP របស់កុំព្យូទ័រ Server (Port 8000 ត្រូវបានកំណត់ដោយស្វ័យប្រវត្ត)៖\n(ឧទាហរណ៍៖ " + DEFAULT_URL + ")៖");
 
         final EditText input = new EditText(this);
+        input.setSingleLine(true);
         input.setText(prefs.getString(KEY_SERVER_URL, DEFAULT_URL));
+        if (input.getText() != null) {
+            input.setSelection(input.getText().length());
+        }
         builder.setView(input);
 
         builder.setPositiveButton("រក្សាទុក & ភ្ជាប់", (dialog, which) -> {
-            String newUrl = input.getText().toString().trim();
-            if (!newUrl.startsWith("http://") && !newUrl.startsWith("https://")) {
-                newUrl = "http://" + newUrl;
-            }
-            if (!newUrl.endsWith("/")) {
-                newUrl = newUrl + "/";
-            }
+            String newUrl = formatServerUrl(input.getText().toString());
             prefs.edit().putString(KEY_SERVER_URL, newUrl).apply();
             webView.loadUrl(newUrl);
             Toast.makeText(this, "បានប្តូរអាសយដ្ឋានទៅ៖ " + newUrl, Toast.LENGTH_SHORT).show();
+        });
+
+        builder.setNeutralButton("កំណត់លំនាំដើម", (dialog, which) -> {
+            prefs.edit().putString(KEY_SERVER_URL, DEFAULT_URL).apply();
+            webView.loadUrl(DEFAULT_URL);
+            Toast.makeText(this, "បានកំណត់ទៅអាសយដ្ឋានដើម៖ " + DEFAULT_URL, Toast.LENGTH_SHORT).show();
         });
 
         builder.setNegativeButton("បោះបង់", (dialog, which) -> dialog.cancel());
@@ -169,8 +258,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void showConnectionErrorDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("មិនអាចភ្ជាប់ទៅកាន់ Server");
-        builder.setMessage("មិនអាចភ្ជាប់ទៅកាន់ DMC System ឡើយ។ សូមពិនិត្យមើលថាតើទូរស័ព្ទបានភ្ជាប់ Wi-Fi តែមួយជាមួយ Server ឬនៅ ឬប្តូរលេខ IP របស់ Server។");
+        builder.setTitle("មិនអាចភ្ជាប់ទៅកាន់ Server (Port 8000)");
+        builder.setMessage("មិនអាចភ្ជាប់ទៅកាន់ DMC System ឡើយ។\n\nសូមពិនិត្យមើល៖\n១. ទូរស័ព្ទបានភ្ជាប់ Wi-Fi តែមួយជាមួយ Server (ឬបើក Cloudflare Tunnel)\n២. Server បានបើកដំណើរការ (Port 8000)\n៣. ពិនិត្យលេខ IP របស់កុំព្យូទ័រ Server");
         builder.setPositiveButton("ប្តូរលេខ IP Server", (dialog, which) -> showServerSettingsDialog());
         builder.setNegativeButton("ព្យាយាមម្តងទៀត", (dialog, which) -> webView.reload());
         builder.show();
@@ -209,4 +298,4 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 
-// Auto-Build Trigger: 2026-10-23 16:06:48
+// Auto-Build Trigger: 2026-11-02 15:59:49

@@ -55,6 +55,27 @@ def is_admin_account_strictly(user):
     return (getattr(user, 'username', '') or '').upper() == 'ADMIN'
 
 
+def can_manage_all_attachments(user):
+    """
+    Checks if a user is authorized to manage (add, view, edit, delete, download)
+    reference documents (ឯកសារយោង) for civil servants and contract staff across ALL departments.
+    Specifically authorized:
+    - Superusers
+    - User account 'ADMIN'
+    - User account 'LIM LII HAK' (ID: 59)
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    uname = (getattr(user, 'username', '') or '').strip().upper()
+    if uname in ['ADMIN', 'LIM LII HAK', 'LIM_LII_HAK', 'LIMLIIHAK']:
+        return True
+    if getattr(user, 'id', None) == 59:
+        return True
+    return False
+
+
 def admin_account_required(view_func):
     """
     Decorator for views that MUST strictly only be accessed by user Account: ADMIN.
@@ -3802,7 +3823,7 @@ def officer_detail(request, pk):
     edit_window = OfficerEditWindowSetting.get_setting()
     is_window_open = edit_window.is_open_for_department(officer.department or dept)
     can_dept_edit = is_admin_or_lead or (dept and officer.department == dept) or (officer.user == request.user)
-    can_edit = is_system_admin or (can_dept_edit and is_window_open)
+    can_edit = is_system_admin or (can_dept_edit and is_window_open) or can_manage_all_attachments(request.user)
 
     children = officer.children_data or []
     female_children_count = sum(1 for c in children if c.get('gender') in ['ស្រី', 'FEMALE', 'Female'])
@@ -4213,7 +4234,7 @@ def officer_attachment_add(request, pk):
     officer = get_object_or_404(CivilServantProfile, pk=pk)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    is_admin = is_admin_account_strictly(request.user)
+    is_admin = is_admin_account_strictly(request.user) or can_manage_all_attachments(request.user)
     is_system_admin = is_admin
 
     if not is_admin and (not dept or officer.department_id != dept.id) and officer.user != request.user:
@@ -4288,7 +4309,7 @@ def officer_attachment_edit(request, pk, attachment_id):
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    is_admin = is_admin_account_strictly(request.user)
+    is_admin = is_admin_account_strictly(request.user) or can_manage_all_attachments(request.user)
     is_system_admin = is_admin
 
     next_url = request.POST.get('next') or request.GET.get('next')
@@ -4352,7 +4373,7 @@ def officer_attachment_delete(request, pk, attachment_id):
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    is_admin = is_admin_account_strictly(request.user)
+    is_admin = is_admin_account_strictly(request.user) or can_manage_all_attachments(request.user)
     is_system_admin = is_admin
 
     next_url = request.POST.get('next') or request.GET.get('next')
@@ -4525,7 +4546,7 @@ def officer_attachment_view(request, pk, attachment_id):
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
 
     # 🔒 Strict Department Isolation: only user account ADMIN or same department user
-    if not is_admin_account_strictly(request.user):
+    if not is_admin_account_strictly(request.user) and not can_manage_all_attachments(request.user):
         profile = getattr(request.user, 'profile', None)
         user_dept = profile.department if profile else None
         if (not user_dept or officer.department_id != user_dept.id) and officer.user != request.user:
@@ -4632,7 +4653,7 @@ def officer_attachment_download(request, pk, attachment_id):
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
 
     # 🔒 Strict Department Isolation: only user account ADMIN or same department user
-    if not is_admin_account_strictly(request.user):
+    if not is_admin_account_strictly(request.user) and not can_manage_all_attachments(request.user):
         profile = getattr(request.user, 'profile', None)
         user_dept = profile.department if profile else None
         if (not user_dept or officer.department_id != user_dept.id) and officer.user != request.user:
@@ -4699,7 +4720,7 @@ def officer_attachment_open_word(request, pk, attachment_id):
     att = get_object_or_404(OfficerAttachment, pk=attachment_id, officer=officer)
 
     # 🔒 Strict Department Isolation: only user account ADMIN or same department user
-    if not is_admin_account_strictly(request.user):
+    if not is_admin_account_strictly(request.user) and not can_manage_all_attachments(request.user):
         profile = getattr(request.user, 'profile', None)
         user_dept = profile.department if profile else None
         if (not user_dept or officer.department_id != user_dept.id) and officer.user != request.user:
@@ -12326,7 +12347,7 @@ def contract_officer_detail(request, pk):
     renewals = contract_officer.renewals.select_related('approved_by').all().order_by('-to_year', '-approved_at')
     transfers = contract_officer.transfers.select_related('from_department', 'to_department', 'transferred_by').all().order_by('-transfer_date', '-created_at')
     all_departments = Department.objects.filter(is_active=True).order_by('order_index', 'name_kh')
-    can_edit = is_admin_or_lead or (dept and contract_officer.department == dept)
+    can_edit = is_admin_or_lead or (dept and contract_officer.department == dept) or can_manage_all_attachments(request.user)
     current_year = timezone.now().year
     next_year = contract_officer.contract_year + 1
 
@@ -13231,7 +13252,7 @@ def contract_officer_attachment_add(request, pk):
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    is_admin = is_admin_account_strictly(request.user)
+    is_admin = is_admin_account_strictly(request.user) or can_manage_all_attachments(request.user)
 
     if not is_admin:
         if not dept or contract_officer.department != dept:
@@ -13283,7 +13304,7 @@ def contract_officer_attachment_edit(request, pk, attachment_id):
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    is_admin = is_admin_account_strictly(request.user)
+    is_admin = is_admin_account_strictly(request.user) or can_manage_all_attachments(request.user)
 
     if not is_admin:
         if not dept or contract_officer.department != dept:
@@ -13333,7 +13354,7 @@ def contract_officer_attachment_delete(request, pk, attachment_id):
     contract_officer = get_object_or_404(ContractOfficer, pk=pk)
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
-    is_admin = is_admin_account_strictly(request.user)
+    is_admin = is_admin_account_strictly(request.user) or can_manage_all_attachments(request.user)
 
     if not is_admin:
         if not dept or contract_officer.department != dept:
@@ -13371,7 +13392,7 @@ def contract_officer_attachment_view(request, pk, attachment_id):
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
 
     # 🔒 Strict Department Isolation: only user account ADMIN or same department user
-    if not is_admin_account_strictly(request.user):
+    if not is_admin_account_strictly(request.user) and not can_manage_all_attachments(request.user):
         profile = getattr(request.user, 'profile', None)
         user_dept = profile.department if profile else None
         if not user_dept or contract_officer.department_id != user_dept.id:
@@ -13462,7 +13483,7 @@ def contract_officer_attachment_download(request, pk, attachment_id):
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
 
     # 🔒 Strict Department Isolation: only user account ADMIN or same department user
-    if not is_admin_account_strictly(request.user):
+    if not is_admin_account_strictly(request.user) and not can_manage_all_attachments(request.user):
         profile = getattr(request.user, 'profile', None)
         user_dept = profile.department if profile else None
         if not user_dept or contract_officer.department_id != user_dept.id:
@@ -13517,7 +13538,7 @@ def contract_officer_attachment_open_word(request, pk, attachment_id):
     attachment = get_object_or_404(ContractOfficerAttachment, pk=attachment_id, contract_officer=contract_officer)
 
     # 🔒 Strict Department Isolation: only user account ADMIN or same department user
-    if not is_admin_account_strictly(request.user):
+    if not is_admin_account_strictly(request.user) and not can_manage_all_attachments(request.user):
         profile = getattr(request.user, 'profile', None)
         user_dept = profile.department if profile else None
         if not user_dept or contract_officer.department_id != user_dept.id:
@@ -18310,7 +18331,7 @@ def personnel_reference_hub(request):
     profile = getattr(request.user, 'profile', None)
     dept = profile.department if profile else None
     # 🔒 STRICT DEPARTMENT ISOLATION: Only user account ADMIN (or superuser) can see/filter other departments
-    is_admin = is_admin_account_strictly(request.user)
+    is_admin = is_admin_account_strictly(request.user) or can_manage_all_attachments(request.user)
     is_admin_or_lead = is_admin
     is_system_admin = is_admin
 
@@ -18609,7 +18630,7 @@ def api_personnel_reference_data(request):
     except ValueError:
         return JsonResponse({'status': 'error', 'message': 'Invalid person ID'}, status=400)
 
-    is_admin = is_admin_account_strictly(request.user)
+    is_admin = is_admin_account_strictly(request.user) or can_manage_all_attachments(request.user)
     user_profile = getattr(request.user, 'profile', None)
     user_dept = user_profile.department if user_profile else None
 

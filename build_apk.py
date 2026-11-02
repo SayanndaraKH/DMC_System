@@ -262,6 +262,12 @@ def auto_build_and_download_apk():
 
     # Verify final APK file
     if dist_apk.exists() and dist_apk.stat().st_size > 500 * 1024:
+        try:
+            output_folder = BASE_DIR / 'output_apk'
+            output_folder.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(dist_apk, output_folder / 'DMC_System.apk')
+        except Exception:
+            pass
         size_mb = dist_apk.stat().st_size / (1024 * 1024)
         mtime_str = datetime.fromtimestamp(dist_apk.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
 
