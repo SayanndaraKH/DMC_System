@@ -129,7 +129,6 @@ def main():
     subprocess.run([
         git_bin, "add", "-f",
         "dist/DMC_System.exe",
-        "dist/DMC_System.apk",
         "dist/current_version.json",
         "dist/dmc_config.txt",
         "current_version.json",

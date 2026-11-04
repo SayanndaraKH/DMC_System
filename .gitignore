@@ -58,3 +58,5 @@ backups/
 # Local backups of .env (contain database credentials)
 .env.bak*
 release/
+# Android APK is no longer distributed
+dist/*.apk

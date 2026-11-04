@@ -1,11 +1,8 @@
 name: 📱 Build DMC System Android APK
 
+# Auto-build on push is disabled (APK no longer distributed).
+# Can still be run manually from the GitHub Actions tab if ever needed.
 on:
-  push:
-    branches: [ main, master ]
-    paths-ignore:
-      - 'dist/**'
-      - '*.md'
   workflow_dispatch:
 
 jobs:
