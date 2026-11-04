@@ -57,3 +57,4 @@ backups/
 
 # Local backups of .env (contain database credentials)
 .env.bak*
+release/
