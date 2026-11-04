@@ -54,3 +54,6 @@ build/
 # Backup archives
 backups/
 *.zip
+
+# Local backups of .env (contain database credentials)
+.env.bak*

@@ -1,5 +1,20 @@
 from django.core.cache import cache
 
+
+def get_db_server_info():
+    """Describe which database server this process is connected to (shown in the UI)."""
+    from django.conf import settings
+    db = settings.DATABASES.get('default', {})
+    engine = db.get('ENGINE', '')
+    host = (db.get('HOST') or '').lower()
+    if 'sqlite' in engine:
+        return {'code': 'local', 'flag': '💻', 'name_kh': 'កុំព្យូទ័រផ្ទាល់ (SQLite)', 'name_en': 'Local SQLite', 'host': 'db.sqlite3', 'color': 'secondary'}
+    if 'ap-southeast-1' in host:
+        return {'code': 'sg', 'flag': '🇸🇬', 'name_kh': 'សិង្ហបុរី', 'name_en': 'Singapore', 'host': host, 'color': 'success'}
+    if 'us-east' in host or 'us-west' in host:
+        return {'code': 'us', 'flag': '🇺🇸', 'name_kh': 'អាមេរិក', 'name_en': 'America', 'host': host, 'color': 'warning'}
+    return {'code': 'other', 'flag': '🌐', 'name_kh': 'ផ្សេងៗ', 'name_en': host or 'Unknown', 'host': host, 'color': 'secondary'}
+
 def dms_context(request):
     if request.user.is_authenticated:
         try:
@@ -120,6 +135,7 @@ def dms_context(request):
             'is_dev_mode': settings.DEBUG,
             'can_view_contract_officers_menu': can_view_contract_officers_menu,
             'can_manage_leadership_attendance': can_manage_leadership_attendance,
+            'db_server': get_db_server_info(),
         }
     return {
         'user_profile': None,
@@ -129,4 +145,5 @@ def dms_context(request):
         'is_impersonating': False,
         'all_dev_users': [],
         'is_dev_mode': True,
+        'db_server': get_db_server_info(),
     }

@@ -310,6 +310,61 @@ def start_port_80_redirector():
 _waitress_server = None
 _waitress_thread = None
 
+def detect_db_region():
+    """
+    Returns (code, badge_text, text_color, fg_color) for the database server in use.
+    Prefers the live Django settings once the embedded server has started; before that,
+    resolves DATABASE_URL the same way dms_project/settings.py does (.env beside the EXE
+    first, then the bundled copy, then the hardcoded us-east-1 fallback).
+    """
+    host = ""
+    use_sqlite = False
+    try:
+        from django.conf import settings as dj_settings
+        if dj_settings.configured:
+            db = dj_settings.DATABASES.get("default", {})
+            use_sqlite = "sqlite" in db.get("ENGINE", "")
+            host = (db.get("HOST") or "").lower()
+    except Exception:
+        pass
+
+    if not host and not use_sqlite:
+        url = os.environ.get("DATABASE_URL", "")
+        flag = os.environ.get("USE_LOCAL_SQLITE", "")
+        if not url:
+            candidates = []
+            if getattr(sys, "frozen", False):
+                exe_dir = Path(sys.executable).resolve().parent
+                candidates += [exe_dir / ".env", exe_dir.parent / ".env"]
+            candidates.append(BASE_DIR / ".env")
+            try:
+                candidates.append(Path(sys._MEIPASS) / ".env")
+            except Exception:
+                pass
+            for c in candidates:
+                if c.exists():
+                    try:
+                        for line in open(c, "r", encoding="utf-8"):
+                            line = line.strip()
+                            if line.startswith("DATABASE_URL="):
+                                url = line.split("=", 1)[1].strip()
+                            elif line.startswith("USE_LOCAL_SQLITE=") and not flag:
+                                flag = line.split("=", 1)[1].strip()
+                    except Exception:
+                        pass
+                    break
+        use_sqlite = flag.lower() in ("true", "1", "yes")
+        host = (url or "us-east-1").lower()  # settings.py falls back to the us-east-1 project
+
+    if use_sqlite:
+        return "LOCAL", "📁 Local SQLite", "#854d0e", "#fef9c3"
+    if "ap-southeast-1" in host:
+        return "SG", "🟢 SG • សិង្ហបុរី", "#15803d", "#dcfce7"
+    if "us-east" in host or "us-west" in host:
+        return "US", "🟡 US • អាមេរិក", "#a16207", "#fef3c7"
+    return "OTHER", "🌐 Neon Cloud", "#0369a1", "#e0f2fe"
+
+
 def start_embedded_server():
     global _waitress_server, _waitress_thread
     if _waitress_server is not None:
@@ -711,12 +766,13 @@ class DMCMainApp(ctk.CTk):
             font=ctk.CTkFont(family="Khmer OS Battambang", size=11, weight="bold"),
             text_color="#334155"
         ).pack(anchor="center", pady=(0, 3))
+        _db_code, _db_text, _db_tc, _db_bg = detect_db_region()
         self.db_badge = ctk.CTkLabel(
             col2,
-            text="🟢 បានភ្ជាប់ជោគជ័យ",
-            font=ctk.CTkFont(size=10, weight="bold"),
-            text_color="#15803d",
-            fg_color="#dcfce7",
+            text=_db_text,
+            font=ctk.CTkFont(family="Khmer OS Battambang", size=10, weight="bold"),
+            text_color=_db_tc,
+            fg_color=_db_bg,
             corner_radius=8,
             padx=8,
             pady=3
@@ -984,6 +1040,13 @@ class DMCMainApp(ctk.CTk):
                     text_color="#dc2626",
                     fg_color="#fee2e2"
                 ))
+            # Refresh the SG / US database badge (picks up the live Django settings
+            # once the embedded server has started).
+            try:
+                _c, _t, _tc, _bg = detect_db_region()
+                self.after(0, lambda t=_t, tc=_tc, bg=_bg: self.db_badge.configure(text=t, text_color=tc, fg_color=bg))
+            except Exception:
+                pass
             time.sleep(3)
 
     def reset_to_localhost(self):
@@ -1203,7 +1266,8 @@ class DMCMainApp(ctk.CTk):
             with open(ENV_FILE, "w", encoding="utf-8") as f:
                 f.write(content)
         self.db_mode = "NEON_CLOUD"
-        self.db_badge.configure(text="⚡ Neon Cloud PostgreSQL", text_color="#0369a1", fg_color="#e0f2fe")
+        _c, _t, _tc, _bg = detect_db_region()
+        self.db_badge.configure(text=_t, text_color=_tc, fg_color=_bg)
         self.restart_server()
 
     def switch_to_sqlite(self):

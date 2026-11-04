@@ -2571,7 +2571,15 @@ def officer_list(request):
     gender_filter = request.GET.get('gender', '').strip()
     marital_filter = request.GET.get('marital_status', '').strip()
 
-    queryset = CivilServantProfile.objects.select_related('department', 'user').all()
+    # The list page never renders the per-officer JSON history blobs, but fetching
+    # them costs ~7s per page against Neon (education_data alone is ~4s over a
+    # 260ms-RTT link). Defer them here; officer_detail/officer_edit still load them.
+    HEAVY_JSON_FIELDS = (
+        'education_data', 'promotions_by_seniority', 'history_public_sector',
+        'awards_data', 'children_data', 'history_private_sector',
+        'languages_data', 'promotions_by_degree',
+    )
+    queryset = CivilServantProfile.objects.select_related('department', 'user').defer(*HEAVY_JSON_FIELDS).all()
 
     # Specialized Technical Offices can ONLY view officers in their own department
     if not is_admin_or_lead:
@@ -3565,7 +3573,20 @@ def officer_edit(request, pk):
             old_dept = officer.department
             old_pos = officer.current_position_title
             pos_title = request.POST.get('current_position_title', '').strip()
-            target_dept_id = request.POST.get('department_select_placement') or request.POST.get('department')
+            # The form renders two department selects (primary in ក- ព័ត៌មានផ្ទាល់ខ្លួន and
+            # secondary in ច- ក្របខ័ណ្ឌការងារ) kept in sync by JS. If that sync does not run,
+            # a stale value must never override the select the user actually changed, so
+            # prefer whichever one differs from the currently stored department.
+            primary_dept_id = (request.POST.get('department') or '').strip()
+            secondary_dept_id = (request.POST.get('department_select_placement') or '').strip()
+            current_dept_id = str(officer.department_id or '')
+
+            if secondary_dept_id and secondary_dept_id != current_dept_id:
+                target_dept_id = secondary_dept_id
+            elif primary_dept_id and primary_dept_id != current_dept_id:
+                target_dept_id = primary_dept_id
+            else:
+                target_dept_id = secondary_dept_id or primary_dept_id
 
             if pos_title in ['ប្រធានមន្ទីរ', 'អនុប្រធានមន្ទីរ']:
                 lead_dept = Department.objects.filter(Q(code='LEAD') | Q(name_kh='ថ្នាក់ដឹកនាំមន្ទីរ')).first()

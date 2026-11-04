@@ -15,6 +15,44 @@ if sys.platform == "win32":
 BASE_DIR = Path(__file__).resolve().parent
 os.chdir(BASE_DIR)
 
+# ---------------------------------------------------------------------------
+# EXE build version - increments on every build, never resets.
+# Produces DMC_System_v<MAJOR>.<MINOR>.<BUILD>.exe alongside the unversioned
+# DMC_System.exe, which other scripts (UPDATE_USER_PC.bat, main_app.py,
+# EXPORT_PORTABLE_PACKAGE.bat, push_to_github.py) still reference by name.
+# ---------------------------------------------------------------------------
+import json
+from datetime import datetime
+
+VERSION_FILE = BASE_DIR / "exe_version.json"
+
+
+def bump_version():
+    data = {"major": 1, "minor": 0, "build": 0, "history": []}
+    if VERSION_FILE.exists():
+        try:
+            with open(VERSION_FILE, "r", encoding="utf-8") as vf:
+                loaded = json.load(vf)
+            if isinstance(loaded, dict):
+                data.update({k: loaded.get(k, data[k]) for k in ("major", "minor", "build")})
+                data["history"] = loaded.get("history", [])
+        except Exception as e:
+            print(f"[WARN] exe_version.json unreadable ({e}) - starting a fresh version.")
+
+    data["build"] = int(data["build"]) + 1
+    version = f"{data['major']}.{data['minor']}.{data['build']}"
+    data["version"] = version
+    data["built_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    data["history"] = ([{"version": version, "built_at": data["built_at"]}] + data["history"])[:50]
+
+    with open(VERSION_FILE, "w", encoding="utf-8") as vf:
+        json.dump(data, vf, indent=2, ensure_ascii=False)
+    return version
+
+
+EXE_VERSION = bump_version()
+print(f">>> Build version: v{EXE_VERSION}")
+
 print("=" * 70)
 print("     🏛️  ប្រព័ន្ធគ្រប់គ្រងឯកសារ និងព័ត៌មានមន្ត្រី (DMC System)")
 print("            ឧបករណ៍បង្កើត Standalone Windows EXE (Python)")
@@ -167,10 +205,19 @@ if dist_exe.exists():
         file_size_mb = target_exe.stat().st_size / (1024 * 1024)
         print(f"✅ ចម្លងជោគជ័យ! ទំហំ file: {file_size_mb:.2f} MB (បាន Update រូបរាងថ្មី ១០០%)")
 
+    # Versioned copy, kept forever alongside the stable DMC_System.exe name.
+    versioned_exe = BASE_DIR / f"DMC_System_v{EXE_VERSION}.exe"
+    try:
+        shutil.copy2(dist_exe, versioned_exe)
+        shutil.copy2(dist_exe, BASE_DIR / "dist" / versioned_exe.name)
+        print(f"📦 បង្កើត version: {versioned_exe.name}")
+    except Exception as e:
+        print(f"⚠️ មិនអាចបង្កើត file version បានទេ: {e}")
+
 # 5. Success Banner
 print()
 print("=" * 70)
-print("  ✅ បង្កើត file DMC_System.exe បានជោគជ័យ ១០០%!")
+print(f"  ✅ បង្កើត file DMC_System.exe (v{EXE_VERSION}) បានជោគជ័យ ១០០%!")
 print(f"  📁 ទីតាំង File: {target_exe}")
 print("  🚀 ពេលចុចបើក DMC_System.exe វានឹងបង្ហាញទម្រង់ទី២ (Web App) ស្វ័យប្រវត្ត")
 print("  🔒 ទិន្នន័យ db.sqlite3 និង Neon Cloud Database ភ្ជាប់បានយ៉ាងត្រឹមត្រូវ")

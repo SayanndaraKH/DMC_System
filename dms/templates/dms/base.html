@@ -795,6 +795,14 @@
                     </div>
                     {% endif %}
 
+                    <!-- Database server location (Singapore / America) -->
+                    {% if db_server %}
+                    <span class="badge rounded-pill text-bg-{{ db_server.color }} d-flex align-items-center gap-1 px-2.5 py-2 shadow-sm flex-shrink-0" title="Database Server: {{ db_server.name_en }} ({{ db_server.host }})">
+                        <i class="fa-solid fa-database"></i>
+                        <span>{{ db_server.flag }} <span class="d-none d-sm-inline">Server:</span> {{ db_server.name_kh }}</span>
+                    </span>
+                    {% endif %}
+
                     <!-- Fullscreen Toggle Button -->
                     <button class="btn btn-outline-success btn-sm rounded-pill p-2 px-2.5 shadow-sm d-flex align-items-center gap-1.5 text-nowrap flex-shrink-0" id="btnToggleFullScreen" type="button" title="Full Screen (ពេញអេក្រង់)" onclick="toggleFullScreenMode()">
                         <i class="fa-solid fa-expand text-success"></i>

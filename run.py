@@ -14,6 +14,20 @@ BASE_DIR = Path(__file__).resolve().parent
 os.chdir(BASE_DIR)
 sys.path.insert(0, str(BASE_DIR))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dms_project.settings')
+# Load .env BEFORE applying any fallback below. Both this file and settings.py use
+# os.environ.setdefault, so whichever runs first wins - without this, the hardcoded
+# fallback here would permanently shadow DATABASE_URL in .env and editing .env
+# (e.g. to point at a different Neon region) would silently have no effect.
+_ENV_FILE = BASE_DIR / '.env'
+if _ENV_FILE.exists():
+    with open(_ENV_FILE, 'r', encoding='utf-8') as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith('#') and '=' in _line:
+                _k, _v = _line.split('=', 1)
+                os.environ.setdefault(_k.strip(), _v.strip())
+
+# Fallback only - .env above takes precedence.
 NEON_CLOUD_DATABASE_URL = 'postgresql://neondb_owner:npg_bw8CSyjXtql6@ep-wandering-fire-awc8mlbh-pooler.c-12.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
 os.environ.setdefault('DATABASE_URL', NEON_CLOUD_DATABASE_URL)
 os.environ.setdefault('USE_LOCAL_SQLITE', 'False')
@@ -141,6 +155,61 @@ def kill_process_on_port(port=8000):
         time.sleep(1)
     except Exception as e:
         logging.warning(f"Failed to clear port {port} via PowerShell: {e}")
+
+
+def _loopback_hijackers(port=8000, exclude_pids=()):
+    """
+    Returns PIDs of processes listening on 127.0.0.1/::1 for the given port.
+
+    The DMS server binds 0.0.0.0, but on Windows an address-specific bind wins
+    over the wildcard, so any other app holding 127.0.0.1:8000 silently steals
+    every http://localhost:8000 request while our server still looks healthy.
+    """
+    cmd = (
+        f'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort {port} -State Listen '
+        "-ErrorAction SilentlyContinue | Where-Object { $_.LocalAddress -eq '127.0.0.1' -or $_.LocalAddress -eq '::1' } "
+        '| Select-Object -ExpandProperty OwningProcess -Unique"'
+    )
+    try:
+        out = subprocess.run(cmd, shell=True, timeout=10, capture_output=True, text=True).stdout
+    except Exception as e:
+        logging.warning(f"Unable to inspect loopback listeners on port {port}: {e}")
+        return []
+
+    skip = {int(x) for x in exclude_pids if x}
+    skip.add(os.getpid())
+    pids = []
+    for line in out.splitlines():
+        line = line.strip()
+        if line.isdigit() and int(line) not in skip:
+            pids.append(int(line))
+    return pids
+
+
+def start_loopback_guard(port=8000, exclude_pids=(), interval_seconds=30):
+    """
+    Watches for another app hijacking 127.0.0.1:<port> after our server started
+    and terminates it, so http://127.0.0.1:8000 keeps reaching DMS.
+    """
+    def guard_worker():
+        while True:
+            try:
+                for pid in _loopback_hijackers(port, exclude_pids):
+                    logging.warning(
+                        f"Foreign process PID {pid} hijacked 127.0.0.1:{port} - terminating it "
+                        f"so localhost keeps reaching DMS."
+                    )
+                    subprocess.run(
+                        f'powershell -NoProfile -Command "Stop-Process -Id {pid} -Force -ErrorAction SilentlyContinue"',
+                        shell=True, timeout=10, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    )
+            except Exception as e:
+                logging.warning(f"Loopback guard error: {e}")
+            time.sleep(interval_seconds)
+
+    t = threading.Thread(target=guard_worker, daemon=True)
+    t.start()
+    logging.info(f"Loopback guard active: watching 127.0.0.1:{port} for conflicting listeners.")
 
 
 def detect_and_update_lan_ip():
@@ -353,6 +422,12 @@ def main():
         logging.info("Checking database migrations...")
         import django
         django.setup()
+        try:
+            from dms.context_processors import get_db_server_info
+            _db = get_db_server_info()
+            logging.info(f"Database Server: {_db['name_en']} ({_db['name_kh']}) - {_db['host']}")
+        except Exception as _e:
+            logging.warning(f"Could not determine database server: {_e}")
         from django.core.management import call_command
         call_command('migrate', interactive=False, stdout=sys.stdout, stderr=sys.stderr)
         logging.info("Migrations check completed successfully.")
@@ -369,19 +444,35 @@ def main():
         wait_and_open_browser('http://127.0.0.1:8000')
 
     # 6. Run server
+    server_proc = None
     try:
         logging.info("DMS Server is now running on 0.0.0.0:8000")
         cmd = [sys.executable, str(BASE_DIR / 'manage.py'), 'runserver', '0.0.0.0:8000']
         is_interactive = hasattr(sys, '__stdout__') and sys.__stdout__ is not None and hasattr(sys.__stdout__, 'isatty') and sys.__stdout__.isatty()
         if not is_interactive:
-            subprocess.run(cmd, stdout=log_fp, stderr=log_fp)
+            server_proc = subprocess.Popen(cmd, stdout=log_fp, stderr=log_fp)
         else:
-            subprocess.run(cmd)
+            server_proc = subprocess.Popen(cmd)
+
+        # Keep 127.0.0.1:8000 reserved for DMS - another app binding loopback
+        # specifically would otherwise shadow our 0.0.0.0 bind on Windows.
+        start_loopback_guard(8000, exclude_pids=(server_proc.pid,))
+
+        server_proc.wait()
     except KeyboardInterrupt:
         logging.info("DMS Server stopped by user.")
     except Exception as e:
         logging.critical(f"DMS Server error: {e}")
     finally:
+        if server_proc is not None and server_proc.poll() is None:
+            try:
+                server_proc.terminate()
+                server_proc.wait(timeout=5)
+            except Exception:
+                try:
+                    server_proc.kill()
+                except Exception:
+                    pass
         if PID_FILE.exists():
             try:
                 PID_FILE.unlink(missing_ok=True)

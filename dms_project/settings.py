@@ -5,8 +5,18 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load .env configuration if present locally
-ENV_FILE = BASE_DIR / '.env'
+# Load .env configuration if present locally.
+# When frozen by PyInstaller, BASE_DIR points inside the extracted bundle, so a
+# bundled (and therefore stale) .env would shadow the real one sitting next to the
+# .exe - meaning edits to DATABASE_URL on disk would silently have no effect.
+# Prefer the .env beside the executable, and fall back to the bundled copy.
+_ENV_CANDIDATES = []
+if getattr(sys, 'frozen', False):
+    _exe_dir = Path(sys.executable).resolve().parent
+    _ENV_CANDIDATES += [_exe_dir / '.env', _exe_dir.parent / '.env']
+_ENV_CANDIDATES.append(BASE_DIR / '.env')
+
+ENV_FILE = next((p for p in _ENV_CANDIDATES if p.exists()), BASE_DIR / '.env')
 if ENV_FILE.exists():
     with open(ENV_FILE, 'r', encoding='utf-8') as f:
         for line in f:
@@ -184,7 +194,13 @@ if not USE_LOCAL_SQLITE and DATABASE_URL:
         DATABASES = {
             'default': dj_database_url.config(
                 default=DATABASE_URL,
-                conn_max_age=0,  # 0 recommended for Neon PgBouncer pooler to prevent dead socket errors
+                # Reuse connections instead of paying a new TLS+auth handshake (~1.9s
+                # measured from here to Neon us-east-1) on every single request.
+                # Safe with the -pooler endpoint: conn_health_checks makes Django
+                # verify the socket is alive and transparently reconnect if the
+                # pooler dropped it, which is what conn_max_age=0 used to guard against.
+                # Set DB_CONN_MAX_AGE=0 to revert to per-request connections.
+                conn_max_age=int(os.environ.get('DB_CONN_MAX_AGE', '300')),
                 conn_health_checks=True,
                 ssl_require=True
             )
