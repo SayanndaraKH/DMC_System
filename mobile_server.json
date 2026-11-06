@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "updated": "2026-11-06T09:51:49+07:00",
+  "servers": [
+    "https://destinations-why-female-shoppers.trycloudflare.com/"
+  ],
+  "lan": [
+    "http://192.168.1.97:8000/"
+  ]
+}
